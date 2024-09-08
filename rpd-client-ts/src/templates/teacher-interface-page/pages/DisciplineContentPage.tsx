@@ -8,7 +8,7 @@ import {
 import { ObjectHours, DisciplineContentData } from '../../../types/DisciplineContentPageTypes';
 import showSuccessMessage from '../../../utils/showSuccessMessage';
 import showErrorMessage from '../../../utils/showErrorMessage';
-import { EditableCell } from '../changeable-elements/EditableCell';
+import EditableCell from '../changeable-elements/EditableCell';
 import { EditableNumber } from '../changeable-elements/EditableNumber';
 import { axiosBase } from '../../../fetchers/baseURL';
 

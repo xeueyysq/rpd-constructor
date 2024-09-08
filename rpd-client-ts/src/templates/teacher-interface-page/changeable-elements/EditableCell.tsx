@@ -1,14 +1,15 @@
-import { useState, useEffect, useRef, FC, ChangeEvent } from 'react';
+import { useState, useEffect, useRef, ChangeEvent, FocusEvent } from 'react';
 
-interface EditableCellProps {
+type EditableCellProps = {
     value: string;
-    onValueChange: (value: string) => void;
-}
+    onValueChange: (newValue: string) => void;
+    readOnly?: boolean;
+};
 
-export const EditableCell: FC<EditableCellProps> = ({ value, onValueChange }) => {
-    const [inputValue, setInputValue] = useState<string>(value);
-    const [isEditing, setIsEditing] = useState<boolean>(false);
-    const textAreaRef = useRef<HTMLTextAreaElement | null>(null);
+function EditableCell({ value, onValueChange, readOnly = false }: EditableCellProps) {
+    const [inputValue, setInputValue] = useState(value);
+    const [isEditing, setIsEditing] = useState(false);
+    const textAreaRef = useRef<HTMLTextAreaElement>(null);
 
     useEffect(() => {
         if (textAreaRef.current) {
@@ -19,14 +20,16 @@ export const EditableCell: FC<EditableCellProps> = ({ value, onValueChange }) =>
     }, [isEditing, inputValue]);
 
     const handleDivClick = () => {
-        setIsEditing(true);
+        if (!readOnly) {
+            setIsEditing(true);
+        }
     };
 
-    const handleInputChange = (event: ChangeEvent<HTMLTextAreaElement>) => {
-        setInputValue(event.target.value);
+    const handleInputChange = (e: ChangeEvent<HTMLTextAreaElement>) => {
+        setInputValue(e.target.value);
     };
 
-    const handleInputBlur = () => {
+    const handleInputBlur = (e: FocusEvent<HTMLTextAreaElement>) => {
         setIsEditing(false);
         onValueChange(inputValue);
     };
@@ -47,7 +50,15 @@ export const EditableCell: FC<EditableCellProps> = ({ value, onValueChange }) =>
     return (
         <div 
             onClick={handleDivClick}
-            style={{ whiteSpace: 'pre-wrap' }}
-        >{value}</div>
+            style={{ 
+                whiteSpace: 'pre-wrap', 
+                cursor: readOnly ? 'default' : 'pointer',
+                backgroundColor: readOnly ? '#f5f5f5' : 'white'
+            }}
+        >
+            {value}
+        </div>
     );
 }
+
+export default EditableCell;

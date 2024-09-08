@@ -1,7 +1,7 @@
 import { AbilityBuilder, Ability, AbilityClass } from "@casl/ability";
 
-type Actions = "get";
-type Subjects = "auth" | "lk" | "rop_interface" | "teacher_interface" | "change_templates";
+type Actions = "get" | "edit";
+type Subjects = "auth" | "lk" | "rop_interface" | "teacher_interface" | "change_templates" | "competencies";
 export type UserRole = "anonymous" | "teacher" | "rop" | "admin";
 
 export type AppAbility = Ability<[Actions, Subjects]>;
@@ -14,16 +14,17 @@ const defineRulesFor = (role: UserRole) => {
         can("get", "auth")
     }
     if (role === "teacher") {
-        can("get", "teacher_interface")
-        can("get", "lk")
+        can("get", "teacher_interface");
+        can("get", "lk");
+        can("edit", "competencies");
     }
     else if (role === "rop") {
-        can("get", "rop_interface")
-        can("get", "lk")
+        can("get", "rop_interface");
+        can("get", "lk");
     }
     else if (role === "admin") {
-        can("get", "change_templates")
-        can("get", "lk")
+        can("get", "change_templates");
+        can("get", "lk");
     }
 
     return rules;
