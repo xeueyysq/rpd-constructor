@@ -2,10 +2,10 @@ import config from "../config";
 import { AuthClient } from "../context/AuthContext";
 
 const inMemoryJWTService = () => {
-  let inMemoryJWT = null;
-  let refreshTimeoutId = null;
+  let inMemoryJWT: string | null = null;
+  let refreshTimeoutId: NodeJS.Timeout | null = null;
 
-  const refreshToken = (expiration) => {
+  const refreshToken = (expiration: number) => {
     const timeoutTrigger = expiration - 10000;
 
     refreshTimeoutId = setTimeout(() => {
@@ -24,9 +24,9 @@ const inMemoryJWTService = () => {
     }
   };
 
-  const getToken = () => inMemoryJWT;
+  const getToken = (): string | null => inMemoryJWT;
 
-  const setToken = (token, tokenExpiration) => {
+  const setToken = (token: string, tokenExpiration: number) => {
     inMemoryJWT = token;
     refreshToken(tokenExpiration);
   };
@@ -34,7 +34,7 @@ const inMemoryJWTService = () => {
   const deleteToken = () => {
     inMemoryJWT = null;
     abortRefreshToken();
-    localStorage.setItem(config.LOGOUT_STORAGE_KEY, Date.now());
+    localStorage.setItem(config.LOGOUT_STORAGE_KEY, Date.now().toString());
   };
 
   return {

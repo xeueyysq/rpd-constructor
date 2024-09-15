@@ -15,7 +15,6 @@ const PlannedResultsPage: FC = () => {
     const { updateJsonData } = useStore();
     const [data, setData] = useState<PlannedResultsData | undefined>(initialData);
     const [nextId, setNextId] = useState<number>(initialDataLength);
-    const [fileContent, setFileContent] = useState<any[]>([]);
 
     const handleFileUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
         const file = event.target.files?.[0];
@@ -24,7 +23,6 @@ const PlannedResultsPage: FC = () => {
         Papa.parse(file, {
             complete: (results) => {
                 const parsedData = results.data.slice(1);
-                setFileContent(parsedData);
                 const formattedData = parsedData.reduce((acc: PlannedResultsData, row: any, index: number, nextRow: any) => {
                     nextRow = parsedData[index + 1]
                     const competence = row[0] ? `${row[0]} ${row[3]}` : '';

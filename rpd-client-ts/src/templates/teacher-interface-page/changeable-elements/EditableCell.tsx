@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef, ChangeEvent, FocusEvent } from 'react';
+import { useState, useEffect, useRef, ChangeEvent } from 'react';
 
 type EditableCellProps = {
     value: string;
@@ -28,8 +28,8 @@ function EditableCell({ value, onValueChange, readOnly = false }: EditableCellPr
     const handleInputChange = (e: ChangeEvent<HTMLTextAreaElement>) => {
         setInputValue(e.target.value);
     };
-
-    const handleInputBlur = (e: FocusEvent<HTMLTextAreaElement>) => {
+//const handleInputBlur = (e: FocusEvent<HTMLTextAreaElement>) => {
+    const handleInputBlur = () => {
         setIsEditing(false);
         onValueChange(inputValue);
     };
