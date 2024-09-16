@@ -31,21 +31,22 @@ ResourceClient.interceptors.request.use(
 );
 
 interface dataProps {
-  login: string;
+  userName: string;
   password: string;
 }
+
 
 interface AuthContextProps {
   data?: dataProps | undefined;
   handleFetchProtected?: () => void;
   handleSignUp?: (data: dataProps) => void;
-  handleSignIn?: (data: dataProps) => void;
+  handleSignIn: (data: dataProps) => void;
   handleLogOut?: () => void;
   isAppReady?: boolean;
   isUserLogged?: boolean;
 }
 
-export const AuthContext = createContext<AuthContextProps>({});
+export const AuthContext = createContext<AuthContextProps>({handleSignIn: () => {}});
 
 export const AuthProvider: FC<{children: ReactNode}> = ({ children }) => {
   const [isAppReady, setIsAppReady] = useState<boolean>(false);

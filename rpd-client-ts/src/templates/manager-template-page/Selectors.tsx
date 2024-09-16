@@ -55,24 +55,26 @@ const Selectors: FC<Selectors> = ({ setChoise }) => {
 
     useEffect(() => {
         const fetchData = async () => {
-            try {
-                const response = await fetch('/json_profiles.json', {
-                    headers: {
-                        'Content-Type': 'application/json',
-                        'Accept': 'application/json'
-                    }
-                });
-                const jsonData: JsonData = await response.json();
-                setData(jsonData);
-
-            } catch (error) {
-                const variant: VariantType = 'error'
-                enqueueSnackbar('Ошибка закгруки профилей', { variant });
-            }
+          try {
+            const response = await fetch('/json_profiles.json', {
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Accept': 'application/json'
+                }
+            });
+            
+            const jsonData: JsonData = await response.json();
+            setData(jsonData);
+          } catch (error) {
+            const variant: VariantType = 'error';
+            enqueueSnackbar('Ошибка загрузки профилей', { variant });
+          }
         };
-
+      
         fetchData();
-    }, []);
+      }, []);
+      
+      
 
     const handleChange = (name: keyof SelectorsState) => (selectedOption: SingleValue<OptionType>) => {
         setSelectors(prevSelectors => ({
