@@ -20,6 +20,10 @@ app.use(express.json());
 
 app.use(bodyParser.urlencoded({ extended: true }));
 app.use(cors({ credentials: true, origin: process.env.CLIENT_URL }));
+// app.use(express.static(path.join(__dirname, 'build')));
+// app.get('*', (req, res) => {
+//   res.sendFile(path.join(__dirname, 'build', 'index.html'));
+// });
 app.use(fileUpload());
 
 app.use(
