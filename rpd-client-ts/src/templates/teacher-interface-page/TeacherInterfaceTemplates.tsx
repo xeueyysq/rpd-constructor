@@ -52,18 +52,18 @@ const TeacherInterfaceTemplates: FC<TemplateConstructorType> = ({ setChoise }) =
             const params: employedTemplateParams = {
                 id,
                 userName
-            }
-            const responce = await axiosBase.post('employed-teacher-template', { params });
+            };
+            const responce = await axiosBase.post('employed-teacher-template', params);
             if (responce.data === "success") {
                 showSuccessMessage("Статус шаблона успешно изменен");
                 fetchData();
             }
-
         } catch (error) {
-            showErrorMessage('Ошибка при получении данных');
+            showErrorMessage('Ошибка при изменении статуса шаблона');
             console.error(error);
         }
-    }
+    };
+    
 
     useEffect(() => {
         fetchData()
