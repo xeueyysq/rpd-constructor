@@ -28,6 +28,7 @@ services:
       - app-network
     depends_on:
       - db
+    restart: unless-stopped
 
   db:
     image: postgres:latest
