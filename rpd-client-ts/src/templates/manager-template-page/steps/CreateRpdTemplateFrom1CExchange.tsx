@@ -19,7 +19,7 @@ interface TemplateStatusObject {
 interface TemplateData {
     id: number;
     id_profile_template: number;
-    discipline: string;
+    discipline: string; 
     teachers: string[];
     teacher: string;
     semester: number;
@@ -75,7 +75,8 @@ const CreateRpdTemplateFrom1CExchange: FC<TemplateConstructorType> = ({ setChois
                 userName
             };
 
-            const response = await axiosBase.post('create-profile-template-from-1c', { params });
+            const response = await axiosBase.post('create-profile-template-from-1c', params);
+
 
             if (response.data === "record exists") showErrorMessage("Ошибка. Шаблон с текущими данными уже существует");
             if (response.data === "template created") {

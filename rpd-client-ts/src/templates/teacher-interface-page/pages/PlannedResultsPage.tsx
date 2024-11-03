@@ -5,6 +5,9 @@ import EditableCell from "../changeable-elements/EditableCell";
 import { Box, Button, ButtonGroup, TableContainer, Table, TableHead, TableBody, TableRow, TableCell, Paper } from '@mui/material';
 import Loader from "../../../helperComponents/Loader";
 import { PlannedResultsData } from "../../../types/DisciplineContentPageTypes";
+import showSuccessMessage from "../../../utils/showSuccessMessage";
+import showErrorMessage from "../../../utils/showErrorMessage";
+import { axiosBase } from "../../../fetchers/baseURL";
 import Can from "../../../ability/Can";
 import Papa from 'papaparse';
 
@@ -62,9 +65,9 @@ const PlannedResultsPage: FC = () => {
     };
 
     const saveData = async () => {
-        if (!data) return;
-    
-        const id = 1
+        if(!data) return;
+
+        const id = useStore.getState().jsonData.id;
     
         const filteredData = Object.entries(data).reduce((acc: PlannedResultsData, [key, value]) => {
             if (value.competence || value.indicator || value.results) {
@@ -74,15 +77,16 @@ const PlannedResultsPage: FC = () => {
         }, {});
     
         try {
-            const response = await axios.put(`/api/update-json-value/${id}`, {
+            await axiosBase.put(`update-json-value/${id}`, {
                 fieldToUpdate: "competencies",
                 value: filteredData
             });
     
             updateJsonData("competencies", filteredData);
             setData(filteredData);
-            console.log("Данные успешно сохранены:", response.data);
+            showSuccessMessage("Данные успешно сохранены");
         } catch (error) {
+            showErrorMessage("Ошибка сохранения данных");
             if (axios.isAxiosError(error)) {
                 console.error('Ошибка Axios:', error.response?.data);
                 console.error('Статус ошибки:', error.response?.status);

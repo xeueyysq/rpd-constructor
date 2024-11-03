@@ -57,11 +57,11 @@ const ChangeRpdTemplate: FC<TemplateConstructorType> = ({ setChoise }) => {
             userName
         }
         try {
-            const responce = await axiosBase.post(`send-template-to-teacher`, { params });
+            const response = await axiosBase.post('send-template-to-teacher', { params });
 
-            if (responce.data === "UserNotFound") showErrorMessage("Ошибка. Пользователь не найден");
-            if (responce.data === "TemplateAlreadyBinned") showErrorMessage("Ошибка. Данный шаблон уже отправлен преподавателю");
-            if (responce.data === "binnedSuccess") {
+            if (response.data === "UserNotFound") showErrorMessage("Ошибка. Пользователь не найден");
+            if (response.data === "TemplateAlreadyBinned") showErrorMessage("Ошибка. Данный шаблон уже отправлен преподавателю");
+            if (response.data === "binnedSuccess") {
                 showSuccessMessage("Шаблон успешно отправлен преподавателю");
                 fetchData();
             };

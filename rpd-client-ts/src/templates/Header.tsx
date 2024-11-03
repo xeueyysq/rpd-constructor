@@ -1,4 +1,5 @@
 import { FC, useContext, useMemo } from 'react';
+// import defaultUser from "../../public/default-user-img.png";
 import { Container, Box, IconButton } from '@mui/material';
 import useWindowSize from '../hooks/useWindowSize';
 import HeaderMenuMobile from './header/HeaderMenuMobile';

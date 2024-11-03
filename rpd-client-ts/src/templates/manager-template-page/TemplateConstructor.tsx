@@ -72,7 +72,7 @@ const TemplateConstructor: FC<TemplateConstructorType> = ({ setChoise }) => {
                                         variant="outlined"
                                         size="small"
                                         onClick={() => createRpdComplect()}
-                                    >Созать</Button>
+                                    >Создать</Button>
                                 </>
                             }
                             {createComplectStatus === "loading" &&
