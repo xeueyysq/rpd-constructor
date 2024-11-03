@@ -28,6 +28,7 @@
   "scripts": {
     "dev": "nodemon server.js",
     "import-api-data": "node ./app/modules/1cExchange.js",
-    "migrate": "node ./app/migrations/migrations.js"
+    "migrate": "node ./app/migrations/migrations.js",
+    "start": "node server.js"
   }
 }

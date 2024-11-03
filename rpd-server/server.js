@@ -19,11 +19,25 @@ app.use(cookieParser());
 app.use(express.json());
 
 app.use(bodyParser.urlencoded({ extended: true }));
-app.use(cors({ credentials: true, origin: process.env.CLIENT_URL }));
-// app.use(express.static(path.join(__dirname, 'build')));
-// app.get('*', (req, res) => {
-//   res.sendFile(path.join(__dirname, 'build', 'index.html'));
-// });
+
+const allowedOrigins = [
+  'http://localhost',
+  'http://localhost:3000',
+  'http://localhost:5173',
+  'http://51.250.115.2'
+];
+
+app.use(cors({
+  credentials: true,
+  origin: function(origin, callback) {
+    if (!origin || allowedOrigins.includes(origin)) {
+      callback(null, true);
+    } else {
+      callback(new Error('Not allowed by CORS'));
+    }
+  }
+}));
+
 app.use(fileUpload());
 
 app.use(

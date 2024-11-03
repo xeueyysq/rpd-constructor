@@ -15,7 +15,7 @@ class TeacherTemplates {
             }
 
             const userIdResult = await this.pool.query(`
-             SELECT id FROM users WHERE fullname = $1
+                SELECT id FROM users WHERE fullname = $1
             `, [nameParam]);
 
             if (!userIdResult.rows[0]) return "UserNotFound";
@@ -64,7 +64,7 @@ class TeacherTemplates {
             }
 
             const userIdResult = await this.pool.query(`
-             SELECT id FROM users WHERE fullname = $1
+                SELECT id FROM users WHERE fullname = $1
             `, [nameParam]);
 
             if (!userIdResult.rows[0]) return "UserNotFound";
@@ -76,10 +76,10 @@ class TeacherTemplates {
                 rc.education_form, rc.year, (
                     SELECT status
                     FROM jsonb_array_elements((
-                      SELECT history 
-                      FROM template_status 
-                      WHERE id_profile_template = rpt.id 
-                      LIMIT 1
+                        SELECT history 
+                        FROM template_status 
+                        WHERE id_profile_template = rpt.id 
+                        LIMIT 1
                     )) AS elem(status)
                     ORDER BY elem DESC
                     LIMIT 1

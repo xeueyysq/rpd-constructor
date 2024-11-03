@@ -15,4 +15,9 @@ RUN curl -o wait-for-it.sh https://raw.githubusercontent.com/vishnubob/wait-for-
 
 EXPOSE 8000
 
-CMD ["./wait-for-it.sh", "db:5432", "--", "sh", "-c", "npm run migrate && npm run dev"]
+# Add a healthcheck to ensure database is ready
+HEALTHCHECK --interval=30s --timeout=30s --start-period=5s --retries=3 \
+    CMD node ./healthcheck.js
+
+# Modified command to ensure migrations run before starting the server
+CMD ["./wait-for-it.sh", "db:5432", "-t", "60", "--", "sh", "-c", "npm run migrate && npm run dev"]

@@ -3,7 +3,7 @@ const TemplateStatus = require('../models/template_status');
 class TemplateStatusController {
     constructor(pool) {
         this.model = new TemplateStatus(pool);
-    }
+    }   
 
     async getTemplateHistory (req, res) {
         try {
