@@ -2,7 +2,7 @@ import {FC, useState} from 'react';
 import {MenuItem, Select, SelectChangeEvent} from '@mui/material';
 import useStore from '../../../store/useStore';
 import {showErrorMessage, showSuccessMessage} from "@shared/lib";
-import {axiosBase} from '@shared/api/baseURL.ts';
+import {axiosBase} from '@shared/api';
 
 interface SelectorProps {
     certification: string;

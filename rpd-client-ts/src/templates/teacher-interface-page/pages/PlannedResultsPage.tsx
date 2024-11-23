@@ -17,7 +17,7 @@ import {
 import Loader from "@shared/ui/Loader.tsx";
 import {PlannedResultsData} from "../../../types/DisciplineContentPageTypes";
 import {showErrorMessage, showSuccessMessage} from "@shared/lib";
-import {axiosBase} from "@shared/api/baseURL.ts";
+import {axiosBase} from "@shared/api";
 import Papa from 'papaparse';
 import {Can} from "@features/ability";
 

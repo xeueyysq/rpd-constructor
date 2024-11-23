@@ -17,7 +17,7 @@ import {DisciplineContentData, ObjectHours} from '../../../types/DisciplineConte
 import {showErrorMessage, showSuccessMessage} from "@shared/lib";
 import EditableCell from '../changeable-elements/EditableCell';
 import {EditableNumber} from '../changeable-elements/EditableNumber';
-import {axiosBase} from '@shared/api/baseURL.ts';
+import {axiosBase} from '@shared/api';
 
 interface StudyLoad {
     id: string;

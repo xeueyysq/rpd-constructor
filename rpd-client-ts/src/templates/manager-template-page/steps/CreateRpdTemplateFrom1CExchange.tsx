@@ -21,7 +21,7 @@ import {
 import TemplateStatus from "@shared/ui/TemplateStatus.tsx";
 import {useAuth} from "@features/auth";
 import TemplateMenu from "./templateMenu/TemplateMenu";
-import {axiosBase} from "@shared/api/baseURL.ts";
+import {axiosBase} from "@shared/api";
 import {showErrorMessage, showSuccessMessage} from "@shared/lib";
 
 interface TemplateStatusObject {

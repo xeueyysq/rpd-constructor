@@ -5,7 +5,7 @@ import Loader from "@shared/ui/Loader.tsx";
 import {TemplateConstructorType} from "../../../types/TemplateConstructorTypes";
 import TemplateStatus from "@shared/ui/TemplateStatus.tsx";
 import {useAuth} from "@features/auth";
-import {axiosBase} from "@shared/api/baseURL.ts";
+import {axiosBase} from "@shared/api";
 import {showErrorMessage, showSuccessMessage} from "@shared/lib";
 
 interface TemplateStatusObject {

@@ -2,7 +2,7 @@ import {useState} from 'react';
 import useStore from '../../../store/useStore.js';
 import {Box, Button} from '@mui/material';
 import {PdfReader} from './PdfReader.js';
-import {axiosBase} from '@shared/api/baseURL.ts';
+import {axiosBase} from '@shared/api';
 import {showErrorMessage} from "@shared/lib";
 
 export default function TestPdf() {

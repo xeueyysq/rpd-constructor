@@ -6,7 +6,7 @@ import {TemplateConstructorType} from "../../../types/TemplateConstructorTypes";
 import {showErrorMessage, showSuccessMessage} from "@shared/lib";
 import TemplateStatus from "@shared/ui/TemplateStatus.tsx";
 import {useAuth} from "@features/auth";
-import {axiosBase} from "@shared/api/baseURL.ts";
+import {axiosBase} from "@shared/api";
 
 interface TemplateStatusObject {
     date: string,

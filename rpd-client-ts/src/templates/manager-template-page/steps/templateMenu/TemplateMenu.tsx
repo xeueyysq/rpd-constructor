@@ -9,7 +9,7 @@ import OpenInBrowserIcon from '@mui/icons-material/OpenInBrowser';
 import ReplyIcon from '@mui/icons-material/Reply';
 import DeleteForeverIcon from '@mui/icons-material/DeleteForever';
 import HistoryIcon from '@mui/icons-material/History';
-import {axiosBase} from "@shared/api/baseURL.ts";
+import {axiosBase} from "@shared/api";
 import {showErrorMessage, showSuccessMessage} from "@shared/lib";
 
 interface TemplateMenu {

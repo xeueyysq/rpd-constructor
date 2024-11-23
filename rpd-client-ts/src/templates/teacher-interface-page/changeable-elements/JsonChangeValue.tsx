@@ -6,7 +6,7 @@ import TextEditor from './TextEditor';
 import {showErrorMessage, showSuccessMessage} from "@shared/lib";
 import MoreHorizIcon from '@mui/icons-material/MoreHoriz';
 import DownloadIcon from '@mui/icons-material/Download';
-import {axiosBase} from '@shared/api/baseURL.ts';
+import {axiosBase} from '@shared/api';
 
 interface JsonChangeValue {
     elementName: string;

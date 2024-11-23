@@ -4,7 +4,7 @@ import {Box, Button, CircularProgress} from "@mui/material";
 import {TemplateConstructorType} from "../../types/TemplateConstructorTypes";
 import {templateDataTitles} from "../../constants/templateDataTitles";
 import Loader from "@shared/ui/Loader.tsx";
-import {axiosBase} from "@shared/api/baseURL.ts";
+import {axiosBase} from "@shared/api";
 import {showErrorMessage, showSuccessMessage} from "@shared/lib";
 
 const TemplateConstructor: FC<TemplateConstructorType> = ({setChoise}) => {
