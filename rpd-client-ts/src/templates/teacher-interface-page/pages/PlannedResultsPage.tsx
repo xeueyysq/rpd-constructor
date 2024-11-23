@@ -1,21 +1,32 @@
 import useStore from "../../../store/useStore";
 import axios from "axios";
-import { FC, useState } from 'react';
+import {FC, useState} from 'react';
 import EditableCell from "../changeable-elements/EditableCell";
-import { Box, Button, ButtonGroup, TableContainer, Table, TableHead, TableBody, TableRow, TableCell, Paper } from '@mui/material';
+import {
+    Box,
+    Button,
+    ButtonGroup,
+    Paper,
+    Table,
+    TableBody,
+    TableCell,
+    TableContainer,
+    TableHead,
+    TableRow
+} from '@mui/material';
 import Loader from "../../../helperComponents/Loader";
-import { PlannedResultsData } from "../../../types/DisciplineContentPageTypes";
+import {PlannedResultsData} from "../../../types/DisciplineContentPageTypes";
 import showSuccessMessage from "../../../utils/showSuccessMessage";
 import showErrorMessage from "../../../utils/showErrorMessage";
-import { axiosBase } from "../../../fetchers/baseURL";
-import Can from "../../../ability/Can";
+import {axiosBase} from "../../../fetchers/baseURL";
 import Papa from 'papaparse';
+import {Can} from "@features/ability";
 
 const PlannedResultsPage: FC = () => {
     const initialData = useStore.getState().jsonData.competencies as PlannedResultsData | undefined;
     const initialDataLength = initialData ? Object.keys(initialData).length : 0;
 
-    const { updateJsonData } = useStore();
+    const {updateJsonData} = useStore();
     const [data, setData] = useState<PlannedResultsData | undefined>(initialData);
     const [nextId, setNextId] = useState<number>(initialDataLength);
 
@@ -33,7 +44,7 @@ const PlannedResultsPage: FC = () => {
                     const results = '';
 
                     if (competence || indicator || results) {
-                        acc[index] = { competence, indicator, results };
+                        acc[index] = {competence, indicator, results};
                     }
                     return acc;
                 }, {});
@@ -47,7 +58,7 @@ const PlannedResultsPage: FC = () => {
 
     const handleAddRow = () => {
         setNextId(nextId + 1);
-        const newData = { ...data, [nextId]: { competence: '', indicator: '', results: '' } };
+        const newData = {...data, [nextId]: {competence: '', indicator: '', results: ''}};
         setData(newData);
     };
 
@@ -65,23 +76,23 @@ const PlannedResultsPage: FC = () => {
     };
 
     const saveData = async () => {
-        if(!data) return;
+        if (!data) return;
 
         const id = useStore.getState().jsonData.id;
-    
+
         const filteredData = Object.entries(data).reduce((acc: PlannedResultsData, [key, value]) => {
             if (value.competence || value.indicator || value.results) {
                 acc[key] = value;
             }
             return acc;
         }, {});
-    
+
         try {
             await axiosBase.put(`update-json-value/${id}`, {
                 fieldToUpdate: "competencies",
                 value: filteredData
             });
-    
+
             updateJsonData("competencies", filteredData);
             setData(filteredData);
             showSuccessMessage("Данные успешно сохранены");
@@ -96,16 +107,16 @@ const PlannedResultsPage: FC = () => {
             }
         }
     };
-    
 
-    if (!data) return <Loader />
+
+    if (!data) return <Loader/>
 
     return (
         <Box>
             <Box component='h2'>Планируемые результаты обучения по дисциплине (модулю)</Box>
-            <input type="file" accept=".csv" onChange={handleFileUpload} />
-            <TableContainer component={Paper} sx={{ my: 2 }}>
-                <Table sx={{ minWidth: 650 }} aria-label="simple table" size="small" className="table">
+            <input type="file" accept=".csv" onChange={handleFileUpload}/>
+            <TableContainer component={Paper} sx={{my: 2}}>
+                <Table sx={{minWidth: 650}} aria-label="simple table" size="small" className="table">
                     <TableHead>
                         <TableRow>
                             <TableCell align="center">
@@ -125,14 +136,16 @@ const PlannedResultsPage: FC = () => {
                                 <TableCell>
                                     <EditableCell
                                         value={data[key].competence}
-                                        onValueChange={() => {}}
+                                        onValueChange={() => {
+                                        }}
                                         readOnly
                                     />
                                 </TableCell>
                                 <TableCell>
                                     <EditableCell
                                         value={data[key].indicator}
-                                        onValueChange={() => {}}
+                                        onValueChange={() => {
+                                        }}
                                         readOnly
                                     />
                                 </TableCell>
@@ -146,7 +159,8 @@ const PlannedResultsPage: FC = () => {
                                     <Can not I="edit" a="competencies">
                                         <EditableCell
                                             value={data[key].results}
-                                            onValueChange={() => {}}
+                                            onValueChange={() => {
+                                            }}
                                             readOnly
                                         />
                                     </Can>
