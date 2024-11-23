@@ -4,7 +4,7 @@ import EditIcon from '@mui/icons-material/Edit';
 import SaveAltIcon from '@mui/icons-material/SaveAlt';
 import {TextareaAutosize as BaseTextareaAutosize} from '@mui/base/TextareaAutosize';
 import {styled} from '@mui/system';
-import Loader from '../../../helperComponents/Loader';
+import Loader from '@shared/ui/Loader.tsx';
 import {axiosBase} from '@shared/api/baseURL.ts';
 
 interface ChangeableCoverPageProps {

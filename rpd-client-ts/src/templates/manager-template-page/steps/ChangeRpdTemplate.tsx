@@ -1,11 +1,11 @@
 import {Box, Button, Paper, Table, TableBody, TableCell, TableContainer, TableHead, TableRow} from "@mui/material";
 import {FC, useEffect, useState} from "react";
 import useStore, {SelectedTemplateData, SelectTeacherParams} from "../../../store/useStore";
-import Loader from "../../../helperComponents/Loader";
+import Loader from "@shared/ui/Loader.tsx";
 import {TemplateConstructorType} from "../../../types/TemplateConstructorTypes";
 import showErrorMessage from "@shared/lib/showErrorMessage.ts";
 import showSuccessMessage from "@shared/lib/showSuccessMessage.ts";
-import TemplateStatus from "../../../helperComponents/TemplateStatus";
+import TemplateStatus from "@shared/ui/TemplateStatus.tsx";
 import {useAuth} from "@features/auth";
 import {axiosBase} from "@shared/api/baseURL.ts";
 

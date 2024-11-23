@@ -5,7 +5,7 @@ import {TemplateConstructorType} from "../../types/TemplateConstructorTypes";
 import {templateDataTitles} from "../../constants/templateDataTitles";
 import showErrorMessage from "@shared/lib/showErrorMessage.ts";
 import showSuccessMessage from "@shared/lib/showSuccessMessage.ts";
-import Loader from "../../helperComponents/Loader";
+import Loader from "@shared/ui/Loader.tsx";
 import {axiosBase} from "@shared/api/baseURL.ts";
 
 const TemplateConstructor: FC<TemplateConstructorType> = ({setChoise}) => {

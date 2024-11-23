@@ -2,7 +2,7 @@ import {FC, useEffect, useState} from "react";
 import {TemplateConstructorType} from "../../../types/TemplateConstructorTypes";
 import useStore from "../../../store/useStore";
 import showErrorMessage from "@shared/lib/showErrorMessage.ts";
-import Loader from "../../../helperComponents/Loader";
+import Loader from "@shared/ui/Loader.tsx";
 import {
     Box,
     Button,
@@ -20,7 +20,7 @@ import {
     TableRow
 } from "@mui/material";
 import showSuccessMessage from "@shared/lib/showSuccessMessage.ts";
-import TemplateStatus from "../../../helperComponents/TemplateStatus";
+import TemplateStatus from "@shared/ui/TemplateStatus.tsx";
 import {useAuth} from "@features/auth";
 import TemplateMenu from "./templateMenu/TemplateMenu";
 import {axiosBase} from "@shared/api/baseURL.ts";

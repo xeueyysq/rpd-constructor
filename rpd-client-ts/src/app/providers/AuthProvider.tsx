@@ -1,5 +1,5 @@
 import {FC, ReactNode} from "react";
-import Loader from "../../helperComponents/Loader.tsx";
+import Loader from "@shared/ui/Loader.tsx";
 import {AuthContext, useAuthContextValue} from "@features/auth";
 
 const AuthProvider: FC<{ children: ReactNode }> = ({children}) => {

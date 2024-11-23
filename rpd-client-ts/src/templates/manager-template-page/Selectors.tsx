@@ -1,12 +1,11 @@
-import { useState, useEffect, FC } from 'react';
-import { SingleValue } from 'react-select';
-import Select from 'react-select';
+import {FC, useEffect, useState} from 'react';
+import Select, {SingleValue} from 'react-select';
 import Selector from './Selector';
-import Loader from '../../helperComponents/Loader';
-import { Box, Button } from '@mui/material';
+import Loader from '@shared/ui/Loader.tsx';
+import {Box, Button} from '@mui/material';
 import useStore from '../../store/useStore';
-import { OptionType } from '../../types/SelectorTypes';
-import { VariantType, enqueueSnackbar } from 'notistack';
+import {OptionType} from '../../types/SelectorTypes';
+import {enqueueSnackbar, VariantType} from 'notistack';
 
 interface JsonData {
     [key: string]: string | JsonData;
@@ -27,70 +26,80 @@ interface Selectors {
     setChoise: (value: string) => void;
 }
 
-const Selectors: FC<Selectors> = ({ setChoise }) => {
+const Selectors: FC<Selectors> = ({setChoise}) => {
     const selectorsData = useStore.getState().selectedTemplateData;
     const [selectors, setSelectors] = useState<SelectorsState>({
         faculty: selectorsData.faculty ?
-            { value: selectorsData.faculty, label: selectorsData.faculty } :
+            {value: selectorsData.faculty, label: selectorsData.faculty} :
             undefined,
         levelEducation: selectorsData.levelEducation ?
-            { value: selectorsData.levelEducation, label: selectorsData.levelEducation } :
+            {value: selectorsData.levelEducation, label: selectorsData.levelEducation} :
             undefined,
         directionOfStudy: selectorsData.directionOfStudy ?
-            { value: selectorsData.directionOfStudy, label: selectorsData.directionOfStudy } :
+            {value: selectorsData.directionOfStudy, label: selectorsData.directionOfStudy} :
             undefined,
         profile: selectorsData.profile ?
-            { value: selectorsData.profile, label: selectorsData.profile } :
+            {value: selectorsData.profile, label: selectorsData.profile} :
             undefined,
         formEducation: selectorsData.formEducation ?
-            { value: selectorsData.formEducation, label: selectorsData.formEducation } :
+            {value: selectorsData.formEducation, label: selectorsData.formEducation} :
             undefined,
         year: selectorsData.year ?
-            { value: selectorsData.year, label: selectorsData.year } :
+            {value: selectorsData.year, label: selectorsData.year} :
             undefined,
     });
 
     const [data, setData] = useState<Nullable<JsonData>>(undefined);
-    const { setSelectedTemplateData } = useStore();
+    const {setSelectedTemplateData} = useStore();
 
     useEffect(() => {
         const fetchData = async () => {
-          try {
-            const response = await fetch('/json_profiles.json', {
-                headers: {
-                    'Content-Type': 'application/json',
-                    'Accept': 'application/json'
-                }
-            });
-            
-            const jsonData: JsonData = await response.json();
-            setData(jsonData);
-          } catch (error) {
-            const variant: VariantType = 'error';
-            enqueueSnackbar('Ошибка загрузки профилей', { variant });
-          }
+            try {
+                const response = await fetch('/json_profiles.json', {
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Accept': 'application/json'
+                    }
+                });
+
+                const jsonData: JsonData = await response.json();
+                setData(jsonData);
+            } catch (error) {
+                const variant: VariantType = 'error';
+                enqueueSnackbar('Ошибка загрузки профилей', {variant});
+            }
         };
-      
+
         fetchData();
-      }, []);
-      
-      
+    }, []);
+
 
     const handleChange = (name: keyof SelectorsState) => (selectedOption: SingleValue<OptionType>) => {
         setSelectors(prevSelectors => ({
             ...prevSelectors,
             [name]: selectedOption || undefined,
-            ...(name === 'faculty' && { levelEducation: undefined, directionOfStudy: undefined, profile: undefined, formEducation: undefined, year: undefined }),
-            ...(name === 'levelEducation' && { directionOfStudy: undefined, profile: undefined, formEducation: undefined, year: undefined }),
-            ...(name === 'directionOfStudy' && { profile: undefined, formEducation: undefined, year: undefined }),
-            ...(name === 'profile' && { formEducation: undefined, year: undefined }),
-            ...(name === 'formEducation' && { year: undefined }),
+            ...(name === 'faculty' && {
+                levelEducation: undefined,
+                directionOfStudy: undefined,
+                profile: undefined,
+                formEducation: undefined,
+                year: undefined
+            }),
+            ...(name === 'levelEducation' && {
+                directionOfStudy: undefined,
+                profile: undefined,
+                formEducation: undefined,
+                year: undefined
+            }),
+            ...(name === 'directionOfStudy' && {profile: undefined, formEducation: undefined, year: undefined}),
+            ...(name === 'profile' && {formEducation: undefined, year: undefined}),
+            ...(name === 'formEducation' && {year: undefined}),
         }));
     };
 
     const getOptions = (): OptionType[] => {
         return data
-            ? Object.keys(data).map(key => ({ label: key, value: key }))
+            ? Object.keys(data).map(key => ({label: key, value: key}))
             : [];
     };
 
@@ -104,8 +113,11 @@ const Selectors: FC<Selectors> = ({ setChoise }) => {
                 return [];
             }
         }
-        if (indicator && indicator === 'lastChild') return Object.values(currentData).map((value) => ({ label: String(value), value: String(value) }));
-        return Object.keys(currentData).map(key => ({ label: key, value: key }));
+        if (indicator && indicator === 'lastChild') return Object.values(currentData).map((value) => ({
+            label: String(value),
+            value: String(value)
+        }));
+        return Object.keys(currentData).map(key => ({label: key, value: key}));
     };
 
     const saveTemplateData = () => {
@@ -121,12 +133,12 @@ const Selectors: FC<Selectors> = ({ setChoise }) => {
         setChoise("workingType")
     }
 
-    if (!data) return <Loader />
+    if (!data) return <Loader/>
 
     return (
-        <Box sx={{ py: 1, maxWidth: "500px" }}>
+        <Box sx={{py: 1, maxWidth: "500px"}}>
             <Box>Шаг 1. Выбор данных</Box>
-            <Box sx={{ fontSize: "20px", fontWeight: "600", py: 1 }}>Институт</Box>
+            <Box sx={{fontSize: "20px", fontWeight: "600", py: 1}}>Институт</Box>
             <Select
                 placeholder="Выберите институт"
                 isClearable

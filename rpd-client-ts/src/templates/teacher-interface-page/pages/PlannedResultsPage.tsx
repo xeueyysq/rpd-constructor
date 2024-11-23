@@ -14,7 +14,7 @@ import {
     TableHead,
     TableRow
 } from '@mui/material';
-import Loader from "../../../helperComponents/Loader";
+import Loader from "@shared/ui/Loader.tsx";
 import {PlannedResultsData} from "../../../types/DisciplineContentPageTypes";
 import showSuccessMessage from "@shared/lib/showSuccessMessage.ts";
 import showErrorMessage from "@shared/lib/showErrorMessage.ts";
