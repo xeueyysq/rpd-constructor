@@ -14,8 +14,7 @@ import {
     TableRow
 } from '@mui/material';
 import {DisciplineContentData, ObjectHours} from '../../../types/DisciplineContentPageTypes';
-import showSuccessMessage from '@shared/lib/showSuccessMessage.ts';
-import showErrorMessage from '@shared/lib/showErrorMessage.ts';
+import {showErrorMessage, showSuccessMessage} from "@shared/lib";
 import EditableCell from '../changeable-elements/EditableCell';
 import {EditableNumber} from '../changeable-elements/EditableNumber';
 import {axiosBase} from '@shared/api/baseURL.ts';

@@ -2,8 +2,6 @@ import {IconButton, ListItemIcon, ListItemText, Menu, MenuItem, Typography} from
 import {FC, MouseEvent, useState} from "react"
 import MoreHorizIcon from '@mui/icons-material/MoreHoriz';
 import {useAuth} from "@features/auth";
-import showErrorMessage from "@shared/lib/showErrorMessage.ts";
-import showSuccessMessage from "@shared/lib/showSuccessMessage.ts";
 import useStore from "../../../../store/useStore";
 import {useNavigate} from "react-router-dom";
 import HistoryModal from "./HistoryModal";
@@ -12,6 +10,7 @@ import ReplyIcon from '@mui/icons-material/Reply';
 import DeleteForeverIcon from '@mui/icons-material/DeleteForever';
 import HistoryIcon from '@mui/icons-material/History';
 import {axiosBase} from "@shared/api/baseURL.ts";
+import {showErrorMessage, showSuccessMessage} from "@shared/lib";
 
 interface TemplateMenu {
     id: number;

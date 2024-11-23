@@ -1,10 +1,10 @@
 import {useEffect, useState} from "react";
 import {useAuth} from "./useAuth";
-import showErrorMessage from "@shared/lib/showErrorMessage.ts";
 import inMemoryJWT from "./inMemoryJWT.ts";
 import config from "@shared/config";
 import {AuthClient, ResourceClient} from "../api/clients.ts";
 import {AuthContextProps, dataProps} from "../model/types.ts";
+import {showErrorMessage} from "@shared/lib";
 
 export const useAuthContextValue = (): AuthContextProps => {
     const [isAppReady, setIsAppReady] = useState<boolean>(false);

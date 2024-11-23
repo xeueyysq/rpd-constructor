@@ -3,10 +3,9 @@ import useStore from "../../store/useStore";
 import {Box, Button, CircularProgress} from "@mui/material";
 import {TemplateConstructorType} from "../../types/TemplateConstructorTypes";
 import {templateDataTitles} from "../../constants/templateDataTitles";
-import showErrorMessage from "@shared/lib/showErrorMessage.ts";
-import showSuccessMessage from "@shared/lib/showSuccessMessage.ts";
 import Loader from "@shared/ui/Loader.tsx";
 import {axiosBase} from "@shared/api/baseURL.ts";
+import {showErrorMessage, showSuccessMessage} from "@shared/lib";
 
 const TemplateConstructor: FC<TemplateConstructorType> = ({setChoise}) => {
     const selectedTemplateData = useStore.getState().selectedTemplateData;

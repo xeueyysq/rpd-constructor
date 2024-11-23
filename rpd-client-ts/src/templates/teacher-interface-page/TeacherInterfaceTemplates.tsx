@@ -2,12 +2,11 @@ import {Box, Button, Paper, Table, TableBody, TableCell, TableContainer, TableHe
 import {FC, useEffect, useState} from "react";
 import {useAuth} from "@features/auth";
 import {TemplateConstructorType} from "../../types/TemplateConstructorTypes";
-import showErrorMessage from "@shared/lib/showErrorMessage.ts";
 import Loader from "@shared/ui/Loader.tsx";
 import useStore from "../../store/useStore";
 import TemplateStatus from "@shared/ui/TemplateStatus.tsx";
-import showSuccessMessage from "@shared/lib/showSuccessMessage.ts";
 import {axiosBase} from "@shared/api/baseURL.ts";
+import {showErrorMessage, showSuccessMessage} from "@shared/lib";
 
 interface TemplateStatusObject {
     date: string,

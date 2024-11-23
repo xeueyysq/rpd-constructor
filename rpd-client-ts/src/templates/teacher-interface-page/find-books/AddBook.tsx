@@ -14,8 +14,7 @@ import {
 import AddIcon from '@mui/icons-material/Add';
 import ShowBooks from './ShowBooks';
 import useStore from '../../../store/useStore';
-import showSuccessMessage from '@shared/lib/showSuccessMessage.ts';
-import showErrorMessage from '@shared/lib/showErrorMessage.ts';
+import {showErrorMessage, showSuccessMessage} from "@shared/lib";
 import {axiosBase} from '@shared/api/baseURL.ts';
 
 interface AddBook {

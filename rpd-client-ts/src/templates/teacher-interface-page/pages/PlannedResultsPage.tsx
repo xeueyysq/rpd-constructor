@@ -16,8 +16,7 @@ import {
 } from '@mui/material';
 import Loader from "@shared/ui/Loader.tsx";
 import {PlannedResultsData} from "../../../types/DisciplineContentPageTypes";
-import showSuccessMessage from "@shared/lib/showSuccessMessage.ts";
-import showErrorMessage from "@shared/lib/showErrorMessage.ts";
+import {showErrorMessage, showSuccessMessage} from "@shared/lib";
 import {axiosBase} from "@shared/api/baseURL.ts";
 import Papa from 'papaparse';
 import {Can} from "@features/ability";

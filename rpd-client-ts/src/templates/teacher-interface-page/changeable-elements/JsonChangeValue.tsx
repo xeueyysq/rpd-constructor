@@ -3,8 +3,7 @@ import {Box, Button, IconButton, ListItemIcon, ListItemText, Menu, MenuItem, Typ
 import EditIcon from '@mui/icons-material/Edit';
 import useStore from '../../../store/useStore';
 import TextEditor from './TextEditor';
-import showSuccessMessage from '@shared/lib/showSuccessMessage.ts';
-import showErrorMessage from '@shared/lib/showErrorMessage.ts';
+import {showErrorMessage, showSuccessMessage} from "@shared/lib";
 import MoreHorizIcon from '@mui/icons-material/MoreHoriz';
 import DownloadIcon from '@mui/icons-material/Download';
 import {axiosBase} from '@shared/api/baseURL.ts';
