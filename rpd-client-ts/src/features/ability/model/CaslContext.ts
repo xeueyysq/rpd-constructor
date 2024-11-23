@@ -1,5 +1,6 @@
 import {createContext} from 'react';
-import {AppAbility, buildAbilityFor} from '../../../ability/CaslAbility.ts';
+import {buildAbilityFor} from '../lib/utils';
+import {AppAbility} from "../lib/types";
 
 export const CaslContext = createContext<AppAbility>(
     buildAbilityFor('anonymous')
