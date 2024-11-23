@@ -10,5 +10,5 @@ export type AuthContextProps = {
     handleFetchProtected?: () => void;
     handleLogOut?: () => void;
     handleSignUp?: (data: dataProps) => void;
-    handleSignIn?: (data: dataProps) => void;
+    handleSignIn: (data: dataProps) => void;
 }
