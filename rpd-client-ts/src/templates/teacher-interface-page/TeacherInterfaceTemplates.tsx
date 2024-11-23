@@ -2,10 +2,9 @@ import {Box, Button, Paper, Table, TableBody, TableCell, TableContainer, TableHe
 import {FC, useEffect, useState} from "react";
 import {useAuth} from "@features/auth";
 import {TemplateConstructorType} from "../../types/TemplateConstructorTypes";
-import Loader from "@shared/ui/Loader.tsx";
 import useStore from "../../store/useStore";
-import TemplateStatus from "@shared/ui/TemplateStatus.tsx";
 import {axiosBase} from "@shared/api";
+import {Loader, TemplateStatus} from "@shared/ui";
 import {showErrorMessage, showSuccessMessage} from "@shared/lib";
 
 interface TemplateStatusObject {

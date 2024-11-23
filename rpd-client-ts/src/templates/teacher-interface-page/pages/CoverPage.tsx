@@ -1,7 +1,7 @@
 import {FC} from 'react';
 import {Box} from '@mui/material';
 import useStore from '../../../store/useStore';
-import Loader from '@shared/ui/Loader.tsx';
+import {Loader} from "@shared/ui";
 
 const CoverPage: FC = () => {
     const jsonData = useStore.getState().jsonData;

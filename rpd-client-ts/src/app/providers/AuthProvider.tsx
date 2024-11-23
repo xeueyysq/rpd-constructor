@@ -1,6 +1,6 @@
 import {FC, ReactNode} from "react";
-import Loader from "@shared/ui/Loader.tsx";
 import {AuthContext, useAuthContextValue} from "@features/auth";
+import {Loader} from "@shared/ui";
 
 const AuthProvider: FC<{ children: ReactNode }> = ({children}) => {
     const {
@@ -29,9 +29,7 @@ const AuthProvider: FC<{ children: ReactNode }> = ({children}) => {
             {isAppReady ? (
                 children
             ) : (
-                <>
-                    <Loader/>
-                </>
+                <Loader/>
             )}
         </AuthContext.Provider>
     );

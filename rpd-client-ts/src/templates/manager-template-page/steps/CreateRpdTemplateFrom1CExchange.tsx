@@ -1,7 +1,6 @@
 import {FC, useEffect, useState} from "react";
 import {TemplateConstructorType} from "../../../types/TemplateConstructorTypes";
 import useStore from "../../../store/useStore";
-import Loader from "@shared/ui/Loader.tsx";
 import {
     Box,
     Button,
@@ -18,11 +17,11 @@ import {
     TableHead,
     TableRow
 } from "@mui/material";
-import TemplateStatus from "@shared/ui/TemplateStatus.tsx";
 import {useAuth} from "@features/auth";
 import TemplateMenu from "./templateMenu/TemplateMenu";
 import {axiosBase} from "@shared/api";
 import {showErrorMessage, showSuccessMessage} from "@shared/lib";
+import {Loader, TemplateStatus} from "@shared/ui";
 
 interface TemplateStatusObject {
     date: string,

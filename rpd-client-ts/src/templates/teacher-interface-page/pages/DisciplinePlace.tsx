@@ -1,7 +1,7 @@
 import useStore from '../../../store/useStore';
 import JsonChangeValue from '../changeable-elements/JsonChangeValue';
 import {Box} from '@mui/material';
-import Loader from '@shared/ui/Loader.tsx';
+import {Loader} from "@shared/ui";
 import {FC} from 'react';
 import CertificationSelector from '../changeable-elements/CertificationSelector';
 

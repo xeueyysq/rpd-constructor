@@ -1,7 +1,7 @@
 import {FC, useEffect, useState} from 'react';
 import Select, {SingleValue} from 'react-select';
 import Selector from './Selector';
-import Loader from '@shared/ui/Loader.tsx';
+import {Loader} from "@shared/ui";
 import {Box, Button} from '@mui/material';
 import useStore from '../../store/useStore';
 import {OptionType} from '../../types/SelectorTypes';

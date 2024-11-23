@@ -1,9 +1,9 @@
-import { Box, CircularProgress } from '@mui/material';
+import {Box, CircularProgress} from '@mui/material';
 
-export default function Loader () {
+export function Loader() {
     return (
         <Box sx={{p: 1, display: 'flex'}}>
-            <CircularProgress color="inherit" size="1rem"/> 
+            <CircularProgress color="inherit" size="1rem"/>
             <Box sx={{px: 1}}>
                 Loading...
             </Box>

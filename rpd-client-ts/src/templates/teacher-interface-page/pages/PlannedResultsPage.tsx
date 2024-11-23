@@ -14,7 +14,7 @@ import {
     TableHead,
     TableRow
 } from '@mui/material';
-import Loader from "@shared/ui/Loader.tsx";
+import {Loader} from "@shared/ui";
 import {PlannedResultsData} from "../../../types/DisciplineContentPageTypes";
 import {showErrorMessage, showSuccessMessage} from "@shared/lib";
 import {axiosBase} from "@shared/api";

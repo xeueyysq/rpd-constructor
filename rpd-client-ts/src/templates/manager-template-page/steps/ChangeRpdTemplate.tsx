@@ -1,12 +1,11 @@
 import {Box, Button, Paper, Table, TableBody, TableCell, TableContainer, TableHead, TableRow} from "@mui/material";
 import {FC, useEffect, useState} from "react";
 import useStore, {SelectedTemplateData, SelectTeacherParams} from "../../../store/useStore";
-import Loader from "@shared/ui/Loader.tsx";
 import {TemplateConstructorType} from "../../../types/TemplateConstructorTypes";
 import {showErrorMessage, showSuccessMessage} from "@shared/lib";
-import TemplateStatus from "@shared/ui/TemplateStatus.tsx";
 import {useAuth} from "@features/auth";
 import {axiosBase} from "@shared/api";
+import {Loader, TemplateStatus} from "@shared/ui";
 
 interface TemplateStatusObject {
     date: string,

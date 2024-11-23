@@ -3,7 +3,7 @@ import useStore from "../../store/useStore";
 import {Box, Button, CircularProgress} from "@mui/material";
 import {TemplateConstructorType} from "../../types/TemplateConstructorTypes";
 import {templateDataTitles} from "../../constants/templateDataTitles";
-import Loader from "@shared/ui/Loader.tsx";
+import {Loader} from "@shared/ui";
 import {axiosBase} from "@shared/api";
 import {showErrorMessage, showSuccessMessage} from "@shared/lib";
 
