@@ -1,14 +1,10 @@
-import {createContext, FC, ReactNode} from 'react';
+import {FC, ReactNode} from 'react';
 import useAuth from '../../store/useAuth.tsx';
-import {AppAbility, buildAbilityFor} from "../../ability/CaslAbility.ts";
+import {CaslContext} from '@features/ability';
 
 type Props = {
     children: ReactNode;
 };
-
-const CaslContext = createContext<AppAbility>(
-    buildAbilityFor('anonymous')
-);
 
 const CaslProvider: FC<Props> = ({children}) => {
     const {ability} = useAuth();
