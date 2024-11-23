@@ -1,12 +1,12 @@
-import { useState, MouseEvent, FC, useContext } from 'react';
-import { Box, Button, Menu, MenuItem, ListItemIcon, ListItemText, Typography, Divider } from '@mui/material';
-import { AccountCircle, Logout } from '@mui/icons-material';
+import {FC, MouseEvent, useContext, useState} from 'react';
+import {Box, Button, Divider, ListItemIcon, ListItemText, Menu, MenuItem, Typography} from '@mui/material';
+import {AccountCircle, Logout} from '@mui/icons-material';
 import MenuIcon from '@mui/icons-material/Menu';
-import { AuthContext } from '../../context/AuthContext';
 import useAuth from '../../store/useAuth';
+import {AuthContext} from "../../app/providers/AuthProvider.tsx";
 
 const HeaderMenuMobile: FC = () => {
-    const { handleLogOut, isUserLogged } = useContext(AuthContext);
+    const {handleLogOut, isUserLogged} = useContext(AuthContext);
     const userName = useAuth.getState().userName;
 
     const [anchorEl, setAnchorEl] = useState<null | HTMLButtonElement>(null);
@@ -30,7 +30,7 @@ const HeaderMenuMobile: FC = () => {
                         aria-expanded={open ? 'true' : undefined}
                         onClick={handleClick}
                         endIcon={
-                            <MenuIcon sx={{ color: "black" }} />
+                            <MenuIcon sx={{color: "black"}}/>
                         }
                         sx={{
                             color: "black",
@@ -48,10 +48,10 @@ const HeaderMenuMobile: FC = () => {
                             'aria-labelledby': 'basic-button',
                         }}
                     >
-                        <Divider />
+                        <Divider/>
                         <MenuItem>
                             <ListItemIcon>
-                                <AccountCircle />
+                                <AccountCircle/>
                             </ListItemIcon>
                             <ListItemText>
                                 <Typography variant="button" display="block" gutterBottom color="grey" m="0">
@@ -61,10 +61,10 @@ const HeaderMenuMobile: FC = () => {
                         </MenuItem>
                         <MenuItem>
                             <ListItemIcon>
-                                <Logout />
+                                <Logout/>
                             </ListItemIcon>
                             <ListItemText>
-                                <Button onClick={handleLogOut} size="small" sx={{ color: "grey" }}>
+                                <Button onClick={handleLogOut} size="small" sx={{color: "grey"}}>
                                     Выйти
                                 </Button>
                             </ListItemText>

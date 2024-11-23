@@ -10,7 +10,7 @@ const CaslContext = createContext<AppAbility>(
     buildAbilityFor('anonymous')
 );
 
-export const CaslProvider: FC<Props> = ({children}) => {
+const CaslProvider: FC<Props> = ({children}) => {
     const {ability} = useAuth();
 
     return (
@@ -19,3 +19,5 @@ export const CaslProvider: FC<Props> = ({children}) => {
         </CaslContext.Provider>
     );
 };
+
+export default CaslProvider;

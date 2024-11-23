@@ -1,6 +1,6 @@
 import {FC, ReactNode} from "react";
-import {CaslProvider} from "./CaslProvider";
-import {AuthProvider} from "../../context/AuthContext.tsx";
+import CaslProvider from "./CaslProvider";
+import AuthProvider from "./AuthProvider";
 
 type Props = {
     children: ReactNode;
