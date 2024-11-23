@@ -1,5 +1,5 @@
 import {FC, ReactNode} from 'react';
-import useAuth from '../../store/useAuth.tsx';
+import {useAuth} from "@features/auth";
 import {CaslContext} from '@features/ability';
 
 type Props = {

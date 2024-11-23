@@ -2,7 +2,7 @@ import {FC, MouseEvent, useContext, useState} from 'react';
 import {Box, Button, Divider, ListItemIcon, ListItemText, Menu, MenuItem, Typography} from '@mui/material';
 import {AccountCircle, Logout} from '@mui/icons-material';
 import MenuIcon from '@mui/icons-material/Menu';
-import useAuth from '../../store/useAuth';
+import {useAuth} from "@features/auth";
 import {AuthContext} from "../../app/providers/AuthProvider.tsx";
 
 const HeaderMenuMobile: FC = () => {

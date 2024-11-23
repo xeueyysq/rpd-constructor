@@ -1,17 +1,17 @@
-import { IconButton, ListItemIcon, ListItemText, Menu, MenuItem, Typography } from "@mui/material"
-import { FC, useState, MouseEvent } from "react"
+import {IconButton, ListItemIcon, ListItemText, Menu, MenuItem, Typography} from "@mui/material"
+import {FC, MouseEvent, useState} from "react"
 import MoreHorizIcon from '@mui/icons-material/MoreHoriz';
-import useAuth from "../../../../store/useAuth";
+import {useAuth} from "@features/auth";
 import showErrorMessage from "../../../../utils/showErrorMessage";
 import showSuccessMessage from "../../../../utils/showSuccessMessage";
 import useStore from "../../../../store/useStore";
-import { useNavigate } from "react-router-dom";
+import {useNavigate} from "react-router-dom";
 import HistoryModal from "./HistoryModal";
 import OpenInBrowserIcon from '@mui/icons-material/OpenInBrowser';
 import ReplyIcon from '@mui/icons-material/Reply';
 import DeleteForeverIcon from '@mui/icons-material/DeleteForever';
 import HistoryIcon from '@mui/icons-material/History';
-import { axiosBase } from "../../../../fetchers/baseURL";
+import {axiosBase} from "../../../../fetchers/baseURL";
 
 interface TemplateMenu {
     id: number;
@@ -20,8 +20,8 @@ interface TemplateMenu {
     fetchData: () => Promise<void>;
 }
 
-const TemplateMenu: FC<TemplateMenu> = ({ id, teacher, status, fetchData }) => {
-    const { setJsonData } = useStore();
+const TemplateMenu: FC<TemplateMenu> = ({id, teacher, status, fetchData}) => {
+    const {setJsonData} = useStore();
     const userName = useAuth.getState().userName;
     const [anchorEl, setAnchorEl] = useState<null | HTMLButtonElement>(null);
     const [openDialog, setOpenDialog] = useState<boolean>(false);
@@ -37,7 +37,7 @@ const TemplateMenu: FC<TemplateMenu> = ({ id, teacher, status, fetchData }) => {
     };
 
     const statusValidate = () => {
-        if(status === "Отправлен преподавателю" || status === "Взят в работу") return false
+        if (status === "Отправлен преподавателю" || status === "Взят в работу") return false
         return true
     }
 
@@ -54,7 +54,8 @@ const TemplateMenu: FC<TemplateMenu> = ({ id, teacher, status, fetchData }) => {
             if (responce.data === "binnedSuccess") {
                 showSuccessMessage("Шаблон успешно отправлен преподавателю");
                 fetchData();
-            };
+            }
+
         } catch (error) {
             showErrorMessage("Ошибка отправки шаблона");
             console.error(error);
@@ -63,7 +64,7 @@ const TemplateMenu: FC<TemplateMenu> = ({ id, teacher, status, fetchData }) => {
 
     const uploadTemplateData = async () => {
         try {
-            const response = await axiosBase.post(`rpd-profile-templates`, { id });
+            const response = await axiosBase.post(`rpd-profile-templates`, {id});
             setJsonData(response.data);
             navigate("/teacher-interface");
         } catch (error) {
@@ -74,7 +75,7 @@ const TemplateMenu: FC<TemplateMenu> = ({ id, teacher, status, fetchData }) => {
 
     const getTemplateHistory = async () => {
         try {
-            const response = await axiosBase.post(`get-template-history`, { id });
+            const response = await axiosBase.post(`get-template-history`, {id});
             setHistory(response.data);
             setOpenDialog(true);
         } catch (error) {
@@ -93,7 +94,7 @@ const TemplateMenu: FC<TemplateMenu> = ({ id, teacher, status, fetchData }) => {
                 aria-expanded={open ? 'true' : undefined}
                 onClick={handleClick}
             >
-                <MoreHorizIcon sx={{ color: "black" }} />
+                <MoreHorizIcon sx={{color: "black"}}/>
             </IconButton>
             <Menu
                 id="basic-menu"
@@ -106,7 +107,7 @@ const TemplateMenu: FC<TemplateMenu> = ({ id, teacher, status, fetchData }) => {
             >
                 <MenuItem onClick={() => uploadTemplateData()}>
                     <ListItemIcon>
-                        <OpenInBrowserIcon />
+                        <OpenInBrowserIcon/>
                     </ListItemIcon>
                     <ListItemText>
                         <Typography variant="button" display="block" gutterBottom color="grey" m="0">
@@ -117,7 +118,7 @@ const TemplateMenu: FC<TemplateMenu> = ({ id, teacher, status, fetchData }) => {
                 {statusValidate() &&
                     <MenuItem onClick={() => sendTemplateToTeacher(id, teacher)}>
                         <ListItemIcon>
-                            <ReplyIcon />
+                            <ReplyIcon/>
                         </ListItemIcon>
                         <ListItemText>
                             <Typography variant="button" display="block" gutterBottom color="grey" m="0">
@@ -128,7 +129,7 @@ const TemplateMenu: FC<TemplateMenu> = ({ id, teacher, status, fetchData }) => {
                 }
                 <MenuItem>
                     <ListItemIcon>
-                        <DeleteForeverIcon />
+                        <DeleteForeverIcon/>
                     </ListItemIcon>
                     <ListItemText>
                         <Typography variant="button" display="block" gutterBottom color="grey" m="0">
@@ -138,7 +139,7 @@ const TemplateMenu: FC<TemplateMenu> = ({ id, teacher, status, fetchData }) => {
                 </MenuItem>
                 <MenuItem onClick={() => getTemplateHistory()}>
                     <ListItemIcon>
-                        <HistoryIcon />
+                        <HistoryIcon/>
                     </ListItemIcon>
                     <ListItemText>
                         <Typography variant="button" display="block" gutterBottom color="grey" m="0">

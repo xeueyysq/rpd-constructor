@@ -1,7 +1,7 @@
 import {Ability, AbilityBuilder, AbilityClass} from "@casl/ability";
 import {AppAbility, UserRole} from "../model/types.ts";
 
-export const AppAbilityClass = Ability as AbilityClass<AppAbility>;
+const AppAbilityClass = Ability as AbilityClass<AppAbility>;
 
 const defineRulesFor = (role: UserRole) => {
     const {can, rules} = new AbilityBuilder(AppAbilityClass);

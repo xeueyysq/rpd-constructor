@@ -4,7 +4,7 @@ import inMemoryJWT from "../../utils/inMemoryJWT.ts";
 import config from "../../config.ts";
 import Loader from "../../helperComponents/Loader.tsx";
 import showErrorMessage from "../../utils/showErrorMessage.ts";
-import useAuth from "../../store/useAuth.tsx";
+import {useAuth} from "@features/auth";
 
 export const AuthClient = axios.create({
     baseURL: `${config.API_URL}/auth`,

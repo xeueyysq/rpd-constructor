@@ -16,7 +16,7 @@ interface useAuthState {
     updateUserName: (name: userName | undefined) => void;
 }
 
-const useAuth = create<useAuthState>()(immer((set) => ({
+export const useAuth = create<useAuthState>()(immer((set) => ({
     ability: buildAbilityFor('anonymous'),
     userName: undefined,
     userRole: "anonymous",
@@ -54,5 +54,3 @@ const useAuth = create<useAuthState>()(immer((set) => ({
         })
     }
 })));
-
-export default useAuth;
