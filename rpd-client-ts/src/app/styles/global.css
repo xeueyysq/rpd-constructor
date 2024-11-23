@@ -6,7 +6,7 @@
 @font-face {
     font-family: "Arial";
     src: local("Arial"),
-    url("../../fonts/arialmt.ttf") format("truetype");
+    url("shared/fonts/arialmt.ttf") format("truetype");
     font-weight: normal;
 }
 
