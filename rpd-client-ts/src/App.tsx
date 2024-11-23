@@ -3,7 +3,7 @@ import {useContext} from 'react';
 import Header from './templates/Header';
 import {SnackbarProvider} from 'notistack';
 
-import './styles-new.css';
+import './global.css';
 import useAuth from './store/useAuth';
 import {Manager} from './templates/Manager';
 import {RPDTemplate} from './templates/RPDTemplate';
