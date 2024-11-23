@@ -2,13 +2,13 @@ import {create} from 'zustand';
 import {immer} from 'zustand/middleware/immer';
 import {AppAbility, buildAbilityFor, UserRole} from "@features/ability";
 
-interface userName {
-    name: string;
-    surname: string;
-    patronymic: string;
+type userName = {
+    name: string
+    surname: string
+    patronymic: string
 }
 
-interface useAuthState {
+type useAuthState = {
     ability: AppAbility;
     userName: string | undefined;
     userRole: string;

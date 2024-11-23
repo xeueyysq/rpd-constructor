@@ -1,5 +1,5 @@
-import config from "../config";
-import {AuthClient} from "../app/providers/AuthProvider.tsx";
+import config from "@shared/config/config.ts";
+import {AuthClient} from "../api/clients";
 
 const inMemoryJWTService = () => {
     let inMemoryJWT: string | null = null;
