@@ -1,7 +1,7 @@
 import {FC, useContext, useMemo} from 'react';
 // import defaultUser from "../../public/default-user-img.png";
 import {Box, Container, IconButton} from '@mui/material';
-import useWindowSize from '../hooks/useWindowSize';
+import useWindowSize from '@shared/hooks/useWindowSize';
 import HeaderMenuMobile from './header/HeaderMenuMobile';
 import HeaderLogo from './header/HeaderLogo';
 import {useAuth} from "@features/auth";
