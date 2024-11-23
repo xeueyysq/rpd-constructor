@@ -7,7 +7,7 @@ import showErrorMessage from "@shared/lib/showErrorMessage.ts";
 import showSuccessMessage from "@shared/lib/showSuccessMessage.ts";
 import TemplateStatus from "../../../helperComponents/TemplateStatus";
 import {useAuth} from "@features/auth";
-import {axiosBase} from "../../../fetchers/baseURL";
+import {axiosBase} from "@shared/api/baseURL.ts";
 
 interface TemplateStatusObject {
     date: string,

@@ -11,7 +11,7 @@ import OpenInBrowserIcon from '@mui/icons-material/OpenInBrowser';
 import ReplyIcon from '@mui/icons-material/Reply';
 import DeleteForeverIcon from '@mui/icons-material/DeleteForever';
 import HistoryIcon from '@mui/icons-material/History';
-import {axiosBase} from "../../../../fetchers/baseURL";
+import {axiosBase} from "@shared/api/baseURL.ts";
 
 interface TemplateMenu {
     id: number;

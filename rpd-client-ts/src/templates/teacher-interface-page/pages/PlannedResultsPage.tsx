@@ -18,7 +18,7 @@ import Loader from "../../../helperComponents/Loader";
 import {PlannedResultsData} from "../../../types/DisciplineContentPageTypes";
 import showSuccessMessage from "@shared/lib/showSuccessMessage.ts";
 import showErrorMessage from "@shared/lib/showErrorMessage.ts";
-import {axiosBase} from "../../../fetchers/baseURL";
+import {axiosBase} from "@shared/api/baseURL.ts";
 import Papa from 'papaparse';
 import {Can} from "@features/ability";
 

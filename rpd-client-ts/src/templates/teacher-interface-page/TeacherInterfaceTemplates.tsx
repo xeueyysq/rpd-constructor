@@ -7,7 +7,7 @@ import Loader from "../../helperComponents/Loader";
 import useStore from "../../store/useStore";
 import TemplateStatus from "../../helperComponents/TemplateStatus";
 import showSuccessMessage from "@shared/lib/showSuccessMessage.ts";
-import {axiosBase} from "../../fetchers/baseURL";
+import {axiosBase} from "@shared/api/baseURL.ts";
 
 interface TemplateStatusObject {
     date: string,

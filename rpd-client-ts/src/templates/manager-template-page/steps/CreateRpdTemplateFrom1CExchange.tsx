@@ -23,7 +23,7 @@ import showSuccessMessage from "@shared/lib/showSuccessMessage.ts";
 import TemplateStatus from "../../../helperComponents/TemplateStatus";
 import {useAuth} from "@features/auth";
 import TemplateMenu from "./templateMenu/TemplateMenu";
-import {axiosBase} from "../../../fetchers/baseURL";
+import {axiosBase} from "@shared/api/baseURL.ts";
 
 interface TemplateStatusObject {
     date: string,

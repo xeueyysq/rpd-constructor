@@ -7,7 +7,7 @@ import showSuccessMessage from '@shared/lib/showSuccessMessage.ts';
 import showErrorMessage from '@shared/lib/showErrorMessage.ts';
 import MoreHorizIcon from '@mui/icons-material/MoreHoriz';
 import DownloadIcon from '@mui/icons-material/Download';
-import {axiosBase} from '../../../fetchers/baseURL';
+import {axiosBase} from '@shared/api/baseURL.ts';
 
 interface JsonChangeValue {
     elementName: string;

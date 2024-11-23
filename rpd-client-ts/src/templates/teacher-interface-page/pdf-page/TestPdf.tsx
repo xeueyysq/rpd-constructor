@@ -3,7 +3,7 @@ import useStore from '../../../store/useStore.js';
 import {Box, Button} from '@mui/material';
 import showErrorMessage from '@shared/lib/showErrorMessage.ts';
 import {PdfReader} from './PdfReader.js';
-import {axiosBase} from '../../../fetchers/baseURL.js';
+import {axiosBase} from '@shared/api/baseURL.ts';
 
 export default function TestPdf() {
     const [fileName, setFileName] = useState<Blob | MediaSource | undefined>(undefined);

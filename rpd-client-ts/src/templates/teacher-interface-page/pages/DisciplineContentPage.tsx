@@ -18,7 +18,7 @@ import showSuccessMessage from '@shared/lib/showSuccessMessage.ts';
 import showErrorMessage from '@shared/lib/showErrorMessage.ts';
 import EditableCell from '../changeable-elements/EditableCell';
 import {EditableNumber} from '../changeable-elements/EditableNumber';
-import {axiosBase} from '../../../fetchers/baseURL';
+import {axiosBase} from '@shared/api/baseURL.ts';
 
 interface StudyLoad {
     id: string;

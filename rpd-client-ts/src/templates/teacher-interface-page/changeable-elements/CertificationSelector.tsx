@@ -3,7 +3,7 @@ import {MenuItem, Select, SelectChangeEvent} from '@mui/material';
 import useStore from '../../../store/useStore';
 import showSuccessMessage from '@shared/lib/showSuccessMessage.ts';
 import showErrorMessage from '@shared/lib/showErrorMessage.ts';
-import {axiosBase} from '../../../fetchers/baseURL';
+import {axiosBase} from '@shared/api/baseURL.ts';
 
 interface SelectorProps {
     certification: string;
