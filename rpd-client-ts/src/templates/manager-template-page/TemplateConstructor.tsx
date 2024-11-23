@@ -1,16 +1,16 @@
-import { FC, useEffect, useState } from "react";
+import {FC, useEffect, useState} from "react";
 import useStore from "../../store/useStore";
-import { Box, Button, CircularProgress } from "@mui/material";
-import { TemplateConstructorType } from "../../types/TemplateConstructorTypes";
-import { templateDataTitles } from "../../constants/templateDataTitles";
-import showErrorMessage from "../../utils/showErrorMessage";
-import showSuccessMessage from "../../utils/showSuccessMessage";
+import {Box, Button, CircularProgress} from "@mui/material";
+import {TemplateConstructorType} from "../../types/TemplateConstructorTypes";
+import {templateDataTitles} from "../../constants/templateDataTitles";
+import showErrorMessage from "@shared/lib/showErrorMessage.ts";
+import showSuccessMessage from "@shared/lib/showSuccessMessage.ts";
 import Loader from "../../helperComponents/Loader";
-import { axiosBase } from "../../fetchers/baseURL";
+import {axiosBase} from "../../fetchers/baseURL";
 
-const TemplateConstructor: FC<TemplateConstructorType> = ({ setChoise }) => {
+const TemplateConstructor: FC<TemplateConstructorType> = ({setChoise}) => {
     const selectedTemplateData = useStore.getState().selectedTemplateData;
-    const { setComplectId } = useStore();
+    const {setComplectId} = useStore();
     const [createComplectStatus, setCreateComplectStatus] = useState<string>("pending");
     const [isFindComplect, setIsFindComplect] = useState<boolean | undefined>(undefined);
 
@@ -52,19 +52,19 @@ const TemplateConstructor: FC<TemplateConstructorType> = ({ setChoise }) => {
     return (
         <>
             <Box>Шаг 2. Создание/редактирование комплекта РПД</Box>
-            <Box sx={{ py: 2, fontSize: "18px", fontWeight: "600" }}>Выбранные данные:</Box>
+            <Box sx={{py: 2, fontSize: "18px", fontWeight: "600"}}>Выбранные данные:</Box>
             {Object.entries(selectedTemplateData).map(([key, value]) => (
-                <Box sx={{ pl: "40px" }} key={key}>
-                    <Box component="span" sx={{ fontWeight: "600" }}>{templateDataTitles[key]}: </Box>
+                <Box sx={{pl: "40px"}} key={key}>
+                    <Box component="span" sx={{fontWeight: "600"}}>{templateDataTitles[key]}: </Box>
                     {value ? value : "Данные не найдены"}
                 </Box>
             ))}
             {isFindComplect === undefined ?
-                <Loader />
+                <Loader/>
                 :
                 <>
                     {!isFindComplect ?
-                        <Box sx={{ py: 2 }}>
+                        <Box sx={{py: 2}}>
                             {createComplectStatus === "pending" &&
                                 <>
                                     <Box>Комплект РПД не найден. Создать на основе 1С выгрузки?</Box>
@@ -76,9 +76,9 @@ const TemplateConstructor: FC<TemplateConstructorType> = ({ setChoise }) => {
                                 </>
                             }
                             {createComplectStatus === "loading" &&
-                                <Box sx={{ p: 1, display: 'flex' }}>
-                                    <CircularProgress color="inherit" size="1rem" />
-                                    <Box sx={{ px: 1 }}>Идет создание комплекта РПД. Это может занять какое-то время</Box>
+                                <Box sx={{p: 1, display: 'flex'}}>
+                                    <CircularProgress color="inherit" size="1rem"/>
+                                    <Box sx={{px: 1}}>Идет создание комплекта РПД. Это может занять какое-то время</Box>
                                 </Box>
                             }
                             {createComplectStatus === "success" &&
@@ -94,7 +94,7 @@ const TemplateConstructor: FC<TemplateConstructorType> = ({ setChoise }) => {
 
                         </Box>
                         :
-                        <Box sx={{ py: 2 }}>
+                        <Box sx={{py: 2}}>
                             <Box>Комплект РПД загружен. Перейти к редактированию?</Box>
                             <Button
                                 variant="outlined"

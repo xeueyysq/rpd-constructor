@@ -1,20 +1,20 @@
-import { useState, FC, MouseEvent } from 'react';
-import { Button, Box, Menu, MenuItem, ListItemIcon, ListItemText, Typography, IconButton } from '@mui/material';
+import {FC, MouseEvent, useState} from 'react';
+import {Box, Button, IconButton, ListItemIcon, ListItemText, Menu, MenuItem, Typography} from '@mui/material';
 import EditIcon from '@mui/icons-material/Edit';
 import useStore from '../../../store/useStore';
 import TextEditor from './TextEditor';
-import showSuccessMessage from '../../../utils/showSuccessMessage';
-import showErrorMessage from '../../../utils/showErrorMessage';
+import showSuccessMessage from '@shared/lib/showSuccessMessage.ts';
+import showErrorMessage from '@shared/lib/showErrorMessage.ts';
 import MoreHorizIcon from '@mui/icons-material/MoreHoriz';
 import DownloadIcon from '@mui/icons-material/Download';
-import { axiosBase } from '../../../fetchers/baseURL';
+import {axiosBase} from '../../../fetchers/baseURL';
 
 interface JsonChangeValue {
     elementName: string;
 }
 
-const JsonChangeValue: FC<JsonChangeValue> = ({ elementName }) => {
-    const { updateJsonData } = useStore();
+const JsonChangeValue: FC<JsonChangeValue> = ({elementName}) => {
+    const {updateJsonData} = useStore();
     const elementValue = useStore.getState().jsonData[elementName];
 
     const [isEditing, setIsEditing] = useState<boolean>(false);
@@ -54,10 +54,10 @@ const JsonChangeValue: FC<JsonChangeValue> = ({ elementName }) => {
     };
 
     return (
-        <Box sx={{ 
-            p: 1, 
-            border: '1px dashed grey', 
-            my: 1, 
+        <Box sx={{
+            p: 1,
+            border: '1px dashed grey',
+            my: 1,
             textAlign: 'justify',
             '& ol': {
                 p: 1
@@ -71,11 +71,11 @@ const JsonChangeValue: FC<JsonChangeValue> = ({ elementName }) => {
             }
         }}>
             {isEditing ? (
-                <TextEditor value={changeableValue} saveContent={saveContent} setIsEditing={setIsEditing} />
+                <TextEditor value={changeableValue} saveContent={saveContent} setIsEditing={setIsEditing}/>
             ) : (
                 <Box>
                     {changeableValue ?
-                        <Box dangerouslySetInnerHTML={{ __html: changeableValue }} sx={{ py: 1 }}></Box>
+                        <Box dangerouslySetInnerHTML={{__html: changeableValue}} sx={{py: 1}}></Box>
                         :
                         <Box sx={{
                             py: 2,
@@ -83,11 +83,11 @@ const JsonChangeValue: FC<JsonChangeValue> = ({ elementName }) => {
                             fontStyle: "italic"
                         }}>Данные не найдены</Box>
                     }
-                    <Box sx={{ display: "flex", justifyContent: "space-between" }}>
+                    <Box sx={{display: "flex", justifyContent: "space-between"}}>
                         <Button
                             variant="outlined"
                             size="small"
-                            endIcon={<EditIcon color='primary' />}
+                            endIcon={<EditIcon color='primary'/>}
                             onClick={() => handleEditClick()}
                         >редактировать</Button>
                         <IconButton
@@ -98,7 +98,7 @@ const JsonChangeValue: FC<JsonChangeValue> = ({ elementName }) => {
                             aria-expanded={open ? 'true' : undefined}
                             onClick={handleClick}
                         >
-                            <MoreHorizIcon sx={{ color: "black" }} />
+                            <MoreHorizIcon sx={{color: "black"}}/>
                         </IconButton>
                         <Menu
                             id="basic-menu"
@@ -111,7 +111,7 @@ const JsonChangeValue: FC<JsonChangeValue> = ({ elementName }) => {
                         >
                             <MenuItem disabled>
                                 <ListItemIcon>
-                                    <DownloadIcon />
+                                    <DownloadIcon/>
                                 </ListItemIcon>
                                 <ListItemText>
                                     <Typography variant="button" display="block" gutterBottom color="grey" m="0">
@@ -121,7 +121,7 @@ const JsonChangeValue: FC<JsonChangeValue> = ({ elementName }) => {
                             </MenuItem>
                             <MenuItem disabled>
                                 <ListItemIcon>
-                                    <DownloadIcon />
+                                    <DownloadIcon/>
                                 </ListItemIcon>
                                 <ListItemText>
                                     <Typography variant="button" display="block" gutterBottom color="grey" m="0">

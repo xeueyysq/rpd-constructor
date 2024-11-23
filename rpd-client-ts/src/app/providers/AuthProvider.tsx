@@ -3,7 +3,7 @@ import axios from "axios";
 import inMemoryJWT from "../../utils/inMemoryJWT.ts";
 import config from "../../config.ts";
 import Loader from "../../helperComponents/Loader.tsx";
-import showErrorMessage from "../../utils/showErrorMessage.ts";
+import showErrorMessage from "@shared/lib/showErrorMessage.ts";
 import {AuthContext, useAuth} from "@features/auth";
 
 export const AuthClient = axios.create({

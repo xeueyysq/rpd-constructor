@@ -1,16 +1,24 @@
-import { useState, useEffect, FC } from 'react';
+import {FC, useEffect, useState} from 'react';
 import useStore from "../../../store/useStore";
 import JsonChangeValue from '../changeable-elements/JsonChangeValue';
 import {
-    Box, Button, ButtonGroup, TableContainer, Table, TableHead,
-    TableBody, TableRow, TableCell, Paper
+    Box,
+    Button,
+    ButtonGroup,
+    Paper,
+    Table,
+    TableBody,
+    TableCell,
+    TableContainer,
+    TableHead,
+    TableRow
 } from '@mui/material';
-import { ObjectHours, DisciplineContentData } from '../../../types/DisciplineContentPageTypes';
-import showSuccessMessage from '../../../utils/showSuccessMessage';
-import showErrorMessage from '../../../utils/showErrorMessage';
+import {DisciplineContentData, ObjectHours} from '../../../types/DisciplineContentPageTypes';
+import showSuccessMessage from '@shared/lib/showSuccessMessage.ts';
+import showErrorMessage from '@shared/lib/showErrorMessage.ts';
 import EditableCell from '../changeable-elements/EditableCell';
-import { EditableNumber } from '../changeable-elements/EditableNumber';
-import { axiosBase } from '../../../fetchers/baseURL';
+import {EditableNumber} from '../changeable-elements/EditableNumber';
+import {axiosBase} from '../../../fetchers/baseURL';
 
 interface StudyLoad {
     id: string;
@@ -50,7 +58,7 @@ const DisciplineContentPage: FC = () => {
         independent_work: 0
     });
     const initialDataLength = initialData ? Object.keys(initialData).length : 0;
-    const { updateJsonData } = useStore();
+    const {updateJsonData} = useStore();
     const [data, setData] = useState<DisciplineContentData | undefined>(initialData);
     const [nextId, setNextId] = useState<number>(initialDataLength);
     const [summ, setSumm] = useState<ObjectHours>({
@@ -94,7 +102,7 @@ const DisciplineContentPage: FC = () => {
 
     const handleAddRow = () => {
         setNextId(nextId + 1);
-        const newData = { ...data, [nextId]: { theme: '', lectures: '', seminars: '', independent_work: '' } };
+        const newData = {...data, [nextId]: {theme: '', lectures: '', seminars: '', independent_work: ''}};
         setData(newData);
     };
 
@@ -114,7 +122,7 @@ const DisciplineContentPage: FC = () => {
     function compareObjects(object1: ObjectHours, object2: ObjectHours) {
         if (Object.keys(object1).length !== Object.keys(object2).length) return false;
 
-        for (let key of Object.keys(object1)) {
+        for (const key of Object.keys(object1)) {
             //@ts-expect-error
             if (Number(object1[key]) !== Number(object2[key])) return false;
         }
@@ -162,8 +170,8 @@ const DisciplineContentPage: FC = () => {
     return (
         <Box>
             <Box component='h2'>Содержание дисциплины</Box>
-            <TableContainer component={Paper} sx={{ my: 2 }}>
-                <Table sx={{ minWidth: 650 }} aria-label="simple table" size="small" className="table">
+            <TableContainer component={Paper} sx={{my: 2}}>
+                <Table sx={{minWidth: 650}} aria-label="simple table" size="small" className="table">
                     <TableHead>
                         <TableRow>
                             <TableCell align="center" width="180px">Наименование разделов и тем дисциплины</TableCell>
@@ -183,7 +191,7 @@ const DisciplineContentPage: FC = () => {
                                         onValueChange={(value: string) => handleValueChange(index, 'theme', value)}
                                     />
                                 </TableCell>
-                                <TableCell style={{ alignContent: 'center', textAlign: 'center' }}>
+                                <TableCell style={{alignContent: 'center', textAlign: 'center'}}>
                                     {data[row].lectures + data[row].seminars + data[row].independent_work}
                                 </TableCell>
                                 <TableCell>
@@ -198,7 +206,7 @@ const DisciplineContentPage: FC = () => {
                                         onValueChange={(value: number) => handleValueChange(index, 'seminars', value)}
                                     />
                                 </TableCell>
-                                <TableCell style={{ alignContent: 'center', textAlign: 'center' }}>
+                                <TableCell style={{alignContent: 'center', textAlign: 'center'}}>
                                     {data[row].lectures + data[row].seminars}
                                 </TableCell>
                                 <TableCell>
@@ -211,19 +219,19 @@ const DisciplineContentPage: FC = () => {
                         ))}
                         <TableRow>
                             <TableCell>Итого за семестр / курс</TableCell>
-                            <TableCell sx={{ color: validateHours(summ.all, maxHours.all) }}>
+                            <TableCell sx={{color: validateHours(summ.all, maxHours.all)}}>
                                 {summ.all} / {maxHours.all}
                             </TableCell>
-                            <TableCell sx={{ color: validateHours(summ.lectures, maxHours.lectures) }}>
+                            <TableCell sx={{color: validateHours(summ.lectures, maxHours.lectures)}}>
                                 {summ.lectures} / {maxHours.lectures}
                             </TableCell>
-                            <TableCell sx={{ color: validateHours(summ.seminars, maxHours.seminars) }}>
+                            <TableCell sx={{color: validateHours(summ.seminars, maxHours.seminars)}}>
                                 {summ.seminars} / {maxHours.seminars}
                             </TableCell>
-                            <TableCell sx={{ color: validateHours(summ.lect_and_sems, maxHours.lect_and_sems) }}>
+                            <TableCell sx={{color: validateHours(summ.lect_and_sems, maxHours.lect_and_sems)}}>
                                 {summ.lect_and_sems} / {maxHours.lect_and_sems}
                             </TableCell>
-                            <TableCell sx={{ color: validateHours(summ.independent_work, maxHours.independent_work) }}>
+                            <TableCell sx={{color: validateHours(summ.independent_work, maxHours.independent_work)}}>
                                 {summ.independent_work} / {maxHours.independent_work}
                             </TableCell>
                         </TableRow>
@@ -236,7 +244,7 @@ const DisciplineContentPage: FC = () => {
                 <Button onClick={saveData}>Сохранить изменения</Button>
             </ButtonGroup>
 
-            <Box component='h2' sx={{ py: 2 }}>Содержание дисциплины </Box>
+            <Box component='h2' sx={{py: 2}}>Содержание дисциплины </Box>
             <Box sx={{
                 p: 1,
                 border: '1px dashed grey',
@@ -251,7 +259,7 @@ const DisciplineContentPage: FC = () => {
                     p: 1
                 }
             }}>
-                <JsonChangeValue elementName='content_more_text' />
+                <JsonChangeValue elementName='content_more_text'/>
             </Box>
             <Box sx={{
                 p: 1,
@@ -261,7 +269,7 @@ const DisciplineContentPage: FC = () => {
                     p: 1
                 }
             }}>
-                <JsonChangeValue elementName='content_template_more_text' />
+                <JsonChangeValue elementName='content_template_more_text'/>
             </Box>
         </Box>
     );

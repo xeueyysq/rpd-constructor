@@ -1,17 +1,17 @@
-import { FC, useState } from 'react';
-import { MenuItem, Select, SelectChangeEvent } from '@mui/material';
+import {FC, useState} from 'react';
+import {MenuItem, Select, SelectChangeEvent} from '@mui/material';
 import useStore from '../../../store/useStore';
-import showSuccessMessage from '../../../utils/showSuccessMessage';
-import showErrorMessage from '../../../utils/showErrorMessage';
-import { axiosBase } from '../../../fetchers/baseURL';
+import showSuccessMessage from '@shared/lib/showSuccessMessage.ts';
+import showErrorMessage from '@shared/lib/showErrorMessage.ts';
+import {axiosBase} from '../../../fetchers/baseURL';
 
 interface SelectorProps {
     certification: string;
 }
 
-const CertificationSelector: FC<SelectorProps> = ({ certification }) => {
+const CertificationSelector: FC<SelectorProps> = ({certification}) => {
     const [valueCertification, setValueCertification] = useState<string>(certification);
-    const { updateJsonData } = useStore();
+    const {updateJsonData} = useStore();
 
     const handleChange = async (event: SelectChangeEvent<string>) => {
         const templateId = useStore.getState().jsonData.id;

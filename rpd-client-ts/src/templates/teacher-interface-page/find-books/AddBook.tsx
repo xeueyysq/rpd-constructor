@@ -1,11 +1,22 @@
-import { ChangeEvent, FC, useState } from 'react';
-import { Button, TextField, Dialog, DialogActions, DialogContent, DialogTitle, List, ListItem, ListItemText, Box } from '@mui/material';
+import {ChangeEvent, FC, useState} from 'react';
+import {
+    Box,
+    Button,
+    Dialog,
+    DialogActions,
+    DialogContent,
+    DialogTitle,
+    List,
+    ListItem,
+    ListItemText,
+    TextField
+} from '@mui/material';
 import AddIcon from '@mui/icons-material/Add';
 import ShowBooks from './ShowBooks';
 import useStore from '../../../store/useStore';
-import showSuccessMessage from '../../../utils/showSuccessMessage';
-import showErrorMessage from '../../../utils/showErrorMessage';
-import { axiosBase } from '../../../fetchers/baseURL';
+import showSuccessMessage from '@shared/lib/showSuccessMessage.ts';
+import showErrorMessage from '@shared/lib/showErrorMessage.ts';
+import {axiosBase} from '../../../fetchers/baseURL';
 
 interface AddBook {
     elementName: string;
@@ -20,7 +31,7 @@ interface BookData {
     // ... другие поля, если они есть
 }
 
-const AddBook: FC<AddBook> = ({ elementName }) => {
+const AddBook: FC<AddBook> = ({elementName}) => {
     const [open, setOpen] = useState<boolean>(false);
     const [bookName, setBookName] = useState<string>('');
     const [error, setError] = useState<boolean>(false);
@@ -29,7 +40,7 @@ const AddBook: FC<AddBook> = ({ elementName }) => {
     const [booksData, setBooksData] = useState<BookData[]>(jsonData);
 
     const [addedBooks, setAddedBooks] = useState<string[]>([]);
-    const { updateJsonData } = useStore();
+    const {updateJsonData} = useStore();
     const elementValue: string[] = useStore.getState().jsonData[elementName];
 
     const handleOpenDialog = () => {
@@ -55,7 +66,7 @@ const AddBook: FC<AddBook> = ({ elementName }) => {
         setError(false);
 
         try {
-            const response = await axiosBase.post('find-books', { bookName });
+            const response = await axiosBase.post('find-books', {bookName});
             setBooksData(response.data);
         } catch (error) {
             console.error(error);
@@ -101,7 +112,7 @@ const AddBook: FC<AddBook> = ({ elementName }) => {
                 variant="outlined"
                 size="small"
                 onClick={handleOpenDialog}
-                endIcon={<AddIcon />}
+                endIcon={<AddIcon/>}
             >
                 Добавить
             </Button>
@@ -127,7 +138,7 @@ const AddBook: FC<AddBook> = ({ elementName }) => {
                         error={error}
                         helperText={error ? 'Ошибка. Поле обязательно для заполнения' : ''}
                     />
-                    {booksData && <ShowBooks books={booksData} onAddBookToList={handleAddBookToList} />}
+                    {booksData && <ShowBooks books={booksData} onAddBookToList={handleAddBookToList}/>}
                 </DialogContent>
                 <DialogActions>
                     <Button onClick={handleFindBooks} color="primary">Найти</Button>

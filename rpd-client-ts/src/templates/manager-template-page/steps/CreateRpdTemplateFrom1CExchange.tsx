@@ -1,7 +1,7 @@
 import {FC, useEffect, useState} from "react";
 import {TemplateConstructorType} from "../../../types/TemplateConstructorTypes";
 import useStore from "../../../store/useStore";
-import showErrorMessage from "../../../utils/showErrorMessage";
+import showErrorMessage from "@shared/lib/showErrorMessage.ts";
 import Loader from "../../../helperComponents/Loader";
 import {
     Box,
@@ -19,7 +19,7 @@ import {
     TableHead,
     TableRow
 } from "@mui/material";
-import showSuccessMessage from "../../../utils/showSuccessMessage";
+import showSuccessMessage from "@shared/lib/showSuccessMessage.ts";
 import TemplateStatus from "../../../helperComponents/TemplateStatus";
 import {useAuth} from "@features/auth";
 import TemplateMenu from "./templateMenu/TemplateMenu";

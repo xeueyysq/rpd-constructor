@@ -2,8 +2,8 @@ import {IconButton, ListItemIcon, ListItemText, Menu, MenuItem, Typography} from
 import {FC, MouseEvent, useState} from "react"
 import MoreHorizIcon from '@mui/icons-material/MoreHoriz';
 import {useAuth} from "@features/auth";
-import showErrorMessage from "../../../../utils/showErrorMessage";
-import showSuccessMessage from "../../../../utils/showSuccessMessage";
+import showErrorMessage from "@shared/lib/showErrorMessage.ts";
+import showSuccessMessage from "@shared/lib/showSuccessMessage.ts";
 import useStore from "../../../../store/useStore";
 import {useNavigate} from "react-router-dom";
 import HistoryModal from "./HistoryModal";
