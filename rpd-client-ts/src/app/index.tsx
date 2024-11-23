@@ -2,6 +2,7 @@ import React from "react";
 import ReactDOM from "react-dom/client";
 import {AppProviders} from "./providers/AppProviders";
 import App from "../App.tsx";
+import './global.css'
 
 const root = ReactDOM.createRoot(document.getElementById("root")!);
 

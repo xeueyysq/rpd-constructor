@@ -2,7 +2,6 @@ import {BrowserRouter as Router, Navigate, Route, Routes} from 'react-router-dom
 import {useContext} from 'react';
 import Header from './templates/Header';
 
-import './global.css';
 import useAuth from './store/useAuth';
 import {Manager} from './templates/Manager';
 import {RPDTemplate} from './templates/RPDTemplate';

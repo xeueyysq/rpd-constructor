@@ -6,7 +6,7 @@
 @font-face {
     font-family: "Arial";
     src: local("Arial"),
-        url("./fonts/arialmt.ttf") format("truetype");
+    url("../fonts/arialmt.ttf") format("truetype");
     font-weight: normal;
 }
 
@@ -92,8 +92,6 @@ html {
 }
 
 
-
-
 .rpd-template-main {
     width: 1200px;
     margin: 0 auto;
@@ -154,9 +152,6 @@ html {
 }
 
 
-
-
-
 .manager-main {
     width: 1200px;
     margin: 0 auto;
@@ -178,7 +173,6 @@ html {
     margin: 20px;
     color: #f0f0f0;
 }
-
 
 
 .selector {
