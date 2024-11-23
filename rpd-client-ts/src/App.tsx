@@ -1,7 +1,6 @@
 import {BrowserRouter as Router, Navigate, Route, Routes} from 'react-router-dom';
 import {useContext} from 'react';
 import Header from './templates/Header';
-import {SnackbarProvider} from 'notistack';
 
 import './global.css';
 import useAuth from './store/useAuth';
@@ -26,26 +25,25 @@ function App() {
 
     return (
         <>
-            <SnackbarProvider maxSnack={3}>
-                <Router>
-                    <Header/>
-                    <Routes>
-                        {isUserLogged ? (
-                            <>
-                                <Route path="/manager" element={<Manager/>}/>
-                                <Route path="/rpd-template" element={<RPDTemplate/>}/>
-                                <Route path="/teacher-interface" element={<TeacherInterface/>}/>
-                            </>
-                        ) : (
-                            <Route path="/sign-in" element={<SignIn/>}/>
-                        )}
-                        <Route
-                            path="*"
-                            element={<Navigate to={userRedirect()}/>}
-                        />
-                    </Routes>
-                </Router>
-            </SnackbarProvider>
+
+            <Router>
+                <Header/>
+                <Routes>
+                    {isUserLogged ? (
+                        <>
+                            <Route path="/manager" element={<Manager/>}/>
+                            <Route path="/rpd-template" element={<RPDTemplate/>}/>
+                            <Route path="/teacher-interface" element={<TeacherInterface/>}/>
+                        </>
+                    ) : (
+                        <Route path="/sign-in" element={<SignIn/>}/>
+                    )}
+                    <Route
+                        path="*"
+                        element={<Navigate to={userRedirect()}/>}
+                    />
+                </Routes>
+            </Router>
         </>
     )
 }
