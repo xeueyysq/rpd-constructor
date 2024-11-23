@@ -1,15 +1,15 @@
 import {BrowserRouter as Router, Navigate, Route, Routes} from 'react-router-dom';
 import {useContext} from 'react';
-import Header from './templates/Header';
+import Header from '../../templates/Header.tsx';
 
-import useAuth from './store/useAuth';
-import {Manager} from './templates/Manager';
-import {RPDTemplate} from './templates/RPDTemplate';
-import {TeacherInterface} from './templates/TeacherInterface';
-import {SignIn} from './templates/SignIn';
-import {AuthContext} from "./app/providers/AuthProvider.tsx";
+import useAuth from '../../store/useAuth.tsx';
+import {Manager} from '../../templates/Manager.tsx';
+import {RPDTemplate} from '../../templates/RPDTemplate.tsx';
+import {TeacherInterface} from '../../templates/TeacherInterface.tsx';
+import {SignIn} from '../../templates/SignIn.tsx';
+import {AuthContext} from "../providers/AuthProvider.tsx";
 
-function App() {
+export const AppRouter = () => {
     const {isUserLogged} = useContext(AuthContext);
     const userRole = useAuth.getState().userRole;
 
@@ -46,5 +46,3 @@ function App() {
         </>
     )
 }
-
-export default App;
