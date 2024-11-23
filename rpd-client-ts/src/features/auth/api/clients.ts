@@ -1,5 +1,5 @@
 import axios from "axios";
-import config from "@shared/config/config.ts";
+import config from "@shared/config";
 import inMemoryJWT from "../lib/inMemoryJWT.ts";
 
 export const ResourceClient = axios.create({

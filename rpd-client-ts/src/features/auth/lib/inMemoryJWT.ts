@@ -1,4 +1,4 @@
-import config from "@shared/config/config.ts";
+import config from "@shared/config";
 import {AuthClient} from "../api/clients";
 
 const inMemoryJWTService = () => {
