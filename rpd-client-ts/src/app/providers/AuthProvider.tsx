@@ -1,10 +1,10 @@
-import {createContext, FC, ReactNode, useEffect, useState} from "react";
+import {FC, ReactNode, useEffect, useState} from "react";
 import axios from "axios";
 import inMemoryJWT from "../../utils/inMemoryJWT.ts";
 import config from "../../config.ts";
 import Loader from "../../helperComponents/Loader.tsx";
 import showErrorMessage from "../../utils/showErrorMessage.ts";
-import {useAuth} from "@features/auth";
+import {AuthContext, useAuth} from "@features/auth";
 
 export const AuthClient = axios.create({
     baseURL: `${config.API_URL}/auth`,
@@ -34,22 +34,6 @@ interface dataProps {
     userName: string;
     password: string;
 }
-
-
-interface AuthContextProps {
-    data?: dataProps | undefined;
-    handleFetchProtected?: () => void;
-    handleSignUp?: (data: dataProps) => void;
-    handleSignIn: (data: dataProps) => void;
-    handleLogOut?: () => void;
-    isAppReady?: boolean;
-    isUserLogged?: boolean;
-}
-
-export const AuthContext = createContext<AuthContextProps>({
-    handleSignIn: () => {
-    }
-});
 
 const AuthProvider: FC<{ children: ReactNode }> = ({children}) => {
     const [isAppReady, setIsAppReady] = useState<boolean>(false);

@@ -13,7 +13,7 @@ import {
     OutlinedInput
 } from "@mui/material";
 import {Visibility, VisibilityOff} from "@mui/icons-material";
-import {AuthContext} from "../app/providers/AuthProvider.tsx";
+import {AuthContext} from "@features/auth";
 
 export const SignIn: FC = () => {
     const {handleSignIn} = useContext(AuthContext);

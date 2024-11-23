@@ -4,10 +4,9 @@ import {Box, Container, IconButton} from '@mui/material';
 import useWindowSize from '@shared/hooks/useWindowSize';
 import HeaderMenuMobile from './header/HeaderMenuMobile';
 import HeaderLogo from './header/HeaderLogo';
-import {useAuth} from "@features/auth";
+import {AuthContext, useAuth} from "@features/auth";
 import {Logout} from '@mui/icons-material';
 import AccountCircleIcon from '@mui/icons-material/AccountCircle';
-import {AuthContext} from "../app/providers/AuthProvider.tsx";
 
 const Header: FC = () => {
     const size = useWindowSize();

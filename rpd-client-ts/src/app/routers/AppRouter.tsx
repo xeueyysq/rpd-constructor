@@ -2,12 +2,11 @@ import {BrowserRouter as Router, Navigate, Route, Routes} from 'react-router-dom
 import {useContext} from 'react';
 import Header from '../../templates/Header.tsx';
 
-import {useAuth} from "@features/auth";
+import {AuthContext, useAuth} from "@features/auth";
 import {Manager} from '../../templates/Manager.tsx';
 import {RPDTemplate} from '../../templates/RPDTemplate.tsx';
 import {TeacherInterface} from '../../templates/TeacherInterface.tsx';
 import {SignIn} from '../../templates/SignIn.tsx';
-import {AuthContext} from "../providers/AuthProvider.tsx";
 
 export const AppRouter = () => {
     const {isUserLogged} = useContext(AuthContext);

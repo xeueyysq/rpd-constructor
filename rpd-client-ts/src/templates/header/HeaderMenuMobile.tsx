@@ -2,8 +2,7 @@ import {FC, MouseEvent, useContext, useState} from 'react';
 import {Box, Button, Divider, ListItemIcon, ListItemText, Menu, MenuItem, Typography} from '@mui/material';
 import {AccountCircle, Logout} from '@mui/icons-material';
 import MenuIcon from '@mui/icons-material/Menu';
-import {useAuth} from "@features/auth";
-import {AuthContext} from "../../app/providers/AuthProvider.tsx";
+import {AuthContext, useAuth} from "@features/auth";
 
 const HeaderMenuMobile: FC = () => {
     const {handleLogOut, isUserLogged} = useContext(AuthContext);
