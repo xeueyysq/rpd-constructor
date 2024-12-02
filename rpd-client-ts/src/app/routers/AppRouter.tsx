@@ -1,25 +1,14 @@
 import {BrowserRouter as Router, Navigate, Route, Routes} from 'react-router-dom';
-import {useContext} from 'react';
 import Header from '../../templates/Header.tsx';
 
-import {AuthContext, useAuth} from "@features/auth";
+import {useUserRedirect} from "@features/auth";
 import {Manager} from '../../templates/Manager.tsx';
 import {RPDTemplate} from '../../templates/RPDTemplate.tsx';
 import {TeacherInterface} from '../../templates/TeacherInterface.tsx';
 import {SignIn} from "@pages/signIn";
 
 export const AppRouter = () => {
-    const {isUserLogged} = useContext(AuthContext);
-    const userRole = useAuth.getState().userRole;
-
-    const userRedirect = () => {
-        if (!isUserLogged) return "/sign-in";
-        if (userRole === "rop") return "/manager";
-        if (userRole === "teacher") return "/teacher-interface";
-        if (userRole === "admin") return "/rpd-template";
-
-        return "/sign-in";
-    }
+    const {isUserLogged, redirectPath} = useUserRedirect();
 
     return (
         <>
@@ -38,7 +27,7 @@ export const AppRouter = () => {
                     )}
                     <Route
                         path="*"
-                        element={<Navigate to={userRedirect()}/>}
+                        element={<Navigate to={redirectPath}/>}
                     />
                 </Routes>
             </Router>
