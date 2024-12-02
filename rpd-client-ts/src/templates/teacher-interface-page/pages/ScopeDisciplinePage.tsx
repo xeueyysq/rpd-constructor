@@ -6,7 +6,7 @@ const ScopeDisciplinePage: FC = () => {
     const jsonData = useStore.getState().jsonData;
     const summHours = () => {
         let summ = 0;
-        for(let value of jsonData.study_load) {
+        for(const value of jsonData.study_load) {
             summ += Number(value.id);
         }
         return summ;
