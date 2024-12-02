@@ -6,7 +6,7 @@ import {AuthContext, useAuth} from "@features/auth";
 import {Manager} from '../../templates/Manager.tsx';
 import {RPDTemplate} from '../../templates/RPDTemplate.tsx';
 import {TeacherInterface} from '../../templates/TeacherInterface.tsx';
-import {SignIn} from '../../templates/SignIn.tsx';
+import {SignIn} from "@pages/signIn";
 
 export const AppRouter = () => {
     const {isUserLogged} = useContext(AuthContext);
