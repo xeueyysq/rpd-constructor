@@ -21,21 +21,28 @@ app.use(express.json());
 app.use(bodyParser.urlencoded({ extended: true }));
 
 const allowedOrigins = [
-  'http://localhost',
-  'http://localhost:3000',
   'http://localhost:5173',
-  'http://51.250.112.149'
+  'http://localhost:8080',
+  'http://89.169.130.200:8080',
+  'http://89.169.130.200'
 ];
 
 app.use(cors({
-  credentials: true,
-  origin: function(origin, callback) {
-    if (!origin || allowedOrigins.includes(origin)) {
+  origin: function (origin, callback) {
+    if (!origin) return callback(null, true);
+    
+    if (allowedOrigins.indexOf(origin) !== -1) {
       callback(null, true);
     } else {
+      console.log('Blocked origin:', origin);
       callback(new Error('Not allowed by CORS'));
     }
-  }
+  },
+  credentials: true,
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization'],
+  exposedHeaders: ['Content-Range', 'X-Content-Range'],
+  maxAge: 600
 }));
 
 app.use(fileUpload());

@@ -2,6 +2,7 @@ const { pool } = require('../../config/db');
 
 (async () => {
   try {
+    console.log('Starting migrations...');
 
     // Миграция для таблицы `rpd_complects`
     await pool.query(`
@@ -174,10 +175,9 @@ const { pool } = require('../../config/db');
       );
     `);
 
-    console.log('Все миграции згружены успешно');
+    console.log('Все миграции загружены успешно');
   } catch (error) {
     console.error('Ошибка загрузки миграций', error.stack);
-  } finally {
-    await pool.end();
+    process.exit(1); // Выход с ошибкой
   }
 })();
