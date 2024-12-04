@@ -1,14 +1,13 @@
 import {FC, useContext, useMemo} from 'react';
-// import defaultUser from "../../public/default-user-img.png";
 import {Box, Container, IconButton} from '@mui/material';
 import {useWindowSize} from '@shared/hooks';
-import HeaderMenuMobile from './header/HeaderMenuMobile';
-import HeaderLogo from './header/HeaderLogo';
+import HeaderMenuMobile from './HeaderMenuMobile.tsx';
+import HeaderLogo from './HeaderLogo.tsx';
 import {AuthContext, useAuth} from "@features/auth";
 import {Logout} from '@mui/icons-material';
 import AccountCircleIcon from '@mui/icons-material/AccountCircle';
 
-const Header: FC = () => {
+export const Header: FC = () => {
     const size = useWindowSize();
     const {handleLogOut, isUserLogged} = useContext(AuthContext);
     const userName = useAuth.getState().userName;
@@ -61,5 +60,3 @@ const Header: FC = () => {
         </Container>
     );
 }
-
-export default Header;
