@@ -35,9 +35,9 @@ const PlannedResultsPage: FC = () => {
 
         Papa.parse(file, {
             complete: (results) => {
-                const parsedData = results.data.slice(1);
-                const formattedData = parsedData.reduce((acc: PlannedResultsData, row: any, index: number, nextRow: any) => {
-                    nextRow = parsedData[index + 1]
+                const parsedData = results.data.slice(1) as string[][];
+                const formattedData = parsedData.reduce((acc: PlannedResultsData, row, index: number) => {
+                    const nextRow = parsedData[index + 1]
                     const competence = row[0] ? `${row[0]} ${row[3]}` : '';
                     const indicator = nextRow && nextRow[1] ? `${nextRow[1]} ${nextRow[3]}` : '';
                     const results = '';

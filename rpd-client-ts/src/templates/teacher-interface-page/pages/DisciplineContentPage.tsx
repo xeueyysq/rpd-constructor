@@ -68,34 +68,34 @@ const DisciplineContentPage: FC = () => {
         independent_work: 0
     });
 
-    const summHours = () => {
-        let all = 0;
-        let lectures = 0;
-        let seminars = 0;
-        let lect_and_sems = 0;
-        let independent_work = 0;
-
-        if (data) {
-            Object.keys(data).forEach((key) => {
-                const row = data[key];
-                all += Number(row.lectures) + Number(row.seminars) + Number(row.independent_work);
-                lectures += Number(row.lectures);
-                seminars += Number(row.seminars);
-                lect_and_sems += Number(row.lectures) + Number(row.seminars);
-                independent_work += Number(row.independent_work);
-            });
-
-            setSumm({
-                all: all,
-                lectures: lectures,
-                seminars: seminars,
-                lect_and_sems: lect_and_sems,
-                independent_work: independent_work
-            })
-        }
-    }
-
     useEffect(() => {
+        const summHours = () => {
+            let all = 0;
+            let lectures = 0;
+            let seminars = 0;
+            let lect_and_sems = 0;
+            let independent_work = 0;
+
+            if (data) {
+                Object.keys(data).forEach((key) => {
+                    const row = data[key];
+                    all += Number(row.lectures) + Number(row.seminars) + Number(row.independent_work);
+                    lectures += Number(row.lectures);
+                    seminars += Number(row.seminars);
+                    lect_and_sems += Number(row.lectures) + Number(row.seminars);
+                    independent_work += Number(row.independent_work);
+                });
+
+                setSumm({
+                    all: all,
+                    lectures: lectures,
+                    seminars: seminars,
+                    lect_and_sems: lect_and_sems,
+                    independent_work: independent_work
+                })
+            }
+        }
+
         summHours();
     }, [data]);
 
@@ -119,10 +119,11 @@ const DisciplineContentPage: FC = () => {
     };
 
     function compareObjects(object1: ObjectHours, object2: ObjectHours) {
-        if (Object.keys(object1).length !== Object.keys(object2).length) return false;
+        const keys = Object.keys(object1) as (keyof ObjectHours)[];
 
-        for (const key of Object.keys(object1)) {
-            //@ts-expect-error
+        if (keys.length !== Object.keys(object2).length) return false;
+
+        for (const key of keys) {
             if (Number(object1[key]) !== Number(object2[key])) return false;
         }
 

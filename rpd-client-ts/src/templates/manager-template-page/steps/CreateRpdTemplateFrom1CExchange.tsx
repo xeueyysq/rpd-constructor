@@ -1,4 +1,4 @@
-import {FC, useEffect, useState} from "react";
+import {FC, useCallback, useEffect, useState} from "react";
 import {TemplateConstructorType} from "../../../types/TemplateConstructorTypes";
 import useStore from "../../../store/useStore";
 import {
@@ -62,7 +62,7 @@ const CreateRpdTemplateFrom1CExchange: FC<TemplateConstructorType> = ({setChoise
         }));
     };
 
-    const fetchData = async () => {
+    const fetchData = useCallback(async () => {
         try {
             const response = await axiosBase.post('find-rpd', {complectId});
             setData(response.data);
@@ -70,7 +70,7 @@ const CreateRpdTemplateFrom1CExchange: FC<TemplateConstructorType> = ({setChoise
             showErrorMessage('Ошибка при получении данных');
             console.error(error);
         }
-    };
+    }, [complectId]);
 
     const createTemplateData = async (id: number, discipline: string) => {
         const teacher = selectedTeachers[id];
@@ -106,7 +106,7 @@ const CreateRpdTemplateFrom1CExchange: FC<TemplateConstructorType> = ({setChoise
 
     useEffect(() => {
         fetchData();
-    }, []);
+    }, [fetchData]);
 
     if (!data) return <Loader/>
 

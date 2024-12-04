@@ -1,5 +1,5 @@
 import {Box, Button, Paper, Table, TableBody, TableCell, TableContainer, TableHead, TableRow} from "@mui/material";
-import {FC, useEffect, useState} from "react";
+import {FC, useCallback, useEffect, useState} from "react";
 import useStore from "../../../store/useStore";
 import {TemplateConstructorType} from "../../../types/TemplateConstructorTypes";
 import {useAuth} from "@features/auth";
@@ -34,13 +34,9 @@ const CreateRpdTemplateFromYear: FC<TemplateConstructorType> = ({setChoise}) => 
     const [data, setData] = useState<TemplateData[]>();
 
 
-    const fetchData = async () => {
+    const fetchData = useCallback(async () => {
         const params = {
-            faculty: selectedTemplateData.faculty,
-            levelEducation: selectedTemplateData.levelEducation,
-            directionOfStudy: selectedTemplateData.directionOfStudy,
-            profile: selectedTemplateData.profile,
-            formEducation: selectedTemplateData.formEducation,
+            ...selectedTemplateData,
             year: Number(selectedTemplateData.year)
         };
 
@@ -51,11 +47,11 @@ const CreateRpdTemplateFromYear: FC<TemplateConstructorType> = ({setChoise}) => 
             showErrorMessage('Ошибка при получении данных');
             console.error(error);
         }
-    };
+    }, [selectedTemplateData]);
 
     useEffect(() => {
         fetchData()
-    }, []);
+    }, [fetchData]);
 
     const uploadTempllateData = async (disciplinsName: string, id: number) => {
         try {

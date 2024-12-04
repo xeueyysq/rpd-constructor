@@ -1,5 +1,5 @@
 import {Box, Button, Paper, Table, TableBody, TableCell, TableContainer, TableHead, TableRow} from "@mui/material";
-import {FC, useEffect, useState} from "react";
+import {FC, useCallback, useEffect, useState} from "react";
 import {useAuth} from "@features/auth";
 import {TemplateConstructorType} from "../../types/TemplateConstructorTypes";
 import useStore from "../../store/useStore";
@@ -35,7 +35,7 @@ const TeacherInterfaceTemplates: FC<TemplateConstructorType> = ({setChoise}) => 
     const {setJsonData} = useStore();
     const [data, setData] = useState<TemplateData[]>();
 
-    const fetchData = async () => {
+    const fetchData = useCallback(async () => {
         try {
             const response = await axiosBase.post('find-teacher-templates', {userName});
             setData(response.data);
@@ -43,7 +43,7 @@ const TeacherInterfaceTemplates: FC<TemplateConstructorType> = ({setChoise}) => 
             showErrorMessage('Ошибка при получении данных');
             console.error(error);
         }
-    };
+    }, [userName]);
 
     const employedTemplate = async (id: number) => {
         try {
@@ -65,7 +65,7 @@ const TeacherInterfaceTemplates: FC<TemplateConstructorType> = ({setChoise}) => 
 
     useEffect(() => {
         fetchData()
-    }, []);
+    }, [fetchData]);
 
     const uploadTemplateData = async (id: number) => {
         try {

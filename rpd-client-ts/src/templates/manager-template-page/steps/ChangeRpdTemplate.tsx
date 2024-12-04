@@ -1,5 +1,5 @@
 import {Box, Button, Paper, Table, TableBody, TableCell, TableContainer, TableHead, TableRow} from "@mui/material";
-import {FC, useEffect, useState} from "react";
+import {FC, useCallback, useEffect, useState} from "react";
 import useStore, {SelectedTemplateData, SelectTeacherParams} from "../../../store/useStore";
 import {TemplateConstructorType} from "../../../types/TemplateConstructorTypes";
 import {showErrorMessage, showSuccessMessage} from "@shared/lib";
@@ -25,14 +25,9 @@ const ChangeRpdTemplate: FC<TemplateConstructorType> = ({setChoise}) => {
     const userName = useAuth.getState().userName;
     const [data, setData] = useState<TemplateData[]>();
 
-    const fetchData = async () => {
+    const fetchData = useCallback(async () => {
         const params: SelectedTemplateData = {
-            faculty: selectedTemplateData.faculty,
-            levelEducation: selectedTemplateData.levelEducation,
-            directionOfStudy: selectedTemplateData.directionOfStudy,
-            profile: selectedTemplateData.profile,
-            formEducation: selectedTemplateData.formEducation,
-            year: selectedTemplateData.year
+            ...selectedTemplateData
         };
 
         try {
@@ -42,11 +37,11 @@ const ChangeRpdTemplate: FC<TemplateConstructorType> = ({setChoise}) => {
             showErrorMessage('Ошибка при получении данных');
             console.error(error);
         }
-    };
+    }, [selectedTemplateData]);
 
     useEffect(() => {
         fetchData()
-    }, []);
+    }, [fetchData]);
 
     const sendTemplateToTeacher = async (id: number, teacher: string) => {
         const params: SelectTeacherParams = {

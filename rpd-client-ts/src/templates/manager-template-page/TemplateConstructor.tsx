@@ -1,4 +1,4 @@
-import {FC, useEffect, useState} from "react";
+import {FC, useCallback, useEffect, useState} from "react";
 import useStore from "../../store/useStore";
 import {Box, Button, CircularProgress} from "@mui/material";
 import {TemplateConstructorType} from "../../types/TemplateConstructorTypes";
@@ -13,7 +13,7 @@ const TemplateConstructor: FC<TemplateConstructorType> = ({setChoise}) => {
     const [createComplectStatus, setCreateComplectStatus] = useState<string>("pending");
     const [isFindComplect, setIsFindComplect] = useState<boolean | undefined>(undefined);
 
-    const fetchData = async () => {
+    const fetchData = useCallback(async () => {
         try {
             const responce = await axiosBase.post('find_rpd_complect', {
                 data: selectedTemplateData
@@ -27,7 +27,7 @@ const TemplateConstructor: FC<TemplateConstructorType> = ({setChoise}) => {
             showErrorMessage("Ошибка загрузки данных");
             console.error(error);
         }
-    }
+    }, [selectedTemplateData, setComplectId])
 
     const createRpdComplect = async () => {
         try {
@@ -46,7 +46,7 @@ const TemplateConstructor: FC<TemplateConstructorType> = ({setChoise}) => {
 
     useEffect(() => {
         fetchData()
-    }, []);
+    }, [fetchData]);
 
     return (
         <>

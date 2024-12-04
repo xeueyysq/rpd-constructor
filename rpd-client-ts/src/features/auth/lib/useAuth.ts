@@ -1,5 +1,6 @@
 import {create} from 'zustand';
 import {immer} from 'zustand/middleware/immer';
+// eslint-disable-next-line boundaries/element-types
 import {AppAbility, buildAbilityFor, UserRole} from "@features/ability";
 
 type userName = {
