@@ -1,15 +1,14 @@
-import { Container, Box } from '@mui/material';
-import { useState } from 'react';
+import {Box, Container} from '@mui/material';
+import {FC, useState} from 'react';
 import RpdList from './RpdList/RpdList';
 import RpdCoverPage from './rpd-template-page/RpdCoverPage';
-import { FC } from 'react';
-import { RpdListItems } from '../constants/rpdTemplateItems';
+import {RpdListItems} from '../constants/rpdTemplateItems';
 
-export const RPDTemplate: FC = () => {
+const RPDTemplate: FC = () => {
     const [choise, setChoise] = useState<string>("coverPage");
 
     return (
-        <Container 
+        <Container
             maxWidth="xl"
             sx={{
                 display: 'flex',
@@ -38,12 +37,14 @@ export const RPDTemplate: FC = () => {
                 my={4}
                 p={2}
                 ml={2}
-                sx={{ backgroundColor: '#fefefe', width: "100%"}}
+                sx={{backgroundColor: '#fefefe', width: "100%"}}
             >
                 {choise === "coverPage" && (
-                    <RpdCoverPage />
+                    <RpdCoverPage/>
                 )}
             </Box>
         </Container>
     );
 }
+
+export default RPDTemplate;

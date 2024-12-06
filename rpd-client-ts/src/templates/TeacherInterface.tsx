@@ -19,7 +19,7 @@ import {useAuth} from "@features/auth";
 import useStore from '../store/useStore';
 import {useNavigate} from 'react-router-dom';
 
-export const TeacherInterface: FC = () => {
+const TeacherInterface: FC = () => {
     const userRole = useAuth.getState().userRole;
     const [choise, setChoise] = useState<string>(userRole === "rop" ? "coverPage" : "selectTemplate");
     const jsonData = useStore.getState().jsonData;
@@ -59,3 +59,5 @@ export const TeacherInterface: FC = () => {
         </Container>
     );
 }
+
+export default TeacherInterface;
