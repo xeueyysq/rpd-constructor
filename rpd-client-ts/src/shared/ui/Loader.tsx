@@ -5,7 +5,7 @@ export function Loader() {
         <Box sx={{p: 1, display: 'flex', alignItems: 'center'}}>
             <CircularProgress color="inherit" size="1rem"/>
             <Box sx={{px: 1}}>
-                Loading...
+                Загрузка...
             </Box>
         </Box>
     );
