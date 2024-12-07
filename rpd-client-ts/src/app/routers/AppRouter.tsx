@@ -5,7 +5,7 @@ import {useUserRedirect} from "@features/auth";
 import {Header} from "@widgets/header";
 
 const Manager = lazy(() => import('../../templates/Manager.tsx'));
-const RPDTemplate = lazy(() => import('../../templates/RPDTemplate.tsx'));
+const RPDTemplate = lazy(() => import('@pages/rpdTemplate'));
 const TeacherInterface = lazy(() => import('../../templates/TeacherInterface.tsx'));
 const SignIn = lazy(() => import('@pages/signIn'));
 

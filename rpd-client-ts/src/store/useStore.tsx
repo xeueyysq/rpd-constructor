@@ -1,7 +1,7 @@
 import {create} from 'zustand';
 import {immer} from 'zustand/middleware/immer';
 
-type JsonValue = unknown;
+type JsonValue = any;
 
 interface JsonData {
     [key: string]: JsonValue;

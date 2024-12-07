@@ -1,6 +1,6 @@
 import {FC, useState} from 'react';
 import {Box, Container} from '@mui/material';
-import RpdList from './RpdList/RpdList';
+import {RpdList} from '@widgets/rpdList';
 import {RpdListItems} from '../constants/teacherInterfaceItems';
 
 import AimsPage from './teacher-interface-page/pages/AimsPage';

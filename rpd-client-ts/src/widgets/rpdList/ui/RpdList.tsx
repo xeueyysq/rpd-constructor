@@ -1,16 +1,16 @@
 import {Box, Divider, List, ListItem, ListItemButton, ListItemIcon, ListItemText, Typography} from "@mui/material";
 import {SimpleTreeView} from '@mui/x-tree-view/SimpleTreeView';
 import {TreeItem} from '@mui/x-tree-view/TreeItem';
-import RpdListItemComponent from "./RpdListItem";
+import RpdListItemComponent from "./RpdListItem.tsx";
 import {FC} from "react";
-import {RpdListProps} from "../../types/RpdListTypes";
+import {RpdListProps} from "../model/RpdListTypes.ts";
 import {useNavigate} from "react-router-dom";
 import PictureAsPdfIcon from '@mui/icons-material/PictureAsPdf';
 import ExitToAppIcon from '@mui/icons-material/ExitToApp';
-import useStore from "../../store/useStore";
+import useStore from "../../../store/useStore.tsx";
 import {Can} from "@features/ability";
 
-const RpdList: FC<RpdListProps> = ({RpdListItems, setChoise}) => {
+export const RpdList: FC<RpdListProps> = ({RpdListItems, setChoise}) => {
     const jsonData = useStore.getState().jsonData;
     const navigate = useNavigate();
 
@@ -77,5 +77,3 @@ const RpdList: FC<RpdListProps> = ({RpdListItems, setChoise}) => {
         </>
     );
 }
-
-export default RpdList;

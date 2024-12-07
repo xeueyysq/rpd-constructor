@@ -1,10 +1,9 @@
 import {Box, Container} from '@mui/material';
 import {FC, useState} from 'react';
-import RpdList from './RpdList/RpdList';
-import RpdCoverPage from './rpd-template-page/RpdCoverPage';
-import {RpdListItems} from '../constants/rpdTemplateItems';
+import {RpdList, RpdListItems} from '@widgets/rpdList';
+import {RpdCoverPage} from './RpdCoverPage.tsx';
 
-const RPDTemplate: FC = () => {
+export const RPDTemplate: FC = () => {
     const [choise, setChoise] = useState<string>("coverPage");
 
     return (
@@ -46,5 +45,3 @@ const RPDTemplate: FC = () => {
         </Container>
     );
 }
-
-export default RPDTemplate;

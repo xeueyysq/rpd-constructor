@@ -1,4 +1,4 @@
-import { RpdListItem } from "../types/RpdListTypes";
+import {RpdListItem} from "./RpdListTypes.ts";
 
 export const RpdListItems: RpdListItem[] = [
     {
