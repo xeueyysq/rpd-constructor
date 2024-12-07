@@ -3,6 +3,7 @@ import {BrowserRouter as Router, Navigate, Route, Routes} from 'react-router-dom
 
 import {useUserRedirect} from "@features/auth";
 import {Header} from "@widgets/header";
+import {Loader} from '@shared/ui/';
 
 const Manager = lazy(() => import('../../templates/Manager.tsx'));
 const RPDTemplate = lazy(() => import('@pages/rpdTemplate'));
@@ -15,7 +16,7 @@ export const AppRouter = () => {
     return (
         <Router>
             <Header/>
-            <Suspense fallback={<div>Загрузка...</div>}>
+            <Suspense fallback={<Loader/>}>
                 <Routes>
                     {isUserLogged ? (
                         <>
