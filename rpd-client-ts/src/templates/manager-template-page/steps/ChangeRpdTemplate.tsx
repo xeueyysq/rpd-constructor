@@ -1,6 +1,6 @@
 import {Box, Button, Paper, Table, TableBody, TableCell, TableContainer, TableHead, TableRow} from "@mui/material";
 import {FC, useCallback, useEffect, useState} from "react";
-import useStore, {SelectedTemplateData, SelectTeacherParams} from "../../../store/useStore";
+import {SelectedTemplateData, SelectTeacherParams, useStore} from "@shared/hooks";
 import {TemplateConstructorType} from "../../../types/TemplateConstructorTypes";
 import {showErrorMessage, showSuccessMessage} from "@shared/lib";
 import {useAuth} from "@features/auth";

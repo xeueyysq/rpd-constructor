@@ -1,5 +1,5 @@
 import {FC, useEffect, useState} from 'react';
-import useStore from "../../../store/useStore";
+import {useStore} from "@shared/hooks";
 import JsonChangeValue from '../changeable-elements/JsonChangeValue';
 import {
     Box,

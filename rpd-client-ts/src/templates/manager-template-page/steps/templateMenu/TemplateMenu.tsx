@@ -2,7 +2,7 @@ import {IconButton, ListItemIcon, ListItemText, Menu, MenuItem, Typography} from
 import {FC, MouseEvent, useState} from "react"
 import MoreHorizIcon from '@mui/icons-material/MoreHoriz';
 import {useAuth} from "@features/auth";
-import useStore from "../../../../store/useStore";
+import {useStore} from "@shared/hooks";
 import {useNavigate} from "react-router-dom";
 import HistoryModal from "./HistoryModal";
 import OpenInBrowserIcon from '@mui/icons-material/OpenInBrowser';

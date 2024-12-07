@@ -1,5 +1,5 @@
 import {useState} from 'react';
-import useStore from '../../../store/useStore.js';
+import {useStore} from "@shared/hooks";
 import {Box, Button} from '@mui/material';
 import {PdfReader} from './PdfReader.js';
 import {axiosBase} from '@shared/api';

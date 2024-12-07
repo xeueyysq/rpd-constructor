@@ -1,5 +1,5 @@
 import {FC, useCallback, useEffect, useState} from "react";
-import useStore from "../../store/useStore";
+import {useStore} from "@shared/hooks";
 import {Box, Button, CircularProgress} from "@mui/material";
 import {TemplateConstructorType} from "../../types/TemplateConstructorTypes";
 import {templateDataTitles} from "../../constants/templateDataTitles";

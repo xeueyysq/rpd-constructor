@@ -2,7 +2,7 @@ import {Box, Button, Paper, Table, TableBody, TableCell, TableContainer, TableHe
 import {FC, useCallback, useEffect, useState} from "react";
 import {useAuth} from "@features/auth";
 import {TemplateConstructorType} from "../../types/TemplateConstructorTypes";
-import useStore from "../../store/useStore";
+import {useStore} from "@shared/hooks";
 import {axiosBase} from "@shared/api";
 import {Loader, TemplateStatus} from "@shared/ui";
 import {showErrorMessage, showSuccessMessage} from "@shared/lib";

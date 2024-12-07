@@ -49,7 +49,7 @@ interface StoreState {
     setComplectId: (id: number) => void;
 }
 
-const useStore = create<StoreState>()(immer((set) => ({
+export const useStore = create<StoreState>()(immer((set) => ({
     jsonData: {},
     selectedTemplateData: {
         faculty: undefined,
@@ -104,5 +104,3 @@ const useStore = create<StoreState>()(immer((set) => ({
         })
     }
 })));
-
-export default useStore;

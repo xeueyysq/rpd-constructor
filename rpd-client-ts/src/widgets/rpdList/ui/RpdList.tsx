@@ -7,7 +7,7 @@ import {RpdListProps} from "../model/RpdListTypes.ts";
 import {useNavigate} from "react-router-dom";
 import PictureAsPdfIcon from '@mui/icons-material/PictureAsPdf';
 import ExitToAppIcon from '@mui/icons-material/ExitToApp';
-import useStore from "../../../store/useStore.tsx";
+import {useStore} from "@shared/hooks";
 import {Can} from "@features/ability";
 
 export const RpdList: FC<RpdListProps> = ({RpdListItems, setChoise}) => {

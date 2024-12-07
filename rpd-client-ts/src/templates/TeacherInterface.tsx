@@ -16,7 +16,7 @@ import ScopeDisciplinePage from './teacher-interface-page/pages/ScopeDisciplineP
 import TestPdf from './teacher-interface-page/pdf-page/TestPdf'; // Assuming PDF Test view
 import TeacherInterfaceTemplates from './teacher-interface-page/TeacherInterfaceTemplates';
 import {useAuth} from "@features/auth";
-import useStore from '../store/useStore';
+import {useStore} from "@shared/hooks";
 import {useNavigate} from 'react-router-dom';
 
 const TeacherInterface: FC = () => {

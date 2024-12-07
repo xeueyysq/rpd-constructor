@@ -1,6 +1,6 @@
 import {Box, Button, Paper, Table, TableBody, TableCell, TableContainer, TableHead, TableRow} from "@mui/material";
 import {FC, useCallback, useEffect, useState} from "react";
-import useStore from "../../../store/useStore";
+import {useStore} from "@shared/hooks";
 import {TemplateConstructorType} from "../../../types/TemplateConstructorTypes";
 import {useAuth} from "@features/auth";
 import {axiosBase} from "@shared/api";

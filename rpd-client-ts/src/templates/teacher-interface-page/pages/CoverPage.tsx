@@ -1,6 +1,6 @@
 import {FC} from 'react';
 import {Box} from '@mui/material';
-import useStore from '../../../store/useStore';
+import {useStore} from "@shared/hooks";
 import {Loader} from "@shared/ui";
 
 const CoverPage: FC = () => {

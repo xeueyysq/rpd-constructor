@@ -3,7 +3,7 @@ import Select, {SingleValue} from 'react-select';
 import Selector from './Selector';
 import {Loader} from "@shared/ui";
 import {Box, Button} from '@mui/material';
-import useStore from '../../store/useStore';
+import {useStore} from "@shared/hooks";
 import {OptionType} from '../../types/SelectorTypes';
 import {enqueueSnackbar, VariantType} from 'notistack';
 

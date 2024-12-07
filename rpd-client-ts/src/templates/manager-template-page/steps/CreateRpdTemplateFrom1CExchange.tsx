@@ -1,6 +1,6 @@
 import {FC, useCallback, useEffect, useState} from "react";
 import {TemplateConstructorType} from "../../../types/TemplateConstructorTypes";
-import useStore from "../../../store/useStore";
+import {useStore} from "@shared/hooks";
 import {
     Box,
     Button,

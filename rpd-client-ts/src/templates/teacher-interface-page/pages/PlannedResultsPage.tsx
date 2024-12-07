@@ -1,4 +1,4 @@
-import useStore from "../../../store/useStore";
+import {useStore} from "@shared/hooks";
 import axios from "axios";
 import {FC, useState} from 'react';
 import EditableCell from "../changeable-elements/EditableCell";
