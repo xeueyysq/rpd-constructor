@@ -1,7 +1,7 @@
 import {useStore} from "@shared/hooks";
 import axios from "axios";
 import {FC, useState} from 'react';
-import EditableCell from "../changeable-elements/EditableCell";
+import EditableCell from "../changeable-elements/EditableCell.tsx";
 import {
     Box,
     Button,
@@ -15,7 +15,7 @@ import {
     TableRow
 } from '@mui/material';
 import {Loader} from "@shared/ui";
-import {PlannedResultsData} from "../../../types/DisciplineContentPageTypes";
+import {PlannedResultsData} from "../../model/DisciplineContentPageTypes.ts";
 import {showErrorMessage, showSuccessMessage} from "@shared/lib";
 import {axiosBase} from "@shared/api";
 import Papa from 'papaparse';

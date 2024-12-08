@@ -2,7 +2,7 @@ import {FC, MouseEvent, useState} from 'react';
 import {Box, Button, IconButton, ListItemIcon, ListItemText, Menu, MenuItem, Typography} from '@mui/material';
 import EditIcon from '@mui/icons-material/Edit';
 import {useStore} from "@shared/hooks";
-import TextEditor from './TextEditor';
+import TextEditor from './TextEditor.tsx';
 import {showErrorMessage, showSuccessMessage} from "@shared/lib";
 import MoreHorizIcon from '@mui/icons-material/MoreHoriz';
 import DownloadIcon from '@mui/icons-material/Download';

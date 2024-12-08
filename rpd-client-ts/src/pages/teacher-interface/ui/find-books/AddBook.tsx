@@ -12,7 +12,7 @@ import {
     TextField
 } from '@mui/material';
 import AddIcon from '@mui/icons-material/Add';
-import ShowBooks from './ShowBooks';
+import ShowBooks from './ShowBooks.tsx';
 import {useStore} from "@shared/hooks";
 import {showErrorMessage, showSuccessMessage} from "@shared/lib";
 import {axiosBase} from '@shared/api';

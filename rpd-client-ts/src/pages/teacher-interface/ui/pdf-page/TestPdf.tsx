@@ -1,7 +1,7 @@
 import {useState} from 'react';
 import {useStore} from "@shared/hooks";
 import {Box, Button} from '@mui/material';
-import {PdfReader} from './PdfReader.js';
+import {PdfReader} from './PdfReader.tsx';
 import {axiosBase} from '@shared/api';
 import {showErrorMessage} from "@shared/lib";
 

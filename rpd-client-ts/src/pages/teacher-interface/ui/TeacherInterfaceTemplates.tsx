@@ -30,7 +30,7 @@ export interface employedTemplateParams {
     userName: string | undefined;
 }
 
-const TeacherInterfaceTemplates: FC<TemplateConstructorType> = ({setChoise}) => {
+export const TeacherInterfaceTemplates: FC<TemplateConstructorType> = ({setChoise}) => {
     const userName = useAuth.getState().userName;
     const {setJsonData} = useStore();
     const [data, setData] = useState<TemplateData[]>();
@@ -145,5 +145,3 @@ const TeacherInterfaceTemplates: FC<TemplateConstructorType> = ({setChoise}) => 
         </Box>
     );
 }
-
-export default TeacherInterfaceTemplates;

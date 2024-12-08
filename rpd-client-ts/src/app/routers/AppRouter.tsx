@@ -7,7 +7,7 @@ import {Loader} from '@shared/ui/';
 
 const Manager = lazy(() => import('@pages/manager'));
 const RPDTemplate = lazy(() => import('@pages/rpd-template'));
-const TeacherInterface = lazy(() => import('../../templates/TeacherInterface.tsx'));
+const TeacherInterface = lazy(() => import('@pages/teacher-interface'));
 const SignIn = lazy(() => import('@pages/sign-in'));
 
 export const AppRouter = () => {

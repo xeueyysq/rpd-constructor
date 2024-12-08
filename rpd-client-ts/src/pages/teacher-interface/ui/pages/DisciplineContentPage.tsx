@@ -1,6 +1,6 @@
 import {FC, useEffect, useState} from 'react';
 import {useStore} from "@shared/hooks";
-import JsonChangeValue from '../changeable-elements/JsonChangeValue';
+import JsonChangeValue from '../changeable-elements/JsonChangeValue.tsx';
 import {
     Box,
     Button,
@@ -13,10 +13,10 @@ import {
     TableHead,
     TableRow
 } from '@mui/material';
-import {DisciplineContentData, ObjectHours} from '../../../types/DisciplineContentPageTypes';
+import {DisciplineContentData, ObjectHours} from '../../model/DisciplineContentPageTypes.ts';
 import {showErrorMessage, showSuccessMessage} from "@shared/lib";
-import EditableCell from '../changeable-elements/EditableCell';
-import {EditableNumber} from '../changeable-elements/EditableNumber';
+import EditableCell from '../changeable-elements/EditableCell.tsx';
+import {EditableNumber} from '../changeable-elements/EditableNumber.tsx';
 import {axiosBase} from '@shared/api';
 
 interface StudyLoad {

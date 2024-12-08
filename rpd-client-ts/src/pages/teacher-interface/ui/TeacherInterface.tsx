@@ -1,25 +1,25 @@
 import {FC, useState} from 'react';
 import {Box, Container} from '@mui/material';
 import {RpdList} from '@widgets/rpd-list';
-import {RpdListItems} from '../constants/teacherInterfaceItems';
+import {RpdListItems} from '../model/teacherInterfaceItems.ts';
 
-import AimsPage from './teacher-interface-page/pages/AimsPage';
-import ApprovalPage from './teacher-interface-page/pages/ApprovalPage';
-import CoverPage from './teacher-interface-page/pages/CoverPage';
-import DisciplineContentPage from './teacher-interface-page/pages/DisciplineContentPage';
-import DisciplineEvaluationsFunds from './teacher-interface-page/pages/DisciplineEvaluationsFunds';
-import DisciplinePlace from './teacher-interface-page/pages/DisciplinePlace';
-import DisciplineSupportPage from './teacher-interface-page/pages/DisciplineSupportPage';
-import PlannedResultsPage from './teacher-interface-page/pages/PlannedResultsPage';
-import ResourceSupportPage from './teacher-interface-page/pages/ResourceSupportPage';
-import ScopeDisciplinePage from './teacher-interface-page/pages/ScopeDisciplinePage';
-import TestPdf from './teacher-interface-page/pdf-page/TestPdf'; // Assuming PDF Test view
-import TeacherInterfaceTemplates from './teacher-interface-page/TeacherInterfaceTemplates';
+import AimsPage from './pages/AimsPage.tsx';
+import ApprovalPage from './pages/ApprovalPage.tsx';
+import CoverPage from './pages/CoverPage.tsx';
+import DisciplineContentPage from './pages/DisciplineContentPage.tsx';
+import DisciplineEvaluationsFunds from './pages/DisciplineEvaluationsFunds.tsx';
+import DisciplinePlace from './pages/DisciplinePlace.tsx';
+import DisciplineSupportPage from './pages/DisciplineSupportPage.tsx';
+import PlannedResultsPage from './pages/PlannedResultsPage.tsx';
+import ResourceSupportPage from './pages/ResourceSupportPage.tsx';
+import ScopeDisciplinePage from './pages/ScopeDisciplinePage.tsx';
+import TestPdf from './pdf-page/TestPdf.tsx'; // Assuming PDF Test view
 import {useAuth} from "@features/auth";
 import {useStore} from "@shared/hooks";
 import {useNavigate} from 'react-router-dom';
+import {TeacherInterfaceTemplates} from "./TeacherInterfaceTemplates.tsx";
 
-const TeacherInterface: FC = () => {
+export const TeacherInterface: FC = () => {
     const userRole = useAuth.getState().userRole;
     const [choise, setChoise] = useState<string>(userRole === "rop" ? "coverPage" : "selectTemplate");
     const jsonData = useStore.getState().jsonData;
@@ -59,5 +59,3 @@ const TeacherInterface: FC = () => {
         </Container>
     );
 }
-
-export default TeacherInterface;

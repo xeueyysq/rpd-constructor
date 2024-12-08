@@ -1,9 +1,9 @@
 import {useStore} from "@shared/hooks";
-import JsonChangeValue from '../changeable-elements/JsonChangeValue';
+import JsonChangeValue from '../changeable-elements/JsonChangeValue.tsx';
 import {Box} from '@mui/material';
 import {Loader} from "@shared/ui";
 import {FC} from 'react';
-import CertificationSelector from '../changeable-elements/CertificationSelector';
+import CertificationSelector from '../changeable-elements/CertificationSelector.tsx';
 
 const DisciplinePlace: FC = () => {
     const data = useStore.getState().jsonData;
