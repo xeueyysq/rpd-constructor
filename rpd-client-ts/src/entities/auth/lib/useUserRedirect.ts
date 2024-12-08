@@ -1,7 +1,7 @@
 import {useContext, useMemo} from "react"
-import {AuthContext} from "../model/authContext"
+import {AuthContext} from "../model/authContext.ts"
 import {UserRole} from '@shared/ability'
-import {useAuth} from "./useAuth"
+import {useAuth} from "./useAuth.ts"
 
 enum RedirectPath {
     SIGN_IN = "/sign-in",

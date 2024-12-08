@@ -1,6 +1,6 @@
 import {useCallback, useEffect, useState} from "react"
 import {useAuth} from "./useAuth.ts"
-import inMemoryJWT from "../lib/inMemoryJWT.ts"
+import inMemoryJWT from "./inMemoryJWT.ts"
 import config from "@shared/config"
 import {AuthClient} from "../api/clients.ts"
 import {AuthContextProps, UserCredentials} from "../model/types.ts"
