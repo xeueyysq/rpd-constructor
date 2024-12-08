@@ -1,6 +1,6 @@
 import {FC, ReactNode} from 'react';
 import {useAuth} from "@features/auth";
-import {CaslContext} from '@features/ability';
+import {CaslContext} from '@shared/ability';
 
 type Props = {
     children: ReactNode;

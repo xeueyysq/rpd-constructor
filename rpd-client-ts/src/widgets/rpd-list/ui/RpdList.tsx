@@ -8,7 +8,7 @@ import {useNavigate} from "react-router-dom";
 import PictureAsPdfIcon from '@mui/icons-material/PictureAsPdf';
 import ExitToAppIcon from '@mui/icons-material/ExitToApp';
 import {useStore} from "@shared/hooks";
-import {Can} from "@features/ability";
+import {Can} from "@shared/ability";
 
 export const RpdList: FC<RpdListProps> = ({RpdListItems, setChoise}) => {
     const jsonData = useStore.getState().jsonData;

@@ -19,7 +19,7 @@ import {PlannedResultsData} from "../../model/DisciplineContentPageTypes.ts";
 import {showErrorMessage, showSuccessMessage} from "@shared/lib";
 import {axiosBase} from "@shared/api";
 import Papa from 'papaparse';
-import {Can} from "@features/ability";
+import {Can} from "@shared/ability";
 
 const PlannedResultsPage: FC = () => {
     const initialData = useStore.getState().jsonData.competencies as PlannedResultsData | undefined;
