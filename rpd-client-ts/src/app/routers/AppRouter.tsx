@@ -1,17 +1,17 @@
-import {lazy, Suspense} from 'react';
-import {BrowserRouter as Router, Navigate, Route, Routes} from 'react-router-dom';
+import {lazy, Suspense} from 'react'
+import {BrowserRouter as Router, Navigate, Route, Routes} from 'react-router-dom'
 
-import {useUserRedirect} from "@features/auth";
-import {Header} from "@widgets/header";
-import {Loader} from '@shared/ui/';
+import {useUserRedirect} from "@entities/auth"
+import {Header} from "@widgets/header"
+import {Loader} from '@shared/ui/'
 
-const Manager = lazy(() => import('@pages/manager'));
-const RPDTemplate = lazy(() => import('@pages/rpd-template'));
-const TeacherInterface = lazy(() => import('@pages/teacher-interface'));
-const SignIn = lazy(() => import('@pages/sign-in'));
+const Manager = lazy(() => import('@pages/manager'))
+const RPDTemplate = lazy(() => import('@pages/rpd-template'))
+const TeacherInterface = lazy(() => import('@pages/teacher-interface'))
+const SignIn = lazy(() => import('@pages/sign-in'))
 
 export const AppRouter = () => {
-    const {isUserLogged, redirectPath} = useUserRedirect();
+    const {isUserLogged, redirectPath} = useUserRedirect()
 
     return (
         <Router>
@@ -34,6 +34,6 @@ export const AppRouter = () => {
                 </Routes>
             </Suspense>
         </Router>
-    );
-};
+    )
+}
 

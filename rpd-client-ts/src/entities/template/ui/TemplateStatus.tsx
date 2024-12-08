@@ -1,7 +1,7 @@
-import {Box} from "@mui/material";
-import {FC} from "react";
-import {format, parseISO} from 'date-fns';
-import {ru} from 'date-fns/locale';
+import {Box} from "@mui/material"
+import {FC} from "react"
+import {format, parseISO} from 'date-fns'
+import {ru} from 'date-fns/locale'
 
 interface TemplateStatusObject {
     date: string,
@@ -14,7 +14,7 @@ interface TemplateStatus {
 }
 
 export const TemplateStatus: FC<TemplateStatus> = ({status}) => {
-    const formattedDate = format(parseISO(status.date), 'd MMMM yyyy, HH:mm', {locale: ru});
+    const formattedDate = format(parseISO(status.date), 'd MMMM yyyy, HH:mm', {locale: ru})
     return (
         <Box>
             <Box>{status.status}</Box>

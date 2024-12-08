@@ -1,10 +1,10 @@
-import {Box, Container} from '@mui/material';
-import {FC, useState} from 'react';
-import {RpdList, RpdListItems} from '@widgets/rpd-list';
-import {RpdCoverPage} from './RpdCoverPage.tsx';
+import {Box, Container} from '@mui/material'
+import {FC, useState} from 'react'
+import {RpdList, RpdListItems} from '@widgets/rpd-list'
+import {RpdCoverPage} from './RpdCoverPage.tsx'
 
 export const RPDTemplate: FC = () => {
-    const [choise, setChoise] = useState<string>("coverPage");
+    const [choise, setChoise] = useState<string>("coverPage")
 
     return (
         <Container
@@ -43,5 +43,5 @@ export const RPDTemplate: FC = () => {
                 )}
             </Box>
         </Container>
-    );
+    )
 }

@@ -9,5 +9,4 @@ export type Subjects =
     | "change_templates"
     | "competencies"
 
-export type UserRole = "anonymous" | "teacher" | "rop" | "admin"
 export type AppAbility = Ability<[Actions, Subjects]>

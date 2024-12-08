@@ -1,56 +1,56 @@
-import {FC, MouseEvent, useState} from 'react';
-import {Box, Button, IconButton, ListItemIcon, ListItemText, Menu, MenuItem, Typography} from '@mui/material';
-import EditIcon from '@mui/icons-material/Edit';
-import {useStore} from "@shared/hooks";
-import TextEditor from './TextEditor.tsx';
-import {showErrorMessage, showSuccessMessage} from "@shared/lib";
-import MoreHorizIcon from '@mui/icons-material/MoreHoriz';
-import DownloadIcon from '@mui/icons-material/Download';
-import {axiosBase} from '@shared/api';
+import {FC, MouseEvent, useState} from 'react'
+import {Box, Button, IconButton, ListItemIcon, ListItemText, Menu, MenuItem, Typography} from '@mui/material'
+import EditIcon from '@mui/icons-material/Edit'
+import {useStore} from "@shared/hooks"
+import TextEditor from './TextEditor.tsx'
+import {showErrorMessage, showSuccessMessage} from "@shared/lib"
+import MoreHorizIcon from '@mui/icons-material/MoreHoriz'
+import DownloadIcon from '@mui/icons-material/Download'
+import {axiosBase} from '@shared/api'
 
 interface JsonChangeValue {
     elementName: string;
 }
 
 const JsonChangeValue: FC<JsonChangeValue> = ({elementName}) => {
-    const {updateJsonData} = useStore();
-    const elementValue = useStore.getState().jsonData[elementName];
+    const {updateJsonData} = useStore()
+    const elementValue = useStore.getState().jsonData[elementName]
 
-    const [isEditing, setIsEditing] = useState<boolean>(false);
-    const [changeableValue, setChangeableValue] = useState<string>(elementValue || "");
+    const [isEditing, setIsEditing] = useState<boolean>(false)
+    const [changeableValue, setChangeableValue] = useState<string>(elementValue || "")
 
     const handleEditClick = () => {
-        setIsEditing(true);
-    };
+        setIsEditing(true)
+    }
 
-    const [anchorEl, setAnchorEl] = useState<null | HTMLButtonElement>(null);
-    const open = Boolean(anchorEl);
+    const [anchorEl, setAnchorEl] = useState<null | HTMLButtonElement>(null)
+    const open = Boolean(anchorEl)
 
     const handleClick = (event: MouseEvent<HTMLButtonElement>) => {
-        setAnchorEl(event.currentTarget);
-    };
+        setAnchorEl(event.currentTarget)
+    }
     const handleClose = () => {
-        setAnchorEl(null);
-    };
+        setAnchorEl(null)
+    }
 
     const saveContent = async (htmlValue: string) => {
-        setIsEditing(false);
-        const templateId = useStore.getState().jsonData.id;
+        setIsEditing(false)
+        const templateId = useStore.getState().jsonData.id
 
         try {
             await axiosBase.put(`update-json-value/${templateId}`, {
                 fieldToUpdate: elementName,
                 value: htmlValue
-            });
+            })
 
-            showSuccessMessage('Данные успешно сохранены');
+            showSuccessMessage('Данные успешно сохранены')
             updateJsonData(elementName, htmlValue)
-            setChangeableValue(htmlValue);
+            setChangeableValue(htmlValue)
         } catch (error) {
-            showErrorMessage('Ошибка сохранения данных');
-            console.error(error);
+            showErrorMessage('Ошибка сохранения данных')
+            console.error(error)
         }
-    };
+    }
 
     return (
         <Box sx={{
@@ -133,7 +133,7 @@ const JsonChangeValue: FC<JsonChangeValue> = ({elementName}) => {
                 </Box>
             )}
         </Box>
-    );
+    )
 }
 
-export default JsonChangeValue;
+export default JsonChangeValue

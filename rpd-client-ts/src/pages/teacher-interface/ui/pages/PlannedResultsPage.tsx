@@ -1,7 +1,7 @@
-import {useStore} from "@shared/hooks";
-import axios from "axios";
-import {FC, useState} from 'react';
-import EditableCell from "../changeable-elements/EditableCell.tsx";
+import {useStore} from "@shared/hooks"
+import axios from "axios"
+import {FC, useState} from 'react'
+import EditableCell from "../changeable-elements/EditableCell.tsx"
 import {
     Box,
     Button,
@@ -13,56 +13,56 @@ import {
     TableContainer,
     TableHead,
     TableRow
-} from '@mui/material';
-import {Loader} from "@shared/ui";
-import {PlannedResultsData} from "../../model/DisciplineContentPageTypes.ts";
-import {showErrorMessage, showSuccessMessage} from "@shared/lib";
-import {axiosBase} from "@shared/api";
-import Papa from 'papaparse';
-import {Can} from "@shared/ability";
+} from '@mui/material'
+import {Loader} from "@shared/ui"
+import {PlannedResultsData} from "../../model/DisciplineContentPageTypes.ts"
+import {showErrorMessage, showSuccessMessage} from "@shared/lib"
+import {axiosBase} from "@shared/api"
+import Papa from 'papaparse'
+import {Can} from "@shared/ability"
 
 const PlannedResultsPage: FC = () => {
-    const initialData = useStore.getState().jsonData.competencies as PlannedResultsData | undefined;
-    const initialDataLength = initialData ? Object.keys(initialData).length : 0;
+    const initialData = useStore.getState().jsonData.competencies as PlannedResultsData | undefined
+    const initialDataLength = initialData ? Object.keys(initialData).length : 0
 
-    const {updateJsonData} = useStore();
-    const [data, setData] = useState<PlannedResultsData | undefined>(initialData);
-    const [nextId, setNextId] = useState<number>(initialDataLength);
+    const {updateJsonData} = useStore()
+    const [data, setData] = useState<PlannedResultsData | undefined>(initialData)
+    const [nextId, setNextId] = useState<number>(initialDataLength)
 
     const handleFileUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
-        const file = event.target.files?.[0];
-        if (!file) return;
+        const file = event.target.files?.[0]
+        if (!file) return
 
         Papa.parse(file, {
             complete: (results) => {
-                const parsedData = results.data.slice(1) as string[][];
+                const parsedData = results.data.slice(1) as string[][]
                 const formattedData = parsedData.reduce((acc: PlannedResultsData, row, index: number) => {
                     const nextRow = parsedData[index + 1]
-                    const competence = row[0] ? `${row[0]} ${row[3]}` : '';
-                    const indicator = nextRow && nextRow[1] ? `${nextRow[1]} ${nextRow[3]}` : '';
-                    const results = '';
+                    const competence = row[0] ? `${row[0]} ${row[3]}` : ''
+                    const indicator = nextRow && nextRow[1] ? `${nextRow[1]} ${nextRow[3]}` : ''
+                    const results = ''
 
                     if (competence || indicator || results) {
-                        acc[index] = {competence, indicator, results};
+                        acc[index] = {competence, indicator, results}
                     }
-                    return acc;
-                }, {});
-                setData(formattedData);
-                setNextId(Object.keys(formattedData).length);
+                    return acc
+                }, {})
+                setData(formattedData)
+                setNextId(Object.keys(formattedData).length)
             },
             encoding: 'cp1251',
             delimiter: ';',
-        });
-    };
+        })
+    }
 
     const handleAddRow = () => {
-        setNextId(nextId + 1);
-        const newData = {...data, [nextId]: {competence: '', indicator: '', results: ''}};
-        setData(newData);
-    };
+        setNextId(nextId + 1)
+        const newData = {...data, [nextId]: {competence: '', indicator: '', results: ''}}
+        setData(newData)
+    }
 
     const handleValueChange = (id: number, key: string, value: string) => {
-        if (!data) return;
+        if (!data) return
 
         const newData = {
             ...data,
@@ -70,42 +70,42 @@ const PlannedResultsPage: FC = () => {
                 ...data[id],
                 [key]: value,
             },
-        };
-        setData(newData);
-    };
+        }
+        setData(newData)
+    }
 
     const saveData = async () => {
-        if (!data) return;
+        if (!data) return
 
-        const id = useStore.getState().jsonData.id;
+        const id = useStore.getState().jsonData.id
 
         const filteredData = Object.entries(data).reduce((acc: PlannedResultsData, [key, value]) => {
             if (value.competence || value.indicator || value.results) {
-                acc[key] = value;
+                acc[key] = value
             }
-            return acc;
-        }, {});
+            return acc
+        }, {})
 
         try {
             await axiosBase.put(`update-json-value/${id}`, {
                 fieldToUpdate: "competencies",
                 value: filteredData
-            });
+            })
 
-            updateJsonData("competencies", filteredData);
-            setData(filteredData);
-            showSuccessMessage("Данные успешно сохранены");
+            updateJsonData("competencies", filteredData)
+            setData(filteredData)
+            showSuccessMessage("Данные успешно сохранены")
         } catch (error) {
-            showErrorMessage("Ошибка сохранения данных");
+            showErrorMessage("Ошибка сохранения данных")
             if (axios.isAxiosError(error)) {
-                console.error('Ошибка Axios:', error.response?.data);
-                console.error('Статус ошибки:', error.response?.status);
-                console.error('Заголовки ошибки:', error.response?.headers);
+                console.error('Ошибка Axios:', error.response?.data)
+                console.error('Статус ошибки:', error.response?.status)
+                console.error('Заголовки ошибки:', error.response?.headers)
             } else {
-                console.error('Неизвестная ошибка:', error);
+                console.error('Неизвестная ошибка:', error)
             }
         }
-    };
+    }
 
 
     if (!data) return <Loader/>
@@ -174,7 +174,7 @@ const PlannedResultsPage: FC = () => {
                 <Button onClick={saveData}>Сохранить изменения</Button>
             </ButtonGroup>
         </Box>
-    );
+    )
 }
 
-export default PlannedResultsPage;
+export default PlannedResultsPage

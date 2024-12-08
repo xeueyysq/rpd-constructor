@@ -1,4 +1,5 @@
 export {Can} from "./ui/Can"
-export {CaslContext} from "./context/caslContext"
+export {CaslContext} from "./model/caslContext.ts"
 export {buildAbilityFor} from "./lib/buildAbilityFor"
-export type {UserRole, AppAbility} from "./model/types"
+export type {AppAbility} from "./model/types"
+export {UserRole} from "./model/enums"

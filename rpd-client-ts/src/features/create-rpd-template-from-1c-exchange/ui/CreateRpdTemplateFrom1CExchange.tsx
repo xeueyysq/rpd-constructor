@@ -1,6 +1,6 @@
-import {FC, useCallback, useEffect, useState} from "react";
-import {TemplateConstructorType, TemplateStatus} from "@entities/template";
-import {useStore} from "@shared/hooks";
+import {FC, useCallback, useEffect, useState} from "react"
+import {TemplateConstructorType, TemplateStatus} from "@entities/template"
+import {useStore} from "@shared/hooks"
 import {
     Box,
     Button,
@@ -16,12 +16,12 @@ import {
     TableContainer,
     TableHead,
     TableRow
-} from "@mui/material";
-import {useAuth} from "@features/auth";
-import TemplateMenu from "./TemplateMenu.tsx";
-import {axiosBase} from "@shared/api";
-import {showErrorMessage, showSuccessMessage} from "@shared/lib";
-import {Loader} from "@shared/ui";
+} from "@mui/material"
+import {useAuth} from "@entities/auth"
+import TemplateMenu from "./TemplateMenu.tsx"
+import {axiosBase} from "@shared/api"
+import {showErrorMessage, showSuccessMessage} from "@shared/lib"
+import {Loader} from "@shared/ui"
 
 interface TemplateStatusObject {
     date: string,
@@ -49,31 +49,31 @@ export interface CreateTemplateDataParams {
 }
 
 export const CreateRpdTemplateFrom1CExchange: FC<TemplateConstructorType> = ({setChoise}) => {
-    const selectedTemplateData = useStore.getState().selectedTemplateData;
-    const complectId = useStore.getState().complectId;
-    const [data, setData] = useState<TemplateData[]>();
-    const [selectedTeachers, setSelectedTeachers] = useState<{ [key: number]: string }>({});
-    const userName = useAuth.getState().userName;
+    const selectedTemplateData = useStore.getState().selectedTemplateData
+    const complectId = useStore.getState().complectId
+    const [data, setData] = useState<TemplateData[]>()
+    const [selectedTeachers, setSelectedTeachers] = useState<{ [key: number]: string }>({})
+    const userName = useAuth.getState().userName
 
     const handleChange = (templateId: number) => (event: SelectChangeEvent) => {
         setSelectedTeachers(prevSelectedTeachers => ({
             ...prevSelectedTeachers,
             [templateId]: event.target.value,
-        }));
-    };
+        }))
+    }
 
     const fetchData = useCallback(async () => {
         try {
-            const response = await axiosBase.post('find-rpd', {complectId});
-            setData(response.data);
+            const response = await axiosBase.post('find-rpd', {complectId})
+            setData(response.data)
         } catch (error) {
-            showErrorMessage('Ошибка при получении данных');
-            console.error(error);
+            showErrorMessage('Ошибка при получении данных')
+            console.error(error)
         }
-    }, [complectId]);
+    }, [complectId])
 
     const createTemplateData = async (id: number, discipline: string) => {
-        const teacher = selectedTeachers[id];
+        const teacher = selectedTeachers[id]
         if (!teacher) {
             showErrorMessage('Ошибка. Необходимо выбрать преподавателя')
             return
@@ -87,26 +87,26 @@ export const CreateRpdTemplateFrom1CExchange: FC<TemplateConstructorType> = ({se
                 year: selectedTemplateData.year,
                 discipline,
                 userName
-            };
+            }
 
-            const response = await axiosBase.post('create-profile-template-from-1c', params);
+            const response = await axiosBase.post('create-profile-template-from-1c', params)
 
 
-            if (response.data === "record exists") showErrorMessage("Ошибка. Шаблон с текущими данными уже существует");
+            if (response.data === "record exists") showErrorMessage("Ошибка. Шаблон с текущими данными уже существует")
             if (response.data === "template created") {
-                showSuccessMessage("Шаблон успешно создан");
-                fetchData();
+                showSuccessMessage("Шаблон успешно создан")
+                fetchData()
             }
 
         } catch (error) {
-            showErrorMessage("Ошибка. Не удалось создать шаблон");
-            console.error(error);
+            showErrorMessage("Ошибка. Не удалось создать шаблон")
+            console.error(error)
         }
     }
 
     useEffect(() => {
-        fetchData();
-    }, [fetchData]);
+        fetchData()
+    }, [fetchData])
 
     if (!data) return <Loader/>
 

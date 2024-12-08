@@ -1,4 +1,4 @@
-import {RpdListItem} from "@widgets/rpd-list";
+import {RpdListItem} from "@widgets/rpd-list"
 
 export const RpdListItems: RpdListItem[] = [
     {

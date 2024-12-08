@@ -1,52 +1,52 @@
-import {FC, useCallback, useEffect, useState} from "react";
-import {useStore} from "@shared/hooks";
-import {Box, Button, CircularProgress} from "@mui/material";
-import {TemplateConstructorType} from "@entities/template";
-import {templateDataTitles} from "../model/templateDataTitles.ts";
-import {Loader} from "@shared/ui";
-import {axiosBase} from "@shared/api";
-import {showErrorMessage, showSuccessMessage} from "@shared/lib";
+import {FC, useCallback, useEffect, useState} from "react"
+import {useStore} from "@shared/hooks"
+import {Box, Button, CircularProgress} from "@mui/material"
+import {TemplateConstructorType} from "@entities/template"
+import {templateDataTitles} from "../model/templateDataTitles.ts"
+import {Loader} from "@shared/ui"
+import {axiosBase} from "@shared/api"
+import {showErrorMessage, showSuccessMessage} from "@shared/lib"
 
 export const TemplateConstructor: FC<TemplateConstructorType> = ({setChoise}) => {
-    const selectedTemplateData = useStore.getState().selectedTemplateData;
-    const {setComplectId} = useStore();
-    const [createComplectStatus, setCreateComplectStatus] = useState<string>("pending");
-    const [isFindComplect, setIsFindComplect] = useState<boolean | undefined>(undefined);
+    const selectedTemplateData = useStore.getState().selectedTemplateData
+    const {setComplectId} = useStore()
+    const [createComplectStatus, setCreateComplectStatus] = useState<string>("pending")
+    const [isFindComplect, setIsFindComplect] = useState<boolean | undefined>(undefined)
 
     const fetchData = useCallback(async () => {
         try {
             const responce = await axiosBase.post('find_rpd_complect', {
                 data: selectedTemplateData
             })
-            if (responce.data === "NotFound") setIsFindComplect(false);
+            if (responce.data === "NotFound") setIsFindComplect(false)
             else {
-                setIsFindComplect(true);
-                setComplectId(responce.data.id);
+                setIsFindComplect(true)
+                setComplectId(responce.data.id)
             }
         } catch (error) {
-            showErrorMessage("Ошибка загрузки данных");
-            console.error(error);
+            showErrorMessage("Ошибка загрузки данных")
+            console.error(error)
         }
     }, [selectedTemplateData, setComplectId])
 
     const createRpdComplect = async () => {
         try {
-            setCreateComplectStatus("loading");
+            setCreateComplectStatus("loading")
             const responce = await axiosBase.post('create_rpd_complect', {
                 data: selectedTemplateData
-            });
-            setComplectId(responce.data);
-            setCreateComplectStatus("success");
-            showSuccessMessage("Комплект РПД создан успешно");
+            })
+            setComplectId(responce.data)
+            setCreateComplectStatus("success")
+            showSuccessMessage("Комплект РПД создан успешно")
         } catch (error) {
-            showErrorMessage("Ошибка загрузки данных");
-            console.error(error);
+            showErrorMessage("Ошибка загрузки данных")
+            console.error(error)
         }
     }
 
     useEffect(() => {
         fetchData()
-    }, [fetchData]);
+    }, [fetchData])
 
     return (
         <>
@@ -107,5 +107,5 @@ export const TemplateConstructor: FC<TemplateConstructorType> = ({setChoise}) =>
 
             <Button variant="outlined" onClick={() => setChoise("selectData")}>Назад</Button>
         </>
-    );
+    )
 }

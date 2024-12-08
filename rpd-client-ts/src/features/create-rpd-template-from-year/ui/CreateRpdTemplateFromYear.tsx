@@ -1,11 +1,11 @@
-import {Box, Button, Paper, Table, TableBody, TableCell, TableContainer, TableHead, TableRow} from "@mui/material";
-import {FC, useCallback, useEffect, useState} from "react";
-import {useStore} from "@shared/hooks";
-import {TemplateConstructorType, TemplateStatus} from "@entities/template";
-import {useAuth} from "@features/auth";
-import {axiosBase} from "@shared/api";
-import {showErrorMessage, showSuccessMessage} from "@shared/lib";
-import {Loader} from "@shared/ui";
+import {Box, Button, Paper, Table, TableBody, TableCell, TableContainer, TableHead, TableRow} from "@mui/material"
+import {FC, useCallback, useEffect, useState} from "react"
+import {useStore} from "@shared/hooks"
+import {TemplateConstructorType, TemplateStatus} from "@entities/template"
+import {useAuth} from "@entities/auth"
+import {axiosBase} from "@shared/api"
+import {showErrorMessage, showSuccessMessage} from "@shared/lib"
+import {Loader} from "@shared/ui"
 
 interface TemplateStatusObject {
     date: string,
@@ -28,30 +28,30 @@ export interface uploadTemplateDataParams {
 }
 
 export const CreateRpdTemplateFromYear: FC<TemplateConstructorType> = ({setChoise}) => {
-    const selectedTemplateData = useStore.getState().selectedTemplateData;
-    const createByCriteria = useStore.getState().createByCriteria;
-    const userName = useAuth.getState().userName;
-    const [data, setData] = useState<TemplateData[]>();
+    const selectedTemplateData = useStore.getState().selectedTemplateData
+    const createByCriteria = useStore.getState().createByCriteria
+    const userName = useAuth.getState().userName
+    const [data, setData] = useState<TemplateData[]>()
 
 
     const fetchData = useCallback(async () => {
         const params = {
             ...selectedTemplateData,
             year: Number(selectedTemplateData.year)
-        };
+        }
 
         try {
-            const response = await axiosBase.get('find-by-criteria', {params});
-            setData(response.data);
+            const response = await axiosBase.get('find-by-criteria', {params})
+            setData(response.data)
         } catch (error) {
-            showErrorMessage('Ошибка при получении данных');
-            console.error(error);
+            showErrorMessage('Ошибка при получении данных')
+            console.error(error)
         }
-    }, [selectedTemplateData]);
+    }, [selectedTemplateData])
 
     useEffect(() => {
         fetchData()
-    }, [fetchData]);
+    }, [fetchData])
 
     const uploadTempllateData = async (disciplinsName: string, id: number) => {
         try {
@@ -61,17 +61,17 @@ export const CreateRpdTemplateFromYear: FC<TemplateConstructorType> = ({setChois
                 id,
                 userName
             }
-            const response = await axiosBase.post('find-or-create-profile-template', {params});
+            const response = await axiosBase.post('find-or-create-profile-template', {params})
 
-            if (response.data.status === "record exists") showErrorMessage("Ошибка. Шаблон с текущими данными уже существует");
+            if (response.data.status === "record exists") showErrorMessage("Ошибка. Шаблон с текущими данными уже существует")
             if (response.data === "template created") {
-                showSuccessMessage("Шаблон успешно создан");
-                fetchData();
+                showSuccessMessage("Шаблон успешно создан")
+                fetchData()
             }
 
         } catch (error) {
-            showErrorMessage('Ошибка создания шаблона');
-            console.error(error);
+            showErrorMessage('Ошибка создания шаблона')
+            console.error(error)
         }
     }
 
@@ -119,5 +119,5 @@ export const CreateRpdTemplateFromYear: FC<TemplateConstructorType> = ({setChois
                 Назад
             </Button>
         </>
-    );
+    )
 }

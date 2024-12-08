@@ -1,11 +1,11 @@
-import {useEffect, useRef, useState} from 'react';
-import {Box, Button} from '@mui/material';
-import EditIcon from '@mui/icons-material/Edit';
-import SaveAltIcon from '@mui/icons-material/SaveAlt';
-import {TextareaAutosize as BaseTextareaAutosize} from '@mui/base/TextareaAutosize';
-import {styled} from '@mui/system';
-import {Loader} from "@shared/ui";
-import {axiosBase} from '@shared/api';
+import {useEffect, useRef, useState} from 'react'
+import {Box, Button} from '@mui/material'
+import EditIcon from '@mui/icons-material/Edit'
+import SaveAltIcon from '@mui/icons-material/SaveAlt'
+import {TextareaAutosize as BaseTextareaAutosize} from '@mui/base/TextareaAutosize'
+import {styled} from '@mui/system'
+import {Loader} from "@shared/ui"
+import {axiosBase} from '@shared/api'
 
 interface ChangeableCoverPageProps {
     title: string;
@@ -19,44 +19,44 @@ interface ValueData {
 
 // const ChangeableCoverPage = ({ title, defaultText }: ChangeableCoverPageProps) => {
 const ChangeableCoverPage = ({title}: ChangeableCoverPageProps) => {
-    const [isEditing, setIsEditing] = useState(false);
-    const [value, setValue] = useState<ValueData | null>(null); // Typed state
-    const textAreaRef = useRef<HTMLTextAreaElement | null>(null); // Explicit type for the ref
+    const [isEditing, setIsEditing] = useState(false)
+    const [value, setValue] = useState<ValueData | null>(null) // Typed state
+    const textAreaRef = useRef<HTMLTextAreaElement | null>(null) // Explicit type for the ref
 
     useEffect(() => {
         const fetchData = async () => {
             try {
-                const response = await axiosBase.get(`rpd-changeable-values?title=${title}`);
-                setValue(response.data);
+                const response = await axiosBase.get(`rpd-changeable-values?title=${title}`)
+                setValue(response.data)
             } catch (error) {
-                console.error(error);
-            }
-        };
-
-        fetchData();
-    }, [title]);
-
-    const handleEditClick = () => {
-        setIsEditing(true);
-    };
-
-    const handleSaveClick = async () => {
-        setIsEditing(false);
-
-        if (textAreaRef.current) { // Null check
-            const textareaValue = textAreaRef.current.value;
-
-            try {
-                const response = await axiosBase.put(`rpd-changeable-values/${value?._id}`, {value: textareaValue});
-                setValue(response.data);
-            } catch (error) {
-                console.error(error);
+                console.error(error)
             }
         }
-    };
+
+        fetchData()
+    }, [title])
+
+    const handleEditClick = () => {
+        setIsEditing(true)
+    }
+
+    const handleSaveClick = async () => {
+        setIsEditing(false)
+
+        if (textAreaRef.current) { // Null check
+            const textareaValue = textAreaRef.current.value
+
+            try {
+                const response = await axiosBase.put(`rpd-changeable-values/${value?._id}`, {value: textareaValue})
+                setValue(response.data)
+            } catch (error) {
+                console.error(error)
+            }
+        }
+    }
 
     if (!value) {
-        return <Loader/>;
+        return <Loader/>
     }
 
     const TextareaAutosize = styled(BaseTextareaAutosize)(() => `
@@ -86,7 +86,7 @@ const ChangeableCoverPage = ({title}: ChangeableCoverPageProps) => {
         outline: 0;
       }
     `
-    );
+    )
 
     return (
         <Box>
@@ -127,7 +127,7 @@ const ChangeableCoverPage = ({title}: ChangeableCoverPageProps) => {
                 </Box>
             )}
         </Box>
-    );
-};
+    )
+}
 
-export default ChangeableCoverPage;
+export default ChangeableCoverPage

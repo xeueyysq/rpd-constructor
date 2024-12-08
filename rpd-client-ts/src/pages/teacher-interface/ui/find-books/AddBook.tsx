@@ -1,4 +1,4 @@
-import {ChangeEvent, FC, useState} from 'react';
+import {ChangeEvent, FC, useState} from 'react'
 import {
     Box,
     Button,
@@ -10,12 +10,12 @@ import {
     ListItem,
     ListItemText,
     TextField
-} from '@mui/material';
-import AddIcon from '@mui/icons-material/Add';
-import ShowBooks from './ShowBooks.tsx';
-import {useStore} from "@shared/hooks";
-import {showErrorMessage, showSuccessMessage} from "@shared/lib";
-import {axiosBase} from '@shared/api';
+} from '@mui/material'
+import AddIcon from '@mui/icons-material/Add'
+import ShowBooks from './ShowBooks.tsx'
+import {useStore} from "@shared/hooks"
+import {showErrorMessage, showSuccessMessage} from "@shared/lib"
+import {axiosBase} from '@shared/api'
 
 interface AddBook {
     elementName: string;
@@ -31,69 +31,69 @@ interface BookData {
 }
 
 const AddBook: FC<AddBook> = ({elementName}) => {
-    const [open, setOpen] = useState<boolean>(false);
-    const [bookName, setBookName] = useState<string>('');
-    const [error, setError] = useState<boolean>(false);
+    const [open, setOpen] = useState<boolean>(false)
+    const [bookName, setBookName] = useState<string>('')
+    const [error, setError] = useState<boolean>(false)
 
-    const jsonData = useStore.getState().jsonData[elementName];
-    const [booksData, setBooksData] = useState<BookData[]>(jsonData);
+    const jsonData = useStore.getState().jsonData[elementName]
+    const [booksData, setBooksData] = useState<BookData[]>(jsonData)
 
-    const [addedBooks, setAddedBooks] = useState<string[]>([]);
-    const {updateJsonData} = useStore();
-    const elementValue: string[] = useStore.getState().jsonData[elementName];
+    const [addedBooks, setAddedBooks] = useState<string[]>([])
+    const {updateJsonData} = useStore()
+    const elementValue: string[] = useStore.getState().jsonData[elementName]
 
     const handleOpenDialog = () => {
-        setOpen(true);
-        setBooksData([]);
-    };
+        setOpen(true)
+        setBooksData([])
+    }
 
     const handleCloseDialog = () => {
-        setOpen(false);
-        setError(false);
-    };
+        setOpen(false)
+        setError(false)
+    }
 
     const handleBookNameChange = (event: ChangeEvent<HTMLInputElement>) => {
-        setBookName(event.target.value);
-        if (error) setError(false);
-    };
+        setBookName(event.target.value)
+        if (error) setError(false)
+    }
 
     const handleFindBooks = async () => {
         if (!bookName) {
-            setError(true);
-            return;
+            setError(true)
+            return
         }
-        setError(false);
+        setError(false)
 
         try {
-            const response = await axiosBase.post('find-books', {bookName});
-            setBooksData(response.data);
+            const response = await axiosBase.post('find-books', {bookName})
+            setBooksData(response.data)
         } catch (error) {
-            console.error(error);
+            console.error(error)
         }
-    };
+    }
 
     const saveContent = async (htmlValue: string[]) => {
-        const templateId = useStore.getState().jsonData.id;
+        const templateId = useStore.getState().jsonData.id
 
         try {
             await axiosBase.put(`update-json-value/${templateId}`, {
                 fieldToUpdate: elementName,
                 value: htmlValue
-            });
+            })
 
-            updateJsonData(elementName, htmlValue);
-            setAddedBooks(htmlValue);
-            showSuccessMessage('Данные успешно сохранены');
+            updateJsonData(elementName, htmlValue)
+            setAddedBooks(htmlValue)
+            showSuccessMessage('Данные успешно сохранены')
         } catch (error) {
-            showErrorMessage('Ошибка сохранения данных');
-            console.error(error);
+            showErrorMessage('Ошибка сохранения данных')
+            console.error(error)
         }
-        handleCloseDialog();
-    };
+        handleCloseDialog()
+    }
 
     const handleAddBookToList = (biblio: string) => {
-        saveContent([...addedBooks, biblio]);
-    };
+        saveContent([...addedBooks, biblio])
+    }
 
     return (
         <>
@@ -144,7 +144,7 @@ const AddBook: FC<AddBook> = ({elementName}) => {
                 </DialogActions>
             </Dialog>
         </>
-    );
-};
+    )
+}
 
-export default AddBook;
+export default AddBook

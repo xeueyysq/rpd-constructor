@@ -1,12 +1,10 @@
-import {FC, ReactNode} from "react";
-import {AuthContext, useAuthContextValue} from "@features/auth";
-import {Loader} from "@shared/ui";
+import {FC, ReactNode} from "react"
+import {AuthContext, useAuthContextValue} from "@entities/auth"
+import {Loader} from "@shared/ui"
 
 const AuthProvider: FC<{ children: ReactNode }> = ({children}) => {
     const {
         data,
-        handleFetchProtected,
-        handleSignUp,
         handleSignIn,
         handleLogOut,
         isAppReady,
@@ -18,8 +16,6 @@ const AuthProvider: FC<{ children: ReactNode }> = ({children}) => {
         <AuthContext.Provider
             value={{
                 data,
-                handleFetchProtected,
-                handleSignUp,
                 handleSignIn,
                 handleLogOut,
                 isAppReady,
@@ -32,7 +28,7 @@ const AuthProvider: FC<{ children: ReactNode }> = ({children}) => {
                 <Loader/>
             )}
         </AuthContext.Provider>
-    );
-};
+    )
+}
 
-export default AuthProvider;
+export default AuthProvider

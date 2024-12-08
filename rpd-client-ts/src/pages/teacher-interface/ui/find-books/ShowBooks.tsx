@@ -1,4 +1,4 @@
-import { Box, Button, Divider, List, ListItem, ListItemText } from "@mui/material";
+import { Box, Button, Divider, List, ListItem, ListItemText } from "@mui/material"
 import { FC } from "react"
 
 interface BookData {
@@ -68,4 +68,4 @@ interface BookData {
     )
 }
 
-export default ShowBooks;
+export default ShowBooks

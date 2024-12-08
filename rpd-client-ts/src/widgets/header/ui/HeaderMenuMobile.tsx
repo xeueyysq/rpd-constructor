@@ -1,22 +1,22 @@
-import {FC, MouseEvent, useContext, useState} from 'react';
-import {Box, Button, Divider, ListItemIcon, ListItemText, Menu, MenuItem, Typography} from '@mui/material';
-import {AccountCircle, Logout} from '@mui/icons-material';
-import MenuIcon from '@mui/icons-material/Menu';
-import {AuthContext, useAuth} from "@features/auth";
+import {FC, MouseEvent, useContext, useState} from 'react'
+import {Box, Button, Divider, ListItemIcon, ListItemText, Menu, MenuItem, Typography} from '@mui/material'
+import {AccountCircle, Logout} from '@mui/icons-material'
+import MenuIcon from '@mui/icons-material/Menu'
+import {AuthContext, useAuth} from "@entities/auth"
 
 const HeaderMenuMobile: FC = () => {
-    const {handleLogOut, isUserLogged} = useContext(AuthContext);
-    const userName = useAuth.getState().userName;
+    const {handleLogOut, isUserLogged} = useContext(AuthContext)
+    const userName = useAuth.getState().userName
 
-    const [anchorEl, setAnchorEl] = useState<null | HTMLButtonElement>(null);
-    const open = Boolean(anchorEl);
+    const [anchorEl, setAnchorEl] = useState<null | HTMLButtonElement>(null)
+    const open = Boolean(anchorEl)
 
     const handleClick = (event: MouseEvent<HTMLButtonElement>) => {
-        setAnchorEl(event.currentTarget);
-    };
+        setAnchorEl(event.currentTarget)
+    }
     const handleClose = () => {
-        setAnchorEl(null);
-    };
+        setAnchorEl(null)
+    }
 
     return (
         <>
@@ -72,7 +72,7 @@ const HeaderMenuMobile: FC = () => {
                 </Box>
             }
         </>
-    );
+    )
 }
 
-export default HeaderMenuMobile;
+export default HeaderMenuMobile

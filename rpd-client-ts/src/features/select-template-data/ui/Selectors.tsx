@@ -1,11 +1,11 @@
-import {FC, useEffect, useState} from 'react';
-import Select, {SingleValue} from 'react-select';
-import Selector from './Selector.tsx';
-import {Loader} from "@shared/ui";
-import {Box, Button} from '@mui/material';
-import {useStore} from "@shared/hooks";
-import {OptionType} from '../model/SelectorTypes.ts';
-import {enqueueSnackbar, VariantType} from 'notistack';
+import {FC, useEffect, useState} from 'react'
+import Select, {SingleValue} from 'react-select'
+import Selector from './Selector.tsx'
+import {Loader} from "@shared/ui"
+import {Box, Button} from '@mui/material'
+import {useStore} from "@shared/hooks"
+import {OptionType} from '../model/SelectorTypes.ts'
+import {enqueueSnackbar, VariantType} from 'notistack'
 
 interface JsonData {
     [key: string]: string | JsonData;
@@ -27,7 +27,7 @@ interface Selectors {
 }
 
 export const Selectors: FC<Selectors> = ({setChoise}) => {
-    const selectorsData = useStore.getState().selectedTemplateData;
+    const selectorsData = useStore.getState().selectedTemplateData
     const [selectors, setSelectors] = useState<SelectorsState>({
         faculty: selectorsData.faculty ?
             {value: selectorsData.faculty, label: selectorsData.faculty} :
@@ -47,10 +47,10 @@ export const Selectors: FC<Selectors> = ({setChoise}) => {
         year: selectorsData.year ?
             {value: selectorsData.year, label: selectorsData.year} :
             undefined,
-    });
+    })
 
-    const [data, setData] = useState<Nullable<JsonData>>(undefined);
-    const {setSelectedTemplateData} = useStore();
+    const [data, setData] = useState<Nullable<JsonData>>(undefined)
+    const {setSelectedTemplateData} = useStore()
 
     useEffect(() => {
         const fetchData = async () => {
@@ -60,18 +60,18 @@ export const Selectors: FC<Selectors> = ({setChoise}) => {
                         'Content-Type': 'application/json',
                         'Accept': 'application/json'
                     }
-                });
+                })
 
-                const jsonData: JsonData = await response.json();
-                setData(jsonData);
+                const jsonData: JsonData = await response.json()
+                setData(jsonData)
             } catch (error) {
-                const variant: VariantType = 'error';
-                enqueueSnackbar('Ошибка загрузки профилей', {variant});
+                const variant: VariantType = 'error'
+                enqueueSnackbar('Ошибка загрузки профилей', {variant})
             }
-        };
+        }
 
-        fetchData();
-    }, []);
+        fetchData()
+    }, [])
 
 
     const handleChange = (name: keyof SelectorsState) => (selectedOption: SingleValue<OptionType>) => {
@@ -94,31 +94,31 @@ export const Selectors: FC<Selectors> = ({setChoise}) => {
             ...(name === 'directionOfStudy' && {profile: undefined, formEducation: undefined, year: undefined}),
             ...(name === 'profile' && {formEducation: undefined, year: undefined}),
             ...(name === 'formEducation' && {year: undefined}),
-        }));
-    };
+        }))
+    }
 
     const getOptions = (): OptionType[] => {
         return data
             ? Object.keys(data).map(key => ({label: key, value: key}))
-            : [];
-    };
+            : []
+    }
 
     const getOptionsForSelector = (selectorPath: Array<string>, indicator?: string): OptionType[] => {
-        if (!data) return [];
-        let currentData = data;
+        if (!data) return []
+        let currentData = data
 
         for (const key of selectorPath) {
-            currentData = currentData[key] as JsonData;
+            currentData = currentData[key] as JsonData
             if (!currentData) {
-                return [];
+                return []
             }
         }
         if (indicator && indicator === 'lastChild') return Object.values(currentData).map((value) => ({
             label: String(value),
             value: String(value)
-        }));
-        return Object.keys(currentData).map(key => ({label: key, value: key}));
-    };
+        }))
+        return Object.keys(currentData).map(key => ({label: key, value: key}))
+    }
 
     const saveTemplateData = () => {
         setSelectedTemplateData(
@@ -215,5 +215,5 @@ export const Selectors: FC<Selectors> = ({setChoise}) => {
                 <Button variant="outlined" onClick={saveTemplateData}>Продолжить</Button>
             )}
         </Box>
-    );
-};
+    )
+}

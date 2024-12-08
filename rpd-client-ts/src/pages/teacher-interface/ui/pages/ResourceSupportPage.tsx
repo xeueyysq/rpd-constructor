@@ -1,7 +1,7 @@
-import {FC} from 'react';
-import JsonChangeValue from '../changeable-elements/JsonChangeValue.tsx';
-import {Box} from '@mui/material';
-import AddBook from '../find-books/AddBook.tsx';
+import {FC} from 'react'
+import JsonChangeValue from '../changeable-elements/JsonChangeValue.tsx'
+import {Box} from '@mui/material'
+import AddBook from '../find-books/AddBook.tsx'
 
 const ResourceSupportPage: FC = () => {
     return (
@@ -24,7 +24,7 @@ const ResourceSupportPage: FC = () => {
             <Box component='h4' sx={{py: 1}}>Необходимое материально-техническое обеспечение</Box>
             <JsonChangeValue elementName='logistics_template'/>
         </Box>
-    );
+    )
 }
 
-export default ResourceSupportPage;
+export default ResourceSupportPage

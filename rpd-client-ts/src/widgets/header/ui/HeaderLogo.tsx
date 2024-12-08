@@ -1,5 +1,5 @@
-import { Box, Typography } from '@mui/material';
-import { FC } from 'react';
+import { Box, Typography } from '@mui/material'
+import { FC } from 'react'
 
 const HeaderLogo: FC = () => {
     return (
@@ -15,7 +15,7 @@ const HeaderLogo: FC = () => {
                 Конструктор РПД
             </Typography>
         </Box>
-    );
+    )
 }
 
-export default HeaderLogo;
+export default HeaderLogo

@@ -1,6 +1,6 @@
-import {FormProvider, useForm} from "react-hook-form";
-import {FC, MouseEvent, useContext, useState} from "react";
-import {yupResolver} from "@hookform/resolvers/yup";
+import {FormProvider, useForm} from "react-hook-form"
+import {FC, MouseEvent, useContext, useState} from "react"
+import {yupResolver} from "@hookform/resolvers/yup"
 import {
     Box,
     Button,
@@ -10,22 +10,22 @@ import {
     InputAdornment,
     InputLabel,
     OutlinedInput
-} from "@mui/material";
-import {Visibility, VisibilityOff} from "@mui/icons-material";
-import {AuthContext} from "@features/auth";
-import {signInSchema} from "../model/signInSchema.ts";
+} from "@mui/material"
+import {Visibility, VisibilityOff} from "@mui/icons-material"
+import {AuthContext} from "@entities/auth"
+import {signInSchema} from "../model/signInSchema.ts"
 
 export const SignIn: FC = () => {
-    const {handleSignIn} = useContext(AuthContext);
+    const {handleSignIn} = useContext(AuthContext)
 
-    const formMethods = useForm({resolver: yupResolver(signInSchema)});
-    const {register, handleSubmit, formState: {errors, isSubmitting}} = formMethods;
+    const formMethods = useForm({resolver: yupResolver(signInSchema)})
+    const {register, handleSubmit, formState: {errors, isSubmitting}} = formMethods
 
-    const [showPassword, setShowPassword] = useState(false);
-    const handleClickShowPassword = () => setShowPassword((show: boolean) => !show);
+    const [showPassword, setShowPassword] = useState(false)
+    const handleClickShowPassword = () => setShowPassword((show: boolean) => !show)
     const handleMouseDownPassword = (event: MouseEvent<HTMLButtonElement>) => {
-        event.preventDefault();
-    };
+        event.preventDefault()
+    }
 
     return (
         <FormProvider {...formMethods}>
@@ -106,5 +106,5 @@ export const SignIn: FC = () => {
                 </Box>
             </Container>
         </FormProvider>
-    );
+    )
 }

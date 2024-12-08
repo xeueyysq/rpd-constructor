@@ -1,5 +1,5 @@
-import {create} from 'zustand';
-import {immer} from 'zustand/middleware/immer';
+import {create} from 'zustand'
+import {immer} from 'zustand/middleware/immer'
 
 type JsonValue = any;
 
@@ -66,17 +66,17 @@ export const useStore = create<StoreState>()(immer((set) => ({
     complectId: undefined,
     setJsonData: (data) => {
         set((state) => {
-            state.jsonData = data;
-        });
+            state.jsonData = data
+        })
     },
     updateJsonData: (key, value) => {
         set((state) => {
             if (value !== undefined) {
-                state.jsonData[key] = value;
+                state.jsonData[key] = value
             } else {
-                delete state.jsonData[key];
+                delete state.jsonData[key]
             }
-        });
+        })
     },
     setSelectedTemplateData: (faculty, levelEducation, directionOfStudy, profile, formEducation, year) => {
         set((state) => {
@@ -90,17 +90,17 @@ export const useStore = create<StoreState>()(immer((set) => ({
                     year: year
                 }
             }
-        });
+        })
     },
     setCreateByCriteria: (faculty, year) => {
         set((state) => {
-            if (faculty) state.createByCriteria.faculty = faculty;
-            if (year) state.createByCriteria.year = year;
+            if (faculty) state.createByCriteria.faculty = faculty
+            if (year) state.createByCriteria.year = year
         })
     },
     setComplectId: (id) => {
         set((state) => {
-            state.complectId = id;
+            state.complectId = id
         })
     }
-})));
+})))

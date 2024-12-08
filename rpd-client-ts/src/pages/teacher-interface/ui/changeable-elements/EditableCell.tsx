@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef, ChangeEvent } from 'react';
+import { useState, useEffect, useRef, ChangeEvent } from 'react'
 
 type EditableCellProps = {
     value: string;
@@ -7,32 +7,32 @@ type EditableCellProps = {
 };
 
 function EditableCell({ value, onValueChange, readOnly = false }: EditableCellProps) {
-    const [inputValue, setInputValue] = useState(value);
-    const [isEditing, setIsEditing] = useState(false);
-    const textAreaRef = useRef<HTMLTextAreaElement>(null);
+    const [inputValue, setInputValue] = useState(value)
+    const [isEditing, setIsEditing] = useState(false)
+    const textAreaRef = useRef<HTMLTextAreaElement>(null)
 
     useEffect(() => {
         if (textAreaRef.current) {
-            textAreaRef.current.style.height = "0px";
-            const scrollHeight = textAreaRef.current.scrollHeight;
-            textAreaRef.current.style.height = scrollHeight + "px";
+            textAreaRef.current.style.height = "0px"
+            const scrollHeight = textAreaRef.current.scrollHeight
+            textAreaRef.current.style.height = scrollHeight + "px"
         }
-    }, [isEditing, inputValue]);
+    }, [isEditing, inputValue])
 
     const handleDivClick = () => {
         if (!readOnly) {
-            setIsEditing(true);
+            setIsEditing(true)
         }
-    };
+    }
 
     const handleInputChange = (e: ChangeEvent<HTMLTextAreaElement>) => {
-        setInputValue(e.target.value);
-    };
+        setInputValue(e.target.value)
+    }
 //const handleInputBlur = (e: FocusEvent<HTMLTextAreaElement>) => {
     const handleInputBlur = () => {
-        setIsEditing(false);
-        onValueChange(inputValue);
-    };
+        setIsEditing(false)
+        onValueChange(inputValue)
+    }
 
     if (isEditing) {
         return (
@@ -44,7 +44,7 @@ function EditableCell({ value, onValueChange, readOnly = false }: EditableCellPr
                 onBlur={handleInputBlur}
                 style={{ height: "auto", overflowY: "hidden" }}
             />
-        );
+        )
     }
 
     return (
@@ -58,7 +58,7 @@ function EditableCell({ value, onValueChange, readOnly = false }: EditableCellPr
         >
             {value}
         </div>
-    );
+    )
 }
 
-export default EditableCell;
+export default EditableCell

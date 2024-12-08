@@ -1,10 +1,10 @@
-import {FC} from 'react';
-import {Box} from '@mui/material';
-import {useStore} from "@shared/hooks";
-import {Loader} from "@shared/ui";
+import {FC} from 'react'
+import {Box} from '@mui/material'
+import {useStore} from "@shared/hooks"
+import {Loader} from "@shared/ui"
 
 const CoverPage: FC = () => {
-    const jsonData = useStore.getState().jsonData;
+    const jsonData = useStore.getState().jsonData
 
     return (
         <Box>
@@ -51,7 +51,7 @@ const CoverPage: FC = () => {
                 <Box>{jsonData.year || <Loader/>}</Box>
             </Box>
         </Box>
-    );
+    )
 }
 
-export default CoverPage;
+export default CoverPage

@@ -1,4 +1,4 @@
-import { FC } from "react";
+import { FC } from "react"
 
 const ApprovalPage: FC = () => {
     return (
@@ -51,7 +51,7 @@ const ApprovalPage: FC = () => {
                 <span>Кто указывает эксперта?</span>
             </div>
         </div>
-    );
+    )
 }
 
-export default ApprovalPage;
+export default ApprovalPage

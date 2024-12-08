@@ -1,5 +1,5 @@
-import {Box} from '@mui/material';
-import ChangeableCoverPage from './ChangeableCoverPage.tsx';
+import {Box} from '@mui/material'
+import ChangeableCoverPage from './ChangeableCoverPage.tsx'
 
 export function RpdCoverPage() {
     return (
@@ -12,5 +12,5 @@ export function RpdCoverPage() {
                 <ChangeableCoverPage title="ApprovalField"/>
             </Box>
         </Box>
-    );
+    )
 }

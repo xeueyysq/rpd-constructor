@@ -1,2 +1,2 @@
-export {SignIn as default} from './ui/SignIn';
+export {SignIn as default} from './ui/SignIn'
 

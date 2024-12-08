@@ -1,15 +1,15 @@
-import {Box} from '@mui/material';
-import {FC} from 'react';
-import {useStore} from "@shared/hooks";
+import {Box} from '@mui/material'
+import {FC} from 'react'
+import {useStore} from "@shared/hooks"
 
 const ScopeDisciplinePage: FC = () => {
-    const jsonData = useStore.getState().jsonData;
+    const jsonData = useStore.getState().jsonData
     const summHours = () => {
-        let summ = 0;
+        let summ = 0
         for (const value of jsonData.study_load) {
-            summ += Number(value.id);
+            summ += Number(value.id)
         }
-        return summ;
+        return summ
     }
 
     return (
@@ -23,7 +23,7 @@ const ScopeDisciplinePage: FC = () => {
                 академических часа(ов)
             </Box>
         </Box>
-    );
+    )
 }
 
-export default ScopeDisciplinePage;
+export default ScopeDisciplinePage

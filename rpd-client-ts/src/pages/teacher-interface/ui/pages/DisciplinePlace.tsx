@@ -1,15 +1,15 @@
-import {useStore} from "@shared/hooks";
-import JsonChangeValue from '../changeable-elements/JsonChangeValue.tsx';
-import {Box} from '@mui/material';
-import {Loader} from "@shared/ui";
-import {FC} from 'react';
-import CertificationSelector from '../changeable-elements/CertificationSelector.tsx';
+import {useStore} from "@shared/hooks"
+import JsonChangeValue from '../changeable-elements/JsonChangeValue.tsx'
+import {Box} from '@mui/material'
+import {Loader} from "@shared/ui"
+import {FC} from 'react'
+import CertificationSelector from '../changeable-elements/CertificationSelector.tsx'
 
 const DisciplinePlace: FC = () => {
-    const data = useStore.getState().jsonData;
+    const data = useStore.getState().jsonData
 
     const placeWrapper = () => {
-        if (data.place === "Обязательная часть") return "обязательной части";
+        if (data.place === "Обязательная часть") return "обязательной части"
     }
 
     return (
@@ -36,7 +36,7 @@ const DisciplinePlace: FC = () => {
             }
             <JsonChangeValue elementName='place_more_text'/>
         </Box>
-    );
+    )
 }
 
-export default DisciplinePlace;
+export default DisciplinePlace

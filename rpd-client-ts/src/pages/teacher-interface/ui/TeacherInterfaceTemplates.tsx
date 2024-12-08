@@ -1,11 +1,11 @@
-import {Box, Button, Paper, Table, TableBody, TableCell, TableContainer, TableHead, TableRow} from "@mui/material";
-import {FC, useCallback, useEffect, useState} from "react";
-import {useAuth} from "@features/auth";
-import {TemplateConstructorType, TemplateStatus} from "@entities/template";
-import {useStore} from "@shared/hooks";
-import {axiosBase} from "@shared/api";
-import {Loader} from "@shared/ui";
-import {showErrorMessage, showSuccessMessage} from "@shared/lib";
+import {Box, Button, Paper, Table, TableBody, TableCell, TableContainer, TableHead, TableRow} from "@mui/material"
+import {FC, useCallback, useEffect, useState} from "react"
+import {useAuth} from "@entities/auth"
+import {TemplateConstructorType, TemplateStatus} from "@entities/template"
+import {useStore} from "@shared/hooks"
+import {axiosBase} from "@shared/api"
+import {Loader} from "@shared/ui"
+import {showErrorMessage, showSuccessMessage} from "@shared/lib"
 
 interface TemplateStatusObject {
     date: string,
@@ -31,50 +31,50 @@ export interface employedTemplateParams {
 }
 
 export const TeacherInterfaceTemplates: FC<TemplateConstructorType> = ({setChoise}) => {
-    const userName = useAuth.getState().userName;
-    const {setJsonData} = useStore();
-    const [data, setData] = useState<TemplateData[]>();
+    const userName = useAuth.getState().userName
+    const {setJsonData} = useStore()
+    const [data, setData] = useState<TemplateData[]>()
 
     const fetchData = useCallback(async () => {
         try {
-            const response = await axiosBase.post('find-teacher-templates', {userName});
-            setData(response.data);
+            const response = await axiosBase.post('find-teacher-templates', {userName})
+            setData(response.data)
         } catch (error) {
-            showErrorMessage('Ошибка при получении данных');
-            console.error(error);
+            showErrorMessage('Ошибка при получении данных')
+            console.error(error)
         }
-    }, [userName]);
+    }, [userName])
 
     const employedTemplate = async (id: number) => {
         try {
             const params: employedTemplateParams = {
                 id,
                 userName
-            };
-            const responce = await axiosBase.post('employed-teacher-template', params);
+            }
+            const responce = await axiosBase.post('employed-teacher-template', params)
             if (responce.data === "success") {
-                showSuccessMessage("Статус шаблона успешно изменен");
-                fetchData();
+                showSuccessMessage("Статус шаблона успешно изменен")
+                fetchData()
             }
         } catch (error) {
-            showErrorMessage('Ошибка при изменении статуса шаблона');
-            console.error(error);
+            showErrorMessage('Ошибка при изменении статуса шаблона')
+            console.error(error)
         }
-    };
+    }
 
 
     useEffect(() => {
         fetchData()
-    }, [fetchData]);
+    }, [fetchData])
 
     const uploadTemplateData = async (id: number) => {
         try {
-            const response = await axiosBase.post(`rpd-profile-templates`, {id});
-            setJsonData(response.data);
-            setChoise("coverPage");
+            const response = await axiosBase.post(`rpd-profile-templates`, {id})
+            setJsonData(response.data)
+            setChoise("coverPage")
         } catch (error) {
-            showErrorMessage('Ошибка при получении данных');
-            console.error(error);
+            showErrorMessage('Ошибка при получении данных')
+            console.error(error)
         }
     }
 
@@ -143,5 +143,5 @@ export const TeacherInterfaceTemplates: FC<TemplateConstructorType> = ({setChois
                 </Table>
             </TableContainer>
         </Box>
-    );
+    )
 }

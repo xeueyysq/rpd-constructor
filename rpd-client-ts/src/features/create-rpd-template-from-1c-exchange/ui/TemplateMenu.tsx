@@ -1,16 +1,16 @@
 import {IconButton, ListItemIcon, ListItemText, Menu, MenuItem, Typography} from "@mui/material"
 import {FC, MouseEvent, useState} from "react"
-import MoreHorizIcon from '@mui/icons-material/MoreHoriz';
-import {useAuth} from "@features/auth";
-import {useStore} from "@shared/hooks";
-import {useNavigate} from "react-router-dom";
-import HistoryModal from "./HistoryModal.tsx";
-import OpenInBrowserIcon from '@mui/icons-material/OpenInBrowser';
-import ReplyIcon from '@mui/icons-material/Reply';
-import DeleteForeverIcon from '@mui/icons-material/DeleteForever';
-import HistoryIcon from '@mui/icons-material/History';
-import {axiosBase} from "@shared/api";
-import {showErrorMessage, showSuccessMessage} from "@shared/lib";
+import MoreHorizIcon from '@mui/icons-material/MoreHoriz'
+import {useAuth} from "@entities/auth"
+import {useStore} from "@shared/hooks"
+import {useNavigate} from "react-router-dom"
+import HistoryModal from "./HistoryModal.tsx"
+import OpenInBrowserIcon from '@mui/icons-material/OpenInBrowser'
+import ReplyIcon from '@mui/icons-material/Reply'
+import DeleteForeverIcon from '@mui/icons-material/DeleteForever'
+import HistoryIcon from '@mui/icons-material/History'
+import {axiosBase} from "@shared/api"
+import {showErrorMessage, showSuccessMessage} from "@shared/lib"
 
 interface TemplateMenu {
     id: number;
@@ -20,20 +20,20 @@ interface TemplateMenu {
 }
 
 const TemplateMenu: FC<TemplateMenu> = ({id, teacher, status, fetchData}) => {
-    const {setJsonData} = useStore();
-    const userName = useAuth.getState().userName;
-    const [anchorEl, setAnchorEl] = useState<null | HTMLButtonElement>(null);
-    const [openDialog, setOpenDialog] = useState<boolean>(false);
-    const [history, setHistory] = useState(undefined);
-    const open = Boolean(anchorEl);
-    const navigate = useNavigate();
+    const {setJsonData} = useStore()
+    const userName = useAuth.getState().userName
+    const [anchorEl, setAnchorEl] = useState<null | HTMLButtonElement>(null)
+    const [openDialog, setOpenDialog] = useState<boolean>(false)
+    const [history, setHistory] = useState(undefined)
+    const open = Boolean(anchorEl)
+    const navigate = useNavigate()
 
     const handleClick = (event: MouseEvent<HTMLButtonElement>) => {
-        setAnchorEl(event.currentTarget);
-    };
+        setAnchorEl(event.currentTarget)
+    }
     const handleClose = () => {
-        setAnchorEl(null);
-    };
+        setAnchorEl(null)
+    }
 
     const statusValidate = () => {
         if (status === "Отправлен преподавателю" || status === "Взят в работу") return false
@@ -46,40 +46,40 @@ const TemplateMenu: FC<TemplateMenu> = ({id, teacher, status, fetchData}) => {
                 id,
                 teacher,
                 userName
-            });
+            })
 
-            if (responce.data === "UserNotFound") showErrorMessage("Ошибка. Пользователь не найден");
-            if (responce.data === "TemplateAlreadyBinned") showErrorMessage("Ошибка. Данный шаблон уже отправлен преподавателю");
+            if (responce.data === "UserNotFound") showErrorMessage("Ошибка. Пользователь не найден")
+            if (responce.data === "TemplateAlreadyBinned") showErrorMessage("Ошибка. Данный шаблон уже отправлен преподавателю")
             if (responce.data === "binnedSuccess") {
-                showSuccessMessage("Шаблон успешно отправлен преподавателю");
-                fetchData();
+                showSuccessMessage("Шаблон успешно отправлен преподавателю")
+                fetchData()
             }
 
         } catch (error) {
-            showErrorMessage("Ошибка отправки шаблона");
-            console.error(error);
+            showErrorMessage("Ошибка отправки шаблона")
+            console.error(error)
         }
     }
 
     const uploadTemplateData = async () => {
         try {
-            const response = await axiosBase.post(`rpd-profile-templates`, {id});
-            setJsonData(response.data);
-            navigate("/teacher-interface");
+            const response = await axiosBase.post(`rpd-profile-templates`, {id})
+            setJsonData(response.data)
+            navigate("/teacher-interface")
         } catch (error) {
-            showErrorMessage('Ошибка при получении данных');
-            console.error(error);
+            showErrorMessage('Ошибка при получении данных')
+            console.error(error)
         }
     }
 
     const getTemplateHistory = async () => {
         try {
-            const response = await axiosBase.post(`get-template-history`, {id});
-            setHistory(response.data);
-            setOpenDialog(true);
+            const response = await axiosBase.post(`get-template-history`, {id})
+            setHistory(response.data)
+            setOpenDialog(true)
         } catch (error) {
-            showErrorMessage('Ошибка при получении данных');
-            console.error(error);
+            showErrorMessage('Ошибка при получении данных')
+            console.error(error)
         }
     }
 
@@ -152,4 +152,4 @@ const TemplateMenu: FC<TemplateMenu> = ({id, teacher, status, fetchData}) => {
     )
 }
 
-export default TemplateMenu;
+export default TemplateMenu

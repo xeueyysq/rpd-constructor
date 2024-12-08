@@ -1,7 +1,7 @@
-import { FC, useEffect, useRef, useState } from 'react';
-import { EditorState } from 'draft-js';
-import { stateToHTML } from 'draft-js-export-html';
-import { stateFromHTML } from 'draft-js-import-html';
+import { FC, useEffect, useRef, useState } from 'react'
+import { EditorState } from 'draft-js'
+import { stateToHTML } from 'draft-js-export-html'
+import { stateFromHTML } from 'draft-js-import-html'
 import {
   Editor,
   isBold,
@@ -17,16 +17,16 @@ import {
   toggleOL,
   toggleUL,
   focusOnEditor
-} from 'contenido';
+} from 'contenido'
 
-import { IconButton, Box, Button } from '@mui/material';
-import FormatBoldIcon from '@mui/icons-material/FormatBold';
-import FormatItalicIcon from '@mui/icons-material/FormatItalic';
-import FormatUnderlinedIcon from '@mui/icons-material/FormatUnderlined';
-import FormatListBulletedIcon from '@mui/icons-material/FormatListBulleted';
-import FormatListNumberedIcon from '@mui/icons-material/FormatListNumbered';
-import SaveAltIcon from '@mui/icons-material/SaveAlt';
-import DeleteIcon from '@mui/icons-material/Delete';
+import { IconButton, Box, Button } from '@mui/material'
+import FormatBoldIcon from '@mui/icons-material/FormatBold'
+import FormatItalicIcon from '@mui/icons-material/FormatItalic'
+import FormatUnderlinedIcon from '@mui/icons-material/FormatUnderlined'
+import FormatListBulletedIcon from '@mui/icons-material/FormatListBulleted'
+import FormatListNumberedIcon from '@mui/icons-material/FormatListNumbered'
+import SaveAltIcon from '@mui/icons-material/SaveAlt'
+import DeleteIcon from '@mui/icons-material/Delete'
 
 interface TestEditor {
   value: string;
@@ -35,11 +35,11 @@ interface TestEditor {
 }
 
 const TextEditor: FC<TestEditor> = ({ value, saveContent, setIsEditing }) => {
-  const content = stateFromHTML(value);
-  const [editorState, setEditorState] = useState(EditorState.createWithContent(content));
-  const editorRef = useRef(null);
+  const content = stateFromHTML(value)
+  const [editorState, setEditorState] = useState(EditorState.createWithContent(content))
+  const editorRef = useRef(null)
 
-  useEffect(() => focusOnEditor(editorRef), [editorRef]);
+  useEffect(() => focusOnEditor(editorRef), [editorRef])
 
   const toolbarButtons = [
     { name: 'Bold', handler: toggleBold, detector: isBold, icon: <FormatBoldIcon /> },
@@ -50,9 +50,9 @@ const TextEditor: FC<TestEditor> = ({ value, saveContent, setIsEditing }) => {
   ]
 
   const handleSaveClick = async () => {
-    const htmlValue = stateToHTML(editorState.getCurrentContent());
-    saveContent(htmlValue);
-  };
+    const htmlValue = stateToHTML(editorState.getCurrentContent())
+    saveContent(htmlValue)
+  }
 
   return (
     <>
@@ -68,7 +68,7 @@ const TextEditor: FC<TestEditor> = ({ value, saveContent, setIsEditing }) => {
             size="small"
             key={btn.name}
             onMouseDown={(e) => {
-              e.preventDefault();
+              e.preventDefault()
               btn.handler(editorState, setEditorState)
             }}
             style={{
@@ -129,4 +129,4 @@ const TextEditor: FC<TestEditor> = ({ value, saveContent, setIsEditing }) => {
   )
 }
 
-export default TextEditor;
+export default TextEditor

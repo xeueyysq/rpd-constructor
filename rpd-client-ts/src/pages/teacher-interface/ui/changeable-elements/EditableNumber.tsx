@@ -1,4 +1,4 @@
-import { ChangeEvent, FC, useState } from 'react';
+import { ChangeEvent, FC, useState } from 'react'
 
 interface EditableNumberProps {
     value: number;
@@ -6,22 +6,22 @@ interface EditableNumberProps {
 }
 
 export const EditableNumber: FC<EditableNumberProps> = ({ value, onValueChange }) => {
-    const [inputValue, setInputValue] = useState(value);
-    const [isEditing, setIsEditing] = useState(false);
+    const [inputValue, setInputValue] = useState(value)
+    const [isEditing, setIsEditing] = useState(false)
 
     const handleDivClick = () => {
-        setIsEditing(true);
-    };
+        setIsEditing(true)
+    }
 
     const handleInputChange = (event: ChangeEvent<HTMLInputElement>) => {
         const value = Number(event.target.value)
-        if(value >= 0) setInputValue(value);
-    };
+        if(value >= 0) setInputValue(value)
+    }
 
     const handleInputBlur = () => {
-        setIsEditing(false);
-        onValueChange(inputValue);
-    };
+        setIsEditing(false)
+        onValueChange(inputValue)
+    }
 
     if (isEditing) {
         return (
@@ -33,7 +33,7 @@ export const EditableNumber: FC<EditableNumberProps> = ({ value, onValueChange }
                 onBlur={handleInputBlur}
                 style={{width: '100%'}}
             />
-        );
+        )
     }
 
     return (
@@ -41,5 +41,5 @@ export const EditableNumber: FC<EditableNumberProps> = ({ value, onValueChange }
             onClick={handleDivClick}
             style={{alignContent: 'center', textAlign: 'center'}}
         >{value}</div>
-    );
+    )
 }

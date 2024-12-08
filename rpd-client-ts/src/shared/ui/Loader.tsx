@@ -1,4 +1,4 @@
-import {Box, CircularProgress} from '@mui/material';
+import {Box, CircularProgress} from '@mui/material'
 
 export function Loader() {
     return (
@@ -8,5 +8,5 @@ export function Loader() {
                 Загрузка...
             </Box>
         </Box>
-    );
+    )
 }

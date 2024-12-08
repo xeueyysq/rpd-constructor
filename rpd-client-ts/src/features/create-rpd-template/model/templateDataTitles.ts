@@ -9,4 +9,4 @@ export const templateDataTitles: TemplateDataTitles = {
     profile: "Профиль направления обучения",
     formEducation: "Форма обучения",
     year: "Год набора"
-};
+}

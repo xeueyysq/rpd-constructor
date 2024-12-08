@@ -1,26 +1,26 @@
-import { Worker, Viewer } from '@react-pdf-viewer/core';
-import { defaultLayoutPlugin } from '@react-pdf-viewer/default-layout';
-import '@react-pdf-viewer/core/lib/styles/index.css';
-import '@react-pdf-viewer/default-layout/lib/styles/index.css';
-import { FC, useEffect, useState } from 'react';
+import { Worker, Viewer } from '@react-pdf-viewer/core'
+import { defaultLayoutPlugin } from '@react-pdf-viewer/default-layout'
+import '@react-pdf-viewer/core/lib/styles/index.css'
+import '@react-pdf-viewer/default-layout/lib/styles/index.css'
+import { FC, useEffect, useState } from 'react'
 
 interface PdfReaderProps {
   file: Blob | MediaSource;
 }
 
 export const PdfReader: FC<PdfReaderProps> = ({ file }) => {
-  const [defaultLayoutPluginInstance] = useState(defaultLayoutPlugin());
-  const [fileUrl, setFileUrl] = useState('');
+  const [defaultLayoutPluginInstance] = useState(defaultLayoutPlugin())
+  const [fileUrl, setFileUrl] = useState('')
 
   useEffect(() => {
     if (file) {
-      const newFileUrl = URL.createObjectURL(file);
-      setFileUrl(newFileUrl);
+      const newFileUrl = URL.createObjectURL(file)
+      setFileUrl(newFileUrl)
       return () => {
-        URL.revokeObjectURL(newFileUrl);
-      };
+        URL.revokeObjectURL(newFileUrl)
+      }
     }
-  }, [file]);
+  }, [file])
   
   return (
     <>
@@ -34,5 +34,5 @@ export const PdfReader: FC<PdfReaderProps> = ({ file }) => {
       )}
       {!file && <>No file is selected yet</>}
     </>
-  );
+  )
 }
