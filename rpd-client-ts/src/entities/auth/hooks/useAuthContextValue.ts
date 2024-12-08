@@ -1,4 +1,4 @@
-import {useEffect, useState} from "react"
+import {useCallback, useEffect, useState} from "react"
 import {useAuth} from "./useAuth.ts"
 import inMemoryJWT from "../lib/inMemoryJWT.ts"
 import config from "@shared/config"

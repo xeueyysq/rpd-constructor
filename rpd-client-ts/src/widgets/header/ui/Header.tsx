@@ -14,7 +14,7 @@ export const Header: FC = () => {
     const userName = useAuth.getState().userName
     const userRole = useAuth.getState().userRole
 
-    const getUserRole = useMemo(() => {
+    const userRoleLocale = useMemo(() => {
         switch (userRole) {
             case UserRole.ADMIN:
                 return "Администратор"
@@ -46,7 +46,7 @@ export const Header: FC = () => {
                     </Box>
                     <Box>
                         <Box>{userName}</Box>
-                        <Box sx={{fontSize: "12px", fontWeight: 400, color: "#B2B2B2"}}>{getUserRole}</Box>
+                        <Box sx={{fontSize: "12px", fontWeight: 400, color: "#B2B2B2"}}>{userRoleLocale}</Box>
                     </Box>
                     <Box sx={{px: 1}}>
                         <IconButton onClick={handleLogOut}>
