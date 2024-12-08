@@ -1,7 +1,5 @@
-import {useCallback, useEffect, useState} from "react"
+import {useCallback, useEffect, useRef, useState} from "react"
 import {useAuth} from "./useAuth.ts"
-import inMemoryJWT from "./inMemoryJWT.ts"
-import config from "@shared/config"
 import {AuthClient} from "../api/clients.ts"
 import {AuthContextProps, UserCredentials} from "../model/types.ts"
 import {showErrorMessage} from "@shared/lib"
@@ -12,66 +10,77 @@ export const useAuthContextValue = (): AuthContextProps => {
     const [data, setData] = useState<UserCredentials>()
     const {updateAbility, updateUserName} = useAuth()
 
-    const handleLogOut = () => {
+    const refreshTimeoutRef = useRef<NodeJS.Timeout | null>(null)
+
+    const clearRefreshTimer = useCallback(() => {
+        if (refreshTimeoutRef.current) {
+            clearTimeout(refreshTimeoutRef.current)
+            refreshTimeoutRef.current = null
+        }
+    }, [])
+
+    const scheduleRefresh = useCallback((expiration: number) => {
+        clearRefreshTimer()
+        const refreshTime = expiration - 10000
+
+        refreshTimeoutRef.current = setTimeout(() => {
+            AuthClient.post("/refresh")
+                .then((res) => {
+                    const {role, fullname, accessTokenExpiration} = res.data
+                    updateAbility(role)
+                    updateUserName(fullname)
+                    setIsUserLogged(true)
+                    scheduleRefresh(accessTokenExpiration)
+                })
+                .catch(() => {
+                    setIsUserLogged(false)
+                })
+        }, refreshTime)
+    }, [clearRefreshTimer, updateAbility, updateUserName])
+
+    const handleLogOut = useCallback(() => {
         AuthClient.post("/logout")
             .then(() => {
                 setIsUserLogged(false)
-                inMemoryJWT.deleteToken()
                 updateAbility()
                 updateUserName(undefined)
                 setData(undefined)
+                clearRefreshTimer()
             })
             .catch((error) => showErrorMessage(error.response.data.error))
-    }
+    }, [updateAbility, updateUserName, clearRefreshTimer])
 
-    const handleSignIn = (data: UserCredentials) => {
-        AuthClient.post("/sign-in", data)
+    const handleSignIn = useCallback((credentials: UserCredentials) => {
+        AuthClient.post("/sign-in", credentials)
             .then((res) => {
-                const {fullname, role, accessToken, accessTokenExpiration} = res.data
-
-                inMemoryJWT.setToken(accessToken, accessTokenExpiration)
+                const {fullname, role, accessTokenExpiration} = res.data
                 updateAbility(role)
                 updateUserName(fullname)
                 setIsUserLogged(true)
+                scheduleRefresh(accessTokenExpiration)
             })
             .catch((error) => showErrorMessage(error.response.data.error))
-    }
+    }, [updateAbility, updateUserName, scheduleRefresh])
 
     const refreshToken = useCallback(() => {
         AuthClient.post("/refresh")
             .then((res) => {
-                const {role, fullname, accessToken, accessTokenExpiration} = res.data
-                inMemoryJWT.setToken(accessToken, accessTokenExpiration)
+                const {role, fullname, accessTokenExpiration} = res.data
                 updateAbility(role)
                 updateUserName(fullname)
-
-                setIsAppReady(true)
                 setIsUserLogged(true)
+                setIsAppReady(true)
+                scheduleRefresh(accessTokenExpiration)
             })
             .catch(() => {
                 setIsAppReady(true)
                 setIsUserLogged(false)
             })
-    }, [updateAbility, updateUserName])
+    }, [scheduleRefresh, updateAbility, updateUserName])
 
     useEffect(() => {
         refreshToken()
     }, [refreshToken])
-
-    useEffect(() => {
-        const handlePersistedLogOut = (event: StorageEvent) => {
-            if (event.key === config.LOGOUT_STORAGE_KEY) {
-                inMemoryJWT.deleteToken()
-                setIsUserLogged(false)
-            }
-        }
-
-        window.addEventListener("storage", handlePersistedLogOut)
-
-        return () => {
-            window.removeEventListener("storage", handlePersistedLogOut)
-        }
-    }, [])
 
     return {
         isAppReady,
