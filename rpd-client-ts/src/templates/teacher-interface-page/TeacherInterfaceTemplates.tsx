@@ -1,10 +1,10 @@
 import {Box, Button, Paper, Table, TableBody, TableCell, TableContainer, TableHead, TableRow} from "@mui/material";
 import {FC, useCallback, useEffect, useState} from "react";
 import {useAuth} from "@features/auth";
-import {TemplateConstructorType} from "../../types/TemplateConstructorTypes";
+import {TemplateConstructorType, TemplateStatus} from "@entities/template";
 import {useStore} from "@shared/hooks";
 import {axiosBase} from "@shared/api";
-import {Loader, TemplateStatus} from "@shared/ui";
+import {Loader} from "@shared/ui";
 import {showErrorMessage, showSuccessMessage} from "@shared/lib";
 
 interface TemplateStatusObject {

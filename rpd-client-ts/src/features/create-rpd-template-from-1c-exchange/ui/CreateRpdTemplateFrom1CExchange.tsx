@@ -1,5 +1,5 @@
 import {FC, useCallback, useEffect, useState} from "react";
-import {TemplateConstructorType} from "../../../types/TemplateConstructorTypes";
+import {TemplateConstructorType, TemplateStatus} from "@entities/template";
 import {useStore} from "@shared/hooks";
 import {
     Box,
@@ -18,10 +18,10 @@ import {
     TableRow
 } from "@mui/material";
 import {useAuth} from "@features/auth";
-import TemplateMenu from "./templateMenu/TemplateMenu";
+import TemplateMenu from "./TemplateMenu.tsx";
 import {axiosBase} from "@shared/api";
 import {showErrorMessage, showSuccessMessage} from "@shared/lib";
-import {Loader, TemplateStatus} from "@shared/ui";
+import {Loader} from "@shared/ui";
 
 interface TemplateStatusObject {
     date: string,
@@ -48,7 +48,7 @@ export interface CreateTemplateDataParams {
     userName: string | undefined;
 }
 
-const CreateRpdTemplateFrom1CExchange: FC<TemplateConstructorType> = ({setChoise}) => {
+export const CreateRpdTemplateFrom1CExchange: FC<TemplateConstructorType> = ({setChoise}) => {
     const selectedTemplateData = useStore.getState().selectedTemplateData;
     const complectId = useStore.getState().complectId;
     const [data, setData] = useState<TemplateData[]>();
@@ -193,5 +193,3 @@ const CreateRpdTemplateFrom1CExchange: FC<TemplateConstructorType> = ({setChoise
         </>
     )
 }
-
-export default CreateRpdTemplateFrom1CExchange;

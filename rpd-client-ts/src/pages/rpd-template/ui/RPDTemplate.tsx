@@ -1,6 +1,6 @@
 import {Box, Container} from '@mui/material';
 import {FC, useState} from 'react';
-import {RpdList, RpdListItems} from '@widgets/rpdList';
+import {RpdList, RpdListItems} from '@widgets/rpd-list';
 import {RpdCoverPage} from './RpdCoverPage.tsx';
 
 export const RPDTemplate: FC = () => {

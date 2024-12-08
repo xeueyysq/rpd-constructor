@@ -1,13 +1,13 @@
 import {FC, useCallback, useEffect, useState} from "react";
 import {useStore} from "@shared/hooks";
 import {Box, Button, CircularProgress} from "@mui/material";
-import {TemplateConstructorType} from "../../types/TemplateConstructorTypes";
-import {templateDataTitles} from "../../constants/templateDataTitles";
+import {TemplateConstructorType} from "@entities/template";
+import {templateDataTitles} from "../model/templateDataTitles.ts";
 import {Loader} from "@shared/ui";
 import {axiosBase} from "@shared/api";
 import {showErrorMessage, showSuccessMessage} from "@shared/lib";
 
-const TemplateConstructor: FC<TemplateConstructorType> = ({setChoise}) => {
+export const TemplateConstructor: FC<TemplateConstructorType> = ({setChoise}) => {
     const selectedTemplateData = useStore.getState().selectedTemplateData;
     const {setComplectId} = useStore();
     const [createComplectStatus, setCreateComplectStatus] = useState<string>("pending");
@@ -109,5 +109,3 @@ const TemplateConstructor: FC<TemplateConstructorType> = ({setChoise}) => {
         </>
     );
 }
-
-export default TemplateConstructor;

@@ -5,10 +5,10 @@ import {useUserRedirect} from "@features/auth";
 import {Header} from "@widgets/header";
 import {Loader} from '@shared/ui/';
 
-const Manager = lazy(() => import('../../templates/Manager.tsx'));
-const RPDTemplate = lazy(() => import('@pages/rpdTemplate'));
+const Manager = lazy(() => import('@pages/manager'));
+const RPDTemplate = lazy(() => import('@pages/rpd-template'));
 const TeacherInterface = lazy(() => import('../../templates/TeacherInterface.tsx'));
-const SignIn = lazy(() => import('@pages/signIn'));
+const SignIn = lazy(() => import('@pages/sign-in'));
 
 export const AppRouter = () => {
     const {isUserLogged, redirectPath} = useUserRedirect();

@@ -1,12 +1,12 @@
-import Selectors from "./manager-template-page/Selectors";
-import TemplateConstructor from "./manager-template-page/TemplateConstructor";
+import {Selectors} from "@features/select-template-data";
+import {TemplateConstructor} from "@features/create-rpd-template";
 import {Box, Container} from '@mui/material';
 import {FC, useState} from "react";
-import ChangeRpdTemplate from "./manager-template-page/steps/ChangeRpdTemplate";
-import CreateRpdTemplateFromYear from "./manager-template-page/steps/CreateRpdTemplateFromYear";
-import CreateRpdTemplateFrom1CExchange from "./manager-template-page/steps/CreateRpdTemplateFrom1CExchange";
+import {ChangeRpdTemplate} from "@features/change-rpd-template";
+import {CreateRpdTemplateFromYear} from "@features/create-rpd-template-from-year";
+import {CreateRpdTemplateFrom1CExchange} from "@features/create-rpd-template-from-1c-exchange";
 
-const Manager: FC = () => {
+export const Manager: FC = () => {
     const [choise, setChoise] = useState<string>("selectData");
 
     return (
@@ -47,5 +47,3 @@ const Manager: FC = () => {
         </Container>
     );
 }
-
-export default Manager;

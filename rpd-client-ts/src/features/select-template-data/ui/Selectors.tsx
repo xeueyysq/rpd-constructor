@@ -1,10 +1,10 @@
 import {FC, useEffect, useState} from 'react';
 import Select, {SingleValue} from 'react-select';
-import Selector from './Selector';
+import Selector from './Selector.tsx';
 import {Loader} from "@shared/ui";
 import {Box, Button} from '@mui/material';
 import {useStore} from "@shared/hooks";
-import {OptionType} from '../../types/SelectorTypes';
+import {OptionType} from '../model/SelectorTypes.ts';
 import {enqueueSnackbar, VariantType} from 'notistack';
 
 interface JsonData {
@@ -26,7 +26,7 @@ interface Selectors {
     setChoise: (value: string) => void;
 }
 
-const Selectors: FC<Selectors> = ({setChoise}) => {
+export const Selectors: FC<Selectors> = ({setChoise}) => {
     const selectorsData = useStore.getState().selectedTemplateData;
     const [selectors, setSelectors] = useState<SelectorsState>({
         faculty: selectorsData.faculty ?
@@ -217,4 +217,3 @@ const Selectors: FC<Selectors> = ({setChoise}) => {
         </Box>
     );
 };
-export default Selectors;

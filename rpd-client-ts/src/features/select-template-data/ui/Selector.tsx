@@ -1,7 +1,7 @@
-import { Box } from '@mui/material';
+import {Box} from '@mui/material';
 import React from 'react';
-import Select, { ActionMeta, SingleValue } from 'react-select';
-import { OptionType } from '../../types/SelectorTypes';
+import Select, {ActionMeta, SingleValue} from 'react-select';
+import {OptionType} from '../model/SelectorTypes.ts';
 
 interface CustomSelector {
     title: string;
@@ -11,9 +11,9 @@ interface CustomSelector {
     options: OptionType[];
 }
 
-const CustomSelector: React.FC<CustomSelector> = ({ title, placeholder, value, onChange, options }) => {
+const CustomSelector: React.FC<CustomSelector> = ({title, placeholder, value, onChange, options}) => {
     return (
-        <Box sx={{ my: 1 }}>
+        <Box sx={{my: 1}}>
             <Box sx={{fontSize: "20px", fontWeight: "600", py: 1}}>
                 {title}
             </Box>

@@ -1,11 +1,11 @@
 import {Box, Button, Paper, Table, TableBody, TableCell, TableContainer, TableHead, TableRow} from "@mui/material";
 import {FC, useCallback, useEffect, useState} from "react";
 import {useStore} from "@shared/hooks";
-import {TemplateConstructorType} from "../../../types/TemplateConstructorTypes";
+import {TemplateConstructorType, TemplateStatus} from "@entities/template";
 import {useAuth} from "@features/auth";
 import {axiosBase} from "@shared/api";
 import {showErrorMessage, showSuccessMessage} from "@shared/lib";
-import {Loader, TemplateStatus} from "@shared/ui";
+import {Loader} from "@shared/ui";
 
 interface TemplateStatusObject {
     date: string,
@@ -27,7 +27,7 @@ export interface uploadTemplateDataParams {
     userName: string | undefined;
 }
 
-const CreateRpdTemplateFromYear: FC<TemplateConstructorType> = ({setChoise}) => {
+export const CreateRpdTemplateFromYear: FC<TemplateConstructorType> = ({setChoise}) => {
     const selectedTemplateData = useStore.getState().selectedTemplateData;
     const createByCriteria = useStore.getState().createByCriteria;
     const userName = useAuth.getState().userName;
@@ -121,5 +121,3 @@ const CreateRpdTemplateFromYear: FC<TemplateConstructorType> = ({setChoise}) => 
         </>
     );
 }
-
-export default CreateRpdTemplateFromYear;

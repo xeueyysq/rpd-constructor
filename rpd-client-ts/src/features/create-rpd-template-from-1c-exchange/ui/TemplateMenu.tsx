@@ -4,7 +4,7 @@ import MoreHorizIcon from '@mui/icons-material/MoreHoriz';
 import {useAuth} from "@features/auth";
 import {useStore} from "@shared/hooks";
 import {useNavigate} from "react-router-dom";
-import HistoryModal from "./HistoryModal";
+import HistoryModal from "./HistoryModal.tsx";
 import OpenInBrowserIcon from '@mui/icons-material/OpenInBrowser';
 import ReplyIcon from '@mui/icons-material/Reply';
 import DeleteForeverIcon from '@mui/icons-material/DeleteForever';

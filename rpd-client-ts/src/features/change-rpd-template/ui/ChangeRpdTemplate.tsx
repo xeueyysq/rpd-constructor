@@ -1,11 +1,11 @@
 import {Box, Button, Paper, Table, TableBody, TableCell, TableContainer, TableHead, TableRow} from "@mui/material";
 import {FC, useCallback, useEffect, useState} from "react";
 import {SelectedTemplateData, SelectTeacherParams, useStore} from "@shared/hooks";
-import {TemplateConstructorType} from "../../../types/TemplateConstructorTypes";
+import {TemplateConstructorType, TemplateStatus} from "@entities/template";
 import {showErrorMessage, showSuccessMessage} from "@shared/lib";
 import {useAuth} from "@features/auth";
 import {axiosBase} from "@shared/api";
-import {Loader, TemplateStatus} from "@shared/ui";
+import {Loader} from "@shared/ui";
 
 interface TemplateStatusObject {
     date: string,
@@ -20,7 +20,7 @@ interface TemplateData {
     status: TemplateStatusObject;
 }
 
-const ChangeRpdTemplate: FC<TemplateConstructorType> = ({setChoise}) => {
+export const ChangeRpdTemplate: FC<TemplateConstructorType> = ({setChoise}) => {
     const selectedTemplateData = useStore.getState().selectedTemplateData;
     const userName = useAuth.getState().userName;
     const [data, setData] = useState<TemplateData[]>();
@@ -113,5 +113,3 @@ const ChangeRpdTemplate: FC<TemplateConstructorType> = ({setChoise}) => {
         </>
     );
 }
-
-export default ChangeRpdTemplate;
