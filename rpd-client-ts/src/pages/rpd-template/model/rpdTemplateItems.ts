@@ -1,4 +1,4 @@
-import {RpdListItem} from "./RpdListTypes.ts"
+import {RpdListItem} from "@widgets/rpd-list/model/types.ts"
 
 export const RpdListItems: RpdListItem[] = [
     {

@@ -1,7 +1,8 @@
 import {Box, Container} from '@mui/material'
 import {FC, useState} from 'react'
-import {RpdList, RpdListItems} from '@widgets/rpd-list'
-import {RpdCoverPage} from './RpdCoverPage.tsx'
+import {RpdList} from '@widgets/rpd-list'
+import {RpdCoverPage} from './RpdCoverPage'
+import {RpdListItems} from '../model/rpdTemplateItems'
 
 export const RPDTemplate: FC = () => {
     const [choise, setChoise] = useState<string>("coverPage")

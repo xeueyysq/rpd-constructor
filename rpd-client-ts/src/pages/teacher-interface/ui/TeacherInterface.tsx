@@ -1,7 +1,7 @@
 import {FC, useState} from 'react'
 import {Box, Container} from '@mui/material'
 import {RpdList} from '@widgets/rpd-list'
-import {RpdListItems} from '../model/teacherInterfaceItems.ts'
+import {TeacherRpdListItems} from '../model/teacherInterfaceItems.ts'
 
 import AimsPage from './pages/AimsPage.tsx'
 import ApprovalPage from './pages/ApprovalPage.tsx'
@@ -39,7 +39,7 @@ export const TeacherInterface: FC = () => {
                 <>
                     <Box minWidth={400} maxWidth={400} my={4} mr={2}>
                         <Box py={1} sx={{position: "sticky", top: "20px", backgroundColor: '#fefefe'}}>
-                            <RpdList RpdListItems={RpdListItems} setChoise={setChoise}/>
+                            <RpdList RpdListItems={TeacherRpdListItems} setChoise={setChoise}/>
                         </Box>
                     </Box>
                     <Box my={4} p={2} ml={2} sx={{backgroundColor: '#fefefe', width: "100%"}}>

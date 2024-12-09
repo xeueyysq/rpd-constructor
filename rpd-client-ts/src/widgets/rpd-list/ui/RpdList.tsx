@@ -3,12 +3,17 @@ import {SimpleTreeView} from '@mui/x-tree-view/SimpleTreeView'
 import {TreeItem} from '@mui/x-tree-view/TreeItem'
 import RpdListItemComponent from "./RpdListItem.tsx"
 import {FC} from "react"
-import {RpdListProps} from "../model/RpdListTypes.ts"
+import {RpdListItem} from "../model/types.ts"
 import {useNavigate} from "react-router-dom"
 import PictureAsPdfIcon from '@mui/icons-material/PictureAsPdf'
 import ExitToAppIcon from '@mui/icons-material/ExitToApp'
 import {useStore} from "@shared/hooks"
 import {Can} from "@shared/ability"
+
+interface RpdListProps {
+    RpdListItems: RpdListItem[];
+    setChoise: (choise: string) => void;
+}
 
 export const RpdList: FC<RpdListProps> = ({RpdListItems, setChoise}) => {
     const jsonData = useStore.getState().jsonData
@@ -16,18 +21,23 @@ export const RpdList: FC<RpdListProps> = ({RpdListItems, setChoise}) => {
 
     return (
         <>
-            <Box sx={{py: 1}}>
-                <SimpleTreeView>
-                    <TreeItem itemId="disciplins_name" label={jsonData.disciplins_name} sx={{px: 3}}>
-                        <TreeItem itemId="direction" label={`${jsonData.direction}, ${jsonData.profile}`} disabled/>
-                        <TreeItem itemId="education_level" label={`Уровень образования - ${jsonData.education_level}`}
-                                  disabled/>
-                        <TreeItem itemId="education_form" label={`Форма обучения - ${jsonData.education_form}`}
-                                  disabled/>
-                        <TreeItem itemId="year" label={`Год набора - ${jsonData.year}`} disabled/>
-                    </TreeItem>
-                </SimpleTreeView>
-            </Box>
+            {jsonData?.disciplins_name && (
+                <Box sx={{py: 1}}>
+
+                    <SimpleTreeView>
+                        <TreeItem itemId="disciplins_name" label={jsonData.disciplins_name} sx={{px: 3}}>
+                            <TreeItem itemId="direction" label={`${jsonData.direction}, ${jsonData.profile}`} disabled/>
+                            <TreeItem itemId="education_level"
+                                      label={`Уровень образования - ${jsonData.education_level}`}
+                                      disabled/>
+                            <TreeItem itemId="education_form" label={`Форма обучения - ${jsonData.education_form}`}
+                                      disabled/>
+                            <TreeItem itemId="year" label={`Год набора - ${jsonData.year}`} disabled/>
+                        </TreeItem>
+                    </SimpleTreeView>
+
+                </Box>
+            )}
             <Divider/>
             <List dense>
                 {RpdListItems.map((item) => (

@@ -1,7 +1,7 @@
 import {ListItem, ListItemButton, ListItemIcon, ListItemText, Typography} from "@mui/material"
 import ListAltIcon from '@mui/icons-material/ListAlt'
 import {FC} from "react"
-import type {RpdListItem} from "../model/RpdListTypes.ts"
+import type {RpdListItem} from "../model/types.ts"
 
 type RpdListItemProps = RpdListItem & {
     setChoise: (choise: string) => void

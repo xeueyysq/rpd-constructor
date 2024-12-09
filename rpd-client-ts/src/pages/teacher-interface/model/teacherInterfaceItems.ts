@@ -1,6 +1,6 @@
 import {RpdListItem} from "@widgets/rpd-list"
 
-export const RpdListItems: RpdListItem[] = [
+export const TeacherRpdListItems: RpdListItem[] = [
     {
         id: "coverPage",
         text: "Титульный лист"
