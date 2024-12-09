@@ -1,4 +1,4 @@
-import {useEffect, useRef, useState} from 'react'
+import {useCallback, useEffect, useRef, useState} from 'react'
 import {Box, Button} from '@mui/material'
 import EditIcon from '@mui/icons-material/Edit'
 import SaveAltIcon from '@mui/icons-material/SaveAlt'
@@ -13,7 +13,8 @@ interface ChangeableCoverPageProps {
 }
 
 interface ValueData {
-    _id: string;
+    id: string;
+    title: string;
     value: string;
 }
 
@@ -23,18 +24,18 @@ const ChangeableCoverPage = ({title}: ChangeableCoverPageProps) => {
     const [value, setValue] = useState<ValueData | null>(null) // Typed state
     const textAreaRef = useRef<HTMLTextAreaElement | null>(null) // Explicit type for the ref
 
-    useEffect(() => {
-        const fetchData = async () => {
-            try {
-                const response = await axiosBase.get(`rpd-changeable-values?title=${title}`)
-                setValue(response.data)
-            } catch (error) {
-                console.error(error)
-            }
+    const fetchData = useCallback(async () => {
+        try {
+            const response = await axiosBase.get(`rpd-changeable-values?title=${title}`)
+            setValue(response.data)
+        } catch (error) {
+            console.error(error)
         }
-
-        fetchData()
     }, [title])
+
+    useEffect(() => {
+        fetchData()
+    }, [fetchData])
 
     const handleEditClick = () => {
         setIsEditing(true)
@@ -43,50 +44,20 @@ const ChangeableCoverPage = ({title}: ChangeableCoverPageProps) => {
     const handleSaveClick = async () => {
         setIsEditing(false)
 
-        if (textAreaRef.current) { // Null check
-            const textareaValue = textAreaRef.current.value
+        if (!textAreaRef.current || !value?.id) return
 
-            try {
-                const response = await axiosBase.put(`rpd-changeable-values/${value?._id}`, {value: textareaValue})
-                setValue(response.data)
-            } catch (error) {
-                console.error(error)
-            }
+        try {
+            const textareaValue = textAreaRef.current.value
+            const response = await axiosBase.put(`rpd-changeable-values/${value?.id}`, {value: textareaValue})
+            setValue(response.data)
+        } catch (error) {
+            console.error(error)
         }
     }
 
     if (!value) {
         return <Loader/>
     }
-
-    const TextareaAutosize = styled(BaseTextareaAutosize)(() => `
-      box-sizing: border-box;
-      width: 100%;
-      font-family: 'IBM Plex Sans', sans-serif;
-      font-size: 0.875rem;
-      font-weight: 400;
-      line-height: 1.5;
-      padding: 8px 12px;
-      border-radius: 8px;
-      color: #1C2025;
-      background: #ffffff;
-      border: 1px solid #DAE2ED;
-      box-shadow: 0px 2px 2px #F3F6F9;
-
-      &:hover {
-        border-color: #3399FF;
-      }
-
-      &:focus {
-        border-color: #3399FF;
-        box-shadow: 0 0 0 3px #b6daff;
-      }
-
-      &:focus-visible {
-        outline: 0;
-      }
-    `
-    )
 
     return (
         <Box>
@@ -114,7 +85,7 @@ const ChangeableCoverPage = ({title}: ChangeableCoverPageProps) => {
                     {value?.value ? (
                         <Box dangerouslySetInnerHTML={{__html: value.value}} sx={{py: 1}}></Box>
                     ) : (
-                        <p>No content available</p>
+                        <p>Нет доступного контента</p>
                     )}
                     <Button
                         variant="outlined"
@@ -129,5 +100,34 @@ const ChangeableCoverPage = ({title}: ChangeableCoverPageProps) => {
         </Box>
     )
 }
+
+const TextareaAutosize = styled(BaseTextareaAutosize)(() => `
+      box-sizing: border-box;
+      width: 100%;
+      font-family: 'IBM Plex Sans', sans-serif;
+      font-size: 0.875rem;
+      font-weight: 400;
+      line-height: 1.5;
+      padding: 8px 12px;
+      border-radius: 8px;
+      color: #1C2025;
+      background: #ffffff;
+      border: 1px solid #DAE2ED;
+      box-shadow: 0px 2px 2px #F3F6F9;
+
+      &:hover {
+        border-color: #3399FF;
+      }
+
+      &:focus {
+        border-color: #3399FF;
+        box-shadow: 0 0 0 3px #b6daff;
+      }
+
+      &:focus-visible {
+        outline: 0;
+      }
+    `
+)
 
 export default ChangeableCoverPage
