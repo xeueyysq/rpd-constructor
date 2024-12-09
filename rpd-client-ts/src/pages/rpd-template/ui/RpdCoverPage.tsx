@@ -9,7 +9,7 @@ export function RpdCoverPage() {
                 <ChangeableCoverPage title="uniName"/>
             </Box>
             <Box sx={{p: 1, border: '1px dashed grey', my: 1}}>
-                <ChangeableCoverPage title="ApprovalField"/>
+                <ChangeableCoverPage title="approvalField"/>
             </Box>
         </Box>
     )
