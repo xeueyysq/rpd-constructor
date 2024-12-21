@@ -1,5 +1,6 @@
 import { Box, Button, Paper, Table, TableBody, TableCell, TableContainer, TableHead, TableRow } from "@mui/material";
 import { FC, useEffect, useState } from "react";
+import { useNavigate } from "react-router-dom";
 import useStore, { SelectedTemplateData, SelectTeacherParams } from "../../../store/useStore";
 import Loader from "../../../helperComponents/Loader";
 import { TemplateConstructorType } from "../../../types/TemplateConstructorTypes";
@@ -26,7 +27,7 @@ const ChangeRpdTemplate: FC<TemplateConstructorType> = ({ setChoise }) => {
     const selectedTemplateData = useStore.getState().selectedTemplateData;
     const userName = useAuth.getState().userName;
     const [data, setData] = useState<TemplateData[]>();
-
+    const navigate = useNavigate();
     const fetchData = async () => {
         const params: SelectedTemplateData = {
             faculty: selectedTemplateData.faculty,
@@ -43,6 +44,7 @@ const ChangeRpdTemplate: FC<TemplateConstructorType> = ({ setChoise }) => {
         } catch (error) {
             showErrorMessage('Ошибка при получении данных');
             console.error(error);
+            navigate(-1);
         }
     };
 

@@ -7,6 +7,7 @@ import showErrorMessage from "../../utils/showErrorMessage";
 import showSuccessMessage from "../../utils/showSuccessMessage";
 import Loader from "../../helperComponents/Loader";
 import { axiosBase } from "../../fetchers/baseURL";
+import { isAxiosError } from "axios";
 
 const TemplateConstructor: FC<TemplateConstructorType> = ({ setChoise }) => {
     const selectedTemplateData = useStore.getState().selectedTemplateData;
@@ -36,11 +37,23 @@ const TemplateConstructor: FC<TemplateConstructorType> = ({ setChoise }) => {
             const responce = await axiosBase.post('create_rpd_complect', {
                 data: selectedTemplateData
             });
+
+            if (responce.status !== 200) {
+                showErrorMessage("Сервер 1С недоступен. Попробуйте позже");
+                throw new Error('Ошибка создания комплекта РПД');
+            }
             setComplectId(responce.data);
             setCreateComplectStatus("success");
             showSuccessMessage("Комплект РПД создан успешно");
-        } catch (error) {
-            showErrorMessage("Ошибка загрузки данных");
+        } catch (error: unknown) {
+            setCreateComplectStatus("pending");
+            if (isAxiosError(error) && error.response?.status === 504) {
+                showErrorMessage("Сервер 1С недоступен. Попробуйте позже");
+            } else if (isAxiosError(error)){
+                showErrorMessage(error.response?.data?.message || "Ошибка при создании комплекта РПД");
+            } else {
+                showErrorMessage("Неизвестная ошибка");
+            }
             console.error(error);
         }
     }
