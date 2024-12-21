@@ -1,7 +1,6 @@
 import react from '@vitejs/plugin-react-swc'
 import { defineConfig } from 'vite'
 
-// https://vitejs.dev/config/
 export default defineConfig({
   plugins: [react()],
   server: {
@@ -16,7 +15,18 @@ export default defineConfig({
     }
   },
   build: {
-    outDir: "build",
-    sourcemap: true,
+    chunkSizeWarningLimit: 1000,
+    rollupOptions: {
+      output: {
+        manualChunks: {
+          'react-vendor': ['react', 'react-dom'],
+          'mui-vendor': ['@mui/material', '@mui/icons-material'],
+          'pdf-vendor': ['pdfjs-dist']
+        }
+      }
+    },
+
+    outDir: 'dist', 
+    sourcemap: false
   }
 })
