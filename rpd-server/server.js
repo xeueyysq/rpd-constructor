@@ -58,7 +58,7 @@ pool.connect()
     console.log('Connected to PostgreSQL');
 
     app.use(express.json());
-    // Передаем pool в роуты, чтобы их можно было использовать для запросов к базе данных.
+    
     app.use('/api', routes);
     app.use("/auth", AuthRootRouter);
 

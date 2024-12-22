@@ -38,11 +38,15 @@ router.post('/create_rpd_complect', rpdComplectsController.createRpdComplect.bin
 
 const TemplateStatusController = require('../controllers/templateStatusController');
 const templateStatusController = new TemplateStatusController(pool);
-
 router.post('/get-template-history', templateStatusController.getTemplateHistory.bind(templateStatusController));
 
 const findBooks = require('../modules/findBooks');
 router.post('/find-books', findBooks);
+
+const UsersController = require('../controllers/usersController');
+const usersController = new UsersController(pool);
+router.get('/get-users', usersController.findUsers.bind(usersController));
+router.post('/add-user', usersController.addUser.bind(usersController))
 
 router.get('/generate-pdf', async (req, res) => {
   try {
