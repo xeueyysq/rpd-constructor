@@ -45,11 +45,12 @@ const Header: FC = () => {
             <HeaderLogo />
             {size.width && size.width > 1090 && isUserLogged &&
                 <Box sx={{ display: "flex", alignItems: "center" }}>
-                    <Box>
-                        <IconButton onClick={() => navigate('/user-management')}>
-                            <PersonAddIcon />
-                        </IconButton>
-                    </Box>
+                    {userRole !== 'teacher' &&
+                        <Box>
+                            <IconButton onClick={() => navigate('/user-management')}>
+                                <PersonAddIcon />
+                            </IconButton>
+                        </Box>}
                     <Box sx={{ px: 1 }}>
                         <IconButton onClick={handleLogOut}>
                             <Logout />
