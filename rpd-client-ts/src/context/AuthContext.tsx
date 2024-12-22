@@ -99,6 +99,14 @@ export const AuthProvider: FC<{children: ReactNode}> = ({ children }) => {
   };
 
   useEffect(() => {
+    const token = inMemoryJWT.getToken();
+    
+    if (!token) {
+      setIsAppReady(true);
+      setIsUserLogged(false);
+      return;
+    }
+
     AuthClient.post("/refresh")
       .then((res) => {
         const { role, fullname, accessToken, accessTokenExpiration } = res.data;
@@ -110,6 +118,7 @@ export const AuthProvider: FC<{children: ReactNode}> = ({ children }) => {
         setIsUserLogged(true);
       })
       .catch(() => {
+        inMemoryJWT.deleteToken();
         setIsAppReady(true);
         setIsUserLogged(false);
       });

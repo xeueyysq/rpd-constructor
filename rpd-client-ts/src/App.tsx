@@ -10,6 +10,7 @@ import { Manager } from './templates/Manager';
 import { RPDTemplate } from './templates/RPDTemplate';
 import { TeacherInterface } from './templates/TeacherInterface';
 import { SignIn } from './templates/SignIn';
+import UserManagementPage from './templates/user-management-page/UserManagementPage';
 
 function App() {
   const { isUserLogged } = useContext(AuthContext);
@@ -35,6 +36,7 @@ function App() {
                 <Route path="/manager" element={<Manager />} />
                 <Route path="/rpd-template" element={<RPDTemplate />} />
                 <Route path="/teacher-interface" element={<TeacherInterface />} />
+                <Route path='/user-management' element={<UserManagementPage />} />
               </>
             ) : (
               <Route path="/sign-in" element={<SignIn />} />
