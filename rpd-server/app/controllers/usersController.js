@@ -26,6 +26,30 @@ class UsersController {
             res.status(500).json({ message: error.message });
         }
     }
+
+    async updateUserRole(req, res) {
+        try {
+            const { userId, newRole } = req.body;
+            
+            const updatedUser = await this.model.updateUserRole(userId, newRole);
+            res.json(updatedUser);
+        } catch (error) {
+            console.error(error);
+            res.status(500).json({ message: error.message });
+        }
+    }
+
+    async deleteUser(req, res) {
+        try {
+            const { userId } = req.params;
+            
+            const deletedUser = await this.model.deleteUser(userId);
+            res.json(deletedUser);
+        } catch (error) {
+            console.error(error);
+            res.status(500).json({ message: error.message });
+        }
+    }
 }
 
 module.exports = UsersController;

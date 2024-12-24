@@ -46,7 +46,9 @@ router.post('/find-books', findBooks);
 const UsersController = require('../controllers/usersController');
 const usersController = new UsersController(pool);
 router.get('/get-users', usersController.findUsers.bind(usersController));
-router.post('/add-user', usersController.addUser.bind(usersController))
+router.post('/add-user', usersController.addUser.bind(usersController));
+router.post('/update-user-role', usersController.updateUserRole.bind(usersController));
+router.delete('/delete-user/:userId', usersController.deleteUser.bind(usersController));
 
 router.get('/generate-pdf', async (req, res) => {
   try {

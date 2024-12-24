@@ -14,10 +14,7 @@ async function exchange1C(apiData) {
 
   try {
     const apiUrl = `https://1c-api.uni-dubna.ru/v1/api/persons/reports/GetWorkProgramOfDiscipline?Year=${apiData.year}&Education_Level=${apiData.educationLevel}&Education_Form=${apiData.educationForm}&Profile=${apiData.profile}&Direction=${apiData.direction}`;
-    const responseUrl = await axios.get(apiUrl, {
-      timeout: 15000
-    }
-    );
+    const responseUrl = await axios.get(apiUrl);
     if (responseUrl.status !== 200 || !responseUrl.data) {
       throw new Error('Ошибка при запросе данных с API GetWorkProgramOfDiscipline');
     }
@@ -115,6 +112,7 @@ async function exchange1C(apiData) {
     console.log('Данные успешно добавлены в базу данных.');
     return RpdComplectId;
   } catch (error) {
+    console.log(error);
     if (error.response?.status === 504 || error.code === 'ECONNABORTED') {
       throw new Error('Сервер 1С недоступен');
     }

@@ -34,6 +34,45 @@ class Users {
             throw new Error(error);
         }
     }
+
+    async updateUserRole(userId, newRole) {
+        try {
+            const result = await this.pool.query(`
+                UPDATE users 
+                SET role = $1 
+                WHERE id = $2 AND role != 1
+                RETURNING *
+            `, [newRole, userId]);
+
+            if (result.rows.length === 0) {
+                throw new Error('Пользователь не найден или является администратором');
+            }
+
+            return result.rows[0];
+        } catch (error) {
+            console.error(error);
+            throw new Error(error.message);
+        }
+    }
+
+    async deleteUser(userId) {
+        try {
+            const result = await this.pool.query(`
+                DELETE FROM users 
+                WHERE id = $1 AND role != 1
+                RETURNING *
+            `, [userId]);
+
+            if (result.rows.length === 0) {
+                throw new Error('Пользователь не найден или является администратором');
+            }
+
+            return result.rows[0];
+        } catch (error) {
+            console.error(error);
+            throw new Error(error.message);
+        }
+    }
 }
 
 module.exports = Users;
