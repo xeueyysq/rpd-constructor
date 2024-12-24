@@ -32,6 +32,7 @@ import showErrorMessage from '../../utils/showErrorMessage';
 import Loader from '../../helperComponents/Loader';
 import Grid2 from '@mui/material/Unstable_Grid2/Grid2';
 import { useNavigate } from 'react-router-dom';
+import axios from 'axios';
 
 interface User {
     id: number;
@@ -190,10 +191,64 @@ const UserManagementPage: FC = () => {
 
     const isSelected = (id: number) => selected.indexOf(id) !== -1;
 
-    const sortedUsers = users.slice().sort((a, b) => {
-        const comparator = order === 'asc' ? 1 : -1;
-        return a[orderBy] < b[orderBy] ? -comparator : comparator;
-    });
+    const deleteUsers = async () => {
+        try {
+            for (const userId of selected) {
+                await axiosBase.delete(`delete-user/${userId}`);
+            }
+            showSuccessMessage('Пользователи успешно удалены');
+            setSelected([]);
+            fetchUsers();
+        } catch (error) {
+            showErrorMessage('Ошибка при удалении пользователей');
+            console.error(error);
+        }
+    };
+
+    const updateUserRole = async (userId: number, newRole: number) => {
+        try {
+            const user = users.find(u => u.id === userId);
+            console.log('Attempting to update user role:', { userId, newRole, user });
+            console.log('Server URL:', axiosBase.defaults.baseURL);
+            
+            if (user && user.role === 1) {
+                showErrorMessage('Нельзя изменить роль администратора');
+                return;
+            }
+            
+            console.log('Sending POST request to update user role');
+            const response = await axiosBase.post('update-user-role', {
+                userId,
+                newRole
+            });
+            console.log('Response from server:', response);
+            
+            showSuccessMessage('Роль пользователя успешно обновлена');
+            fetchUsers();
+        } catch (error) {
+            if (axios.isAxiosError(error)) {
+                console.error('Axios error:', {
+                    message: error.message,
+                    status: error.response?.status,
+                    data: error.response?.data,
+                    config: {
+                        url: error.config?.url,
+                        baseURL: error.config?.baseURL,
+                        method: error.config?.method
+                    }
+                });
+            }
+            showErrorMessage('Ошибка при обновлении роли пользователя');
+        }
+    };
+
+    const sortedUsers = users
+        .filter(user => userRole === 'rop' ? user.role === 2 : true)
+        .slice()
+        .sort((a, b) => {
+            const comparator = order === 'asc' ? 1 : -1;
+            return a[orderBy] < b[orderBy] ? -comparator : comparator;
+        });
 
     const paginatedUsers = sortedUsers.slice(
         page * rowsPerPage,
@@ -208,11 +263,45 @@ const UserManagementPage: FC = () => {
                 <Typography sx={{ flex: '1 1 100%' }} variant="h6" id="tableTitle">
                     Управление пользователями
                 </Typography>
-                {userRole !== 'teacher' && (
-                    <Button sx={{fontSize: 12, width: 260}} variant="contained" onClick={handleOpen}>
-                        Добавить пользователя
-                    </Button>
-                )}
+                <Box sx={{ display: 'flex', gap: 2 }}>
+                    {selected.length > 0 && (
+                        <>
+                            {userRole !== 'rop' && (
+                                <FormControl size='small' sx={{ minWidth: 200}}>
+                                    <InputLabel>Изменить роль</InputLabel>
+                                    <Select
+                                        label="Изменить роль"
+                                        defaultValue=""
+                                        onChange={(e) => {
+                                            selected.forEach(userId => {
+                                                updateUserRole(userId, Number(e.target.value));
+                                            });
+                                            setSelected([]);
+                                        }}
+                                    >
+                                        <MenuItem value={2}>Преподаватель</MenuItem>
+                                        <MenuItem value={3}>РОП</MenuItem>
+                                    </Select>
+                                </FormControl>
+                            )}
+                            {userRole === 'admin' && (
+                                <Button
+                                    color="error"
+                                    variant="contained"
+                                    onClick={deleteUsers}
+                                    sx={{fontSize: 12}}
+                                >
+                                    Удалить
+                                </Button>
+                            )}
+                        </>
+                    )}
+                    {userRole !== 'teacher' && (
+                        <Button sx={{fontSize: 12, width: 260}} variant="contained" onClick={handleOpen}>
+                            Добавить пользователя
+                        </Button>
+                    )}
+                </Box>
             </Toolbar>
 
             <TableContainer component={Paper}>
@@ -267,6 +356,15 @@ const UserManagementPage: FC = () => {
                                     role="checkbox"
                                     aria-checked={isItemSelected}
                                     selected={isItemSelected}
+                                    sx={{
+                                        cursor: 'pointer',
+                                        '&.Mui-selected': {
+                                            backgroundColor: 'rgba(25, 118, 210, 0.08)',
+                                        },
+                                        '&.Mui-selected:hover': {
+                                            backgroundColor: 'rgba(25, 118, 210, 0.12)',
+                                        },
+                                    }}
                                 >
                                     <TableCell padding="checkbox">
                                         <Checkbox

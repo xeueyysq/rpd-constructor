@@ -14,6 +14,7 @@ import Papa from 'papaparse';
 const PlannedResultsPage: FC = () => {
     const initialData = useStore.getState().jsonData.competencies as PlannedResultsData | undefined;
     const initialDataLength = initialData ? Object.keys(initialData).length : 0;
+    const disciplineName = useStore.getState().jsonData.disciplins_name as string;
 
     const { updateJsonData } = useStore();
     const [data, setData] = useState<PlannedResultsData | undefined>(initialData);
@@ -23,25 +24,113 @@ const PlannedResultsPage: FC = () => {
         const file = event.target.files?.[0];
         if (!file) return;
 
+        console.log('Начало обработки файла');
+        console.log('Искомая дисциплина:', disciplineName);
+
         Papa.parse(file, {
             complete: (results) => {
-                const parsedData = results.data.slice(1);
-                const formattedData = parsedData.reduce((acc: PlannedResultsData, row: any, index: number, nextRow: any) => {
-                    nextRow = parsedData[index + 1]
-                    const competence = row[0] ? `${row[0]} ${row[3]}` : '';
-                    const indicator = nextRow && nextRow[1] ? `${nextRow[1]} ${nextRow[3]}` : '';
-                    const results = '';
+                const rows = results.data as string[][];
+                let currentCompetence = '';
+                let currentCompetenceContent = '';
+                const competenciesMap = new Map<string, { competence: string, indicators: { code: string, content: string }[] }>();
+                const disciplineRows = new Set<number>();
 
-                    if (competence || indicator || results) {
-                        acc[index] = { competence, indicator, results };
+                // Сначала найдем все строки с нашей дисциплиной
+                for (let i = 1; i < rows.length; i++) {
+                    const [, , disc, content] = rows[i];
+                    if (disc && content.trim() === disciplineName.trim()) {
+                        disciplineRows.add(i);
+                        console.log('Найдена дисциплина в строке:', i);
                     }
-                    return acc;
-                }, {});
+                }
+
+                if (disciplineRows.size === 0) {
+                    showErrorMessage('Дисциплина не найдена в файле');
+                    return;
+                }
+
+                // Теперь обработаем компетенции для найденных строк
+                disciplineRows.forEach(rowIndex => {
+                    // Идем назад от строки с дисциплиной, пока не найдем компетенцию
+                    for (let i = rowIndex; i >= 0; i--) {
+                        const [comp, , , content] = rows[i];
+                        if (comp) {
+                            currentCompetence = comp;
+                            currentCompetenceContent = content;
+                            if (!competenciesMap.has(currentCompetence)) {
+                                competenciesMap.set(currentCompetence, {
+                                    competence: `${currentCompetence} ${currentCompetenceContent}`,
+                                    indicators: []
+                                });
+                            }
+                            break;
+                        }
+                    }
+
+                    // Теперь собираем индикаторы для найденной компетенции
+                    for (let i = rowIndex - 1; i >= 0; i--) {
+                        const [comp, ind, , content] = rows[i];
+                        // Если встретили новую компетенцию, прекращаем поиск индикаторов
+                        if (comp) break;
+                        // Если нашли индикатор
+                        if (ind && currentCompetence) {
+                            const competenceData = competenciesMap.get(currentCompetence);
+                            if (competenceData && !competenceData.indicators.some(indicator => indicator.code === ind)) {
+                                competenceData.indicators.push({
+                                    code: ind,
+                                    content: content
+                                });
+                            }
+                        }
+                    }
+                });
+
+                console.log('\nРезультаты обработки:');
+                console.log('Найденные компетенции:', Array.from(competenciesMap.keys()));
+
+                // Преобразуем данные в формат PlannedResultsData
+                const formattedData: PlannedResultsData = {};
+                let index = 0;
+
+                competenciesMap.forEach((value) => {
+                    // Добавляем первую строку с компетенцией и первым индикатором
+                    if (value.indicators.length > 0) {
+                        formattedData[index] = {
+                            competence: value.competence,
+                            indicator: `${value.indicators[0].code} ${value.indicators[0].content}`,
+                            results: ''
+                        };
+                        index++;
+
+                        // Добавляем остальные индикаторы с пустой компетенцией
+                        for (let i = 1; i < value.indicators.length; i++) {
+                            formattedData[index] = {
+                                competence: '',
+                                indicator: `${value.indicators[i].code} ${value.indicators[i].content}`,
+                                results: ''
+                            };
+                            index++;
+                        }
+                    }
+                });
+
+                if (Object.keys(formattedData).length === 0) {
+                    showErrorMessage('Не найдено компетенций для данной дисциплины');
+                    return;
+                }
+
+                console.log('Количество обработанных строк:', Object.keys(formattedData).length);
+
                 setData(formattedData);
                 setNextId(Object.keys(formattedData).length);
+                showSuccessMessage('Данные успешно загружены');
             },
             encoding: 'cp1251',
             delimiter: ';',
+            error: (error) => {
+                showErrorMessage('Ошибка при чтении файла');
+                console.error('Ошибка парсинга:', error);
+            }
         });
     };
 

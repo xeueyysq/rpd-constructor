@@ -19,7 +19,7 @@ interface StudyLoad {
 
 const DisciplineContentPage: FC = () => {
     const initialData = useStore.getState().jsonData.content as DisciplineContentData | undefined;
-    const dataHours: StudyLoad[] = useStore.getState().jsonData.study_load;
+    const dataHours: StudyLoad[] = useStore.getState().jsonData.study_load || [];
     const maxHours: ObjectHours = dataHours.reduce((acc, item) => {
         const hours = parseFloat(item.id);
 
@@ -51,7 +51,17 @@ const DisciplineContentPage: FC = () => {
     });
     const initialDataLength = initialData ? Object.keys(initialData).length : 0;
     const { updateJsonData } = useStore();
-    const [data, setData] = useState<DisciplineContentData | undefined>(initialData);
+    const [data, setData] = useState<DisciplineContentData>(initialData || {
+        "0": { 
+            theme: '', 
+            lectures: 0, 
+            seminars: 0, 
+            independent_work: 0,
+            competence: '',
+            indicator: '',
+            results: ''
+        }
+    });
     const [nextId, setNextId] = useState<number>(initialDataLength);
     const [summ, setSumm] = useState<ObjectHours>({
         all: 0,
@@ -114,8 +124,8 @@ const DisciplineContentPage: FC = () => {
     function compareObjects(object1: ObjectHours, object2: ObjectHours) {
         if (Object.keys(object1).length !== Object.keys(object2).length) return false;
 
-        for (let key of Object.keys(object1)) {
-            //@ts-expect-error
+        for (const key of Object.keys(object1)) {
+            // @ts-expect-error - Динамический доступ к свойствам объекта
             if (Number(object1[key]) !== Number(object2[key])) return false;
         }
 
