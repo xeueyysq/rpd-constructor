@@ -61,9 +61,9 @@ const RpdList: FC<RpdListProps> = ({ RpdListItems, setChoise }) => {
                         <ListItemIcon sx={{ pl: 3 }}>
                             <ExitToAppIcon />
                         </ListItemIcon>
-                        <ListItemButton onClick={() => navigate("/manager")} sx={{ color: 'black', px: 0 }}>
+                        <ListItemButton onClick={() => navigate(-1)} sx={{ color: 'black', px: 0 }}>
                             <ListItemText primary={
-                                <Typography style={{ color: 'black', fontFamily: "Arial", fontSize: "16px" }}>Вернуться в менеджер шаблонов</Typography>
+                                <Typography style={{ color: 'black', fontFamily: "Arial", fontSize: "16px" }}>Вернуться к комплекту</Typography>
                             } />
                         </ListItemButton>
                     </ListItem>

@@ -47,7 +47,7 @@ const Header: FC = () => {
                 <Box sx={{ display: "flex", alignItems: "center" }}>
                     {userRole !== 'teacher' &&
                         <Box>
-                            <IconButton onClick={() => navigate('/user-management')}>
+                            <IconButton onClick={() => navigate('/users')}>
                                 <PersonAddIcon />
                             </IconButton>
                         </Box>}

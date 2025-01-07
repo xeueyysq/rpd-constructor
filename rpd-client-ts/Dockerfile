@@ -5,9 +5,8 @@ WORKDIR /usr/src/app
 
 COPY package*.json ./
 
-# Очищаем кэш npm и устанавливаем зависимости
-RUN npm cache clean --force && \
-    npm install
+# Оптимизация установки зависимостей
+RUN npm ci --only=production
 
 COPY . .
 
@@ -18,7 +17,7 @@ ENV NODE_OPTIONS="--max-old-space-size=4096"
 RUN npm run build
 
 # Stage 2: Serve the app with Nginx
-FROM nginx:stable-alpine
+FROM nginx:alpine
 
 # Создаем директорию для статических файлов
 RUN mkdir -p /usr/share/nginx/html
@@ -29,8 +28,9 @@ COPY --from=build /usr/src/app/dist /usr/share/nginx/html
 # Копируем конфигурацию nginx
 COPY nginx.conf /etc/nginx/conf.d/default.conf
 
-# Проверяем, что файлы существуют
-RUN ls -la /usr/share/nginx/html
+# Очистка кэша и временных файлов
+RUN rm -rf /var/cache/apk/* && \
+    rm -rf /tmp/*
 
 EXPOSE 80
 

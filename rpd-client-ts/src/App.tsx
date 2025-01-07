@@ -11,6 +11,8 @@ import { RPDTemplate } from './templates/RPDTemplate';
 import { TeacherInterface } from './templates/TeacherInterface';
 import { SignIn } from './templates/SignIn';
 import UserManagementPage from './templates/user-management-page/UserManagementPage';
+import RpdComplectsList from './templates/rpd-complects/RpdComplectsList';
+import ViewRpdComplect from './templates/rpd-complects/ViewRpdComplect';
 
 function App() {
   const { isUserLogged } = useContext(AuthContext);
@@ -36,20 +38,22 @@ function App() {
                 <Route path="/manager" element={<Manager />} />
                 <Route path="/rpd-template" element={<RPDTemplate />} />
                 <Route path="/teacher-interface" element={<TeacherInterface />} />
-                <Route path='/user-management' element={<UserManagementPage />} />
+                <Route path="/users" element={<UserManagementPage />} />
+                <Route path="/rpd-complects" element={<RpdComplectsList />} />
+                <Route path="/view-complect" element={<ViewRpdComplect />} />
+                <Route path="*" element={<Navigate to={userRedirect()} />} />
               </>
             ) : (
-              <Route path="/sign-in" element={<SignIn />} />
+              <>
+                <Route path="/sign-in" element={<SignIn />} />
+                <Route path="*" element={<Navigate to="/sign-in" />} />
+              </>
             )}
-            <Route
-              path="*"
-              element={<Navigate to={userRedirect()} />}
-            />
           </Routes>
         </Router>
       </SnackbarProvider>
     </>
-  )
+  );
 }
 
 export default App;

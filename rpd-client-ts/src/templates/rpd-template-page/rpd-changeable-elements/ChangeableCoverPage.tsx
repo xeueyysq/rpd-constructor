@@ -3,7 +3,7 @@ import { Button, Box } from '@mui/material';
 import EditIcon from '@mui/icons-material/Edit';
 import SaveAltIcon from '@mui/icons-material/SaveAlt';
 import { TextareaAutosize as BaseTextareaAutosize } from '@mui/base/TextareaAutosize';
-import { styled } from '@mui/system';
+import { styled } from '@mui/material/styles';
 import Loader from '../../../helperComponents/Loader';
 import { axiosBase } from '../../../fetchers/baseURL';
 
