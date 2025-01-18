@@ -1,13 +1,11 @@
-import { FC, useEffect, useState } from "react";
-import useStore from "../../store/useStore";
-import { Box, Button, CircularProgress } from "@mui/material";
-import { TemplateConstructorType } from "../../types/TemplateConstructorTypes";
-import { templateDataTitles } from "../../constants/templateDataTitles";
-import showErrorMessage from "../../utils/showErrorMessage";
-import showSuccessMessage from "../../utils/showSuccessMessage";
-import Loader from "../../helperComponents/Loader";
-import { axiosBase } from "../../fetchers/baseURL";
-import { isAxiosError } from "axios";
+import {FC, useCallback, useEffect, useState} from "react"
+import {useStore} from "@shared/hooks"
+import {Box, Button, CircularProgress} from "@mui/material"
+import {TemplateConstructorType} from "@entities/template"
+import {templateDataTitles} from "../model/templateDataTitles.ts"
+import {Loader} from "@shared/ui"
+import {axiosBase} from "@shared/api"
+import {showErrorMessage, showSuccessMessage} from "@shared/lib"
 
 export const TemplateConstructor: FC<TemplateConstructorType> = ({setChoise}) => {
     const selectedTemplateData = useStore.getState().selectedTemplateData
@@ -36,25 +34,13 @@ export const TemplateConstructor: FC<TemplateConstructorType> = ({setChoise}) =>
             setCreateComplectStatus("loading")
             const responce = await axiosBase.post('create_rpd_complect', {
                 data: selectedTemplateData
-            });
-
-            if (responce.status !== 200) {
-                showErrorMessage("Сервер 1С недоступен. Попробуйте позже");
-                throw new Error('Ошибка создания комплекта РПД');
-            }
-            setComplectId(responce.data);
-            setCreateComplectStatus("success");
-            showSuccessMessage("Комплект РПД создан успешно");
-        } catch (error: unknown) {
-            setCreateComplectStatus("pending");
-            if (isAxiosError(error) && error.response?.status === 504) {
-                showErrorMessage("Сервер 1С недоступен. Попробуйте позже");
-            } else if (isAxiosError(error)){
-                showErrorMessage(error.response?.data?.message || "Ошибка при создании комплекта РПД");
-            } else {
-                showErrorMessage("Неизвестная ошибка");
-            }
-            console.error(error);
+            })
+            setComplectId(responce.data)
+            setCreateComplectStatus("success")
+            showSuccessMessage("Комплект РПД создан успешно")
+        } catch (error) {
+            showErrorMessage("Ошибка загрузки данных")
+            console.error(error)
         }
     }
 

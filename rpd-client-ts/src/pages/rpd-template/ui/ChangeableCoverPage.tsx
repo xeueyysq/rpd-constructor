@@ -14,15 +14,13 @@ interface ChangeableCoverPageProps {
 
 interface ValueData {
     id: string;
-    title: string;
     value: string;
 }
 
-// const ChangeableCoverPage = ({ title, defaultText }: ChangeableCoverPageProps) => {
 const ChangeableCoverPage = ({title}: ChangeableCoverPageProps) => {
     const [isEditing, setIsEditing] = useState(false)
-    const [value, setValue] = useState<ValueData | null>(null) // Typed state
-    const textAreaRef = useRef<HTMLTextAreaElement | null>(null) // Explicit type for the ref
+    const [value, setValue] = useState<ValueData | null>(null)
+    const textAreaRef = useRef<HTMLTextAreaElement | null>(null)
 
     const fetchData = useCallback(async () => {
         try {
@@ -42,14 +40,13 @@ const ChangeableCoverPage = ({title}: ChangeableCoverPageProps) => {
     }
 
     const handleSaveClick = async () => {
-        setIsEditing(false)
-
         if (!textAreaRef.current || !value?.id) return
 
         try {
             const textareaValue = textAreaRef.current.value
-            const response = await axiosBase.put(`rpd-changeable-values/${value?.id}`, {value: textareaValue})
+            const response = await axiosBase.put(`rpd-changeable-values/${value.id}`, {value: textareaValue})
             setValue(response.data)
+            setIsEditing(false)
         } catch (error) {
             console.error(error)
         }
@@ -68,7 +65,7 @@ const ChangeableCoverPage = ({title}: ChangeableCoverPageProps) => {
                         aria-label="empty textarea"
                         placeholder="Empty"
                         id={title}
-                        defaultValue={value?.value}
+                        defaultValue={value.value}
                         sx={{my: 1}}
                     />
                     <Button
@@ -82,8 +79,8 @@ const ChangeableCoverPage = ({title}: ChangeableCoverPageProps) => {
                 </Box>
             ) : (
                 <Box>
-                    {value?.value ? (
-                        <Box dangerouslySetInnerHTML={{__html: value.value}} sx={{py: 1}}></Box>
+                    {value.value ? (
+                        <Box dangerouslySetInnerHTML={{__html: value.value}} sx={{py: 1}}/>
                     ) : (
                         <p>Нет доступного контента</p>
                     )}
@@ -102,32 +99,31 @@ const ChangeableCoverPage = ({title}: ChangeableCoverPageProps) => {
 }
 
 const TextareaAutosize = styled(BaseTextareaAutosize)(() => `
-      box-sizing: border-box;
-      width: 100%;
-      font-family: 'IBM Plex Sans', sans-serif;
-      font-size: 0.875rem;
-      font-weight: 400;
-      line-height: 1.5;
-      padding: 8px 12px;
-      border-radius: 8px;
-      color: #1C2025;
-      background: #ffffff;
-      border: 1px solid #DAE2ED;
-      box-shadow: 0px 2px 2px #F3F6F9;
+    box-sizing: border-box;
+    width: 100%;
+    font-family: 'IBM Plex Sans', sans-serif;
+    font-size: 0.875rem;
+    font-weight: 400;
+    line-height: 1.5;
+    padding: 8px 12px;
+    border-radius: 8px;
+    color: #1C2025;
+    background: #ffffff;
+    border: 1px solid #DAE2ED;
+    box-shadow: 0px 2px 2px #F3F6F9;
 
-      &:hover {
+    &:hover {
         border-color: #3399FF;
-      }
+    }
 
-      &:focus {
+    &:focus {
         border-color: #3399FF;
         box-shadow: 0 0 0 3px #b6daff;
-      }
+    }
 
-      &:focus-visible {
+    &:focus-visible {
         outline: 0;
-      }
-    `
-)
+    }
+`)
 
 export default ChangeableCoverPage

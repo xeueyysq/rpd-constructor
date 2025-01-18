@@ -1,5 +1,5 @@
 import axios from "axios"
-import config from "../config"
+import config from "@shared/config";
 
 export const axiosBase = axios.create({
     baseURL: 'http://localhost:8000/api',

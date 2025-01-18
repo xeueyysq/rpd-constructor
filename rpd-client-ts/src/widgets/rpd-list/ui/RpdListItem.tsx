@@ -13,7 +13,11 @@ const RpdListItem: FC<RpdListItemProps> = ({id, text, setChoise}) => {
             <ListItemIcon sx={{pl: 3}}>
                 <ListAltIcon/>
             </ListItemIcon>
-            <ListItemButton onClick={() => setChoise(id)} sx={{color: 'black', px: 0}} disabled={id === "approvalPage"}>
+            <ListItemButton 
+                onClick={() => setChoise(id)} 
+                sx={{color: 'black', px: 0}}
+                disabled={id === "approvalPage"}
+            >
                 <ListItemText primary={
                     <Typography style={{color: 'black', fontFamily: "Arial", fontSize: "16px"}}>{text}</Typography>
                 }/>
