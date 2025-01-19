@@ -6,6 +6,7 @@ import {Box, Button} from '@mui/material'
 import {useStore} from "@shared/hooks"
 import {OptionType} from '../model/SelectorTypes.ts'
 import {enqueueSnackbar, VariantType} from 'notistack'
+import { TemplateConstructorType } from '@entities/template/index.ts'
 
 interface JsonData {
     [key: string]: string | JsonData;
@@ -22,11 +23,7 @@ interface SelectorsState {
     year: Nullable<OptionType>;
 }
 
-interface Selectors {
-    setChoise: (value: string) => void;
-}
-
-export const Selectors: FC<Selectors> = ({setChoise}) => {
+export const Selectors: FC<TemplateConstructorType> = ({setChoise}) => {
     const selectorsData = useStore.getState().selectedTemplateData
     const [selectors, setSelectors] = useState<SelectorsState>({
         faculty: selectorsData.faculty ?

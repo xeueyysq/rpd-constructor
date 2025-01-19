@@ -1,16 +1,15 @@
 import { FC, useState } from "react"
-import { useNavigate } from "react-router-dom"
-import { Box, Container, Grid, Button } from '@mui/material'
+import { Box, Container, Button } from '@mui/material'
 import ListAltIcon from '@mui/icons-material/ListAlt'
 import { Selectors } from "@features/select-template-data"
 import { TemplateConstructor } from "@features/create-rpd-template"
 import { ChangeRpdTemplate } from "@features/change-rpd-template"
 import { CreateRpdTemplateFromYear } from "@features/create-rpd-template-from-year"
 import { CreateRpdTemplateFrom1CExchange } from "@features/create-rpd-template-from-1c-exchange"
+import RpdComplectsList from "@widgets/rpd-complects"
 
 export const Manager: FC = () => {
     const [choise, setChoise] = useState<string>("selectData")
-    const navigate = useNavigate()
 
     return (
         <Container
@@ -30,22 +29,15 @@ export const Manager: FC = () => {
                 }}
             >
                 <Box component='h2' sx={{py: 1}}>Подготовка комплекта РПД функционал РОП</Box>
-                <Grid container spacing={2} sx={{ mb: 4, pt: 1 }}>
-                    <Grid item>
-                        <Button
-                            variant="contained"
-                            startIcon={<ListAltIcon />}
-                            onClick={() => navigate('/rpd-complects')}
-                            sx={{ 
-                                height: '30px',
-                                fontSize: '16px',
-                                textTransform: 'none'
-                            }}
-                        >
-                            Просмотр комплектов РПД
-                        </Button>
-                    </Grid>
-                </Grid>
+                {choise !== 'viewRpdComplectsList' && (<Button
+                    sx={{marginTop: 1, marginBottom: 4}}
+                    variant="contained"
+                    size="small"
+                    startIcon={<ListAltIcon />}
+                    onClick={() => setChoise('viewRpdComplectsList')}
+                >
+                    Просмотр комплектов РПД
+                </Button>)}
                 {choise === "selectData" && (
                     <Selectors setChoise={setChoise}/>
                 )}
@@ -60,6 +52,9 @@ export const Manager: FC = () => {
                 )}
                 {choise === "createTemplateFromExchange" && (
                     <CreateRpdTemplateFrom1CExchange setChoise={setChoise}/>
+                )}
+                {choise === "viewRpdComplectsList" && (
+                    <RpdComplectsList setChoise={setChoise}/>
                 )}
             </Box>
         </Container>

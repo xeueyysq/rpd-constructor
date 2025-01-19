@@ -22,6 +22,7 @@ import TemplateMenu from "./TemplateMenu.tsx"
 import {axiosBase} from "@shared/api"
 import {showErrorMessage, showSuccessMessage} from "@shared/lib"
 import {Loader} from "@shared/ui"
+import { templateDataTitles } from "@features/create-rpd-template/model/templateDataTitles.ts"
 
 interface TemplateStatusObject {
     date: string,
@@ -113,6 +114,12 @@ export const CreateRpdTemplateFrom1CExchange: FC<TemplateConstructorType> = ({se
     return (
         <>
             <Box>Шаг 3. Создание шаблона на основе выгрузки 1C</Box>
+            {Object.entries(selectedTemplateData).map(([key, value]) => (
+                <Box key={key}>
+                    <Box component="span" sx={{fontWeight: "600"}}>{templateDataTitles[key]}: </Box>
+                    {value ? value : "Данные не найдены"}
+                </Box>
+            ))}
             <Box sx={{py: 2, fontSize: "18px", fontWeight: "600"}}>Шаблоны:</Box>
             <TableContainer component={Paper}>
                 <Table sx={{minWidth: 650}} aria-label="simple table" size="small">

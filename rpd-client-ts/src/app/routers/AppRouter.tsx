@@ -10,7 +10,6 @@ const RPDTemplate = lazy(() => import('@pages/rpd-template'))
 const TeacherInterface = lazy(() => import('@pages/teacher-interface'))
 const SignIn = lazy(() => import('@pages/sign-in'))
 const UserManagement = lazy(() => import('@pages/user-management'))
-const RpdComplectsList = lazy(() => import('@widgets/rpd-complects'))
 
 export const AppRouter = () => {
     const {isUserLogged, redirectPath} = useUserRedirect()
@@ -26,8 +25,6 @@ export const AppRouter = () => {
                             <Route path="/rpd-template" element={<RPDTemplate/>}/>
                             <Route path="/teacher-interface" element={<TeacherInterface/>}/>
                             <Route path="/users" element={<UserManagement/>}/>
-                            <Route path="/rpd-complects" element={<RpdComplectsList/>}/>
-                            <Route path="/view-complect" element={<RpdComplectsList/>}/>
                         </>
                     ) : (
                         <Route path="/sign-in" element={<SignIn/>}/>

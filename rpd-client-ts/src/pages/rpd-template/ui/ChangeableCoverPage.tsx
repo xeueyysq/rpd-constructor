@@ -2,7 +2,7 @@ import {useCallback, useEffect, useRef, useState} from 'react'
 import {Box, Button} from '@mui/material'
 import EditIcon from '@mui/icons-material/Edit'
 import SaveAltIcon from '@mui/icons-material/SaveAlt'
-import {TextareaAutosize as BaseTextareaAutosize} from '@mui/base/TextareaAutosize'
+import {TextareaAutosize as BaseTextareaAutosize} from '@mui/material'
 import {styled} from '@mui/system'
 import {Loader} from "@shared/ui"
 import {axiosBase} from '@shared/api'
