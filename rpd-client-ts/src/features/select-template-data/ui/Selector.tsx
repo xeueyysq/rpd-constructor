@@ -1,31 +1,34 @@
-import {Box} from '@mui/material'
+import {Box, AutocompleteChangeReason, AutocompleteChangeDetails, Autocomplete, TextField} from '@mui/material'
 import React from 'react'
-import Select, {ActionMeta, SingleValue} from 'react-select'
 import {OptionType} from '../model/SelectorTypes.ts'
 
 interface CustomSelector {
     title: string;
     placeholder: string;
     value: OptionType | undefined;
-    onChange: (selectedOption: SingleValue<OptionType>, actionMeta: ActionMeta<OptionType>) => void;
+    onChange: (
+        event: React.SyntheticEvent<Element, Event>,
+        value: OptionType | null,
+        reason: AutocompleteChangeReason,
+        details?: AutocompleteChangeDetails<OptionType>
+    ) => void;
     options: OptionType[];
+    'data-cy'?: string;
 }
 
-const CustomSelector: React.FC<CustomSelector> = ({title, placeholder, value, onChange, options}) => {
+export const CustomSelector: React.FC<CustomSelector> = ({ title, placeholder, value, onChange, options }) => {
     return (
-        <Box sx={{my: 1}}>
+        <Box sx={{ my: 1 }}>
             <Box sx={{fontSize: "20px", fontWeight: "600", py: 1}}>
                 {title}
             </Box>
-            <Select
-                placeholder={placeholder}
-                isClearable
+            <Autocomplete
                 value={value}
                 onChange={onChange}
                 options={options}
+                data-cy='select-option'
+                renderInput={(params) => <TextField {...params} label={placeholder} size='small' />}
             />
         </Box>
     )
 }
-
-export default CustomSelector

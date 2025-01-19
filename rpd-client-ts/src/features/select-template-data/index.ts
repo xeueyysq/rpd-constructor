@@ -1,1 +1,1 @@
-export {Selectors} from './ui/Selectors'
+export { Selectors } from './ui/Selectors'

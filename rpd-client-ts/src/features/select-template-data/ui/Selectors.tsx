@@ -1,12 +1,11 @@
 import {FC, useEffect, useState} from 'react'
-import Select, {SingleValue} from 'react-select'
-import Selector from './Selector.tsx'
+import { CustomSelector as Selector } from './Selector.tsx'
 import {Loader} from "@shared/ui"
-import {Box, Button} from '@mui/material'
+import {Box, Button, Autocomplete, TextField} from '@mui/material'
 import {useStore} from "@shared/hooks"
 import {OptionType} from '../model/SelectorTypes.ts'
 import {enqueueSnackbar, VariantType} from 'notistack'
-import { TemplateConstructorType } from '@entities/template/index.ts'
+// import { TemplateConstructorType } from '@entities/template/index.ts'
 
 interface JsonData {
     [key: string]: string | JsonData;
@@ -23,31 +22,35 @@ interface SelectorsState {
     year: Nullable<OptionType>;
 }
 
-export const Selectors: FC<TemplateConstructorType> = ({setChoise}) => {
+interface Selectors {
+    setChoise: (value: string) => void;
+}
+
+export const Selectors: FC<Selectors> = ({ setChoise }) => {
     const selectorsData = useStore.getState().selectedTemplateData
     const [selectors, setSelectors] = useState<SelectorsState>({
         faculty: selectorsData.faculty ?
-            {value: selectorsData.faculty, label: selectorsData.faculty} :
+            { value: selectorsData.faculty, label: selectorsData.faculty } :
             undefined,
         levelEducation: selectorsData.levelEducation ?
-            {value: selectorsData.levelEducation, label: selectorsData.levelEducation} :
+            { value: selectorsData.levelEducation, label: selectorsData.levelEducation } :
             undefined,
         directionOfStudy: selectorsData.directionOfStudy ?
-            {value: selectorsData.directionOfStudy, label: selectorsData.directionOfStudy} :
+            { value: selectorsData.directionOfStudy, label: selectorsData.directionOfStudy } :
             undefined,
         profile: selectorsData.profile ?
-            {value: selectorsData.profile, label: selectorsData.profile} :
+            { value: selectorsData.profile, label: selectorsData.profile } :
             undefined,
         formEducation: selectorsData.formEducation ?
-            {value: selectorsData.formEducation, label: selectorsData.formEducation} :
+            { value: selectorsData.formEducation, label: selectorsData.formEducation } :
             undefined,
         year: selectorsData.year ?
-            {value: selectorsData.year, label: selectorsData.year} :
+            { value: selectorsData.year, label: selectorsData.year } :
             undefined,
     })
 
     const [data, setData] = useState<Nullable<JsonData>>(undefined)
-    const {setSelectedTemplateData} = useStore()
+    const { setSelectedTemplateData } = useStore()
 
     useEffect(() => {
         const fetchData = async () => {
@@ -58,45 +61,39 @@ export const Selectors: FC<TemplateConstructorType> = ({setChoise}) => {
                         'Accept': 'application/json'
                     }
                 })
-
+                
                 const jsonData: JsonData = await response.json()
                 setData(jsonData)
             } catch (error) {
                 const variant: VariantType = 'error'
-                enqueueSnackbar('Ошибка загрузки профилей', {variant})
+                enqueueSnackbar('Ошибка загрузки профилей', { variant })
             }
-        }
+            }
+        
+            fetchData()
+        }, [])
 
-        fetchData()
-    }, [])
 
-
-    const handleChange = (name: keyof SelectorsState) => (selectedOption: SingleValue<OptionType>) => {
+    const handleChange = (name: keyof SelectorsState) => (
+        event: React.SyntheticEvent<Element, Event>,
+        selectedOption: OptionType | null,
+        // reason: AutocompleteChangeReason,
+        // details?: AutocompleteChangeDetails<OptionType>
+    ) => {
         setSelectors(prevSelectors => ({
             ...prevSelectors,
             [name]: selectedOption || undefined,
-            ...(name === 'faculty' && {
-                levelEducation: undefined,
-                directionOfStudy: undefined,
-                profile: undefined,
-                formEducation: undefined,
-                year: undefined
-            }),
-            ...(name === 'levelEducation' && {
-                directionOfStudy: undefined,
-                profile: undefined,
-                formEducation: undefined,
-                year: undefined
-            }),
-            ...(name === 'directionOfStudy' && {profile: undefined, formEducation: undefined, year: undefined}),
-            ...(name === 'profile' && {formEducation: undefined, year: undefined}),
-            ...(name === 'formEducation' && {year: undefined}),
+            ...(name === 'faculty' && { levelEducation: undefined, directionOfStudy: undefined, profile: undefined, formEducation: undefined, year: undefined }),
+            ...(name === 'levelEducation' && { directionOfStudy: undefined, profile: undefined, formEducation: undefined, year: undefined }),
+            ...(name === 'directionOfStudy' && { profile: undefined, formEducation: undefined, year: undefined }),
+            ...(name === 'profile' && { formEducation: undefined, year: undefined }),
+            ...(name === 'formEducation' && { year: undefined }),
         }))
     }
 
     const getOptions = (): OptionType[] => {
         return data
-            ? Object.keys(data).map(key => ({label: key, value: key}))
+            ? Object.keys(data).map(key => ({ label: key, value: key }))
             : []
     }
 
@@ -110,11 +107,8 @@ export const Selectors: FC<TemplateConstructorType> = ({setChoise}) => {
                 return []
             }
         }
-        if (indicator && indicator === 'lastChild') return Object.values(currentData).map((value) => ({
-            label: String(value),
-            value: String(value)
-        }))
-        return Object.keys(currentData).map(key => ({label: key, value: key}))
+        if (indicator && indicator === 'lastChild') return Object.values(currentData).map((value) => ({ label: String(value), value: String(value) }))
+        return Object.keys(currentData).map(key => ({ label: key, value: key }))
     }
 
     const saveTemplateData = () => {
@@ -130,18 +124,24 @@ export const Selectors: FC<TemplateConstructorType> = ({setChoise}) => {
         setChoise("workingType")
     }
 
-    if (!data) return <Loader/>
+    // const selectedValue = useMemo(
+    //     () => all
+    // )
+
+    if (!data) return <Loader />
 
     return (
-        <Box sx={{py: 1, maxWidth: "500px"}}>
+        <Box sx={{ py: 1, maxWidth: "500px" }}>
             <Box>Шаг 1. Выбор данных</Box>
-            <Box sx={{fontSize: "20px", fontWeight: "600", py: 1}}>Институт</Box>
-            <Select
-                placeholder="Выберите институт"
-                isClearable
+            <Box sx={{ fontSize: "20px", fontWeight: "600", py: 1 }}>Институт</Box>
+            <Autocomplete
+                // placeholder="Выберите институт"
+                // isClearable
                 value={selectors.faculty}
                 onChange={handleChange('faculty')}
                 options={getOptions()}
+                data-cy="faculty-select"
+                renderInput={(params) => <TextField {...params} label="Выберите институт" size='small' data-cy='text-field'/>}
             />
             {selectors.faculty && (
                 <Selector
@@ -152,6 +152,7 @@ export const Selectors: FC<TemplateConstructorType> = ({setChoise}) => {
                     options={getOptionsForSelector([
                         selectors.faculty.value
                     ])}
+                    data-cy="education-level-select"
                 />
             )}
             {selectors.faculty && selectors.levelEducation && (
@@ -164,6 +165,7 @@ export const Selectors: FC<TemplateConstructorType> = ({setChoise}) => {
                         selectors.faculty.value,
                         selectors.levelEducation.value
                     ])}
+                    data-cy="direction-select"
                 />
             )}
             {selectors.faculty && selectors.levelEducation && selectors.directionOfStudy && (
@@ -177,6 +179,7 @@ export const Selectors: FC<TemplateConstructorType> = ({setChoise}) => {
                         selectors.levelEducation.value,
                         selectors.directionOfStudy.value
                     ])}
+                    data-cy="profile-select"
                 />
             )}
             {selectors.faculty && selectors.levelEducation && selectors.directionOfStudy && selectors.profile && (
@@ -191,6 +194,7 @@ export const Selectors: FC<TemplateConstructorType> = ({setChoise}) => {
                         selectors.directionOfStudy.value,
                         selectors.profile.value
                     ])}
+                    data-cy="education-form-select"
                 />
             )}
             {selectors.faculty && selectors.levelEducation && selectors.directionOfStudy && selectors.profile && selectors.formEducation && (
@@ -206,10 +210,17 @@ export const Selectors: FC<TemplateConstructorType> = ({setChoise}) => {
                         selectors.profile.value,
                         selectors.formEducation.value
                     ], 'lastChild')}
+                    data-cy="year-select"
                 />
             )}
             {selectors.year && (
-                <Button variant="outlined" onClick={saveTemplateData}>Продолжить</Button>
+                <Button 
+                    variant="outlined" 
+                    onClick={saveTemplateData}
+                    data-cy="continue-button"
+                >
+                    Продолжить
+                </Button>
             )}
         </Box>
     )
