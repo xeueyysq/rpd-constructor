@@ -86,7 +86,7 @@ npm start
 yarn start
 ```
 
-Проект будет запущен на [http://localhost:3000](http://localhost:3000).
+Проект будет запущен на [http://localhost:8000](http://localhost:8000).
 
 ---
 

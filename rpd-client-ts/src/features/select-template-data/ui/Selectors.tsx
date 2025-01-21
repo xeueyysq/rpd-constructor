@@ -75,10 +75,8 @@ export const Selectors: FC<Selectors> = ({ setChoise }) => {
 
 
     const handleChange = (name: keyof SelectorsState) => (
-        event: React.SyntheticEvent<Element, Event>,
+        _: React.SyntheticEvent<Element, Event>,
         selectedOption: OptionType | null,
-        // reason: AutocompleteChangeReason,
-        // details?: AutocompleteChangeDetails<OptionType>
     ) => {
         setSelectors(prevSelectors => ({
             ...prevSelectors,

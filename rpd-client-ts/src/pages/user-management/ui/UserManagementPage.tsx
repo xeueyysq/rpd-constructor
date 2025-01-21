@@ -164,7 +164,7 @@ export const UserManagementPage: FC = () => {
         setSelected(newSelected)
     }
 
-    const handleChangePage = (event: unknown, newPage: number) => {
+    const handleChangePage = (_: unknown, newPage: number) => {
         setPage(newPage)
     }
 
