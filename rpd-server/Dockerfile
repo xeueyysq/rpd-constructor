@@ -1,38 +1,19 @@
-FROM node:20.11.1-alpine
+FROM node:20-alpine
 
-WORKDIR /rpd-app
+WORKDIR /app
+
+RUN apk add --no-cache --virtual .builds-deps build-base python3 make g++ \
+    && apk add --no-cache netcat-openbsd curl
 
 COPY package*.json ./
 
-RUN npm install
+RUN npm ci
 
 COPY . .
 
-# Install necessary tools
-RUN apk add --no-cache netcat-openbsd curl
-
-# Create script to wait for postgres and run migrations
-COPY <<-"EOF" /docker-entrypoint.sh
-#!/bin/sh
-set -e
-
-echo "Waiting for postgres..."
-until nc -z -v -w30 db 5432
-do
-  echo "Waiting for postgres database connection..."
-  sleep 5
-done
-
-echo "PostgreSQL started, running migrations..."
-node ./app/migrations/migrations.js
-
-echo "Starting application..."
-exec "$@"
-EOF
-
-RUN chmod +x /docker-entrypoint.sh
+RUN npm rebuild bcrypt --build-from-source \
+    && apk del .builds-deps
 
 EXPOSE 8000
 
-ENTRYPOINT ["/docker-entrypoint.sh"]
 CMD ["npm", "run", "dev"]
