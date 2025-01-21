@@ -64,6 +64,21 @@ class RpdComplects {
             throw new Error(error);
         }
     }
+
+    async getAllRpdComplects() {
+        try {
+            const result = await this.pool.query(`
+                SELECT id, faculty, year, education_form as "formEducation", 
+                       education_level as "levelEducation", profile, direction as "directionOfStudy"
+                FROM rpd_complects
+                ORDER BY id DESC
+            `);
+            return result.rows;
+        } catch (error) {
+            console.log(error);
+            throw new Error(error);
+        }
+    }
 }
 
 module.exports = RpdComplects;

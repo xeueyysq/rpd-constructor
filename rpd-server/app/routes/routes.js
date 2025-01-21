@@ -35,6 +35,7 @@ const rpdComplectsController = new RpdComplectsController(pool);
 
 router.post('/find_rpd_complect', rpdComplectsController.findRpdComplect.bind(rpdComplectsController));
 router.post('/create_rpd_complect', rpdComplectsController.createRpdComplect.bind(rpdComplectsController));
+router.get('/get-rpd-complects', rpdComplectsController.getAllRpdComplects.bind(rpdComplectsController));
 
 const TemplateStatusController = require('../controllers/templateStatusController');
 const templateStatusController = new TemplateStatusController(pool);
