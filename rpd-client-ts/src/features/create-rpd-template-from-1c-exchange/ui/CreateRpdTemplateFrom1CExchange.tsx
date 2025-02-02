@@ -1,202 +1,230 @@
-import {FC, useCallback, useEffect, useState} from "react"
-import {TemplateConstructorType, TemplateStatus} from "@entities/template"
-import {useStore} from "@shared/hooks"
+import { FC, useCallback, useEffect, useState } from "react";
+import { TemplateConstructorType, TemplateStatus } from "@entities/template";
+import { useStore } from "@shared/hooks";
 import {
-    Box,
-    Button,
-    FormControl,
-    InputLabel,
-    MenuItem,
-    Paper,
-    Select,
-    SelectChangeEvent,
-    Table,
-    TableBody,
-    TableCell,
-    TableContainer,
-    TableHead,
-    TableRow
-} from "@mui/material"
-import {useAuth} from "@entities/auth"
-import TemplateMenu from "./TemplateMenu.tsx"
-import {axiosBase} from "@shared/api"
-import {showErrorMessage, showSuccessMessage} from "@shared/lib"
-import {Loader} from "@shared/ui"
-import { templateDataTitles } from "@features/create-rpd-template/model/templateDataTitles.ts"
+  Box,
+  Button,
+  FormControl,
+  InputLabel,
+  MenuItem,
+  Paper,
+  Select,
+  SelectChangeEvent,
+  Table,
+  TableBody,
+  TableCell,
+  TableContainer,
+  TableHead,
+  TableRow,
+} from "@mui/material";
+import { useAuth } from "@entities/auth";
+import TemplateMenu from "./TemplateMenu.tsx";
+import { axiosBase } from "@shared/api";
+import { showErrorMessage, showSuccessMessage } from "@shared/lib";
+import { Loader } from "@shared/ui";
+import { templateDataTitles } from "@shared/model/templateDataTitles";
 
 interface TemplateStatusObject {
-    date: string,
-    status: string,
-    user: string
+  date: string;
+  status: string;
+  user: string;
 }
 
 interface TemplateData {
-    id: number;
-    id_profile_template: number;
-    discipline: string;
-    teachers: string[];
-    teacher: string;
-    semester: number;
-    status: TemplateStatusObject;
+  id: number;
+  id_profile_template: number;
+  discipline: string;
+  teachers: string[];
+  teacher: string;
+  semester: number;
+  status: TemplateStatusObject;
 }
 
 export interface CreateTemplateDataParams {
-    id_1c: number;
-    complectId: number | undefined;
-    teacher: string;
-    year: string | undefined;
-    discipline: string;
-    userName: string | undefined;
+  id_1c: number;
+  complectId: number | undefined;
+  teacher: string;
+  year: string | undefined;
+  discipline: string;
+  userName: string | undefined;
 }
 
-export const CreateRpdTemplateFrom1CExchange: FC<TemplateConstructorType> = ({setChoise}) => {
-    const selectedTemplateData = useStore.getState().selectedTemplateData
-    const complectId = useStore.getState().complectId
-    const [data, setData] = useState<TemplateData[]>()
-    const [selectedTeachers, setSelectedTeachers] = useState<{ [key: number]: string }>({})
-    const userName = useAuth.getState().userName
+export const CreateRpdTemplateFrom1CExchange: FC<TemplateConstructorType> = ({
+  setChoise,
+}) => {
+  const selectedTemplateData = useStore.getState().selectedTemplateData;
+  const complectId = useStore.getState().complectId;
+  const [data, setData] = useState<TemplateData[]>();
+  const [selectedTeachers, setSelectedTeachers] = useState<{
+    [key: number]: string;
+  }>({});
+  const userName = useAuth.getState().userName;
 
-    const handleChange = (templateId: number) => (event: SelectChangeEvent) => {
-        setSelectedTeachers(prevSelectedTeachers => ({
-            ...prevSelectedTeachers,
-            [templateId]: event.target.value,
-        }))
+  const handleChange = (templateId: number) => (event: SelectChangeEvent) => {
+    setSelectedTeachers((prevSelectedTeachers) => ({
+      ...prevSelectedTeachers,
+      [templateId]: event.target.value,
+    }));
+  };
+
+  const fetchData = useCallback(async () => {
+    try {
+      const response = await axiosBase.post("find-rpd", { complectId });
+      setData(response.data);
+    } catch (error) {
+      showErrorMessage("Ошибка при получении данных");
+      console.error(error);
+    }
+  }, [complectId]);
+
+  const createTemplateData = async (id: number, discipline: string) => {
+    const teacher = selectedTeachers[id];
+    if (!teacher) {
+      showErrorMessage("Ошибка. Необходимо выбрать преподавателя");
+      return;
     }
 
-    const fetchData = useCallback(async () => {
-        try {
-            const response = await axiosBase.post('find-rpd', {complectId})
-            setData(response.data)
-        } catch (error) {
-            showErrorMessage('Ошибка при получении данных')
-            console.error(error)
-        }
-    }, [complectId])
+    try {
+      const params: CreateTemplateDataParams = {
+        id_1c: id,
+        complectId,
+        teacher,
+        year: selectedTemplateData.year,
+        discipline,
+        userName,
+      };
 
-    const createTemplateData = async (id: number, discipline: string) => {
-        const teacher = selectedTeachers[id]
-        if (!teacher) {
-            showErrorMessage('Ошибка. Необходимо выбрать преподавателя')
-            return
-        }
+      const response = await axiosBase.post(
+        "create-profile-template-from-1c",
+        params
+      );
 
-        try {
-            const params: CreateTemplateDataParams = {
-                id_1c: id,
-                complectId,
-                teacher,
-                year: selectedTemplateData.year,
-                discipline,
-                userName
-            }
-
-            const response = await axiosBase.post('create-profile-template-from-1c', params)
-
-
-            if (response.data === "record exists") showErrorMessage("Ошибка. Шаблон с текущими данными уже существует")
-            if (response.data === "template created") {
-                showSuccessMessage("Шаблон успешно создан")
-                fetchData()
-            }
-
-        } catch (error) {
-            showErrorMessage("Ошибка. Не удалось создать шаблон")
-            console.error(error)
-        }
+      if (response.data === "record exists")
+        showErrorMessage("Ошибка. Шаблон с текущими данными уже существует");
+      if (response.data === "template created") {
+        showSuccessMessage("Шаблон успешно создан");
+        fetchData();
+      }
+    } catch (error) {
+      showErrorMessage("Ошибка. Не удалось создать шаблон");
+      console.error(error);
     }
+  };
 
-    useEffect(() => {
-        fetchData()
-    }, [fetchData])
+  useEffect(() => {
+    fetchData();
+  }, [fetchData]);
 
-    if (!data) return <Loader/>
+  if (!data) return <Loader />;
 
-    return (
-        <>
-            <Box>Шаг 3. Создание шаблона на основе выгрузки 1C</Box>
-            {Object.entries(selectedTemplateData).map(([key, value]) => (
-                <Box key={key}>
-                    <Box component="span" sx={{fontWeight: "600"}}>{templateDataTitles[key]}: </Box>
-                    {value ? value : "Данные не найдены"}
-                </Box>
-            ))}
-            <Box sx={{py: 2, fontSize: "18px", fontWeight: "600"}}>Шаблоны:</Box>
-            <TableContainer component={Paper}>
-                <Table sx={{minWidth: 650}} aria-label="simple table" size="small">
-                    <TableHead>
-                        <TableRow>
-                            <TableCell sx={{fontWeight: "600", fontSize: "18px", py: 2}}>Название дисциплины</TableCell>
-                            <TableCell sx={{fontWeight: "600", fontSize: "18px", py: 2}}>Семестр</TableCell>
-                            <TableCell sx={{fontWeight: "600", fontSize: "18px", py: 2}}>Преподаватель, ответственный за
-                                РПД</TableCell>
-                            <TableCell sx={{fontWeight: "600", fontSize: "18px", py: 2}}>Статус</TableCell>
-                            <TableCell sx={{fontWeight: "600", fontSize: "18px", py: 2}}>Выбрать</TableCell>
-                        </TableRow>
-                    </TableHead>
-                    <TableBody>
-                        {data.map((row) => (
-                            <TableRow key={row.id}>
-                                <TableCell sx={{maxWidth: "400px"}}>{row.discipline}</TableCell>
-                                <TableCell sx={{maxWidth: "40px"}}>{row.semester}</TableCell>
-                                <TableCell>
-                                    <FormControl fullWidth variant="outlined" size="small">
-                                        <InputLabel id={`select-label-${row.id}`}>Преподаватель</InputLabel>
-                                        {row.teacher ?
-                                            <Select
-                                                labelId={`select-label-${row.id}`}
-                                                id={`select-${row.id}`}
-                                                value={row.teacher}
-                                                label="Преподаватель"
-                                                disabled
-                                            >
-                                                <MenuItem key={row.teacher} value={row.teacher}>
-                                                    {row.teacher}
-                                                </MenuItem>
-                                            </Select> :
-                                            <Select
-                                                labelId={`select-label-${row.id}`}
-                                                id={`select-${row.id}`}
-                                                value={selectedTeachers[row.id] || ''}
-                                                label="Преподаватель"
-                                                onChange={handleChange(row.id)}
-                                            >
-                                                {row.teachers.map((name) => (
-                                                    <MenuItem key={name} value={name}>
-                                                        {name}
-                                                    </MenuItem>
-                                                ))}
-                                            </Select>
-                                        }
-                                    </FormControl>
-                                </TableCell>
-                                <TableCell>
-                                    <TemplateStatus status={row.status}/>
-                                </TableCell>
-                                <TableCell>
-                                    {row.status.status === "Выгружен из 1С" ?
-                                        <Button
-                                            variant="outlined"
-                                            size="small"
-                                            onClick={() => createTemplateData(row.id, row.discipline)}
-                                        >Создать шаблон</Button>
-                                        :
-                                        <TemplateMenu
-                                            id={row.id_profile_template}
-                                            teacher={row.teacher}
-                                            status={row.status.status}
-                                            fetchData={fetchData}
-                                        />
-                                    }
-                                </TableCell>
-                            </TableRow>
+  return (
+    <>
+      <Box>Шаг 3. Создание шаблона на основе выгрузки 1C</Box>
+      {Object.entries(selectedTemplateData).map(([key, value]) => (
+        <Box key={key}>
+          <Box component="span" sx={{ fontWeight: "600" }}>
+            {templateDataTitles[key]}:{" "}
+          </Box>
+          {value ? value : "Данные не найдены"}
+        </Box>
+      ))}
+      <Box sx={{ py: 2, fontSize: "18px", fontWeight: "600" }}>Шаблоны:</Box>
+      <TableContainer component={Paper}>
+        <Table sx={{ minWidth: 650 }} aria-label="simple table" size="small">
+          <TableHead>
+            <TableRow>
+              <TableCell sx={{ fontWeight: "600", fontSize: "18px", py: 2 }}>
+                Название дисциплины
+              </TableCell>
+              <TableCell sx={{ fontWeight: "600", fontSize: "18px", py: 2 }}>
+                Семестр
+              </TableCell>
+              <TableCell sx={{ fontWeight: "600", fontSize: "18px", py: 2 }}>
+                Преподаватель, ответственный за РПД
+              </TableCell>
+              <TableCell sx={{ fontWeight: "600", fontSize: "18px", py: 2 }}>
+                Статус
+              </TableCell>
+              <TableCell sx={{ fontWeight: "600", fontSize: "18px", py: 2 }}>
+                Выбрать
+              </TableCell>
+            </TableRow>
+          </TableHead>
+          <TableBody>
+            {data.map((row) => (
+              <TableRow key={row.id}>
+                <TableCell sx={{ maxWidth: "400px" }}>
+                  {row.discipline}
+                </TableCell>
+                <TableCell sx={{ maxWidth: "40px" }}>{row.semester}</TableCell>
+                <TableCell>
+                  <FormControl fullWidth variant="outlined" size="small">
+                    <InputLabel id={`select-label-${row.id}`}>
+                      Преподаватель
+                    </InputLabel>
+                    {row.teacher ? (
+                      <Select
+                        labelId={`select-label-${row.id}`}
+                        id={`select-${row.id}`}
+                        value={row.teacher}
+                        label="Преподаватель"
+                        disabled
+                      >
+                        <MenuItem key={row.teacher} value={row.teacher}>
+                          {row.teacher}
+                        </MenuItem>
+                      </Select>
+                    ) : (
+                      <Select
+                        labelId={`select-label-${row.id}`}
+                        id={`select-${row.id}`}
+                        value={selectedTeachers[row.id] || ""}
+                        label="Преподаватель"
+                        onChange={handleChange(row.id)}
+                      >
+                        {row.teachers.map((name) => (
+                          <MenuItem key={name} value={name}>
+                            {name}
+                          </MenuItem>
                         ))}
-                    </TableBody>
-                </Table>
-            </TableContainer>
+                      </Select>
+                    )}
+                  </FormControl>
+                </TableCell>
+                <TableCell>
+                  <TemplateStatus status={row.status} />
+                </TableCell>
+                <TableCell>
+                  {row.status.status === "Выгружен из 1С" ? (
+                    <Button
+                      variant="outlined"
+                      size="small"
+                      onClick={() => createTemplateData(row.id, row.discipline)}
+                    >
+                      Создать шаблон
+                    </Button>
+                  ) : (
+                    <TemplateMenu
+                      id={row.id_profile_template}
+                      teacher={row.teacher}
+                      status={row.status.status}
+                      fetchData={fetchData}
+                    />
+                  )}
+                </TableCell>
+              </TableRow>
+            ))}
+          </TableBody>
+        </Table>
+      </TableContainer>
 
-            <Button variant="outlined" sx={{mt: 2}} onClick={() => setChoise("workingType")}>
-                Назад
-            </Button>
-        </>
-    )
-}
+      <Button
+        variant="outlined"
+        sx={{ mt: 2 }}
+        onClick={() => setChoise("workingType")}
+      >
+        Назад
+      </Button>
+    </>
+  );
+};

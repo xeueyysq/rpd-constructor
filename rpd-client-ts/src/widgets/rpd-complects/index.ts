@@ -1,1 +1,1 @@
-export { RpdComplectsList as default} from './ui/RpdComplectsList'
+export { RpdComplectsList as default } from "./ui/RpdComplectsList";

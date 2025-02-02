@@ -1,1 +1,1 @@
-export {Manager as default} from './ui/Manager'
+export { Manager as default } from "./ui/Manager";

@@ -5,11 +5,12 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
-    "build": "tsc --noEmit && vite build",
+    "build": "tsc && vite build",
     "lint": "eslint . --ext ts,tsx --report-unused-disable-directives --max-warnings 0",
     "lint:fix": "eslint . --ext ts,tsx --fix --report-unused-disable-directives",
     "preview": "vite preview",
-    "generate-schema": "npx fsd-cruise src"
+    "generate-schema": "npx fsd-cruise src",
+    "format": "prettier --write ."
   },
   "dependencies": {
     "@casl/ability": "^6.7.1",
@@ -22,8 +23,6 @@
     "@mui/system": "^5.15.12",
     "@mui/x-date-pickers": "^7.1.1",
     "@mui/x-tree-view": "^7.6.1",
-    "@react-pdf-viewer/core": "^3.12.0",
-    "@react-pdf-viewer/default-layout": "^3.12.0",
     "@react-pdf/renderer": "^3.4.2",
     "@types/draft-js": "^0.11.18",
     "axios": "^1.6.7",
@@ -38,7 +37,7 @@
     "react": "^18.2.0",
     "react-dom": "^18.2.0",
     "react-hook-form": "^7.51.4",
-    "react-pdf": "^7.7.1",
+    "react-pdf": "^9.2.1",
     "react-redux": "^9.1.0",
     "react-router-dom": "^6.22.1",
     "yup": "^1.4.0",
@@ -54,9 +53,12 @@
     "@typescript-eslint/parser": "^7.2.0",
     "@vitejs/plugin-react-swc": "^3.5.0",
     "eslint": "^8.57.0",
+    "eslint-config-prettier": "^10.0.1",
     "eslint-import-resolver-typescript": "^3.6.3",
+    "eslint-plugin-prettier": "^5.2.3",
     "eslint-plugin-react-hooks": "^4.6.0",
     "eslint-plugin-react-refresh": "^0.4.6",
+    "prettier": "^3.4.2",
     "typescript": "^5.4.5",
     "vite": "^5.2.0"
   }

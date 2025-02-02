@@ -1,1 +1,1 @@
-export {CreateRpdTemplateFrom1CExchange} from './ui/CreateRpdTemplateFrom1CExchange'
+export { CreateRpdTemplateFrom1CExchange } from "./ui/CreateRpdTemplateFrom1CExchange";
