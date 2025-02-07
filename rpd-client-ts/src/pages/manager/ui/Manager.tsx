@@ -1,15 +1,14 @@
-import { FC, useState } from "react";
-import { Box, Container, Button } from "@mui/material";
-import ListAltIcon from "@mui/icons-material/ListAlt";
+import { FC } from "react";
+import { Box, Container } from "@mui/material";
 import { Selectors } from "@features/select-template-data";
 import { TemplateConstructor } from "@features/create-rpd-template";
 import { ChangeRpdTemplate } from "@features/change-rpd-template";
 import { CreateRpdTemplateFromYear } from "@features/create-rpd-template-from-year";
 import { CreateRpdTemplateFrom1CExchange } from "@features/create-rpd-template-from-1c-exchange";
-import RpdComplectsList from "@widgets/rpd-complects";
+import { useStore } from "@shared/hooks";
 
 export const Manager: FC = () => {
-  const [choise, setChoise] = useState<string>("selectData");
+  const { managerPage, setManagerPage } = useStore();
 
   return (
     <Container
@@ -20,44 +19,28 @@ export const Manager: FC = () => {
       }}
     >
       <Box
-        my={4}
-        p={2}
-        ml={2}
         sx={{
           backgroundColor: "#fefefe",
           width: "100%",
         }}
       >
         <Box component="h2" sx={{ py: 1 }}>
-          Создание комплекта РПД на основе учебного плана (загрузка учебного
-          плана)
+          Создание комплекта РПД на основе учебного плана
         </Box>
-        {choise !== "viewRpdComplectsList" && (
-          <Button
-            sx={{ marginTop: 1, marginBottom: 4 }}
-            variant="contained"
-            size="small"
-            startIcon={<ListAltIcon />}
-            onClick={() => setChoise("viewRpdComplectsList")}
-          >
-            Просмотр комплектов РПД
-          </Button>
+        {managerPage === "selectData" && (
+          <Selectors setChoise={setManagerPage} />
         )}
-        {choise === "selectData" && <Selectors setChoise={setChoise} />}
-        {choise === "workingType" && (
-          <TemplateConstructor setChoise={setChoise} />
+        {managerPage === "workingType" && (
+          <TemplateConstructor setChoise={setManagerPage} />
         )}
-        {choise === "changeTemplate" && (
-          <ChangeRpdTemplate setChoise={setChoise} />
+        {managerPage === "changeTemplate" && (
+          <ChangeRpdTemplate setChoise={setManagerPage} />
         )}
-        {choise === "createTemplateFromCurrentYear" && (
-          <CreateRpdTemplateFromYear setChoise={setChoise} />
+        {managerPage === "createTemplateFromCurrentYear" && (
+          <CreateRpdTemplateFromYear setChoise={setManagerPage} />
         )}
-        {choise === "createTemplateFromExchange" && (
-          <CreateRpdTemplateFrom1CExchange setChoise={setChoise} />
-        )}
-        {choise === "viewRpdComplectsList" && (
-          <RpdComplectsList setChoise={setChoise} />
+        {managerPage === "createTemplateFromExchange" && (
+          <CreateRpdTemplateFrom1CExchange setChoise={setManagerPage} />
         )}
       </Box>
     </Container>

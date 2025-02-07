@@ -74,7 +74,7 @@ const ChangeableCoverPage = ({ title }: ChangeableCoverPageProps) => {
             sx={{ my: 1 }}
           />
           <Button
-            variant="outlined"
+            variant="contained"
             size="small"
             endIcon={<SaveAltIcon color="primary" />}
             onClick={handleSaveClick}

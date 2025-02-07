@@ -31,10 +31,10 @@ import { axiosBase } from "@shared/api";
 import { showErrorMessage, showSuccessMessage } from "@shared/lib";
 import { Loader } from "@shared/ui";
 import Grid2 from "@mui/material/Unstable_Grid2/Grid2";
-import { useNavigate } from "react-router-dom";
 import axios from "axios";
 import { UserRole } from "@shared/ability";
 import type { User, NewUser } from "../model/types";
+import { ClippedDrawer } from "@widgets/drawer";
 
 type Order = "asc" | "desc";
 
@@ -47,7 +47,6 @@ export const UserManagementPage: FC = () => {
   const [rowsPerPage, setRowsPerPage] = useState(5);
   const [open, setOpen] = useState(false);
   const userRole = useAuth((state) => state.userRole);
-  const navigate = useNavigate();
 
   const [newUser, setNewUser] = useState<NewUser>({
     username: "",
@@ -392,13 +391,6 @@ export const UserManagementPage: FC = () => {
         display={"flex"}
         justifyContent={"space-between"}
       >
-        <Button
-          variant="outlined"
-          sx={{ height: 30 }}
-          onClick={() => navigate(-1)}
-        >
-          Назад
-        </Button>
         <TablePagination
           rowsPerPageOptions={[5, 10, 25]}
           component="div"

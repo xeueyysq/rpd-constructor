@@ -3,7 +3,7 @@ import { FC } from "react";
 
 const HeaderLogo: FC = () => {
   return (
-    <Box sx={{ px: 1 }}>
+    <Box sx={{ px: 1 }} alignItems={"center"} alignContent={"center"}>
       <Typography
         variant="overline"
         display="block"
@@ -11,6 +11,7 @@ const HeaderLogo: FC = () => {
           color: "black",
           fontWeight: "600",
           fontSize: "14px",
+          userSelect: "none",
         }}
       >
         Конструктор РПД

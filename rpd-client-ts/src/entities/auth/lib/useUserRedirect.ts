@@ -6,12 +6,13 @@ import { useAuth } from "./useAuth.ts";
 enum RedirectPath {
   SIGN_IN = "/sign-in",
   MANAGER = "/manager",
-  TEACHER_INTERFACE = "/teacher-interface",
+  TEACHER_INTERFACE = "/teacher-interface-templates",
   RPD_TEMPLATE = "/rpd-template",
+  COMPLECTS = "/complects",
 }
 
 const roleToRedirectPath: Record<UserRole, RedirectPath> = {
-  [UserRole.ROP]: RedirectPath.MANAGER,
+  [UserRole.ROP]: RedirectPath.COMPLECTS,
   [UserRole.TEACHER]: RedirectPath.TEACHER_INTERFACE,
   [UserRole.ADMIN]: RedirectPath.RPD_TEMPLATE,
   [UserRole.ANONYMOUS]: RedirectPath.SIGN_IN,

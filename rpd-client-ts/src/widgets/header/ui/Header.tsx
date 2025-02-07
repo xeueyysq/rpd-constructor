@@ -1,21 +1,17 @@
 import { FC, useContext, useMemo } from "react";
-import { Box, Container, IconButton } from "@mui/material";
+import { Box, AppBar, Toolbar } from "@mui/material";
 import { useWindowSize } from "@shared/hooks";
 import HeaderMenuMobile from "./HeaderMenuMobile.tsx";
 import HeaderLogo from "./HeaderLogo.tsx";
 import { AuthContext, useAuth } from "@entities/auth";
-import { Logout } from "@mui/icons-material";
 import AccountCircleIcon from "@mui/icons-material/AccountCircle";
-import PersonAddIcon from "@mui/icons-material/PersonAdd";
 import { UserRole } from "@shared/ability";
-import { useNavigate } from "react-router-dom";
 
 export const Header: FC = () => {
   const size = useWindowSize();
-  const { handleLogOut, isUserLogged } = useContext(AuthContext);
+  const { isUserLogged } = useContext(AuthContext);
   const userName = useAuth.getState().userName;
   const userRole = useAuth.getState().userRole;
-  const navigate = useNavigate();
 
   const userRoleLocale = useMemo(() => {
     switch (userRole) {
@@ -31,51 +27,33 @@ export const Header: FC = () => {
   }, [userRole]);
 
   return (
-    <Container
-      maxWidth="xl"
-      sx={{
-        display: "flex",
-        alignItems: "center",
-        justifyContent: "space-between",
-        backgroundColor: "#fefefe",
-        height: "80px",
-        minWidth: "100%",
-      }}
-    >
-      <HeaderLogo />
-      {size.width && size.width > 1090 && isUserLogged && (
-        <Box sx={{ display: "flex", alignItems: "center" }}>
-          {userRole !== UserRole.TEACHER && (
-            <Box>
-              <IconButton onClick={() => navigate("/users")}>
-                <PersonAddIcon />
-              </IconButton>
+    <AppBar color="default" sx={{ zIndex: (theme) => theme.zIndex.drawer + 1 }}>
+      <Toolbar>
+        <Box width={"100%"} display={"flex"} justifyContent={"space-between"}>
+          <HeaderLogo />
+          {size.width && size.width > 1090 && isUserLogged && (
+            <Box sx={{ display: "flex", alignItems: "center" }}>
+              <Box>
+                <Box>{userName}</Box>
+                <Box
+                  sx={{
+                    fontSize: "12px",
+                    fontWeight: 400,
+                    color: "#B2B2B2",
+                    textAlign: "right",
+                  }}
+                >
+                  {userRoleLocale}
+                </Box>
+              </Box>
+              <Box sx={{ px: 1 }}>
+                <AccountCircleIcon sx={{ fontSize: "50px" }} />
+              </Box>
             </Box>
           )}
-          <Box sx={{ px: 1 }}>
-            <IconButton onClick={handleLogOut}>
-              <Logout />
-            </IconButton>
-          </Box>
-          <Box>
-            <Box>{userName}</Box>
-            <Box
-              sx={{
-                fontSize: "12px",
-                fontWeight: 400,
-                color: "#B2B2B2",
-                textAlign: "right",
-              }}
-            >
-              {userRoleLocale}
-            </Box>
-          </Box>
-          <Box sx={{ px: 1 }}>
-            <AccountCircleIcon sx={{ fontSize: "50px" }} />
-          </Box>
+          {size.width && size.width < 1090 && <HeaderMenuMobile />}
         </Box>
-      )}
-      {size.width && size.width < 1090 && <HeaderMenuMobile />}
-    </Container>
+      </Toolbar>
+    </AppBar>
   );
 };

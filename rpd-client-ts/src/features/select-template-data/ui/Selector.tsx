@@ -31,7 +31,7 @@ export const CustomSelector: React.FC<CustomSelector> = ({
 }) => {
   return (
     <Box sx={{ my: 1 }}>
-      <Box sx={{ fontSize: "20px", fontWeight: "600", py: 1 }}>{title}</Box>
+      <Box sx={{ fontSize: "15px", fontWeight: "600", py: 1 }}>{title}</Box>
       <Autocomplete
         value={value}
         onChange={onChange}

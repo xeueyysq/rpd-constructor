@@ -291,7 +291,9 @@ const PlannedResultsPage: FC = () => {
         size="small"
       >
         {/* <Button onClick={handleAddRow}>Добавить строку</Button> */}
-        <Button onClick={saveData}>Сохранить изменения</Button>
+        <Button variant="contained" onClick={saveData}>
+          Сохранить изменения
+        </Button>
       </ButtonGroup>
     </Box>
   );

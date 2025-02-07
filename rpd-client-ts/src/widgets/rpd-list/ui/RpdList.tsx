@@ -13,21 +13,22 @@ import { TreeItem } from "@mui/x-tree-view/TreeItem";
 import RpdListItemComponent from "./RpdListItem.tsx";
 import { FC } from "react";
 import { RpdListItem } from "../model/types.ts";
-import { useNavigate } from "react-router-dom";
 import PictureAsPdfIcon from "@mui/icons-material/PictureAsPdf";
 import ExitToAppIcon from "@mui/icons-material/ExitToApp";
 import { useStore } from "@shared/hooks";
 import { Can } from "@shared/ability";
+import ArrowBackIcon from "@mui/icons-material/ArrowBack";
+import { useNavigate } from "react-router-dom";
 
 interface RpdListProps {
   RpdListItems: RpdListItem[];
   setChoise: (choise: string) => void;
 }
 
-export const RpdList: FC<RpdListProps> = ({ RpdListItems, setChoise }) => {
+export const RpdList: FC<RpdListProps> = ({ RpdListItems }) => {
   const jsonData = useStore.getState().jsonData;
   const navigate = useNavigate();
-
+  const { setTemplatePage, templatePage } = useStore();
   return (
     <>
       {jsonData?.disciplins_name && (
@@ -35,8 +36,7 @@ export const RpdList: FC<RpdListProps> = ({ RpdListItems, setChoise }) => {
           <SimpleTreeView>
             <TreeItem
               itemId="disciplins_name"
-              label={jsonData.disciplins_name}
-              sx={{ px: 3 }}
+              label={String(jsonData.disciplins_name)}
             >
               <TreeItem
                 itemId="direction"
@@ -62,51 +62,44 @@ export const RpdList: FC<RpdListProps> = ({ RpdListItems, setChoise }) => {
           </SimpleTreeView>
         </Box>
       )}
-      <Divider />
       <List dense>
         {RpdListItems.map((item) => (
-          <RpdListItemComponent
-            key={item.id}
-            id={item.id}
-            text={item.text}
-            setChoise={setChoise}
-          />
+          <>
+            <Divider sx={{ bgcolor: "#ffffff", height: 0 }} />
+            <RpdListItemComponent
+              setChoise={setTemplatePage}
+              key={item.id}
+              id={item.id}
+              text={item.text}
+              activePage={templatePage}
+            />
+          </>
         ))}
       </List>
-      <Divider />
+      <Divider sx={{ bgcolor: "#ffffff", height: 0 }} />
       <List dense>
         <Can I="get" a="teacher_interface">
           <ListItem disableGutters sx={{ p: 0 }}>
-            <ListItemIcon sx={{ pl: 3 }}>
-              <ExitToAppIcon />
-            </ListItemIcon>
             <ListItemButton
-              onClick={() => setChoise("selectTemplate")}
-              sx={{ color: "black", px: 0 }}
+              onClick={() => navigate("/teacher-interface-templates")}
+              sx={{ py: 1 }}
             >
+              <ListItemIcon sx={{ pl: 2 }}>
+                <ArrowBackIcon />
+              </ListItemIcon>
               <ListItemText
-                primary={
-                  <Typography
-                    style={{
-                      color: "black",
-                      fontFamily: "Arial",
-                      fontSize: "16px",
-                    }}
-                  >
-                    Вернуться к выбору шаблона
-                  </Typography>
-                }
+                primary={<Typography>Вернуться к выбору шаблона</Typography>}
               />
             </ListItemButton>
           </ListItem>
         </Can>
         <Can I="get" a="rop_interface">
           <ListItem disableGutters sx={{ p: 0 }}>
-            <ListItemIcon sx={{ pl: 3 }}>
+            {/* <ListItemIcon sx={{ pl: 3 }}>
               <PictureAsPdfIcon />
-            </ListItemIcon>
+            </ListItemIcon> */}
             <ListItemButton
-              onClick={() => setChoise("testPdf")}
+              onClick={() => setTemplatePage("testPdf")}
               sx={{ color: "black", px: 0 }}
             >
               <ListItemText
@@ -119,29 +112,6 @@ export const RpdList: FC<RpdListProps> = ({ RpdListItems, setChoise }) => {
                     }}
                   >
                     Сформировать PDF
-                  </Typography>
-                }
-              />
-            </ListItemButton>
-          </ListItem>
-          <ListItem disableGutters sx={{ p: 0 }}>
-            <ListItemIcon sx={{ pl: 3 }}>
-              <ExitToAppIcon />
-            </ListItemIcon>
-            <ListItemButton
-              onClick={() => navigate(-1)}
-              sx={{ color: "black", px: 0 }}
-            >
-              <ListItemText
-                primary={
-                  <Typography
-                    style={{
-                      color: "black",
-                      fontFamily: "Arial",
-                      fontSize: "16px",
-                    }}
-                  >
-                    Вернуться к комплекту
                   </Typography>
                 }
               />

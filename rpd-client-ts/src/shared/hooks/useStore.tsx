@@ -27,11 +27,18 @@ interface CreateByCriteria {
   year?: string | undefined;
 }
 
+interface TabState {
+  isEnabled: boolean;
+}
+
 interface StoreState {
   jsonData: JsonData;
   selectedTemplateData: SelectedTemplateData;
   createByCriteria: CreateByCriteria;
   complectId: number | undefined;
+  tabs: Record<string, TabState>;
+  managerPage: string;
+  templatePage: string;
   setJsonData: (data: JsonData) => void;
   updateJsonData: (key: string, value: JsonValue) => void;
   setSelectedTemplateData: (
@@ -47,6 +54,10 @@ interface StoreState {
     year?: string | undefined
   ) => void;
   setComplectId: (id: number) => void;
+  setTabState: (tabId: string, isEnabled: boolean) => void;
+  deInitializeTabs: () => void;
+  setManagerPage: (page: string) => void;
+  setTemplatePage: (templatePage: string) => void;
 }
 
 export const useStore = create<StoreState>()(
@@ -64,7 +75,15 @@ export const useStore = create<StoreState>()(
       faculty: undefined,
       year: undefined,
     },
+    tabs: {
+      selectData: { isEnabled: true },
+      workingType: { isEnabled: false },
+      createTemplateFromExchange: { isEnabled: false },
+      changeTemplate: { isEnabled: false },
+    },
+    managerPage: "selectData",
     complectId: undefined,
+    templatePage: "coverPage",
     setJsonData: (data) => {
       set((state) => {
         state.jsonData = data;
@@ -116,6 +135,30 @@ export const useStore = create<StoreState>()(
     setComplectId: (id) => {
       set((state) => {
         state.complectId = id;
+      });
+    },
+    setTabState: (tabId, isEnabled) => {
+      set((state) => {
+        if (state.tabs[tabId]) {
+          state.tabs[tabId].isEnabled = isEnabled;
+        }
+      });
+    },
+    deInitializeTabs: () => {
+      set((state) => {
+        state.tabs.workingType.isEnabled = false;
+        state.tabs.createTemplateFromExchange.isEnabled = false;
+        state.tabs.changeTemplate.isEnabled = false;
+      });
+    },
+    setManagerPage: (page) => {
+      set((state) => {
+        state.managerPage = page;
+      });
+    },
+    setTemplatePage: (templatePage) => {
+      set((state) => {
+        state.templatePage = templatePage;
       });
     },
   }))

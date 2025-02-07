@@ -4,7 +4,6 @@ import { yupResolver } from "@hookform/resolvers/yup";
 import {
   Box,
   Button,
-  Container,
   FormControl,
   IconButton,
   InputAdornment,
@@ -34,10 +33,11 @@ export const SignIn: FC = () => {
 
   return (
     <FormProvider {...formMethods}>
-      <Container maxWidth="xl">
+      <Box alignContent={"center"} height={"85vh"}>
         <Box
           sx={{
-            maxWidth: 600,
+            borderRadius: 5,
+            maxWidth: 500,
             margin: "20px auto",
             backgroundColor: "#fefefe",
             textAlign: "center",
@@ -131,7 +131,7 @@ export const SignIn: FC = () => {
             </Box>
           </Box>
         </Box>
-      </Container>
+      </Box>
     </FormProvider>
   );
 };

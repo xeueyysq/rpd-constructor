@@ -9,7 +9,6 @@ import {
 import { FC, MouseEvent, useState } from "react";
 import MoreHorizIcon from "@mui/icons-material/MoreHoriz";
 import { useAuth } from "@entities/auth";
-import { useStore } from "@shared/hooks";
 import { useNavigate } from "react-router-dom";
 import HistoryModal from "./HistoryModal.tsx";
 import OpenInBrowserIcon from "@mui/icons-material/OpenInBrowser";
@@ -18,6 +17,7 @@ import DeleteForeverIcon from "@mui/icons-material/DeleteForever";
 import HistoryIcon from "@mui/icons-material/History";
 import { axiosBase } from "@shared/api";
 import { showErrorMessage, showSuccessMessage } from "@shared/lib";
+import { useStore } from "@shared/hooks";
 
 interface TemplateMenu {
   id: number;
@@ -34,6 +34,7 @@ const TemplateMenu: FC<TemplateMenu> = ({ id, teacher, status, fetchData }) => {
   const [history, setHistory] = useState(undefined);
   const open = Boolean(anchorEl);
   const navigate = useNavigate();
+  const { setTabState } = useStore();
 
   const handleClick = (event: MouseEvent<HTMLButtonElement>) => {
     setAnchorEl(event.currentTarget);
@@ -74,6 +75,7 @@ const TemplateMenu: FC<TemplateMenu> = ({ id, teacher, status, fetchData }) => {
     try {
       const response = await axiosBase.post("rpd-profile-templates", { id });
       setJsonData(response.data);
+      setTabState("createTemplateFromExchange", true);
       navigate("/teacher-interface");
     } catch (error) {
       showErrorMessage("Ошибка при получении данных");

@@ -19,6 +19,7 @@ module.exports = {
   },
   plugins: ["react-refresh", "prettier"],
   rules: {
+    "@typescript-eslint/no-unused-vars": "warn",
     "react-refresh/only-export-components": [
       "warn",
       { allowConstantExport: true },

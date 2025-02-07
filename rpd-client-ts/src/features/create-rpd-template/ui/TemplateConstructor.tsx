@@ -18,6 +18,7 @@ export const TemplateConstructor: FC<TemplateConstructorType> = ({
   const [isFindComplect, setIsFindComplect] = useState<boolean | undefined>(
     undefined
   );
+  const { setTabState } = useStore();
 
   const createRpdComplect = async () => {
     try {
@@ -57,13 +58,17 @@ export const TemplateConstructor: FC<TemplateConstructorType> = ({
     }
   }, [selectedTemplateData, setComplectId]);
 
+  const handleChangePage = () => {
+    setChoise("createTemplateFromExchange");
+    setTabState("createTemplateFromExchange", true);
+  };
+
   useEffect(() => {
     fetchData();
   }, [fetchData]);
 
   return (
     <>
-      <Box>Шаг 2. Создание/редактирование комплекта РПД</Box>
       <Box sx={{ py: 2, fontSize: "18px", fontWeight: "600" }}>
         Выбранные данные:
       </Box>
@@ -127,18 +132,11 @@ export const TemplateConstructor: FC<TemplateConstructorType> = ({
         </>
       )}
       <Box display="flex" gap={3}>
-        <Button
-          variant="outlined"
-          size="small"
-          onClick={() => setChoise("selectData")}
-        >
-          Назад
-        </Button>
         {isFindComplect && (
           <Button
             variant="contained"
             size="small"
-            onClick={() => setChoise("createTemplateFromExchange")}
+            onClick={() => handleChangePage()}
           >
             Перейти к редактированию
           </Button>

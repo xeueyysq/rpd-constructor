@@ -142,7 +142,7 @@ const TextEditor: FC<TestEditor> = ({ value, saveContent, setIsEditing }) => {
         />
       </Box>
       <Button
-        variant="outlined"
+        variant="contained"
         size="small"
         endIcon={<SaveAltIcon color="primary" />}
         onClick={handleSaveClick}

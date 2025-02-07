@@ -12,6 +12,12 @@ export const theme = createTheme({
   components: {
     MuiCssBaseline: {
       styleOverrides: `
+        #root {
+          transform: scale(1.1);
+          transform-origin: top left;
+          width: 91% !important;
+          overflow: hidden;
+        }
         @font-face {
           font-family: 'Inter';
           font-style: normal;

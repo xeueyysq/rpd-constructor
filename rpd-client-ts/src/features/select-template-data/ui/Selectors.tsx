@@ -27,6 +27,8 @@ interface Selectors {
 }
 
 export const Selectors: FC<Selectors> = ({ setChoise }) => {
+  const { setTabState } = useStore();
+  const { deInitializeTabs } = useStore();
   const selectorsData = useStore.getState().selectedTemplateData;
   const [selectors, setSelectors] = useState<SelectorsState>({
     faculty: selectorsData.faculty
@@ -153,8 +155,9 @@ export const Selectors: FC<Selectors> = ({ setChoise }) => {
       selectors.formEducation?.value,
       selectors.year?.value
     );
-
     setChoise("workingType");
+    deInitializeTabs();
+    setTabState("workingType", true);
   };
 
   // const selectedValue = useMemo(
@@ -165,8 +168,7 @@ export const Selectors: FC<Selectors> = ({ setChoise }) => {
 
   return (
     <Box sx={{ py: 1, maxWidth: "500px" }}>
-      <Box>Шаг 1. Выбор данных</Box>
-      <Box sx={{ fontSize: "20px", fontWeight: "600", py: 1 }}>Институт</Box>
+      <Box sx={{ fontSize: "15px", fontWeight: "600", py: 1 }}>Институт</Box>
       <Autocomplete
         // placeholder="Выберите институт"
         // isClearable
@@ -264,11 +266,7 @@ export const Selectors: FC<Selectors> = ({ setChoise }) => {
           />
         )}
       {selectors.year && (
-        <Button
-          variant="outlined"
-          onClick={saveTemplateData}
-          data-cy="continue-button"
-        >
+        <Button variant="contained" onClick={saveTemplateData}>
           Продолжить
         </Button>
       )}
