@@ -1,24 +1,26 @@
-const { pool } = require('../../config/db');
-const RpdChangeableValues = require('../models/rpd_changeable_values');
-const RpdProfileTemplates = require('../models/rpd_profile_templates');
-const RpdComplects = require('../models/rpd_complects');
+const { pool } = require("../../config/db");
+const RpdChangeableValues = require("../models/rpd_changeable_values");
+const RpdProfileTemplates = require("../models/rpd_profile_templates");
+const RpdComplects = require("../models/rpd_complects");
 
 async function generateCoverPage(id) {
-    //data
-    let uniName = null;
-    let approvalField = null;
-    let jsonData = null;
+  //data
+  let uniName = null;
+  let approvalField = null;
+  let jsonData = null;
 
-    try {
-        uniName = await new RpdChangeableValues(pool).getChangeableValue("uniName");
-        approvalField = await new RpdChangeableValues(pool).getChangeableValue("approvalField");
-        complectData = await new RpdComplects(pool).findRpdComplectData(id);
-        jsonData = await new RpdProfileTemplates(pool).getJsonProfile(id);
-    } catch (error) {
-        console.log(error);
-    }
+  try {
+    uniName = await new RpdChangeableValues(pool).getChangeableValue("uniName");
+    approvalField = await new RpdChangeableValues(pool).getChangeableValue(
+      "approvalField"
+    );
+    complectData = await new RpdComplects(pool).findRpdComplectData(id);
+    jsonData = await new RpdProfileTemplates(pool).getJsonProfile(id);
+  } catch (error) {
+    console.log(error);
+  }
 
-    const htmlCoverPage = `
+  const htmlCoverPage = `
     <html>
     <head>
         <title>Пример</title>
@@ -102,20 +104,20 @@ async function generateCoverPage(id) {
     </body>
     </html>`;
 
-    return htmlCoverPage;
+  return htmlCoverPage;
 }
 
 async function generateApprovalPage(id) {
-    //data
-    let jsonData = null;
+  //data
+  let jsonData = null;
 
-    try {
-        jsonData = await new RpdProfileTemplates(pool).getJsonProfile(id);
-    } catch (error) {
-        console.log(error);
-    }
+  try {
+    jsonData = await new RpdProfileTemplates(pool).getJsonProfile(id);
+  } catch (error) {
+    console.log(error);
+  }
 
-    const htmlApprovalPage = `
+  const htmlApprovalPage = `
     <html>
     <head>
         <title>Пример</title>
@@ -185,44 +187,103 @@ async function generateApprovalPage(id) {
     </body>
     </html>`;
 
-    return htmlApprovalPage;
+  return htmlApprovalPage;
 }
 
 function contentResultFunc(data) {
-    let summ = {
-        result: 0,
-        lectures: 0,
-        seminars: 0,
-        lect_and_sems: 0,
-        independent_work: 0,
-    }
+  let summ = {
+    result: 0,
+    lectures: 0,
+    seminars: 0,
+    lect_and_sems: 0,
+    independent_work: 0,
+  };
 
-    Object.keys(data).forEach(value => {
-        summ.result += data[value].lectures + data[value].seminars + data[value].independent_work;
-        summ.lectures += data[value].lectures; 
-        summ.seminars += data[value].seminars;
-        summ.lect_and_sems += data[value].lectures + data[value].seminars;
-        summ.independent_work += data[value].independent_work;
-    });
-
+  if (!data) {
     return summ;
+  }
+
+  Object.keys(data).forEach((value) => {
+    const item = data[value] || {};
+    const lectures = Number(item.lectures) || 0;
+    const seminars = Number(item.seminars) || 0;
+    const independentWork = Number(item.independent_work) || 0;
+
+    summ.result += lectures + seminars + independentWork;
+    summ.lectures += lectures;
+    summ.seminars += seminars;
+    summ.lect_and_sems += lectures + seminars;
+    summ.independent_work += independentWork;
+  });
+
+  return summ;
 }
 
 async function generateContentPage(id) {
-    //data
-    let jsonData = null;
-    let cource = null;
+  //data
+  let jsonData = null;
+  let cource = null;
 
-    try {
-        jsonData = await new RpdProfileTemplates(pool).getJsonProfile(id);
-        cource = Math.ceil(Number(jsonData.semester) / 2);
-    } catch (error) {
-        console.log(error);
-    }
+  try {
+    jsonData = await new RpdProfileTemplates(pool).getJsonProfile(id);
+    cource = Math.ceil(Number(jsonData?.semester || 1) / 2);
+  } catch (error) {
+    console.log(error);
+  }
 
-    const contentResult = contentResultFunc(jsonData.content);
+  if (!jsonData) {
+    return "";
+  }
 
-    const htmlContentPage = `
+  const contentResult = contentResultFunc(jsonData.content);
+
+  const competenciesContent = jsonData.competencies
+    ? Object.keys(jsonData.competencies)
+        .map((row) => {
+          const value = jsonData.competencies[row] || {};
+          return `
+              <tr>
+                  <td>${value.competence || ""}</td>
+                  <td>${value.indicator || ""}</td>
+                  <td>${value.results || ""}</td>
+              </tr>
+          `;
+        })
+        .join("")
+    : "";
+
+  const contentTableRows = jsonData.content
+    ? Object.keys(jsonData.content)
+        .map((row) => {
+          const value = jsonData.content[row] || {};
+          const lectures = Number(value.lectures) || 0;
+          const seminars = Number(value.seminars) || 0;
+          const independentWork = Number(value.independent_work) || 0;
+          return `
+              <tr>
+                  <td>${value.theme || ""}</td>
+                  <td>${lectures + seminars + independentWork}</td>
+                  <td>${lectures}</td>
+                  <td>${seminars}</td>
+                  <td>${lectures + seminars}</td>
+                  <td>${independentWork}</td>
+              </tr>
+          `;
+        })
+        .join("")
+    : "";
+
+  const textbookList = Array.isArray(jsonData.textbook)
+    ? jsonData.textbook.map((row) => `<li>${row || ""}</li>`).join("")
+    : "";
+
+  const additionalTextbookList = Array.isArray(jsonData.additional_textbook)
+    ? jsonData.additional_textbook
+        .map((row) => `<li>${row || ""}</li>`)
+        .join("")
+    : "";
+
+  const htmlContentPage = `
     <html>
     <head>
         <title>Пример</title>
@@ -273,11 +334,19 @@ async function generateContentPage(id) {
     <body>
         <div class="page">
             <div class="content-page-title">1. Цели и задачи освоения дисциплины</div>
-            <div class="content-page-content">${jsonData.goals}</div>
+            <div class="content-page-content">${jsonData.goals || ""}</div>
             <div class="content-page-title">2. Место дисциплины в структуре ОПОП</div>
-            <div class="content-page-content"><p>Дисциплина «${jsonData.disciplins_name}» относится к ${jsonData.place} учебного плана направления ${jsonData.direction_of_study}.</p></div>
-            <div class="content-page-content"><p>Дисциплина преподается в ${jsonData.semester} семестре, на ${cource} курсе.</p></div>
-            <div class="content-page-content"><p>${jsonData.place_more_text}</p></div>
+            <div class="content-page-content"><p>Дисциплина «${
+              jsonData.disciplins_name || ""
+            }» относится к ${jsonData.place || ""} учебного плана направления ${
+    jsonData.direction_of_study || ""
+  }.</p></div>
+            <div class="content-page-content"><p>Дисциплина преподается в ${
+              jsonData.semester || ""
+            } семестре, на ${cource || ""} курсе.</p></div>
+            <div class="content-page-content"><p>${
+              jsonData.place_more_text || ""
+            }</p></div>
             <div class="content-page-title">3. Планируемые результаты обучения по дисциплине (модулю)</div>
             <table class="table">
                 <thead>
@@ -288,19 +357,15 @@ async function generateContentPage(id) {
                     </tr>
                 </thead>
                 <tbody>
-                ${Object.keys(jsonData.competencies).map(row => {
-                    const value = jsonData.competencies[row];
-                    return `
-                        <tr>
-                            <td>${value.competence}</td>
-                            <td>${value.indicator}</td>
-                            <td>${value.results}</td>
-                        </tr>
-                    `}).join('')}
+                ${competenciesContent}
                 </tbody>
             </table>
             <div class="content-page-title">4. Объем дисциплины</div>
-            <div class="content-page-content"><p>Объем дисциплины составляет ${jsonData.zet} зачетных единиц, всего ${contentResult.result} академических часов.</p></div>
+            <div class="content-page-content"><p>Объем дисциплины составляет ${
+              jsonData.zet || ""
+            } зачетных единиц, всего ${
+    contentResult.result
+  } академических часов.</p></div>
             <div class="content-page-title">5. Содержание дисциплины</div>
             <table class="table">
                 <tbody>
@@ -318,18 +383,7 @@ async function generateContentPage(id) {
                         <th>Практические (семинарские) занятия</th>
                         <th><b>Всего</b></th>
                     </tr>
-                    ${Object.keys(jsonData.content).map(row => {
-                        const value = jsonData.content[row];
-                        return `
-                            <tr>
-                                <td>${value.theme}</td>
-                                <td>${value.lectures + value.seminars + value.independent_work}</td>
-                                <td>${value.lectures}</td>
-                                <td>${value.seminars}</td>
-                                <td>${value.lectures + value.seminars}</td>
-                                <td>${value.independent_work}</td>
-                            </tr>
-                        `}).join('')}
+                    ${contentTableRows}
                     <tr>
                         <td><b>Итого за семестр / курс</b></td>
                         <td><b>${contentResult.result}</b></td>
@@ -341,49 +395,53 @@ async function generateContentPage(id) {
                 </tbody>
             </table>
             <div class="content-page-title">Содержание дисциплины</div>
-            <div class="content-page-content">${jsonData.content_more_text}</div>
-            <div class="content-page-content">${jsonData.content_template_more_text}</div>
+            <div class="content-page-content">${
+              jsonData.content_more_text || ""
+            }</div>
+            <div class="content-page-content">${
+              jsonData.content_template_more_text || ""
+            }</div>
             <div class="content-page-title" style="padding-top: 20px">6. Перечень учебно-методического обеспечения по дисциплине</div>
-            <div class="content-page-content">${jsonData.methodological_support_template}</div>
+            <div class="content-page-content">${
+              jsonData.methodological_support_template || ""
+            }</div>
             <div class="content-page-title">7. Фонды оценочных средств по дисциплине</div>
-            <div class="content-page-content">${jsonData.assessment_tools_template}</div>
+            <div class="content-page-content">${
+              jsonData.assessment_tools_template || ""
+            }</div>
             <div class="content-page-title" style="padding: 20px 0">8. Ресурсное обеспечение</div>
             <div class="content-page-title">Перечень литературы</div>
             <div class="content-page-title">Основная литература</div>
             <div class="content-page-content">
                 <ol>
-                    ${jsonData.textbook.map(row => {
-                        return `
-                            <li>${row}</li>
-                        `
-                    }).join('')}
+                    ${textbookList}
                 </ol>
             </div>
             <div class="content-page-title">Дополнительная литература</div>
             <div class="content-page-content">
                 <ol>
-                    ${jsonData.additional_textbook.map(row => {
-                        return `
-                            <li>${row}</li>
-                        `
-                    }).join('')}
+                    ${additionalTextbookList}
                 </ol>
             </div>
             <div class="content-page-title">Профессиональные базы данных и информационные справочные системы</div>
-            <div class="content-page-content">${jsonData.professional_information_resources}</div>
+            <div class="content-page-content">${
+              jsonData.professional_information_resources || ""
+            }</div>
             <div class="content-page-title" style="padding-top: 20px">Необходимое программное обеспечение</div>
-            <div class="content-page-content">${jsonData.software}</div>
+            <div class="content-page-content">${jsonData.software || ""}</div>
             <div class="content-page-title">Необходимое материально-техническое обеспечение</div>
-            <div class="content-page-content">${jsonData.logistics_template}</div>
+            <div class="content-page-content">${
+              jsonData.logistics_template || ""
+            }</div>
         </div>
     </body>
     </html>`;
 
-    return htmlContentPage;
+  return htmlContentPage;
 }
 
 module.exports = {
-    generateCoverPage,
-    generateApprovalPage,
-    generateContentPage
+  generateCoverPage,
+  generateApprovalPage,
+  generateContentPage,
 };
