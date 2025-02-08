@@ -55,6 +55,8 @@ function EditableCell({
     <div
       onClick={handleDivClick}
       style={{
+        fontFamily: "Times New Roman",
+        fontSize: 16,
         whiteSpace: "pre-wrap",
         cursor: readOnly ? "default" : "pointer",
         backgroundColor: readOnly ? "#f5f5f5" : "white",

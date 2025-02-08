@@ -32,7 +32,12 @@ export const TeacherInterface: FC = () => {
 
   return (
     <Container sx={{ marginRight: 50 }} maxWidth="md">
-      <Box py={3} sx={{ backgroundColor: "#fefefe" }}>
+      <Box
+        py={3}
+        sx={{ backgroundColor: "#fefefe" }}
+        fontFamily={"Times New Roman"}
+        fontSize={18}
+      >
         {templatePage === "coverPage" && <CoverPage />}
         {templatePage === "approvalPage" && <ApprovalPage />}
         {templatePage === "aimsPage" && <AimsPage />}

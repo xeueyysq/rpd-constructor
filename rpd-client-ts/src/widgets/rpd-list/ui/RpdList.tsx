@@ -78,30 +78,15 @@ export const RpdList: FC<RpdListProps> = ({ RpdListItems }) => {
       </List>
       <Divider sx={{ bgcolor: "#ffffff", height: 0 }} />
       <List dense>
-        <Can I="get" a="teacher_interface">
+        <Can I="get" a="rop_interface">
           <ListItem disableGutters sx={{ p: 0 }}>
             <ListItemButton
-              onClick={() => navigate("/teacher-interface-templates")}
+              onClick={() => setTemplatePage("testPdf")}
               sx={{ py: 1 }}
             >
               <ListItemIcon sx={{ pl: 2 }}>
-                <ArrowBackIcon />
+                <PictureAsPdfIcon />
               </ListItemIcon>
-              <ListItemText
-                primary={<Typography>Вернуться к выбору шаблона</Typography>}
-              />
-            </ListItemButton>
-          </ListItem>
-        </Can>
-        <Can I="get" a="rop_interface">
-          <ListItem disableGutters sx={{ p: 0 }}>
-            {/* <ListItemIcon sx={{ pl: 3 }}>
-              <PictureAsPdfIcon />
-            </ListItemIcon> */}
-            <ListItemButton
-              onClick={() => setTemplatePage("testPdf")}
-              sx={{ color: "black", px: 0 }}
-            >
               <ListItemText
                 primary={
                   <Typography
@@ -118,6 +103,16 @@ export const RpdList: FC<RpdListProps> = ({ RpdListItems }) => {
             </ListItemButton>
           </ListItem>
         </Can>
+        <ListItem disableGutters sx={{ p: 0 }}>
+          <ListItemButton onClick={() => navigate(-1)} sx={{ py: 1 }}>
+            <ListItemIcon sx={{ pl: 2 }}>
+              <ArrowBackIcon />
+            </ListItemIcon>
+            <ListItemText
+              primary={<Typography>Вернуться к выбору шаблона</Typography>}
+            />
+          </ListItemButton>
+        </ListItem>
       </List>
     </>
   );

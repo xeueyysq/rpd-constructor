@@ -14,7 +14,7 @@ enum RedirectPath {
 const roleToRedirectPath: Record<UserRole, RedirectPath> = {
   [UserRole.ROP]: RedirectPath.COMPLECTS,
   [UserRole.TEACHER]: RedirectPath.TEACHER_INTERFACE,
-  [UserRole.ADMIN]: RedirectPath.RPD_TEMPLATE,
+  [UserRole.ADMIN]: RedirectPath.COMPLECTS,
   [UserRole.ANONYMOUS]: RedirectPath.SIGN_IN,
 };
 

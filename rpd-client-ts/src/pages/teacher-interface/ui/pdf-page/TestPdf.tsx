@@ -27,11 +27,12 @@ export default function TestPdf() {
       setFileName(response.data);
     } catch (error) {
       showErrorMessage(
-        "Ошибка при загрузке PDF файла. Не все поля шаблона заполнены"
+        "Произошла ошибка при формировании PDF файла. Пожалуйста, проверьте корректность введенных данных"
       );
       console.error(error);
+    } finally {
+      setDisableButton(false);
     }
-    // setDisableButton(false);
   };
 
   return (

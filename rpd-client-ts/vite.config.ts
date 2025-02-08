@@ -17,6 +17,7 @@ export default defineConfig({
       "@features": path.resolve(__dirname, "src/features"),
       "@entities": path.resolve(__dirname, "src/entities"),
       "@shared": path.resolve(__dirname, "src/shared"),
+      "@": path.resolve(__dirname, "./src"),
     },
   },
   server: {
@@ -35,6 +36,10 @@ export default defineConfig({
       },
     },
   },
+  optimizeDeps: {
+    include: ["react-pdf"],
+    exclude: ["pdfjs-dist/build/pdf.worker.min.js"],
+  },
   build: {
     chunkSizeWarningLimit: 1000,
     rollupOptions: {
@@ -42,7 +47,7 @@ export default defineConfig({
         manualChunks: {
           "react-vendor": ["react", "react-dom"],
           "mui-vendor": ["@mui/material", "@mui/icons-material"],
-          "pdf-vendor": ["pdfjs-dist"],
+          pdfjs: ["pdfjs-dist"],
         },
       },
     },

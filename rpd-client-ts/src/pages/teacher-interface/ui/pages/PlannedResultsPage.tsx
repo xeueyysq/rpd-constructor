@@ -15,11 +15,20 @@ import {
   TableRow,
 } from "@mui/material";
 import { Loader } from "@shared/ui";
-import { PlannedResultsData } from "../../model/DisciplineContentPageTypes.ts";
 import { showErrorMessage, showSuccessMessage } from "@shared/lib";
 import { axiosBase } from "@shared/api";
 import Papa from "papaparse";
 import { Can } from "@shared/ability";
+import { KeyOutlined } from "@mui/icons-material";
+import PlannedResultsCell from "../changeable-elements/PlannedResultsCell.tsx";
+
+interface PlannedResultsData {
+  [key: string]: {
+    competence: string;
+    indicator: string;
+    results: string; // будет содержать JSON строку с know, beAble, own
+  };
+}
 
 const PlannedResultsPage: FC = () => {
   const initialData = useStore.getState().jsonData.competencies as
@@ -36,7 +45,11 @@ const PlannedResultsPage: FC = () => {
     const filteredDataMap: PlannedResultsData = {};
     let competence = "";
     let indicator = "";
-    const results = "";
+    const results = JSON.stringify({
+      know: "",
+      beAble: "",
+      own: "",
+    });
     parsedData &&
       Object.entries(parsedData).forEach(([key, row]) => {
         const dataLenght = Object.keys(filteredDataMap).length;
@@ -179,13 +192,22 @@ const PlannedResultsPage: FC = () => {
         >
           <TableHead>
             <TableRow>
-              <TableCell align="center">
-                Формируемые компетенции(код и наименование)
+              <TableCell
+                align="center"
+                sx={{ fontFamily: "Times New Roman", fontSize: 16 }}
+              >
+                Формируемые компетенции (код и наименование)
               </TableCell>
-              <TableCell align="center">
+              <TableCell
+                align="center"
+                sx={{ fontFamily: "Times New Roman", fontSize: 16 }}
+              >
                 Индикаторы достижения компетенций (код и формулировка)
               </TableCell>
-              <TableCell align="center">
+              <TableCell
+                align="center"
+                sx={{ fontFamily: "Times New Roman", fontSize: 16 }}
+              >
                 Планируемые результаты обучения по дисциплине (модулю)
               </TableCell>
             </TableRow>
@@ -212,7 +234,7 @@ const PlannedResultsPage: FC = () => {
                   </TableCell>
                   <TableCell>
                     <Can I="edit" a="competencies">
-                      <EditableCell
+                      <PlannedResultsCell
                         value={data[key].results}
                         onValueChange={(value: string) =>
                           handleValueChange(Number(key), "results", value)

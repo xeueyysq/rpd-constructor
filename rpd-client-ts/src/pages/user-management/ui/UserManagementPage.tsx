@@ -273,7 +273,10 @@ export const UserManagementPage: FC = () => {
                     defaultValue=""
                     onChange={(e) => {
                       selected.forEach((userId) => {
-                        updateUserRole(userId, e.target.value as UserRole);
+                        updateUserRole(
+                          userId,
+                          Number(e.target.value) as UserRole
+                        );
                       });
                       setSelected([]);
                     }}
