@@ -6,6 +6,7 @@ import LogoutIcon from "@mui/icons-material/Logout";
 import ChecklistIcon from "@mui/icons-material/Checklist";
 import FindInPageIcon from "@mui/icons-material/FindInPage";
 import ArrowBackIcon from "@mui/icons-material/ArrowBack";
+import QuestionMarkIcon from "@mui/icons-material/QuestionMark";
 
 export const mainTabs = [
   {
@@ -49,5 +50,22 @@ export const complectTabs = [
     name: "Назад",
     page: "/complects",
     icon: createElement(ArrowBackIcon),
+  },
+];
+
+export const teacherTabs = [
+  {
+    name: "Список шаблонов",
+    path: "/teacher-interface-templates",
+    icon: createElement(ViewListIcon),
+  },
+  {
+    name: "Справочник",
+    path: "",
+    icon: createElement(QuestionMarkIcon),
+  },
+  {
+    name: "Выйти",
+    icon: createElement(LogoutIcon),
   },
 ];

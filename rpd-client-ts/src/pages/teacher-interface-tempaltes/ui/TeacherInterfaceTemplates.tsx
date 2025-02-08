@@ -102,7 +102,6 @@ export const TeacherInterfaceTemplates: FC = () => {
       <Header />
       <Box
         sx={{
-          my: 10,
           p: 2,
           ml: 2,
           backgroundColor: "#fefefe",

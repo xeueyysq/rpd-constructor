@@ -32,127 +32,70 @@ const PlannedResultsPage: FC = () => {
   const [data, setData] = useState<PlannedResultsData | undefined>(initialData);
   // const [nextId, setNextId] = useState<number>(initialDataLength)
 
+  const filterData = (parsedData: PlannedResultsData) => {
+    const filteredDataMap: PlannedResultsData = {};
+    let competence = "";
+    let indicator = "";
+    const results = "";
+    parsedData &&
+      Object.entries(parsedData).forEach(([key, row]) => {
+        const dataLenght = Object.keys(filteredDataMap).length;
+        if (row.competence) {
+          competence = `${row.competence}. ${row.results}`;
+        } else if (row.indicator) {
+          indicator = `${row.indicator}. ${row.results}`;
+        } else if (row.results === disciplineName) {
+          if (
+            Object.values(filteredDataMap).find(
+              (row) => row.competence === competence
+            )
+          )
+            competence = "";
+          filteredDataMap[dataLenght] = {
+            competence,
+            indicator,
+            results,
+          };
+        }
+      });
+    console.log("Отфильтрованные данные:", filteredDataMap);
+    return filteredDataMap;
+  };
+
   const handleFileUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
     if (!file) return;
 
-    console.log("Начало обработки файла");
-    console.log("Искомая дисциплина:", disciplineName);
-
     Papa.parse(file, {
       complete: (results) => {
-        const rows = results.data as string[][];
-        let currentCompetence = "";
-        let currentCompetenceContent = "";
-        const competenciesMap = new Map<
-          string,
-          {
-            competence: string;
-            indicators: { code: string; content: string }[];
-          }
-        >();
-        const disciplineRows = new Set<number>();
+        try {
+          const rows = results.data as string[][];
+          const dataRows = rows.slice(1);
 
-        // Сначала найдем все строки с нашей дисциплиной
-        for (let i = 1; i < rows.length; i++) {
-          const [, , disc, content] = rows[i];
-          if (disc && content.trim() === disciplineName.trim()) {
-            disciplineRows.add(i);
-            console.log("Найдена дисциплина в строке:", i);
-          }
-        }
+          const parsedData: PlannedResultsData = {};
 
-        if (disciplineRows.size === 0) {
-          showErrorMessage("Дисциплина не найдена в файле");
-          return;
-        }
-
-        // Теперь обработаем компетенции для найденных строк
-        disciplineRows.forEach((rowIndex) => {
-          // Идем назад от строки с дисциплиной, пока не найдем компетенцию
-          for (let i = rowIndex; i >= 0; i--) {
-            const [comp, , , content] = rows[i];
-            if (comp) {
-              currentCompetence = comp;
-              currentCompetenceContent = content;
-              if (!competenciesMap.has(currentCompetence)) {
-                competenciesMap.set(currentCompetence, {
-                  competence: `${currentCompetence} ${currentCompetenceContent}`,
-                  indicators: [],
-                });
-              }
-              break;
-            }
-          }
-
-          // Теперь собираем индикаторы для найденной компетенции
-          for (let i = rowIndex - 1; i >= 0; i--) {
-            const [comp, ind, , content] = rows[i];
-            // Если встретили новую компетенцию, прекращаем поиск индикаторов
-            if (comp) break;
-            // Если нашли индикатор
-            if (ind && currentCompetence) {
-              const competenceData = competenciesMap.get(currentCompetence);
-              if (
-                competenceData &&
-                !competenceData.indicators.some(
-                  (indicator) => indicator.code === ind
-                )
-              ) {
-                competenceData.indicators.push({
-                  code: ind,
-                  content: content,
-                });
-              }
-            }
-          }
-        });
-
-        console.log("\nРезультаты обработки:");
-        console.log(
-          "Найденные компетенции:",
-          Array.from(competenciesMap.keys())
-        );
-
-        // Преобразуем данные в формат PlannedResultsData
-        const formattedData: PlannedResultsData = {};
-        let index = 0;
-
-        competenciesMap.forEach((value) => {
-          // Добавляем первую строку с компетенцией и первым индикатором
-          if (value.indicators.length > 0) {
-            formattedData[index] = {
-              competence: value.competence,
-              indicator: `${value.indicators[0].code} ${value.indicators[0].content}`,
-              results: "",
-            };
-            index++;
-
-            // Добавляем остальные индикаторы с пустой компетенцией
-            for (let i = 1; i < value.indicators.length; i++) {
-              formattedData[index] = {
-                competence: "",
-                indicator: `${value.indicators[i].code} ${value.indicators[i].content}`,
-                results: "",
+          dataRows.forEach((row: string[], index: number) => {
+            if (row.length >= 3) {
+              parsedData[index] = {
+                competence: row[0] || "",
+                indicator: row[1] || "",
+                results: row[3] || "",
               };
-              index++;
             }
+          });
+
+          if (Object.keys(parsedData).length === 0) {
+            showErrorMessage("Данные не найдены");
+            return;
           }
-        });
 
-        if (Object.keys(formattedData).length === 0) {
-          showErrorMessage("Не найдено компетенций для данной дисциплины");
-          return;
+          const filteredData = filterData(parsedData);
+          setData(filteredData);
+          showSuccessMessage("Данные успешно загружены");
+        } catch (error) {
+          showErrorMessage("Ошибка при обработке данных");
+          console.error("Ошибка обработки данных:", error);
         }
-
-        console.log(
-          "Количество обработанных строк:",
-          Object.keys(formattedData).length
-        );
-
-        setData(formattedData);
-        // setNextId(Object.keys(formattedData).length)
-        showSuccessMessage("Данные успешно загружены");
       },
       encoding: "cp1251",
       delimiter: ";",
@@ -168,6 +111,7 @@ const PlannedResultsPage: FC = () => {
   //     const newData = {...data, [nextId]: {competence: '', indicator: '', results: ''}}
   //     setData(newData)
   // }
+  //
 
   const handleValueChange = (id: number, key: string, value: string) => {
     if (!data) return;
@@ -247,41 +191,45 @@ const PlannedResultsPage: FC = () => {
             </TableRow>
           </TableHead>
           <TableBody>
-            {Object.keys(data).map((key) => (
-              <TableRow key={key}>
-                <TableCell>
-                  <EditableCell
-                    value={data[key].competence}
-                    onValueChange={() => {}}
-                    readOnly
-                  />
-                </TableCell>
-                <TableCell>
-                  <EditableCell
-                    value={data[key].indicator}
-                    onValueChange={() => {}}
-                    readOnly
-                  />
-                </TableCell>
-                <TableCell>
-                  <Can I="edit" a="competencies">
+            {Object.keys(data).map((key) => {
+              console.log("Данные, загружаемые в таблицу", data);
+              console.log(data[key].competence);
+              return (
+                <TableRow key={key}>
+                  <TableCell>
                     <EditableCell
-                      value={data[key].results}
-                      onValueChange={(value: string) =>
-                        handleValueChange(Number(key), "results", value)
-                      }
-                    />
-                  </Can>
-                  <Can not I="edit" a="competencies">
-                    <EditableCell
-                      value={data[key].results}
+                      value={data[key].competence}
                       onValueChange={() => {}}
                       readOnly
                     />
-                  </Can>
-                </TableCell>
-              </TableRow>
-            ))}
+                  </TableCell>
+                  <TableCell>
+                    <EditableCell
+                      value={data[key].indicator}
+                      onValueChange={() => {}}
+                      readOnly
+                    />
+                  </TableCell>
+                  <TableCell>
+                    <Can I="edit" a="competencies">
+                      <EditableCell
+                        value={data[key].results}
+                        onValueChange={(value: string) =>
+                          handleValueChange(Number(key), "results", value)
+                        }
+                      />
+                    </Can>
+                    <Can not I="edit" a="competencies">
+                      <EditableCell
+                        value={data[key].results}
+                        onValueChange={() => {}}
+                        readOnly
+                      />
+                    </Can>
+                  </TableCell>
+                </TableRow>
+              );
+            })}
           </TableBody>
         </Table>
       </TableContainer>

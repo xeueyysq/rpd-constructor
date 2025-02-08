@@ -29,10 +29,12 @@ export const AppRouter = () => {
         <Routes>
           {isUserLogged ? (
             <>
-              <Route
-                path="/teacher-interface-templates"
-                element={<TeacherInterfaceTemplates />}
-              />
+              <Route element={<ClippedDrawer page="teacher" />}>
+                <Route
+                  path="/teacher-interface-templates"
+                  element={<TeacherInterfaceTemplates />}
+                />
+              </Route>
               <Route element={<ClippedDrawer page="main" />}>
                 <Route path="/rpd-template" element={<RPDTemplate />} />
                 <Route path="/users" element={<UserManagement />} />
@@ -41,7 +43,7 @@ export const AppRouter = () => {
               <Route element={<ClippedDrawer page="manager" />}>
                 <Route path="/manager" element={<Manager />} />
               </Route>
-              <Route element={<ClippedDrawer page="teacher" />}>
+              <Route element={<ClippedDrawer page="template" />}>
                 <Route
                   path="/teacher-interface"
                   element={<TeacherInterface />}

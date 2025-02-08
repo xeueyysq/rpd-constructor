@@ -13,7 +13,7 @@ import { UserRole } from "@shared/ability";
 import { useAuth } from "@entities/auth";
 import { TeacherRpdListItems } from "@pages/teacher-interface/model/teacherInterfaceItems";
 import { useEffect } from "react";
-
+import { TeacherTabsList } from "@widgets/tabs-list";
 interface ClippedDrawerProps {
   page: string;
 }
@@ -21,10 +21,10 @@ interface ClippedDrawerProps {
 export const ClippedDrawer: FC<ClippedDrawerProps> = ({ page }) => {
   // const userRole = useAuth.getState().userRole;
   const [setChoise] = useState<string>("coverPage");
-  const [drawerWidth, setDrawerWidth] = useState<number>(250);
+  const [drawerWidth, setDrawerWidth] = useState<number>(270);
   useEffect(() => {
-    if (page === "main" || page === "manager") setDrawerWidth(250);
-    if (page === "teacher") setDrawerWidth(430);
+    if (page === "template") setDrawerWidth(430);
+    else setDrawerWidth(270);
   }, [page]);
   return (
     <Box sx={{ display: "flex", minHeight: "100vh", overflow: "auto" }}>
@@ -41,14 +41,15 @@ export const ClippedDrawer: FC<ClippedDrawerProps> = ({ page }) => {
             boxSizing: "border-box",
             position: "static",
             overflowY: "visible",
-            height: "auto",
+            height: "100vh",
           },
         }}
       >
         <Toolbar />
+        {page === "teacher" && <TeacherTabsList />}
         {page === "main" && <MainTabsList />}
         {page === "manager" && <ComplectTabsList />}
-        {page === "teacher" && (
+        {page === "template" && (
           <RpdList
             setChoise={() => setChoise}
             RpdListItems={TeacherRpdListItems}
