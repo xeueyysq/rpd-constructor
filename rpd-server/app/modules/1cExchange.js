@@ -14,11 +14,11 @@ async function exchange1C(apiData) {
 
   try {
     const apiUrl = `https://1c-api.uni-dubna.ru/v1/api/persons/reports/GetWorkProgramOfDiscipline?Year=${apiData.year}&Education_Level=${apiData.educationLevel}&Education_Form=${apiData.educationForm}&Profile=${apiData.profile}&Direction=${apiData.direction}`;
-    const responseUrl = await axios.get(apiUrl);
-    if (responseUrl.status !== 200 || !responseUrl.data) {
-      throw new Error('Ошибка при запросе данных с API GetWorkProgramOfDiscipline');
+    const response = await axios.get(apiUrl, {timeout: 30000});
+    if (!response.data) {
+      throw new Error('Нет данных от 1С', {statusCode: 503})
     }
-    const records = await responseUrl.data;
+    const records = await response.data;
     const recordsLength = records.length;
     console.log(`Всего дисциплин из запроса - ${recordsLength}`);
 
@@ -42,7 +42,7 @@ async function exchange1C(apiData) {
       apiData.direction
     ]);
 
-    const RpdComplectId = createRpdComplect.rows[0].id;
+    const RpdComplectId = createRpdComplect.rows[0]?.id;
     if(!RpdComplectId) {
       throw new Error('Ошибка создания комплекта РПД');
     }
@@ -53,7 +53,7 @@ async function exchange1C(apiData) {
       const apiUpLink = `https://1c-api.uni-dubna.ru/v1/api/persons/reports/GetEducationResults?UPLink=${record.upLink}`;
       const responseUpLink = await axios.get(apiUpLink);
       if (responseUpLink.status !== 200) {
-        throw new Error('Ошибка при запросе данных с API GetEducationResults');
+        throw new Error('Данные в 1С не были найдены');
       }
       const educationResults = await responseUpLink.data;
 
@@ -112,9 +112,11 @@ async function exchange1C(apiData) {
     console.log('Данные успешно добавлены в базу данных.');
     return RpdComplectId;
   } catch (error) {
-    console.log(error);
-    if (error.response?.status === 504 || error.code === 'ECONNABORTED') {
-      throw new Error('Сервер 1С недоступен');
+    console.error(error);
+    if (error.code === "ECONNABORTED" || error.response?.status === 504) {
+        const serviceError = new Error('Сервис 1С временно недоступен');
+        serviceError.statusCode = 503;
+        throw serviceError;
     }
     throw error;
   }

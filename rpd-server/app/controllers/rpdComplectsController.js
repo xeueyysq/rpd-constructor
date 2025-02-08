@@ -21,7 +21,8 @@ class RpdComplectsController {
             const record = await this.model.createRpdComplect(data);
             res.json(record);
         } catch (error) {
-            res.status(500).json({ message: error.message });
+            const errorCode = error.statusCode || 500
+            res.status(errorCode).json({ message: error.message, code: errorCode });
         }
     }
 

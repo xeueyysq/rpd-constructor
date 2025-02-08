@@ -7,7 +7,7 @@ RUN apk add --no-cache --virtual .builds-deps build-base python3 make g++ \
 
 COPY package*.json ./
 
-RUN npm ci
+RUN npm install
 
 COPY . .
 
