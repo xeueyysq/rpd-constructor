@@ -1,1 +1,1 @@
-export {ChangeRpdTemplate} from './ui/ChangeRpdTemplate'
+export { ChangeRpdTemplate } from "./ui/ChangeRpdTemplate";

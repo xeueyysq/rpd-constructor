@@ -1,1 +1,1 @@
-export {RPDTemplate as default} from './ui/RPDTemplate'
+export { RPDTemplate as default } from "./ui/RPDTemplate";

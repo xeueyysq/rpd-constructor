@@ -1,3 +1,3 @@
 export interface TemplateConstructorType {
-    setChoise: (value: string) => void;
+  setChoise: (value: string) => void;
 }

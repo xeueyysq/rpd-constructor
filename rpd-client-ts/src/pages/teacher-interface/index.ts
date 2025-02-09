@@ -1,1 +1,1 @@
-export {TeacherInterface as default} from './ui/TeacherInterface'
+export { TeacherInterface as default } from "./ui/TeacherInterface";

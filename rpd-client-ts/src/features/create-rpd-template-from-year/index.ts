@@ -1,1 +1,1 @@
-export {CreateRpdTemplateFromYear} from './ui/CreateRpdTemplateFromYear'
+export { CreateRpdTemplateFromYear } from "./ui/CreateRpdTemplateFromYear";

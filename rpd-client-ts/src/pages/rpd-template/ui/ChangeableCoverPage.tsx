@@ -1,104 +1,113 @@
-import {useCallback, useEffect, useRef, useState} from 'react'
-import {Box, Button} from '@mui/material'
-import EditIcon from '@mui/icons-material/Edit'
-import SaveAltIcon from '@mui/icons-material/SaveAlt'
-import {TextareaAutosize as BaseTextareaAutosize} from '@mui/material'
-import {styled} from '@mui/system'
-import {Loader} from "@shared/ui"
-import {axiosBase} from '@shared/api'
+import { useCallback, useEffect, useRef, useState } from "react";
+import { Box, Button } from "@mui/material";
+import EditIcon from "@mui/icons-material/Edit";
+import SaveAltIcon from "@mui/icons-material/SaveAlt";
+import { TextareaAutosize as BaseTextareaAutosize } from "@mui/material";
+import { styled } from "@mui/system";
+import { Loader } from "@shared/ui";
+import { axiosBase } from "@shared/api";
 
 interface ChangeableCoverPageProps {
-    title: string;
-    defaultText?: string;
+  title: string;
+  defaultText?: string;
 }
 
 interface ValueData {
-    id: string;
-    value: string;
+  id: string;
+  value: string;
 }
 
-const ChangeableCoverPage = ({title}: ChangeableCoverPageProps) => {
-    const [isEditing, setIsEditing] = useState(false)
-    const [value, setValue] = useState<ValueData | null>(null)
-    const textAreaRef = useRef<HTMLTextAreaElement | null>(null)
+const ChangeableCoverPage = ({ title }: ChangeableCoverPageProps) => {
+  const [isEditing, setIsEditing] = useState(false);
+  const [value, setValue] = useState<ValueData | null>(null);
+  const textAreaRef = useRef<HTMLTextAreaElement | null>(null);
 
-    const fetchData = useCallback(async () => {
-        try {
-            const response = await axiosBase.get(`rpd-changeable-values?title=${title}`)
-            setValue(response.data)
-        } catch (error) {
-            console.error(error)
-        }
-    }, [title])
-
-    useEffect(() => {
-        fetchData()
-    }, [fetchData])
-
-    const handleEditClick = () => {
-        setIsEditing(true)
+  const fetchData = useCallback(async () => {
+    try {
+      const response = await axiosBase.get(
+        `rpd-changeable-values?title=${title}`
+      );
+      setValue(response.data);
+    } catch (error) {
+      console.error(error);
     }
+  }, [title]);
 
-    const handleSaveClick = async () => {
-        if (!textAreaRef.current || !value?.id) return
+  useEffect(() => {
+    fetchData();
+  }, [fetchData]);
 
-        try {
-            const textareaValue = textAreaRef.current.value
-            const response = await axiosBase.put(`rpd-changeable-values/${value.id}`, {value: textareaValue})
-            setValue(response.data)
-            setIsEditing(false)
-        } catch (error) {
-            console.error(error)
-        }
+  const handleEditClick = () => {
+    setIsEditing(true);
+  };
+
+  const handleSaveClick = async () => {
+    if (!textAreaRef.current || !value?.id) return;
+
+    try {
+      const textareaValue = textAreaRef.current.value;
+      const response = await axiosBase.put(
+        `rpd-changeable-values/${value.id}`,
+        { value: textareaValue }
+      );
+      setValue(response.data);
+      setIsEditing(false);
+    } catch (error) {
+      console.error(error);
     }
+  };
 
-    if (!value) {
-        return <Loader/>
-    }
+  if (!value) {
+    return <Loader />;
+  }
 
-    return (
+  return (
+    <Box>
+      {isEditing ? (
         <Box>
-            {isEditing ? (
-                <Box>
-                    <TextareaAutosize
-                        ref={textAreaRef}
-                        aria-label="empty textarea"
-                        placeholder="Empty"
-                        id={title}
-                        defaultValue={value.value}
-                        sx={{my: 1}}
-                    />
-                    <Button
-                        variant="outlined"
-                        size="small"
-                        endIcon={<SaveAltIcon color="primary"/>}
-                        onClick={handleSaveClick}
-                    >
-                        сохранить изменения
-                    </Button>
-                </Box>
-            ) : (
-                <Box>
-                    {value.value ? (
-                        <Box dangerouslySetInnerHTML={{__html: value.value}} sx={{py: 1}}/>
-                    ) : (
-                        <p>Нет доступного контента</p>
-                    )}
-                    <Button
-                        variant="outlined"
-                        size="small"
-                        endIcon={<EditIcon color="primary"/>}
-                        onClick={handleEditClick}
-                    >
-                        редактировать
-                    </Button>
-                </Box>
-            )}
+          <TextareaAutosize
+            ref={textAreaRef}
+            aria-label="empty textarea"
+            placeholder="Empty"
+            id={title}
+            defaultValue={value.value}
+            sx={{ my: 1 }}
+          />
+          <Button
+            variant="contained"
+            size="small"
+            endIcon={<SaveAltIcon color="primary" />}
+            onClick={handleSaveClick}
+          >
+            сохранить изменения
+          </Button>
         </Box>
-    )
-}
+      ) : (
+        <Box>
+          {value.value ? (
+            <Box
+              dangerouslySetInnerHTML={{ __html: value.value }}
+              sx={{ py: 1 }}
+            />
+          ) : (
+            <p>Нет доступного контента</p>
+          )}
+          <Button
+            variant="outlined"
+            size="small"
+            endIcon={<EditIcon color="primary" />}
+            onClick={handleEditClick}
+          >
+            редактировать
+          </Button>
+        </Box>
+      )}
+    </Box>
+  );
+};
 
-const TextareaAutosize = styled(BaseTextareaAutosize)(() => `
+const TextareaAutosize = styled(BaseTextareaAutosize)(
+  () => `
     box-sizing: border-box;
     width: 100%;
     font-family: 'IBM Plex Sans', sans-serif;
@@ -124,6 +133,7 @@ const TextareaAutosize = styled(BaseTextareaAutosize)(() => `
     &:focus-visible {
         outline: 0;
     }
-`)
+`
+);
 
-export default ChangeableCoverPage
+export default ChangeableCoverPage;

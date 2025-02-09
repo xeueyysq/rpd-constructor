@@ -1,6 +1,6 @@
 export enum UserRole {
-    ROP = "rop",
-    TEACHER = "teacher",
-    ADMIN = "admin",
-    ANONYMOUS = "anonymous",
+  ADMIN = 1,
+  TEACHER = 2,
+  ROP = 3,
+  ANONYMOUS = 0,
 }

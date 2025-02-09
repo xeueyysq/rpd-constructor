@@ -1,38 +1,168 @@
-import { Worker, Viewer } from '@react-pdf-viewer/core'
-import { defaultLayoutPlugin } from '@react-pdf-viewer/default-layout'
-import '@react-pdf-viewer/core/lib/styles/index.css'
-import '@react-pdf-viewer/default-layout/lib/styles/index.css'
-import { FC, useEffect, useState } from 'react'
+import { FC, useEffect, useState } from "react";
+import { Document, Page } from "react-pdf";
+import { pdfjs } from "react-pdf";
+import "react-pdf/dist/esm/Page/AnnotationLayer.css";
+import "react-pdf/dist/esm/Page/TextLayer.css";
+import { Box, Button, IconButton, Stack, Typography } from "@mui/material";
+import {
+  ChevronLeft,
+  ChevronRight,
+  ZoomIn,
+  ZoomOut,
+  Download,
+} from "@mui/icons-material";
+import { useStore } from "@shared/hooks";
+
+// Используем локальный worker из папки public
+pdfjs.GlobalWorkerOptions.workerSrc = "/pdf.worker.js";
 
 interface PdfReaderProps {
   file: Blob | MediaSource;
 }
 
 export const PdfReader: FC<PdfReaderProps> = ({ file }) => {
-  const [defaultLayoutPluginInstance] = useState(defaultLayoutPlugin())
-  const [fileUrl, setFileUrl] = useState('')
+  const [numPages, setNumPages] = useState<number>(0);
+  const [pageNumber, setPageNumber] = useState<number>(1);
+  const [fileUrl, setFileUrl] = useState("");
+  const [scale, setScale] = useState<number>(1);
+  const [error, setError] = useState<string | null>(null);
+  const jsonData = useStore.getState().jsonData;
 
   useEffect(() => {
     if (file) {
-      const newFileUrl = URL.createObjectURL(file)
-      setFileUrl(newFileUrl)
-      return () => {
-        URL.revokeObjectURL(newFileUrl)
+      try {
+        const newFileUrl = URL.createObjectURL(file);
+        setFileUrl(newFileUrl);
+        setError(null);
+        return () => {
+          URL.revokeObjectURL(newFileUrl);
+        };
+      } catch (err) {
+        setError("Ошибка при создании URL для PDF файла");
+        console.error("Error creating URL:", err);
       }
     }
-  }, [file])
-  
+  }, [file]);
+
+  const onDocumentLoadSuccess = ({ numPages }: { numPages: number }) => {
+    setNumPages(numPages);
+    setError(null);
+  };
+
+  const onDocumentLoadError = (err: Error) => {
+    setError("Ошибка при загрузке PDF файла");
+    console.error("Error loading PDF:", err);
+  };
+
+  const changePage = (offset: number) => {
+    setPageNumber((prevPageNumber) => {
+      const newPageNumber = prevPageNumber + offset;
+      return Math.min(Math.max(1, newPageNumber), numPages);
+    });
+  };
+
+  const handleZoom = (delta: number) => {
+    setScale((prevScale) => {
+      const newScale = prevScale + delta;
+      return Math.min(Math.max(0.5, newScale), 2);
+    });
+  };
+
+  if (!file) {
+    return <Typography>No file is selected yet</Typography>;
+  }
+
+  if (error) {
+    return <Typography color="error">{error}</Typography>;
+  }
+
   return (
-    <>
-      {file && (
-        <Worker workerUrl="https://unpkg.com/pdfjs-dist@3.11.174/build/pdf.worker.min.js">
-          <Viewer
-            fileUrl={fileUrl}
-            plugins={[defaultLayoutPluginInstance]}
-          ></Viewer>
-        </Worker>
+    <Box
+      sx={{
+        marginLeft: 20,
+        width: "100%",
+        display: "flex",
+        flexDirection: "column",
+        alignItems: "center",
+      }}
+    >
+      <Stack
+        width={"100%"}
+        direction="row"
+        spacing={2}
+        alignItems="center"
+        justifyContent={"space-around"}
+        sx={{ mb: 2 }}
+      >
+        <Box
+          sx={{
+            display: "flex",
+            direction: "row",
+            alignItems: "center",
+          }}
+        >
+          <IconButton onClick={() => handleZoom(-0.1)}>
+            <ZoomOut />
+          </IconButton>
+          <Typography sx={{ minWidth: 100 }}>
+            Увеличить: {Math.round(scale * 100)}%
+          </Typography>
+          <IconButton onClick={() => handleZoom(0.1)}>
+            <ZoomIn />
+          </IconButton>
+        </Box>
+        <Button
+          sx={{ display: "flex", justifyContent: "flex-end" }}
+          variant="contained"
+          onClick={() => {
+            const link = document.createElement("a");
+            link.href = fileUrl;
+            link.download = `${jsonData.profile}_${jsonData.year}`;
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+          }}
+        >
+          Скачать
+        </Button>
+      </Stack>
+
+      <Document
+        border={"2px dashed #000;"}
+        file={fileUrl}
+        onLoadSuccess={onDocumentLoadSuccess}
+        onLoadError={onDocumentLoadError}
+        loading={<Typography>Загрузка PDF...</Typography>}
+      >
+        <Page
+          border={"2px dashed #000;"}
+          pageNumber={pageNumber}
+          scale={scale}
+          loading={<Typography>Загрузка страницы...</Typography>}
+          error={
+            <Typography color="error">Ошибка при загрузке страницы</Typography>
+          }
+        />
+      </Document>
+
+      {numPages > 0 && (
+        <Stack direction="row" spacing={2} alignItems="center" sx={{ mt: 2 }}>
+          <IconButton onClick={() => changePage(-1)} disabled={pageNumber <= 1}>
+            <ChevronLeft />
+          </IconButton>
+
+          <Typography>
+            Страница {pageNumber} из {numPages}
+          </Typography>
+
+          <IconButton
+            onClick={() => changePage(1)}
+            disabled={pageNumber >= numPages}
+          >
+            <ChevronRight />
+          </IconButton>
+        </Stack>
       )}
-      {!file && <>No file is selected yet</>}
-    </>
-  )
-}
+    </Box>
+  );
+};

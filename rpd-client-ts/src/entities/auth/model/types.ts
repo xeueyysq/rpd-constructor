@@ -1,12 +1,12 @@
 export type UserCredentials = {
-    userName: string
-    password: string
-}
+  userName: string;
+  password: string;
+};
 
 export type AuthContextProps = {
-    isAppReady: boolean;
-    isUserLogged: boolean;
-    data?: UserCredentials;
-    handleLogOut: () => void;
-    handleSignIn: (data: UserCredentials) => void;
-}
+  isAppReady: boolean;
+  isUserLogged: boolean;
+  data?: UserCredentials;
+  handleLogOut: () => void;
+  handleSignIn: (data: UserCredentials) => void;
+};

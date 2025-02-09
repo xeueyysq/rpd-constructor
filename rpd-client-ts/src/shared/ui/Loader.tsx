@@ -1,12 +1,12 @@
-import {Box, CircularProgress} from '@mui/material'
+import { Box, CircularProgress } from "@mui/material";
 
 export function Loader() {
-    return (
-        <Box sx={{p: 1, display: 'flex', alignItems: 'center'}}>
-            <CircularProgress color="inherit" size="1rem"/>
-            <Box sx={{px: 1}}>
-                Загрузка...
-            </Box>
-        </Box>
-    )
+  return (
+    <Box sx={{ p: 1, gap: 1, display: "flex" }}>
+      <CircularProgress color="inherit" size="1.5rem" />
+      <Box fontFamily={"Arial"} sx={{ px: 1, pb: 1 }}>
+        Загрузка...
+      </Box>
+    </Box>
+  );
 }
