@@ -3,13 +3,15 @@ import { Document, Page } from "react-pdf";
 import { pdfjs } from "react-pdf";
 import "react-pdf/dist/esm/Page/AnnotationLayer.css";
 import "react-pdf/dist/esm/Page/TextLayer.css";
-import { Box, IconButton, Stack, Typography } from "@mui/material";
+import { Box, Button, IconButton, Stack, Typography } from "@mui/material";
 import {
   ChevronLeft,
   ChevronRight,
   ZoomIn,
   ZoomOut,
+  Download,
 } from "@mui/icons-material";
+import { useStore } from "@shared/hooks";
 
 // Используем локальный worker из папки public
 pdfjs.GlobalWorkerOptions.workerSrc = "/pdf.worker.js";
@@ -24,6 +26,7 @@ export const PdfReader: FC<PdfReaderProps> = ({ file }) => {
   const [fileUrl, setFileUrl] = useState("");
   const [scale, setScale] = useState<number>(1);
   const [error, setError] = useState<string | null>(null);
+  const jsonData = useStore.getState().jsonData;
 
   useEffect(() => {
     if (file) {
@@ -76,31 +79,63 @@ export const PdfReader: FC<PdfReaderProps> = ({ file }) => {
   return (
     <Box
       sx={{
+        marginLeft: 20,
         width: "100%",
         display: "flex",
         flexDirection: "column",
         alignItems: "center",
       }}
     >
-      <Stack direction="row" spacing={2} alignItems="center" sx={{ mb: 2 }}>
-        <IconButton onClick={() => handleZoom(-0.1)}>
-          <ZoomOut />
-        </IconButton>
-        <Typography sx={{ minWidth: 100 }}>
-          Zoom: {Math.round(scale * 100)}%
-        </Typography>
-        <IconButton onClick={() => handleZoom(0.1)}>
-          <ZoomIn />
-        </IconButton>
+      <Stack
+        width={"100%"}
+        direction="row"
+        spacing={2}
+        alignItems="center"
+        justifyContent={"space-around"}
+        sx={{ mb: 2 }}
+      >
+        <Box
+          sx={{
+            display: "flex",
+            direction: "row",
+            alignItems: "center",
+          }}
+        >
+          <IconButton onClick={() => handleZoom(-0.1)}>
+            <ZoomOut />
+          </IconButton>
+          <Typography sx={{ minWidth: 100 }}>
+            Увеличить: {Math.round(scale * 100)}%
+          </Typography>
+          <IconButton onClick={() => handleZoom(0.1)}>
+            <ZoomIn />
+          </IconButton>
+        </Box>
+        <Button
+          sx={{ display: "flex", justifyContent: "flex-end" }}
+          variant="contained"
+          onClick={() => {
+            const link = document.createElement("a");
+            link.href = fileUrl;
+            link.download = `${jsonData.profile}_${jsonData.year}`;
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+          }}
+        >
+          Скачать
+        </Button>
       </Stack>
 
       <Document
+        border={"2px dashed #000;"}
         file={fileUrl}
         onLoadSuccess={onDocumentLoadSuccess}
         onLoadError={onDocumentLoadError}
         loading={<Typography>Загрузка PDF...</Typography>}
       >
         <Page
+          border={"2px dashed #000;"}
           pageNumber={pageNumber}
           scale={scale}
           loading={<Typography>Загрузка страницы...</Typography>}
@@ -117,7 +152,7 @@ export const PdfReader: FC<PdfReaderProps> = ({ file }) => {
           </IconButton>
 
           <Typography>
-            Page {pageNumber} of {numPages}
+            Страница {pageNumber} из {numPages}
           </Typography>
 
           <IconButton

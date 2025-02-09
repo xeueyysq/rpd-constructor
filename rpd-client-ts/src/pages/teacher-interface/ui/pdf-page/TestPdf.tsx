@@ -1,18 +1,27 @@
-import { useState } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { useStore } from "@shared/hooks";
 import { Box, Button } from "@mui/material";
 import { PdfReader } from "./PdfReader.tsx";
 import { axiosBase } from "@shared/api";
 import { showErrorMessage } from "@shared/lib";
+import { Loader } from "@shared/ui/Loader.tsx";
 
 export default function TestPdf() {
   const [fileName, setFileName] = useState<Blob | MediaSource | undefined>(
     undefined
   );
-  const [disableButton, setDisableButton] = useState<boolean>(false);
+  const [isLoading, setIsLoading] = useState(false);
+
+  useEffect(() => {
+    const loadPdf = async () => {
+      setIsLoading(true);
+      await TestPdf();
+      setIsLoading(false);
+    };
+    loadPdf();
+  }, []);
 
   const TestPdf = async () => {
-    setDisableButton(true);
     const id = useStore.getState().jsonData.id;
 
     const params = {
@@ -30,22 +39,10 @@ export default function TestPdf() {
         "Произошла ошибка при формировании PDF файла. Пожалуйста, проверьте корректность введенных данных"
       );
       console.error(error);
-    } finally {
-      setDisableButton(false);
     }
   };
 
-  return (
-    <Box>
-      <Button
-        onClick={() => TestPdf()}
-        variant="outlined"
-        size="small"
-        disabled={disableButton}
-      >
-        Сформировать PDF файл
-      </Button>
-      {fileName && <PdfReader file={fileName} />}
-    </Box>
-  );
+  if (isLoading) return <Loader />;
+
+  return <Box>{fileName && <PdfReader file={fileName} />}</Box>;
 }

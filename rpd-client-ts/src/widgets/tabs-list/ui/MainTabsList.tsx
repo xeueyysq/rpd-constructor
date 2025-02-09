@@ -34,10 +34,18 @@ export const MainTabsList: FC = () => {
                   : () => value.path && navigate(value.path)
               }
               disablePadding
-              sx={{ width: "100%" }}
+              sx={{
+                width: "100%",
+              }}
             >
               <ListItemButton sx={{ width: "100%", py: 2 }}>
-                <ListItemIcon sx={{ marginLeft: 2 }}>{value.icon}</ListItemIcon>
+                <ListItemIcon
+                  sx={{
+                    marginLeft: 2,
+                  }}
+                >
+                  {value.icon}
+                </ListItemIcon>
                 <ListItemText primary={value.name} />
               </ListItemButton>
             </ListItem>

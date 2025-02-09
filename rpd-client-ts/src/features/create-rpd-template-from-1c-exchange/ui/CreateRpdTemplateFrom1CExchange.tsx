@@ -17,6 +17,8 @@ import {
   TableHead,
   TableRow,
   Typography,
+  TextField,
+  IconButton,
 } from "@mui/material";
 import { useAuth } from "@entities/auth";
 import TemplateMenu from "./TemplateMenu.tsx";
@@ -24,6 +26,7 @@ import { axiosBase } from "@shared/api";
 import { showErrorMessage, showSuccessMessage } from "@shared/lib";
 import { Loader } from "@shared/ui";
 import { templateDataTitles } from "@shared/model/templateDataTitles";
+import { Search } from "@mui/icons-material";
 
 interface TemplateStatusObject {
   date: string;
@@ -60,6 +63,24 @@ export const CreateRpdTemplateFrom1CExchange: FC<TemplateConstructorType> = ({
     [key: number]: string;
   }>({});
   const userName = useAuth.getState().userName;
+  const [searchValue, setSearchValue] = useState("");
+
+  const handleFilteredData = () => {
+    if (data) {
+      return data
+        .filter((row) =>
+          row.discipline.toLowerCase().includes(searchValue.toLowerCase())
+        )
+        .sort((a, b) => {
+          const priority: Record<string, number> = {
+            "Выгружен из 1С": 1,
+          };
+          return (
+            (priority[a.status.status] || 0) - (priority[b.status.status] || 0)
+          );
+        });
+    }
+  };
 
   const handleChange = (templateId: number) => (event: SelectChangeEvent) => {
     setSelectedTeachers((prevSelectedTeachers) => ({
@@ -120,15 +141,19 @@ export const CreateRpdTemplateFrom1CExchange: FC<TemplateConstructorType> = ({
 
   return (
     <>
-      <Box sx={{ pt: 2, fontSize: "18px", fontWeight: "600" }}>
-        Шаблон:{" "}
-        <Typography component="span">
-          {selectedTemplateData.profile}({selectedTemplateData.year})
-        </Typography>
-      </Box>
-      <Typography>
-        <b style={{ fontSize: "18px" }}>C</b> - Семестр
+      <Typography component="span">
+        {selectedTemplateData.profile} ({selectedTemplateData.year})
       </Typography>
+
+      <Box sx={{ py: 2 }}>
+        <TextField
+          value={searchValue}
+          onChange={(event) => setSearchValue(event.target.value)}
+          placeholder="Поиск дисциплины"
+          variant="standard"
+        />
+      </Box>
+
       <TableContainer component={Paper}>
         <Table sx={{ minWidth: 650 }} aria-label="simple table" size="small">
           <TableHead>
@@ -157,7 +182,7 @@ export const CreateRpdTemplateFrom1CExchange: FC<TemplateConstructorType> = ({
             </TableRow>
           </TableHead>
           <TableBody>
-            {data.map((row) => (
+            {handleFilteredData()?.map((row) => (
               <TableRow key={row.id}>
                 <TableCell sx={{ maxWidth: "400px" }}>
                   {row.discipline}

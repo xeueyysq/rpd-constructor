@@ -96,7 +96,7 @@ export const RpdList: FC<RpdListProps> = ({ RpdListItems }) => {
                       fontSize: "16px",
                     }}
                   >
-                    Сформировать PDF
+                    Сформировать документ
                   </Typography>
                 }
               />

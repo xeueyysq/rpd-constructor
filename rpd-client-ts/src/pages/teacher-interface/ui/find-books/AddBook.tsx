@@ -6,6 +6,7 @@ import {
   DialogActions,
   DialogContent,
   DialogTitle,
+  Divider,
   List,
   ListItem,
   ListItemText,
@@ -16,6 +17,7 @@ import ShowBooks from "./ShowBooks.tsx";
 import { useStore } from "@shared/hooks";
 import { showErrorMessage, showSuccessMessage } from "@shared/lib";
 import { axiosBase } from "@shared/api";
+import { IconButton } from "@mui/material";
 
 interface AddBook {
   elementName: string;
@@ -34,13 +36,16 @@ const AddBook: FC<AddBook> = ({ elementName }) => {
   const [open, setOpen] = useState<boolean>(false);
   const [bookName, setBookName] = useState<string>("");
   const [error, setError] = useState<boolean>(false);
+  const [manualInput, setManualInput] = useState<string>("");
 
   const jsonData = useStore.getState().jsonData[elementName];
   const [booksData, setBooksData] = useState<BookData[]>(jsonData);
 
-  const [addedBooks, setAddedBooks] = useState<string[]>([]);
+  const elementValue: string[] =
+    useStore.getState().jsonData[elementName] || [];
+  const [addedBooks, setAddedBooks] = useState<string[]>(elementValue);
+
   const { updateJsonData } = useStore();
-  const elementValue: string[] = useStore.getState().jsonData[elementName];
 
   const handleOpenDialog = () => {
     setOpen(true);
@@ -95,27 +100,87 @@ const AddBook: FC<AddBook> = ({ elementName }) => {
     saveContent([...addedBooks, biblio]);
   };
 
+  const handleAddManualBook = () => {
+    if (manualInput.trim() === "") {
+      setError(true);
+      return;
+    }
+    setError(false);
+
+    const newBooks = [...addedBooks, manualInput];
+    saveContent(newBooks);
+    setManualInput("");
+  };
+
+  const handleRemoveBook = (biblioToRemove: string) => {
+    const newBooks = addedBooks.filter((biblio) => biblio !== biblioToRemove);
+    saveContent(newBooks);
+  };
+
   return (
     <>
+      <Box pt={3}>
+        <Button
+          variant="contained"
+          size="small"
+          onClick={handleOpenDialog}
+          // endIcon={<AddIcon />}
+        >
+          Найти книги
+        </Button>
+      </Box>
       <List>
         {elementValue &&
           elementValue.map((biblio, index) => (
-            <ListItem key={index}>
-              <ListItemText>
-                <Box>{biblio}</Box>
-              </ListItemText>
-            </ListItem>
+            <>
+              <ListItem key={index}>
+                <ListItemText>
+                  <Box
+                    sx={{
+                      display: "flex",
+                      justifyContent: "space-between",
+                      alignItems: "center",
+                      fontFamily: "Times New Roman",
+                    }}
+                  >
+                    <Box width={"90%"}>{biblio}</Box>
+
+                    <Button
+                      size="small"
+                      color="error"
+                      onClick={() => handleRemoveBook(biblio)}
+                    >
+                      Удалить
+                    </Button>
+                  </Box>
+                </ListItemText>
+              </ListItem>
+              <Divider />
+            </>
           ))}
       </List>
 
-      <Button
-        variant="outlined"
-        size="small"
-        onClick={handleOpenDialog}
-        endIcon={<AddIcon />}
-      >
-        Добавить
-      </Button>
+      <Box sx={{ mb: 2, py: 2 }}>
+        <TextField
+          fullWidth
+          variant="outlined"
+          size="small"
+          value={manualInput}
+          onChange={(e) => setManualInput(e.target.value)}
+          placeholder="Введите библиографическое описание вручную"
+          multiline
+          minRows={2}
+          maxRows={6}
+          sx={{
+            "& .MuiInputBase-root": {
+              alignItems: "flex-start",
+              paddingTop: "8px",
+              transition: "height 0.2s ease",
+            },
+          }}
+        />
+        <Button onClick={handleAddManualBook}>Добавить</Button>
+      </Box>
 
       <Dialog
         open={open}

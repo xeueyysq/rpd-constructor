@@ -182,7 +182,17 @@ const PlannedResultsPage: FC = () => {
       <Box component="h2">
         Планируемые результаты обучения по дисциплине (модулю)
       </Box>
-      <input type="file" accept=".csv" onChange={handleFileUpload} />
+      <Box
+        pt={3}
+        display={"flex"}
+        justifyContent={"space-between"}
+        alignItems={"center"}
+      >
+        <input type="file" accept=".csv" onChange={handleFileUpload} />
+        <Button size="medium" variant="contained" onClick={saveData}>
+          Сохранить
+        </Button>
+      </Box>
       <TableContainer component={Paper} sx={{ my: 2 }}>
         <Table
           sx={{ minWidth: 650 }}
@@ -261,9 +271,6 @@ const PlannedResultsPage: FC = () => {
         size="small"
       >
         {/* <Button onClick={handleAddRow}>Добавить строку</Button> */}
-        <Button variant="contained" onClick={saveData}>
-          Сохранить изменения
-        </Button>
       </ButtonGroup>
     </Box>
   );

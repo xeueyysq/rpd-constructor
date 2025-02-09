@@ -8,6 +8,10 @@ import {
   TableContainer,
   TableHead,
   TableRow,
+  IconButton,
+  Menu,
+  MenuItem,
+  ListItemIcon,
 } from "@mui/material";
 import { FC, useCallback, useEffect, useState } from "react";
 import { useAuth } from "@entities/auth";
@@ -18,6 +22,9 @@ import { Loader } from "@shared/ui";
 import { showErrorMessage, showSuccessMessage } from "@shared/lib";
 import { Header } from "@widgets/header";
 import { useNavigate } from "react-router-dom";
+import CheckCircle from "@mui/icons-material/CheckCircle";
+import FolderOpen from "@mui/icons-material/FolderOpen";
+import MoreHorizIcon from "@mui/icons-material/MoreHoriz";
 
 interface TemplateStatusObject {
   date: string;
@@ -47,6 +54,10 @@ export const TeacherInterfaceTemplates: FC = () => {
   const { setJsonData } = useStore();
   const [data, setData] = useState<TemplateData[]>();
   const navigate = useNavigate();
+  const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null);
+  const [selectedTemplateId, setSelectedTemplateId] = useState<number | null>(
+    null
+  );
 
   const fetchData = useCallback(async () => {
     try {
@@ -92,6 +103,35 @@ export const TeacherInterfaceTemplates: FC = () => {
     } catch (error) {
       showErrorMessage("Ошибка при получении данных");
       console.error(error);
+    }
+  };
+
+  const handleMenuOpen = (event: React.MouseEvent<HTMLElement>, id: number) => {
+    setAnchorEl(event.currentTarget);
+    setSelectedTemplateId(id);
+  };
+
+  const handleMenuClose = () => {
+    setAnchorEl(null);
+    setSelectedTemplateId(null);
+  };
+
+  const markAsReady = async () => {
+    if (!selectedTemplateId) return;
+    try {
+      const response = await axiosBase.post("mark-template-as-ready", {
+        id: selectedTemplateId,
+        userName,
+      });
+      if (response.data === "success") {
+        showSuccessMessage("Статус шаблона изменен на 'Готов'");
+        fetchData();
+      }
+    } catch (error) {
+      showErrorMessage("Ошибка при изменении статуса шаблона");
+      console.error(error);
+    } finally {
+      handleMenuClose();
     }
   };
 
@@ -151,13 +191,36 @@ export const TeacherInterfaceTemplates: FC = () => {
                   </TableCell>
                   <TableCell sx={{ minWidth: "140px" }}>
                     {row.status.status === "Взят в работу" ? (
-                      <Button
-                        variant="contained"
-                        size="small"
-                        onClick={() => uploadTemplateData(row.id)}
-                      >
-                        Открыть
-                      </Button>
+                      <>
+                        <IconButton onClick={(e) => handleMenuOpen(e, row.id)}>
+                          <MoreHorizIcon />
+                        </IconButton>
+                        <Menu
+                          anchorEl={anchorEl}
+                          open={
+                            Boolean(anchorEl) && selectedTemplateId === row.id
+                          }
+                          onClose={handleMenuClose}
+                        >
+                          <MenuItem
+                            onClick={() => {
+                              uploadTemplateData(row.id);
+                              handleMenuClose();
+                            }}
+                          >
+                            <ListItemIcon>
+                              <FolderOpen fontSize="small" />
+                            </ListItemIcon>
+                            Открыть
+                          </MenuItem>
+                          <MenuItem onClick={markAsReady}>
+                            <ListItemIcon>
+                              <CheckCircle fontSize="small" />
+                            </ListItemIcon>
+                            Готов
+                          </MenuItem>
+                        </Menu>
+                      </>
                     ) : (
                       <Button
                         variant="outlined"

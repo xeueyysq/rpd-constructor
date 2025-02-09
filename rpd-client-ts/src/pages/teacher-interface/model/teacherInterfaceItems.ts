@@ -43,6 +43,6 @@ export const TeacherRpdListItems: RpdListItem[] = [
   },
   {
     id: "testPdf",
-    text: "Тест PDF",
+    text: "Тест формирования документа",
   },
 ];
