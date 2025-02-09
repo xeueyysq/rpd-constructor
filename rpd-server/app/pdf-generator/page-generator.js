@@ -227,6 +227,7 @@ async function generateContentPage(id) {
   try {
     jsonData = await new RpdProfileTemplates(pool).getJsonProfile(id);
     cource = Math.ceil(Number(jsonData?.semester || 1) / 2);
+    console.log(jsonData);
   } catch (error) {
     console.log(error);
   }
@@ -241,11 +242,26 @@ async function generateContentPage(id) {
     ? Object.keys(jsonData.competencies)
         .map((row) => {
           const value = jsonData.competencies[row] || {};
+          console.log(value);
+          let results = value.results;
+          try {
+            results = JSON.parse(results);
+          } catch (e) {
+            // Если не JSON, оставляем как строку
+          }
+          console.log(results);
           return `
               <tr>
                   <td>${value.competence || ""}</td>
                   <td>${value.indicator || ""}</td>
-                  <td>${value.results || ""}</td>
+                  <td>
+                  <u>Знать:</u>
+                  <br>${results["know"] || ""}</br>
+                  <u>Уметь:</u>
+                  <br>${results["beAble"] || ""}</br>
+                  <u>Владеть:</u>
+                  <br>${results["own"] || ""}</br>
+                  </td>
               </tr>
           `;
         })
