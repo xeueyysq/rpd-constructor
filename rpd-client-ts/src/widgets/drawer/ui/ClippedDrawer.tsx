@@ -29,7 +29,7 @@ export const ClippedDrawer: FC<ClippedDrawerProps> = ({ page }) => {
   return (
     <Box sx={{ display: "flex", minHeight: "100vh", overflow: "auto" }}>
       <CssBaseline />
-      <Header />
+      <Header /> 
       <Drawer
         variant="permanent"
         sx={{

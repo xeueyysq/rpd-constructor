@@ -24,6 +24,7 @@ export const mainTabs = [
     path: "/users",
     icon: createElement(GroupIcon),
   },
+
   {
     name: "Выйти",
     icon: createElement(LogoutIcon),

@@ -410,11 +410,13 @@ export const UserManagementPage: FC = () => {
         <DialogContent>
           <Box sx={{ display: "flex", flexDirection: "column", gap: 2, mt: 2 }}>
             <TextField
+              size="small"
               label="Логин"
               value={newUser.username}
               onChange={handleChange("username")}
             />
             <TextField
+              size="small"
               label="Пароль"
               type="password"
               value={newUser.password}
@@ -423,6 +425,7 @@ export const UserManagementPage: FC = () => {
             <FormControl>
               <InputLabel>Роль</InputLabel>
               <Select<UserRole>
+                size="small"
                 value={newUser.role}
                 label="Роль"
                 onChange={handleRoleChange}
@@ -434,16 +437,19 @@ export const UserManagementPage: FC = () => {
               </Select>
             </FormControl>
             <TextField
+              size="small"
               label="Фамилия"
               value={newUser.surname}
               onChange={handleChange("surname")}
             />
             <TextField
+              size="small"
               label="Имя"
               value={newUser.name}
               onChange={handleChange("name")}
             />
             <TextField
+              size="small"
               label="Отчество"
               value={newUser.patronymic}
               onChange={handleChange("patronymic")}

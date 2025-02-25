@@ -14,10 +14,7 @@ export const AppProviders: FC<Props> = ({ children }) => {
   return (
     <AuthProvider>
       <CaslProvider>
-        <ThemeProvider theme={theme}>
-          <CssBaseline />
-          <SnackbarProvider maxSnack={3}>{children}</SnackbarProvider>
-        </ThemeProvider>
+        <SnackbarProvider maxSnack={3}>{children}</SnackbarProvider>
       </CaslProvider>
     </AuthProvider>
   );

@@ -38,7 +38,6 @@ export default defineConfig({
   },
   optimizeDeps: {
     include: ["react-pdf"],
-    exclude: ["pdfjs-dist/build/pdf.worker.min.js"],
   },
   build: {
     chunkSizeWarningLimit: 1000,
