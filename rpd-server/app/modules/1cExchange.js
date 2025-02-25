@@ -1,6 +1,6 @@
-const { pool } = require('../../config/db');
-const axios = require('axios');
-const moment = require('moment');
+const { pool } = require("../../config/db");
+const axios = require("axios");
+const moment = require("moment");
 
 async function exchange1C(apiData) {
   // const apiData = {
@@ -14,15 +14,16 @@ async function exchange1C(apiData) {
 
   try {
     const apiUrl = `https://1c-api.uni-dubna.ru/v1/api/persons/reports/GetWorkProgramOfDiscipline?Year=${apiData.year}&Education_Level=${apiData.educationLevel}&Education_Form=${apiData.educationForm}&Profile=${apiData.profile}&Direction=${apiData.direction}`;
-    const response = await axios.get(apiUrl, {timeout: 30000});
+    const response = await axios.get(apiUrl, { timeout: 30000 });
     if (!response.data) {
-      throw new Error('Нет данных от 1С', {statusCode: 503})
+      throw new Error("Нет данных от 1С", { statusCode: 503 });
     }
     const records = await response.data;
     const recordsLength = records.length;
     console.log(`Всего дисциплин из запроса - ${recordsLength}`);
 
-    const createRpdComplect = await pool.query(`
+    const createRpdComplect = await pool.query(
+      `
     INSERT INTO rpd_complects (
       faculty,
       year,
@@ -33,18 +34,20 @@ async function exchange1C(apiData) {
     ) VALUES (
       $1, $2, $3, $4, $5, $6
     ) RETURNING id
-    `, [
-      apiData.faculty, 
-      apiData.year, 
-      apiData.educationForm,
-      apiData.educationLevel,
-      apiData.profile,
-      apiData.direction
-    ]);
+    `,
+      [
+        apiData.faculty,
+        apiData.year,
+        apiData.educationForm,
+        apiData.educationLevel,
+        apiData.profile,
+        apiData.direction,
+      ]
+    );
 
     const RpdComplectId = createRpdComplect.rows[0]?.id;
-    if(!RpdComplectId) {
-      throw new Error('Ошибка создания комплекта РПД');
+    if (!RpdComplectId) {
+      throw new Error("Ошибка создания комплекта РПД");
     }
 
     let currentIndex = 0;
@@ -53,7 +56,7 @@ async function exchange1C(apiData) {
       const apiUpLink = `https://1c-api.uni-dubna.ru/v1/api/persons/reports/GetEducationResults?UPLink=${record.upLink}`;
       const responseUpLink = await axios.get(apiUpLink);
       if (responseUpLink.status !== 200) {
-        throw new Error('Данные в 1С не были найдены');
+        throw new Error("Данные в 1С не были найдены");
       }
       const educationResults = await responseUpLink.data;
 
@@ -64,7 +67,7 @@ async function exchange1C(apiData) {
         zet,
         place,
         study_load,
-        semester
+        semester,
       } = record;
 
       const insertQuery = `
@@ -97,11 +100,13 @@ async function exchange1C(apiData) {
       ]);
 
       const insertedId = result.rows[0].id;
-      const history = [{
+      const history = [
+        {
           date: moment().format(),
           status: "Выгружен из 1С",
-          user: "Система"
-      }]
+          user: "Система",
+        },
+      ];
 
       await pool.query(`
         INSERT INTO template_status (id_1c_template, history) 
@@ -109,17 +114,17 @@ async function exchange1C(apiData) {
       `);
     }
 
-    console.log('Данные успешно добавлены в базу данных.');
+    console.log("Данные успешно добавлены в базу данных.");
     return RpdComplectId;
   } catch (error) {
     console.error(error);
     if (error.code === "ECONNABORTED" || error.response?.status === 504) {
-        const serviceError = new Error('Сервис 1С временно недоступен');
-        serviceError.statusCode = 503;
-        throw serviceError;
+      const serviceError = new Error("Сервис 1С временно недоступен");
+      serviceError.statusCode = 503;
+      throw serviceError;
     }
     throw error;
   }
 }
 
-module.exports = { exchange1C }
+module.exports = { exchange1C };
