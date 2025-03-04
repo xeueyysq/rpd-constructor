@@ -11,7 +11,7 @@
     "dotenv": "^16.4.5",
     "express": "^4.18.3",
     "express-fileupload": "^1.4.3",
-    "express-fingerprint": "^1.2.2",
+    "express-fingerprint": "^1.0.5",
     "fs": "^0.0.1-security",
     "jsonwebtoken": "^9.0.2",
     "moment": "^2.30.1",
@@ -27,12 +27,20 @@
     "yup": "^1.4.0"
   },
   "devDependencies": {
+    "@eslint/js": "^9.21.0",
+    "eslint": "^9.21.0",
+    "eslint-plugin-import": "^2.31.0",
+    "eslint-plugin-node": "^11.1.0",
+    "eslint-plugin-promise": "^7.2.1",
+    "globals": "^16.0.0",
     "nodemon": "^3.1.0"
   },
   "scripts": {
     "dev": "nodemon server.js",
     "import-api-data": "node ./app/modules/1cExchange.js",
     "migrate": "node ./app/migrations/migrations.js",
-    "start": "node server.js"
+    "start": "node server.js",
+    "lint": "eslint .",
+    "lint:fix": "eslint . --fix"
   }
 }
