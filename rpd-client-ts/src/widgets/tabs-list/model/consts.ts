@@ -7,6 +7,7 @@ import ChecklistIcon from "@mui/icons-material/Checklist";
 import FindInPageIcon from "@mui/icons-material/FindInPage";
 import ArrowBackIcon from "@mui/icons-material/ArrowBack";
 import QuestionMarkIcon from "@mui/icons-material/QuestionMark";
+import SegmentIcon from "@mui/icons-material/Segment";
 
 export const mainTabs = [
   {
@@ -20,11 +21,15 @@ export const mainTabs = [
     icon: createElement(ViewListIcon),
   },
   {
+    name: "Список компетенций",
+    path: "/planned-results",
+    icon: createElement(SegmentIcon),
+  },
+  {
     name: "Пользователи",
     path: "/users",
     icon: createElement(GroupIcon),
   },
-
   {
     name: "Выйти",
     icon: createElement(LogoutIcon),

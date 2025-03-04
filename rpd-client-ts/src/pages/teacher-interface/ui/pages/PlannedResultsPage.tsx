@@ -21,14 +21,8 @@ import Papa from "papaparse";
 import { Can } from "@shared/ability";
 import { KeyOutlined } from "@mui/icons-material";
 import PlannedResultsCell from "../changeable-elements/PlannedResultsCell.tsx";
-
-interface PlannedResultsData {
-  [key: string]: {
-    competence: string;
-    indicator: string;
-    results: string; // будет содержать JSON строку с know, beAble, own
-  };
-}
+import { PlannedResultsData } from "@pages/teacher-interface/model/DisciplineContentPageTypes.ts";
+import { parseCsvToJson } from "@shared/ability/lib/parseCsvToJson.ts";
 
 const PlannedResultsPage: FC = () => {
   const initialData = useStore.getState().jsonData.competencies as
@@ -75,48 +69,23 @@ const PlannedResultsPage: FC = () => {
     return filteredDataMap;
   };
 
-  const handleFileUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
+  const handleFileUpload = async (
+    event: React.ChangeEvent<HTMLInputElement>
+  ) => {
     const file = event.target.files?.[0];
     if (!file) return;
 
-    Papa.parse(file, {
-      complete: (results) => {
-        try {
-          const rows = results.data as string[][];
-          const dataRows = rows.slice(1);
-
-          const parsedData: PlannedResultsData = {};
-
-          dataRows.forEach((row: string[], index: number) => {
-            if (row.length >= 3) {
-              parsedData[index] = {
-                competence: row[0] || "",
-                indicator: row[1] || "",
-                results: row[3] || "",
-              };
-            }
-          });
-
-          if (Object.keys(parsedData).length === 0) {
-            showErrorMessage("Данные не найдены");
-            return;
-          }
-
-          const filteredData = filterData(parsedData);
-          setData(filteredData);
-          showSuccessMessage("Данные успешно загружены");
-        } catch (error) {
-          showErrorMessage("Ошибка при обработке данных");
-          console.error("Ошибка обработки данных:", error);
-        }
-      },
-      encoding: "cp1251",
-      delimiter: ";",
-      error: (error) => {
-        showErrorMessage("Ошибка при чтении файла");
-        console.error("Ошибка парсинга:", error);
-      },
-    });
+    try {
+      const parsedData = await parseCsvToJson(file);
+      const filteredData = filterData(parsedData as PlannedResultsData);
+      setData(filteredData);
+      showSuccessMessage("Данные успешные загружены");
+      console.log(data);
+    } catch (error: unknown) {
+      const errorMessage =
+        error instanceof Error ? error.message : "Неизвестная ошибка";
+      showErrorMessage(errorMessage);
+    }
   };
 
   // const handleAddRow = () => {
