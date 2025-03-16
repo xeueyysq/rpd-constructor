@@ -1,5 +1,12 @@
 import Papa from "papaparse";
-import { PlannedResultsData } from "@pages/teacher-interface/model/DisciplineContentPageTypes";
+
+export interface ParsedPlannedResults {
+  [id: string]: {
+    competence: string;
+    indicator: string;
+    results: string;
+  };
+}
 
 export const parseCsvToJson = (file: File) => {
   //   const file = event.target.files?.[0];
@@ -11,7 +18,7 @@ export const parseCsvToJson = (file: File) => {
           const rows = results.data as string[][];
           const dataRows = rows.slice(1);
 
-          const parsedData: PlannedResultsData = {};
+          const parsedData: ParsedPlannedResults = {};
 
           dataRows.forEach((row: string[], index: number) => {
             if (row.length >= 3) {

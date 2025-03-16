@@ -8,10 +8,16 @@ interface DisciplineContent {
   results: string;
 }
 
+export interface Results {
+  know: string;
+  beAble: string;
+  own: string;
+}
+
 interface PlannedResults {
   competence: string;
   indicator: string;
-  results: string;
+  results: Results;
 }
 
 export interface ObjectHours {

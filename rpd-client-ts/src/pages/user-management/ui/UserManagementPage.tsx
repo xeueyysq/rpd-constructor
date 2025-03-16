@@ -30,7 +30,6 @@ import { useAuth } from "@entities/auth";
 import { axiosBase } from "@shared/api";
 import { showErrorMessage, showSuccessMessage } from "@shared/lib";
 import { Loader } from "@shared/ui";
-import Grid2 from "@mui/material/Unstable_Grid2/Grid2";
 import axios from "axios";
 import { UserRole } from "@shared/ability";
 import type { User, NewUser } from "../model/types";
@@ -389,7 +388,7 @@ export const UserManagementPage: FC = () => {
           </TableBody>
         </Table>
       </TableContainer>
-      <Grid2
+      <Box
         alignItems={"center"}
         display={"flex"}
         justifyContent={"space-between"}
@@ -403,7 +402,7 @@ export const UserManagementPage: FC = () => {
           onPageChange={handleChangePage}
           onRowsPerPageChange={handleChangeRowsPerPage}
         />
-      </Grid2>
+      </Box>
 
       <Dialog open={open} onClose={handleClose}>
         <DialogTitle>Добавить нового пользователя</DialogTitle>

@@ -12,6 +12,7 @@ import {
   Menu,
   MenuItem,
   ListItemIcon,
+  Container,
 } from "@mui/material";
 import { FC, useCallback, useEffect, useState } from "react";
 import { useAuth } from "@entities/auth";
@@ -140,14 +141,7 @@ export const TeacherInterfaceTemplates: FC = () => {
   return (
     <>
       <Header />
-      <Box
-        sx={{
-          p: 2,
-          ml: 2,
-          backgroundColor: "#fefefe",
-          width: "100%",
-        }}
-      >
+      <Container maxWidth="xl">
         <Box component="h2" sx={{ py: 1 }}>
           Выбор шаблона для редактирования
         </Box>
@@ -236,7 +230,7 @@ export const TeacherInterfaceTemplates: FC = () => {
             </TableBody>
           </Table>
         </TableContainer>
-      </Box>
+      </Container>
     </>
   );
 };

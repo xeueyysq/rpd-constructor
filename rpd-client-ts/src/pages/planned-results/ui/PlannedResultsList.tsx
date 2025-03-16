@@ -1,6 +1,6 @@
 import { FC, useState } from "react";
 import { parseCsvToJson } from "@shared/ability/lib/parseCsvToJson";
-import { PlannedResultsData } from "@pages/teacher-interface/model/DisciplineContentPageTypes";
+import { ParsedPlannedResults } from "@shared/ability/lib/parseCsvToJson";
 import { showSuccessMessage, showErrorMessage } from "@shared/lib";
 import { Box } from "@mui/system";
 import {
@@ -12,94 +12,46 @@ import {
   Table,
   TableBody,
   Container,
+  Typography,
+  Button,
 } from "@mui/material";
+import { Rowing } from "@mui/icons-material";
+import { axiosBase } from "@shared/api";
 
-interface Competence {
-  id: number;
-  name: string;
-}
-
-interface Indicator {
-  id: number;
-  name: string;
-  competenceId: number;
-}
-
-interface Discipline {
-  id: number;
-  name: string;
-}
-
-interface IndicatorDiscipline {
-  indicatorId: number;
-  disciplineId: number;
+interface ResultsRow {
+  competence: string;
+  indicator: string;
+  disciplines: string[];
 }
 
 interface ResultsData {
-  competencies: Competence[];
-  indicators: Indicator[];
-  disciplines: Discipline[];
-  indicatorDisciplines?: IndicatorDiscipline[];
+  [id: number]: ResultsRow;
 }
 
 export const PlannedResultsList: FC = () => {
   const [data, setData] = useState<ResultsData | undefined>();
-
-  const groupData = (parsedData: PlannedResultsData) => {
-    const resultsData: ResultsData = {
-      competencies: [],
-      indicators: [],
-      disciplines: [],
-      indicatorDisciplines: [],
-    };
-
-    let currentCompetenceId = 1;
-    let currentIndicatorId = 1;
-    let currentDisciplineId = 1;
-
-    const disciplineNameMap = new Map<string, number>();
+  const groupData = (parsedData: ParsedPlannedResults) => {
+    const resultsData: ResultsData = {};
+    let currentId = 0;
+    let currentCompetence = "";
 
     for (const index in parsedData) {
       const item = parsedData[index];
 
       if (item.competence) {
-        resultsData.competencies.push({
-          id: currentCompetenceId,
-          name: `${item.competence}. ${item.results}`,
-        });
-        currentCompetenceId++;
+        currentCompetence = `${item.competence}. ${item.results}`;
       } else if (item.indicator) {
-        resultsData.indicators.push({
-          id: currentIndicatorId,
-          name: `${item.indicator}. ${item.results}`,
-          competenceId: currentCompetenceId - 1,
-        });
-        currentIndicatorId++;
+        resultsData[currentId] = {
+          competence: currentCompetence,
+          indicator: `${item.indicator}. ${item.results}`,
+          disciplines: [],
+        };
+        currentId++;
       } else if (item.results) {
-        let disciplineId: number;
-
-        if (disciplineNameMap.has(item.results)) {
-          disciplineId = disciplineNameMap.get(item.results)!;
-        } else {
-          disciplineId = currentDisciplineId;
-          disciplineNameMap.set(item.results, currentDisciplineId);
-
-          resultsData.disciplines.push({
-            id: currentDisciplineId,
-            name: item.results,
-          });
-
-          currentDisciplineId++;
-        }
-
-        resultsData.indicatorDisciplines?.push({
-          indicatorId: currentIndicatorId - 1,
-          disciplineId: disciplineId,
-        });
+        resultsData[currentId - 1].disciplines.push(item.results);
       }
     }
-
-    setData(resultsData);
+    return resultsData;
   };
 
   const handleFileUpload = async (
@@ -109,9 +61,21 @@ export const PlannedResultsList: FC = () => {
     if (!file) return;
     try {
       const parsedData = await parseCsvToJson(file);
-      groupData(parsedData as PlannedResultsData);
-      console.log(data);
-      showSuccessMessage("Данные успешно загружены");
+      const resultsData = groupData(parsedData as ParsedPlannedResults);
+      setData(resultsData);
+    } catch (error) {
+      console.error(error);
+    }
+  };
+
+  const saveData = async () => {
+    try {
+      const response = await axiosBase.post("set-results-data", {
+        data: data,
+      });
+      if (response.status === 200) {
+        showSuccessMessage("Данные успешно загружены");
+      }
     } catch (error) {
       const errorMessage =
         error instanceof Error ? error.message : "Неизвестная ошибка";
@@ -125,8 +89,21 @@ export const PlannedResultsList: FC = () => {
     "Дисциплины",
   ];
   return (
-    <Container>
-      <input type="file" accept=".csv" onChange={handleFileUpload} />
+    <Container maxWidth="xl">
+      <Box component="h2" sx={{ py: 1 }}>
+        Загрузка компетенций для всех дисциплин
+      </Box>
+      <Box
+        display={"flex"}
+        justifyContent={"space-between"}
+        alignItems={"center"}
+        py={1}
+      >
+        <input type="file" accept=".csv" onChange={handleFileUpload} />
+        <Button onClick={() => saveData()} variant="contained">
+          Сохранить
+        </Button>
+      </Box>
       <TableContainer component={Paper}>
         <Table>
           <TableHead>
@@ -138,39 +115,18 @@ export const PlannedResultsList: FC = () => {
           </TableHead>
           <TableBody>
             {data &&
-              data.competencies.map((competence: Competence) => {
-                const relatedIndicators = data.indicators.filter(
-                  (i) => i.competenceId === competence.id
-                );
-
-                return relatedIndicators.map(
-                  (indicator: Indicator, indicatorIndex: number) => {
-                    const disciplineIds =
-                      data.indicatorDisciplines
-                        ?.filter((id) => id.indicatorId === indicator.id)
-                        .map((id) => id.disciplineId) || [];
-
-                    const relatedDisciplines = data.disciplines.filter((d) =>
-                      disciplineIds.includes(d.id)
-                    );
-
-                    return (
-                      <TableRow key={`${competence.id}-${indicator.id}`}>
-                        <TableCell>
-                          {indicatorIndex === 0 ? competence.name : ""}
-                        </TableCell>
-                        <TableCell>{indicator.name}</TableCell>
-                        <TableCell>
-                          {relatedDisciplines
-                            .map((d) => d.name)
-                            .sort()
-                            .join(", ")}
-                        </TableCell>
-                      </TableRow>
-                    );
-                  }
-                );
-              })}
+              Object.entries(data).map(([key, row]) => (
+                <TableRow key={key}>
+                  <TableCell>
+                    {Number(key) === 0 ||
+                    row.competence !== data[Number(key) - 1].competence
+                      ? row.competence
+                      : ""}
+                  </TableCell>
+                  <TableCell>{row.indicator}</TableCell>
+                  <TableCell>{row.disciplines.join(", ")}</TableCell>
+                </TableRow>
+              ))}
           </TableBody>
         </Table>
       </TableContainer>

@@ -21,8 +21,12 @@ import Papa from "papaparse";
 import { Can } from "@shared/ability";
 import { KeyOutlined } from "@mui/icons-material";
 import PlannedResultsCell from "../changeable-elements/PlannedResultsCell.tsx";
-import { PlannedResultsData } from "@pages/teacher-interface/model/DisciplineContentPageTypes.ts";
+import {
+  PlannedResultsData,
+  Results,
+} from "@pages/teacher-interface/model/DisciplineContentPageTypes.ts";
 import { parseCsvToJson } from "@shared/ability/lib/parseCsvToJson.ts";
+import { ParsedPlannedResults } from "@shared/ability/lib/parseCsvToJson.ts";
 
 const PlannedResultsPage: FC = () => {
   const initialData = useStore.getState().jsonData.competencies as
@@ -35,15 +39,11 @@ const PlannedResultsPage: FC = () => {
   const [data, setData] = useState<PlannedResultsData | undefined>(initialData);
   // const [nextId, setNextId] = useState<number>(initialDataLength)
 
-  const filterData = (parsedData: PlannedResultsData) => {
+  const filterData = (parsedData: ParsedPlannedResults) => {
     const filteredDataMap: PlannedResultsData = {};
     let competence = "";
     let indicator = "";
-    const results = JSON.stringify({
-      know: "",
-      beAble: "",
-      own: "",
-    });
+
     parsedData &&
       Object.entries(parsedData).forEach(([key, row]) => {
         const dataLenght = Object.keys(filteredDataMap).length;
@@ -61,11 +61,14 @@ const PlannedResultsPage: FC = () => {
           filteredDataMap[dataLenght] = {
             competence,
             indicator,
-            results,
+            results: {
+              know: "",
+              beAble: "",
+              own: "",
+            },
           };
         }
       });
-    console.log("Отфильтрованные данные:", filteredDataMap);
     return filteredDataMap;
   };
 
@@ -76,11 +79,10 @@ const PlannedResultsPage: FC = () => {
     if (!file) return;
 
     try {
-      const parsedData = await parseCsvToJson(file);
-      const filteredData = filterData(parsedData as PlannedResultsData);
+      const parsedData = (await parseCsvToJson(file)) as ParsedPlannedResults;
+      const filteredData = filterData(parsedData);
       setData(filteredData);
       showSuccessMessage("Данные успешные загружены");
-      console.log(data);
     } catch (error: unknown) {
       const errorMessage =
         error instanceof Error ? error.message : "Неизвестная ошибка";
@@ -95,42 +97,17 @@ const PlannedResultsPage: FC = () => {
   // }
   //
 
-  const handleValueChange = (id: number, key: string, value: string) => {
-    if (!data) return;
-
-    const newData = {
-      ...data,
-      [id]: {
-        ...data[id],
-        [key]: value,
-      },
-    };
-    setData(newData);
-  };
-
   const saveData = async () => {
     if (!data) return;
-
     const id = useStore.getState().jsonData.id;
-
-    const filteredData = Object.entries(data).reduce(
-      (acc: PlannedResultsData, [key, value]) => {
-        if (value.competence || value.indicator || value.results) {
-          acc[key] = value;
-        }
-        return acc;
-      },
-      {}
-    );
 
     try {
       await axiosBase.put(`update-json-value/${id}`, {
         fieldToUpdate: "competencies",
-        value: filteredData,
+        value: data,
       });
 
-      updateJsonData("competencies", filteredData);
-      setData(filteredData);
+      updateJsonData("competencies", data);
       showSuccessMessage("Данные успешно сохранены");
     } catch (error) {
       showErrorMessage("Ошибка сохранения данных");
@@ -142,6 +119,19 @@ const PlannedResultsPage: FC = () => {
         console.error("Неизвестная ошибка:", error);
       }
     }
+  };
+
+  const handleValueChange = (id: number, value: Results) => {
+    if (!data) return;
+
+    const newData = {
+      ...data,
+      [id]: {
+        ...data[id],
+        results: value,
+      },
+    };
+    setData(newData);
   };
 
   if (!data) return <Loader />;
@@ -193,8 +183,6 @@ const PlannedResultsPage: FC = () => {
           </TableHead>
           <TableBody>
             {Object.keys(data).map((key) => {
-              console.log("Данные, загружаемые в таблицу", data);
-              console.log(data[key].competence);
               return (
                 <TableRow key={key}>
                   <TableCell>
@@ -215,16 +203,17 @@ const PlannedResultsPage: FC = () => {
                     <Can I="edit" a="competencies">
                       <PlannedResultsCell
                         value={data[key].results}
-                        onValueChange={(value: string) =>
-                          handleValueChange(Number(key), "results", value)
+                        onValueChange={(value: Results) =>
+                          handleValueChange(Number(key), value)
                         }
                       />
                     </Can>
                     <Can not I="edit" a="competencies">
-                      <EditableCell
+                      <PlannedResultsCell
                         value={data[key].results}
-                        onValueChange={() => {}}
-                        readOnly
+                        onValueChange={(value: Results) =>
+                          handleValueChange(Number(key), value)
+                        }
                       />
                     </Can>
                   </TableCell>

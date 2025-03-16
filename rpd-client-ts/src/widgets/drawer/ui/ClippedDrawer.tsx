@@ -1,6 +1,5 @@
 import Box from "@mui/material/Box";
 import Drawer from "@mui/material/Drawer";
-import CssBaseline from "@mui/material/CssBaseline";
 import Toolbar from "@mui/material/Toolbar";
 import { Header } from "@widgets/header";
 import { FC } from "react";
@@ -27,10 +26,10 @@ export const ClippedDrawer: FC<ClippedDrawerProps> = ({ page }) => {
     else setDrawerWidth(270);
   }, [page]);
   return (
-    <Box sx={{ display: "flex", minHeight: "100vh", overflow: "auto" }}>
-      <CssBaseline />
-      <Header /> 
+    <Box sx={{ display: "flex", overflow: "auto" }}>
+      <Header />
       <Drawer
+        color="default"
         variant="permanent"
         sx={{
           width: drawerWidth,
@@ -41,7 +40,7 @@ export const ClippedDrawer: FC<ClippedDrawerProps> = ({ page }) => {
             boxSizing: "border-box",
             position: "static",
             overflowY: "visible",
-            height: "100vh",
+            minHeight: "100vh",
           },
         }}
       >
