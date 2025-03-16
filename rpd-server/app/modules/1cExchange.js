@@ -1,28 +1,58 @@
-const { pool } = require('../../config/db');
-const axios = require('axios');
-const moment = require('moment');
+const { pool } = require("../../config/db");
+const axios = require("axios");
+const moment = require("moment");
+
+const apiUrl = "https://1c-api.uni-dubna.ru/v1/api/persons/reports";
 
 async function exchange1C(apiData) {
-  // const apiData = {
-  //   faculty: "Институт системного анализа и управления",
-  //   year: 2023,
-  //   educationLevel: "бакалавриат",
-  //   educationForm: "очная",
-  //   profile: "Технологии разработки программного обеспечения",
-  //   direction: "09.03.01 Информатика и вычислительная техника"
-  // }
-
   try {
-    const apiUrl = `https://1c-api.uni-dubna.ru/v1/api/persons/reports/GetWorkProgramOfDiscipline?Year=${apiData.year}&Education_Level=${apiData.educationLevel}&Education_Form=${apiData.educationForm}&Profile=${apiData.profile}&Direction=${apiData.direction}`;
-    const response = await axios.get(apiUrl, {timeout: 30000});
-    if (!response.data) {
-      throw new Error('Нет данных от 1С', {statusCode: 503})
-    }
-    const records = await response.data;
-    const recordsLength = records.length;
-    console.log(`Всего дисциплин из запроса - ${recordsLength}`);
+    const disc = await fetchUpLink(apiData);
+    const upLinks = disc[0].upLink;
+    const discs = await Promise.all(
+      upLinks.map(async (upLink) => {
+        return await fetchDiscs(upLink);
+      })
+    );
+    console.log("discs", discs);
+    const RpdComplectId = await createRpdComplect(apiData);
+    await processDisciplines(discs, RpdComplectId);
+    console.log("Данные успешно добавлены в базу данных.");
+    return RpdComplectId;
+  } catch (error) {
+    console.error("Ошибка загрузки комплекта:", error);
+    throw error;
+  }
+}
 
-    const createRpdComplect = await pool.query(`
+const fetchUpLink = async (apiData) => {
+  try {
+    const url = `${apiUrl}/SearchUP`;
+
+    const response = await axios.get(url, {
+      timeout: 30000,
+      params: {
+        Year: apiData.year,
+        Education_Level: apiData.educationLevel,
+        Education_Form: apiData.educationForm,
+        Profile: apiData.profile,
+        Direction: apiData.direction,
+      },
+    });
+
+    if (!response.data) {
+      const error = new Error("Нет данных от 1С");
+      error.statusCode = 503;
+      throw error;
+    }
+    return response.data;
+  } catch (error) {
+    throw handle1cError(error);
+  }
+};
+
+const createRpdComplect = async (apiData) => {
+  const { rows } = await pool.query(
+    `
     INSERT INTO rpd_complects (
       faculty,
       year,
@@ -33,93 +63,166 @@ async function exchange1C(apiData) {
     ) VALUES (
       $1, $2, $3, $4, $5, $6
     ) RETURNING id
-    `, [
-      apiData.faculty, 
-      apiData.year, 
+    `,
+    [
+      apiData.faculty,
+      apiData.year,
       apiData.educationForm,
       apiData.educationLevel,
       apiData.profile,
-      apiData.direction
-    ]);
+      apiData.direction,
+    ]
+  );
 
-    const RpdComplectId = createRpdComplect.rows[0]?.id;
-    if(!RpdComplectId) {
-      throw new Error('Ошибка создания комплекта РПД');
+  const RpdComplectId = rows[0]?.id;
+  if (!RpdComplectId) {
+    throw new Error("Ошибка создания комплекта РПД");
+  }
+
+  return RpdComplectId;
+};
+
+const fetchDiscs = async (upLink) => {
+  try {
+    const url = `${apiUrl}/SearchInfoWithDiscs`;
+    const response = await axios.get(url, {
+      timeout: 30000,
+      params: {
+        UPLink: upLink,
+      },
+    });
+    if (!response.data) {
+      const error = new Error("Нет данных от 1С");
+      error.statusCode = 503;
+      throw error;
     }
+    return response.data;
+  } catch (error) {
+    throw handle1cError(error);
+  }
+};
 
-    let currentIndex = 0;
-    for (const record of records) {
-      console.log(`Дисциплина ${++currentIndex} из ${recordsLength}`);
-      const apiUpLink = `https://1c-api.uni-dubna.ru/v1/api/persons/reports/GetEducationResults?UPLink=${record.upLink}`;
-      const responseUpLink = await axios.get(apiUpLink);
-      if (responseUpLink.status !== 200) {
-        throw new Error('Данные в 1С не были найдены');
+const fetchDiscInfo = async (upLink, discLink) => {
+  try {
+    const url = `${apiUrl}/SearchDiscsDetails`;
+    const response = await axios.get(url, {
+      timeout: 30000,
+      params: {
+        UPLink: upLink,
+        DiscLink: discLink,
+      },
+    });
+    if (!response.data) {
+      const error = new Error("Нет данных от 1С");
+      error.statusCode = 503;
+      throw error;
+    }
+    return response.data;
+  } catch (error) {
+    throw handle1cError(error);
+  }
+};
+
+const processDisciplines = async (disciplines, RpdComplectId) => {
+  const recordsLength = disciplines.length;
+  console.log(`Всего дисциплин из запроса - ${recordsLength}`);
+
+  const promises = disciplines.map(async (record, index) => {
+    record[0].discInfo.map(async (disc) => {
+      console.log(`Дисциплина ${index + 1} из ${recordsLength} обрабатывается`);
+      const discInfo = await fetchDiscInfo(record[0].upLink, disc.discLink);
+
+      if (!discInfo || !discInfo[0]) {
+        console.error(
+          `Нет данных для ${disc.discipline} с discLink: ${disc.discLink} и upLink ${record[0].upLink}`
+        );
       }
-      const educationResults = await responseUpLink.data;
 
+      const { place = "", study_load = {} } = discInfo?.[0] || {};
       const {
-        department,
+        discipline = "",
+        semester = null,
+        division = "",
+        teachers = "",
+        zets = null,
+      } = disc;
+      const insertedId = await insertDiscipline({
+        RpdComplectId,
+        division,
         discipline,
         teachers,
-        zet,
+        zets,
         place,
         study_load,
-        semester
-      } = record;
-
-      const insertQuery = `
-      INSERT INTO rpd_1c_exchange (
-        id_rpd_complect,
-        department,  
-        discipline, 
-        teachers, 
-        results, 
-        zet, 
-        place, 
-        study_load, 
-        semester
-      ) VALUES (
-        $1, $2, $3, $4, $5, $6, $7, $8, $9
-      ) 
-      ON CONFLICT DO NOTHING
-      RETURNING id`;
-
-      const result = await pool.query(insertQuery, [
-        RpdComplectId,
-        department,
-        discipline,
-        teachers,
-        educationResults,
-        zet,
-        place,
-        JSON.stringify(study_load),
         semester,
-      ]);
+      });
 
-      const insertedId = result.rows[0].id;
-      const history = [{
-          date: moment().format(),
-          status: "Выгружен из 1С",
-          user: "Система"
-      }]
+      await insertStatusHistory(insertedId);
+    });
+  });
 
-      await pool.query(`
-        INSERT INTO template_status (id_1c_template, history) 
-        VALUES (${JSON.stringify(insertedId)}, '${JSON.stringify(history)}')
-      `);
-    }
+  await Promise.all(promises);
+};
 
-    console.log('Данные успешно добавлены в базу данных.');
-    return RpdComplectId;
-  } catch (error) {
-    console.error(error);
-    if (error.code === "ECONNABORTED" || error.response?.status === 504) {
-        const serviceError = new Error('Сервис 1С временно недоступен');
-        serviceError.statusCode = 503;
-        throw serviceError;
-    }
-    throw error;
+const insertDiscipline = async (data) => {
+  const { rows } = await pool.query(
+    `
+    INSERT INTO rpd_1c_exchange (
+      id_rpd_complect,
+      department,
+      discipline,
+      teachers, 
+      zet,
+      place,
+      study_load,
+      semester
+    ) VALUES (
+      $1, $2, $3, $4, $5, $6, $7, $8
+    ) 
+    ON CONFLICT DO NOTHING
+    RETURNING id
+    `,
+    [
+      data.RpdComplectId,
+      data.division,
+      data.discipline,
+      data.teachers,
+      data.zets,
+      data.place,
+      JSON.stringify(data.study_load),
+      data.semester,
+    ]
+  );
+
+  return rows[0].id;
+};
+
+const insertStatusHistory = async (templateId) => {
+  const history = [
+    {
+      date: moment().format(),
+      status: "Выгружен из 1С",
+      user: "Система",
+    },
+  ];
+
+  await pool.query(
+    `
+    INSERT INTO template_status (id_1c_template, history) 
+    VALUES ($1, $2)
+    `,
+    [templateId, JSON.stringify(history)]
+  );
+};
+
+const handle1cError = (error) => {
+  console.error("Ошибка в handle1cError:", error);
+  if (error.code === "ECONNABORTED" || error.response?.status === 504) {
+    const serviceError = new Error("Сервис 1С временно недоступен");
+    serviceError.statusCode = 503;
+    return serviceError;
   }
-}
+  return error;
+};
 
-module.exports = { exchange1C }
+module.exports = { exchange1C, fetchUpLink, fetchDiscInfo: fetchDiscs };

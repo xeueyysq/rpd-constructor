@@ -18,7 +18,6 @@ const { PORT, CLIENT_URL, API_URL } = process.env;
 
 app.use(cookieParser());
 app.use(express.json());
-
 app.use(bodyParser.urlencoded({ extended: true }));
 
 const allowedOrigins = [
@@ -32,34 +31,31 @@ const allowedOrigins = [
   API_URL,
 ];
 
+// CORS Middleware
 app.use(
   cors({
     origin: function (origin, callback) {
-      if (!origin) return callback(null, true);
-
-      if (allowedOrigins.indexOf(origin) !== -1) {
-        callback(null, true);
+      if (!origin) return callback(null, true); // Разрешаем запросы без origin (например, с Postman)
+      if (allowedOrigins.includes(origin)) {
+        callback(null, origin);
       } else {
-        console.log("Blocked origin:", origin);
         callback(new Error("Not allowed by CORS"));
       }
     },
     credentials: true,
-    methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS", "PATCH"],
+    methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
     allowedHeaders: [
       "Content-Type",
       "Authorization",
       "X-Requested-With",
       "Accept",
       "Origin",
-      "Access-Control-Allow-Headers",
-      "Access-Control-Request-Method",
-      "Access-Control-Request-Headers",
     ],
-    exposedHeaders: ["Content-Range", "X-Content-Range"],
-    maxAge: 600,
   })
 );
+
+// OPTIONS-запросы для Preflight
+app.options("*", cors());
 
 app.use(fileUpload());
 
@@ -74,17 +70,15 @@ pool
   .then(() => {
     console.log("Подключено к PostgreSQL");
 
-    app.use(express.json());
-
     app.use("/api", routes);
     app.use("/auth", AuthRootRouter);
 
     app.get("/resource/protected", TokenService.checkAccess, (_, res) => {
-      res.status(200).json("Добро пожаловать!" + Date.now());
+      res.status(200).json("Добро пожаловать! " + Date.now());
     });
 
     app.listen(PORT, () => {
-      console.log(API_URL);
+      console.log(`Сервер запущен на ${API_URL}`);
     });
   })
   .catch((err) => {

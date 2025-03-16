@@ -1,8 +1,17 @@
-const { pool } = require('../../config/db');
+const { pool } = require("../../config/db");
 
 (async () => {
   try {
-    console.log('Starting migrations...');
+    console.log("Starting migrations...");
+
+    //Миграции для таблицы `results_data`
+    // await pool.query(`
+    //   CREATE TABLE IF NOT EXISTS results_data (
+    //     id SERIAL PRIMARY KEY,
+    //     competence VARCHAR(100),
+    //     indicator VARCHAR(100),
+    //     disciplines TEXT[]
+    //   )`);
 
     // Миграция для таблицы `rpd_complects`
     await pool.query(`
@@ -30,7 +39,7 @@ const { pool } = require('../../config/db');
         semester INTEGER,
         certification TEXT,
         place_more_text TEXT,
-        competencies JSONB,
+        competencies TEXT[],
         zet INTEGER,
         content JSONB,
         study_load JSONB,
@@ -55,7 +64,6 @@ const { pool } = require('../../config/db');
         discipline VARCHAR(100),
         teachers TEXT[],
         teacher VARCHAR(100),
-        results TEXT[],
         zet INTEGER,
         place VARCHAR(100),
         study_load JSONB,
@@ -175,9 +183,9 @@ const { pool } = require('../../config/db');
       );
     `);
 
-    console.log('Все миграции загружены успешно');
+    console.log("Все миграции загружены успешно");
   } catch (error) {
-    console.error('Ошибка загрузки миграций', error.stack);
+    console.error("Ошибка загрузки миграций", error.stack);
     process.exit(1); // Выход с ошибкой
   }
 })();
