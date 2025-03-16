@@ -168,7 +168,7 @@ export const CreateRpdTemplateFrom1CExchange: FC<TemplateConstructorType> = ({
                 Дисциплина
               </TableCell>
               <TableCell sx={{ fontWeight: "600", fontSize: "18px", py: 2 }}>
-                С
+                Семестр
               </TableCell>
               <TableCell sx={{ fontWeight: "600", fontSize: "18px", py: 2 }}>
                 Преподаватель

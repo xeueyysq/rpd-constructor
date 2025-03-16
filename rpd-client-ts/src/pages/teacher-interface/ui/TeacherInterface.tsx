@@ -31,9 +31,9 @@ export const TeacherInterface: FC = () => {
   const { templatePage } = useStore();
 
   return (
-    <Container sx={{ marginRight: 50 }} maxWidth="md">
+    <Container maxWidth="md">
       <Box
-        py={3}
+        p={3}
         sx={{ backgroundColor: "#fefefe" }}
         fontFamily={"Times New Roman"}
         fontSize={18}

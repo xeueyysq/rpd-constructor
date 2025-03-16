@@ -18,6 +18,7 @@ const RpdComplectsList = lazy(() => import("@pages/rpd-complects"));
 const TeacherInterfaceTemplates = lazy(
   () => import("@pages/teacher-interface-tempaltes")
 );
+const PlannedResultsList = lazy(() => import("@pages/planned-results"));
 import { ClippedDrawer } from "@widgets/drawer";
 
 export const AppRouter = () => {
@@ -39,6 +40,10 @@ export const AppRouter = () => {
                 <Route path="/rpd-template" element={<RPDTemplate />} />
                 <Route path="/users" element={<UserManagement />} />
                 <Route path="/complects" element={<RpdComplectsList />} />
+                <Route
+                  path="/planned-results"
+                  element={<PlannedResultsList />}
+                />
               </Route>
               <Route element={<ClippedDrawer page="manager" />}>
                 <Route path="/manager" element={<Manager />} />

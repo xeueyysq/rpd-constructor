@@ -30,7 +30,6 @@ import { useAuth } from "@entities/auth";
 import { axiosBase } from "@shared/api";
 import { showErrorMessage, showSuccessMessage } from "@shared/lib";
 import { Loader } from "@shared/ui";
-import Grid2 from "@mui/material/Unstable_Grid2/Grid2";
 import axios from "axios";
 import { UserRole } from "@shared/ability";
 import type { User, NewUser } from "../model/types";
@@ -389,7 +388,7 @@ export const UserManagementPage: FC = () => {
           </TableBody>
         </Table>
       </TableContainer>
-      <Grid2
+      <Box
         alignItems={"center"}
         display={"flex"}
         justifyContent={"space-between"}
@@ -403,18 +402,20 @@ export const UserManagementPage: FC = () => {
           onPageChange={handleChangePage}
           onRowsPerPageChange={handleChangeRowsPerPage}
         />
-      </Grid2>
+      </Box>
 
       <Dialog open={open} onClose={handleClose}>
         <DialogTitle>Добавить нового пользователя</DialogTitle>
         <DialogContent>
           <Box sx={{ display: "flex", flexDirection: "column", gap: 2, mt: 2 }}>
             <TextField
+              size="small"
               label="Логин"
               value={newUser.username}
               onChange={handleChange("username")}
             />
             <TextField
+              size="small"
               label="Пароль"
               type="password"
               value={newUser.password}
@@ -423,6 +424,7 @@ export const UserManagementPage: FC = () => {
             <FormControl>
               <InputLabel>Роль</InputLabel>
               <Select<UserRole>
+                size="small"
                 value={newUser.role}
                 label="Роль"
                 onChange={handleRoleChange}
@@ -434,16 +436,19 @@ export const UserManagementPage: FC = () => {
               </Select>
             </FormControl>
             <TextField
+              size="small"
               label="Фамилия"
               value={newUser.surname}
               onChange={handleChange("surname")}
             />
             <TextField
+              size="small"
               label="Имя"
               value={newUser.name}
               onChange={handleChange("name")}
             />
             <TextField
+              size="small"
               label="Отчество"
               value={newUser.patronymic}
               onChange={handleChange("patronymic")}

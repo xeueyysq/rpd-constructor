@@ -1,65 +1,39 @@
-import { useState, useEffect, useRef, ChangeEvent } from "react";
+import { useState } from "react";
+import { Results } from "@pages/teacher-interface/model/DisciplineContentPageTypes";
 
 type PlannedResultsCellProps = {
-  value: string;
-  onValueChange: (newValue: string) => void;
-  readOnly?: boolean;
+  value: Results;
+  onValueChange: (newValue: Results) => void;
 };
 
-interface TextAreaValues {
-  know: string;
-  beAble: string;
-  own: string;
-}
+function PlannedResultsCell({ value, onValueChange }: PlannedResultsCellProps) {
+  const [inputValue, setInputValue] = useState<Results>(value);
 
-function PlannedResultsCell({
-  value,
-  onValueChange,
-  readOnly = false,
-}: PlannedResultsCellProps) {
-  const [inputValue, setInputValue] = useState<TextAreaValues>(() => {
-    try {
-      return JSON.parse(value || '{"know":"","beAble":"","own":""}');
-    } catch {
-      return {
-        know: "",
-        beAble: "",
-        own: "",
-      };
-    }
-  });
-
-  const [isEditing, setIsEditing] = useState(false);
-  const knowRef = useRef<HTMLTextAreaElement>(null);
-  const beAbleRef = useRef<HTMLTextAreaElement>(null);
-  const ownRef = useRef<HTMLTextAreaElement>(null);
-
-  const adjustHeight = (textarea: HTMLTextAreaElement) => {
-    textarea.style.height = "auto";
-    textarea.style.height = `${textarea.scrollHeight}px`;
-  };
-
-  useEffect(() => {
-    [knowRef.current, beAbleRef.current, ownRef.current].forEach((ref) => {
-      if (ref) {
-        adjustHeight(ref);
-      }
-    });
-  }, [inputValue]);
-
-  const handleDivClick = () => {
-    if (!readOnly) {
-      setIsEditing(true);
-    }
-  };
-
-  const handleInputChange = (field: keyof TextAreaValues, value: string) => {
+  const handleInputChange = (field: string, value: string) => {
     const newValues = {
       ...inputValue,
       [field]: value,
     };
     setInputValue(newValues);
-    onValueChange(JSON.stringify(newValues));
+    onValueChange(newValues);
+
+    const textarea = document.getElementById(field);
+    if (textarea) {
+      textarea.style.height = "auto";
+      textarea.style.height = `${textarea.scrollHeight}px`;
+    }
+  };
+
+  const styles = {
+    resize: "none" as const,
+    fontFamily: "Times New Roman",
+    fontSize: 16,
+    overflow: "hidden",
+    minHeight: "50px",
+    padding: "5px",
+    border: "1px solid #ccc",
+    borderRadius: "4px",
+    boxSizing: "border-box" as const,
   };
 
   return (
@@ -73,69 +47,27 @@ function PlannedResultsCell({
     >
       <u>Знать:</u>
       <textarea
-        ref={knowRef}
+        id="know"
         value={inputValue.know}
         onChange={(e) => handleInputChange("know", e.target.value)}
-        style={{
-          resize: "none",
-          fontFamily: "Times New Roman",
-          fontSize: 16,
-          overflow: "hidden",
-          minHeight: "50px",
-          padding: "5px",
-          border: "1px solid #ccc",
-          borderRadius: "4px",
-        }}
+        style={styles}
       />
       <u>Уметь:</u>
       <textarea
-        ref={beAbleRef}
+        id="beAble"
         value={inputValue.beAble}
         onChange={(e) => handleInputChange("beAble", e.target.value)}
-        style={{
-          resize: "none",
-          fontFamily: "Times New Roman",
-          fontSize: 16,
-          overflow: "hidden",
-          minHeight: "50px",
-          padding: "5px",
-          border: "1px solid #ccc",
-          borderRadius: "4px",
-        }}
+        style={styles}
       />
       <u>Владеть:</u>
       <textarea
-        ref={ownRef}
+        id="own"
         value={inputValue.own}
         onChange={(e) => handleInputChange("own", e.target.value)}
-        style={{
-          resize: "none",
-          fontFamily: "Times New Roman",
-          fontSize: 16,
-          overflow: "hidden",
-          minHeight: "50px",
-          padding: "5px",
-          border: "1px solid #ccc",
-          borderRadius: "4px",
-        }}
+        style={styles}
       />
     </div>
   );
-
-  //   return (
-  //     <div
-  //       onClick={handleDivClick}
-  //       style={{
-  //         fontFamily: "Times New Roman",
-  //         fontSize: 16,
-  //         whiteSpace: "pre-wrap",
-  //         cursor: readOnly ? "default" : "pointer",
-  //         backgroundColor: readOnly ? "#f5f5f5" : "white",
-  //       }}
-  //     >
-  //       {value}
-  //     </div>
-  //   );
 }
 
 export default PlannedResultsCell;

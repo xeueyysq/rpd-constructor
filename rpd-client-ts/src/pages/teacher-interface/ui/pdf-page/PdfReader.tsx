@@ -1,9 +1,19 @@
 import { FC, useEffect, useState } from "react";
-import { Document, Page } from "react-pdf";
 import { pdfjs } from "react-pdf";
+pdfjs.GlobalWorkerOptions.workerSrc =
+  "https://cdnjs.cloudflare.com/ajax/libs/pdf.js/4.8.69/pdf.worker.min.mjs";
+
+import { Document, Page } from "react-pdf";
 import "react-pdf/dist/esm/Page/AnnotationLayer.css";
 import "react-pdf/dist/esm/Page/TextLayer.css";
-import { Box, Button, IconButton, Stack, Typography } from "@mui/material";
+import {
+  Box,
+  Button,
+  Container,
+  IconButton,
+  Stack,
+  Typography,
+} from "@mui/material";
 import {
   ChevronLeft,
   ChevronRight,
@@ -12,9 +22,6 @@ import {
   Download,
 } from "@mui/icons-material";
 import { useStore } from "@shared/hooks";
-
-// Используем локальный worker из папки public
-pdfjs.GlobalWorkerOptions.workerSrc = "/pdf.worker.js";
 
 interface PdfReaderProps {
   file: Blob | MediaSource;
@@ -77,10 +84,9 @@ export const PdfReader: FC<PdfReaderProps> = ({ file }) => {
   }
 
   return (
-    <Box
+    <Container
+      maxWidth="lg"
       sx={{
-        marginLeft: 20,
-        width: "100%",
         display: "flex",
         flexDirection: "column",
         alignItems: "center",
@@ -91,7 +97,7 @@ export const PdfReader: FC<PdfReaderProps> = ({ file }) => {
         direction="row"
         spacing={2}
         alignItems="center"
-        justifyContent={"space-around"}
+        justifyContent={"space-between"}
         sx={{ mb: 2 }}
       >
         <Box
@@ -128,14 +134,12 @@ export const PdfReader: FC<PdfReaderProps> = ({ file }) => {
       </Stack>
 
       <Document
-        border={"2px dashed #000;"}
         file={fileUrl}
         onLoadSuccess={onDocumentLoadSuccess}
         onLoadError={onDocumentLoadError}
         loading={<Typography>Загрузка PDF...</Typography>}
       >
         <Page
-          border={"2px dashed #000;"}
           pageNumber={pageNumber}
           scale={scale}
           loading={<Typography>Загрузка страницы...</Typography>}
@@ -163,6 +167,6 @@ export const PdfReader: FC<PdfReaderProps> = ({ file }) => {
           </IconButton>
         </Stack>
       )}
-    </Box>
+    </Container>
   );
 };

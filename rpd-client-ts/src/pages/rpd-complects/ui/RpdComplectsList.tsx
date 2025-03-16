@@ -65,22 +65,16 @@ export const RpdComplectsList: FC = () => {
   }
 
   return (
-    <Container
-      maxWidth="xl"
-      sx={{
-        display: "flex",
-        justifyContent: "space-between",
-      }}
-    >
+    <Container maxWidth="xl">
+      <Box component="h2" sx={{ py: 1 }}>
+        Список загруженных комплектов РПД
+      </Box>
       <Box
         sx={{
           backgroundColor: "#fefefe",
           width: "100%",
         }}
       >
-        <Box component="h2" sx={{ py: 1 }}>
-          Список загруженных комплектов РПД
-        </Box>
         <TableContainer sx={{ marginTop: 1.5 }} component={Paper}>
           <Table>
             <TableHead>

@@ -11,22 +11,17 @@ export const Manager: FC = () => {
   const { managerPage, setManagerPage } = useStore();
 
   return (
-    <Container
-      maxWidth="xl"
-      sx={{
-        display: "flex",
-        justifyContent: "space-between",
-      }}
-    >
+    <Container maxWidth="xl">
+      <Box component="h2" sx={{ py: 1 }}>
+        Создание комплекта РПД на основе учебного плана
+      </Box>
       <Box
+        p={2}
         sx={{
           backgroundColor: "#fefefe",
           width: "100%",
         }}
       >
-        <Box component="h2" sx={{ py: 1 }}>
-          Создание комплекта РПД на основе учебного плана
-        </Box>
         {managerPage === "selectData" && (
           <Selectors setChoise={setManagerPage} />
         )}
