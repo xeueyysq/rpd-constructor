@@ -4,6 +4,15 @@ const { pool } = require("../../config/db");
   try {
     console.log("Starting migrations...");
 
+    //Миграции для таблицы `results_data`
+    // await pool.query(`
+    //   CREATE TABLE IF NOT EXISTS results_data (
+    //     id SERIAL PRIMARY KEY,
+    //     competence VARCHAR(100),
+    //     indicator VARCHAR(100),
+    //     disciplines TEXT[]
+    //   )`);
+
     // Миграция для таблицы `rpd_complects`
     await pool.query(`
       CREATE TABLE IF NOT EXISTS rpd_complects (
@@ -30,7 +39,7 @@ const { pool } = require("../../config/db");
         semester INTEGER,
         certification TEXT,
         place_more_text TEXT,
-        competencies JSONB,
+        competencies TEXT[],
         zet INTEGER,
         content JSONB,
         study_load JSONB,

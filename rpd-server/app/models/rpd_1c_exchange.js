@@ -5,6 +5,44 @@ class Rpd1cExchange {
     this.pool = pool;
   }
 
+  async setResultsData(data) {
+    try {
+      console.log(data);
+      const existingTemplates = await this.pool.query(
+        `SELECT id, disciplins_name, competencies FROM rpd_profile_templates`
+      );
+
+      for (const row of Object.values(data)) {
+        for (const template of existingTemplates.rows) {
+          if (row.disciplines.includes(template.disciplins_name)) {
+            if (!Array.isArray(template.competencies)) {
+              template.competencies = [];
+            }
+
+            const exists = template.competencies.some(
+              (comp) => comp.competence === row.competence
+            );
+
+            template.competencies.push({
+              competence: exists ? "" : row.competence,
+              indicator: row.indicator,
+              results: { know: "", beAble: "", own: "" },
+            });
+            await this.pool.query(
+              `UPDATE rpd_profile_templates 
+                 SET competencies = $1 
+                 WHERE id = $2`,
+              [JSON.stringify(template.competencies), template.id]
+            );
+          }
+        }
+      }
+    } catch (error) {
+      console.log(error);
+      throw error;
+    }
+  }
+
   async findRpd(complectId) {
     try {
       const queryResult = await this.pool.query(

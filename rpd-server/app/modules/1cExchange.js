@@ -7,12 +7,15 @@ const apiUrl = "https://1c-api.uni-dubna.ru/v1/api/persons/reports";
 async function exchange1C(apiData) {
   try {
     const disc = await fetchUpLink(apiData);
-    const upLink = disc[0].upLink;
-    const discs = await fetchDiscs(upLink);
-
+    const upLinks = disc[0].upLink;
+    const discs = await Promise.all(
+      upLinks.map(async (upLink) => {
+        return await fetchDiscs(upLink);
+      })
+    );
+    console.log("discs", discs);
     const RpdComplectId = await createRpdComplect(apiData);
-    await processDisciplines(discs, RpdComplectId, upLink);
-
+    await processDisciplines(discs, RpdComplectId);
     console.log("Данные успешно добавлены в базу данных.");
     return RpdComplectId;
   } catch (error) {
@@ -120,29 +123,42 @@ const fetchDiscInfo = async (upLink, discLink) => {
   }
 };
 
-const processDisciplines = async (records, RpdComplectId, upLink) => {
-  const disciplines = records[0].discInfo;
+const processDisciplines = async (disciplines, RpdComplectId) => {
   const recordsLength = disciplines.length;
   console.log(`Всего дисциплин из запроса - ${recordsLength}`);
 
   const promises = disciplines.map(async (record, index) => {
-    console.log(`Дисциплина ${index + 1} из ${recordsLength} обрабатывается`);
-    const discInfo = await fetchDiscInfo(upLink, record.discLink);
+    record[0].discInfo.map(async (disc) => {
+      console.log(`Дисциплина ${index + 1} из ${recordsLength} обрабатывается`);
+      const discInfo = await fetchDiscInfo(record[0].upLink, disc.discLink);
 
-    const { discipline, semester, place, study_load } = discInfo[0];
-    const { division, teachers, zets } = record;
-    const insertedId = await insertDiscipline({
-      RpdComplectId,
-      division,
-      discipline,
-      teachers,
-      zets,
-      place,
-      study_load,
-      semester,
+      if (!discInfo || !discInfo[0]) {
+        console.error(
+          `Нет данных для ${disc.discipline} с discLink: ${disc.discLink} и upLink ${record[0].upLink}`
+        );
+      }
+
+      const { place = "", study_load = {} } = discInfo?.[0] || {};
+      const {
+        discipline = "",
+        semester = null,
+        division = "",
+        teachers = "",
+        zets = null,
+      } = disc;
+      const insertedId = await insertDiscipline({
+        RpdComplectId,
+        division,
+        discipline,
+        teachers,
+        zets,
+        place,
+        study_load,
+        semester,
+      });
+
+      await insertStatusHistory(insertedId);
     });
-
-    await insertStatusHistory(insertedId);
   });
 
   await Promise.all(promises);
