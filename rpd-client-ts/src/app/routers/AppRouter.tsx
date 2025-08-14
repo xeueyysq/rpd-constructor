@@ -16,7 +16,7 @@ const SignIn = lazy(() => import("@pages/sign-in"));
 const UserManagement = lazy(() => import("@pages/user-management"));
 const RpdComplectsList = lazy(() => import("@pages/rpd-complects"));
 const TeacherInterfaceTemplates = lazy(
-  () => import("@pages/teacher-interface-tempaltes")
+  () => import("@pages/teacher-interface-templates")
 );
 const PlannedResultsList = lazy(() => import("@pages/planned-results"));
 import { ClippedDrawer } from "@widgets/drawer";

@@ -21,10 +21,12 @@ export const ClippedDrawer: FC<ClippedDrawerProps> = ({ page }) => {
   // const userRole = useAuth.getState().userRole;
   const [setChoise] = useState<string>("coverPage");
   const [drawerWidth, setDrawerWidth] = useState<number>(270);
+
   useEffect(() => {
     if (page === "template") setDrawerWidth(430);
     else setDrawerWidth(270);
   }, [page]);
+
   return (
     <Box sx={{ display: "flex", overflow: "auto" }}>
       <Header />
@@ -34,11 +36,9 @@ export const ClippedDrawer: FC<ClippedDrawerProps> = ({ page }) => {
         sx={{
           width: drawerWidth,
           flexShrink: 0,
-          position: "static",
           ["& .MuiDrawer-paper"]: {
             width: drawerWidth,
             boxSizing: "border-box",
-            position: "static",
             overflowY: "visible",
             minHeight: "100vh",
           },
@@ -55,7 +55,7 @@ export const ClippedDrawer: FC<ClippedDrawerProps> = ({ page }) => {
           />
         )}
       </Drawer>
-      <Box component="main" sx={{ flexGrow: 1, p: 3 }}>
+      <Box component={"main"} sx={{ flexGrow: 1, p: 3, width: "60%" }}>
         <Toolbar />
         <Outlet />
       </Box>
