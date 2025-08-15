@@ -121,7 +121,8 @@ export const SignIn: FC = () => {
               )}
               <Box sx={{ py: 2 }}>
                 <Button
-                  variant="outlined"
+                  fullWidth
+                  variant="contained"
                   disabled={isSubmitting}
                   type="submit"
                 >

@@ -1,6 +1,7 @@
 import { FC, useCallback, useEffect, useState } from "react";
 import { TemplateConstructorType, TemplateStatus } from "@entities/template";
 import { useStore } from "@shared/hooks";
+import { useNavigate } from "react-router-dom";
 import {
   Box,
   Button,
@@ -64,6 +65,7 @@ export const CreateRpdTemplateFrom1CExchange: FC<TemplateConstructorType> = ({
   }>({});
   const userName = useAuth.getState().userName;
   const [searchValue, setSearchValue] = useState("");
+  const navigate = useNavigate();
 
   const handleFilteredData = () => {
     if (data) {
@@ -141,9 +143,11 @@ export const CreateRpdTemplateFrom1CExchange: FC<TemplateConstructorType> = ({
 
   return (
     <>
-      <Typography component="span">
-        {selectedTemplateData.profile} ({selectedTemplateData.year})
-      </Typography>
+      <Box sx={{ display: "flex", alignItems: "center", gap: 2, mb: 2 }}>
+        <Typography component="span" variant="h6">
+          {selectedTemplateData.profile} ({selectedTemplateData.year})
+        </Typography>
+      </Box>
 
       <Box sx={{ py: 2 }}>
         <TextField

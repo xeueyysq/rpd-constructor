@@ -27,11 +27,13 @@ export const Header: FC = () => {
   }, [userRole]);
 
   return (
-    <AppBar color="default" sx={{ zIndex: (theme) => theme.zIndex.drawer + 1 }}>
+    <AppBar
+      sx={{ zIndex: (theme) => theme.zIndex.drawer + 1, background: "#29363d" }}
+    >
       <Toolbar>
         <Box width={"100%"} display={"flex"} justifyContent={"space-between"}>
           <HeaderLogo />
-          {size.width && size.width > 1090 && isUserLogged && (
+          {isUserLogged && (
             <Box sx={{ display: "flex", alignItems: "center" }}>
               <Box>
                 <Box>{userName}</Box>
@@ -51,7 +53,7 @@ export const Header: FC = () => {
               </Box>
             </Box>
           )}
-          {size.width && size.width < 1090 && <HeaderMenuMobile />}
+          {/* {size.width && size.width < 1090 && <HeaderMenuMobile />} */}
         </Box>
       </Toolbar>
     </AppBar>
