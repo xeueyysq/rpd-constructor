@@ -7,7 +7,8 @@ class RpdComplects {
 
     async findRpdComplect(data) {
         try {
-            const result = await this.pool.query(`
+            const result = await this.pool.query(
+                `
                 SELECT id from rpd_complects
                 WHERE faculty = $1
                 AND year = $2
@@ -15,16 +16,18 @@ class RpdComplects {
                 AND education_level = $4
                 AND profile = $5
                 AND direction = $6
-            `, [
-                data.faculty,
-                data.year,
-                data.formEducation,
-                data.levelEducation,
-                data.profile,
-                data.directionOfStudy
-            ]);
+            `,
+                [
+                    data.faculty,
+                    data.year,
+                    data.formEducation,
+                    data.levelEducation,
+                    data.profile,
+                    data.directionOfStudy,
+                ]
+            );
             const resultId = result.rows[0];
-            if(!resultId) return "NotFound";
+            if (!resultId) return "NotFound";
             return resultId;
         } catch (error) {
             console.log(error);
@@ -34,12 +37,15 @@ class RpdComplects {
 
     async findRpdComplectData(template_id) {
         try {
-            const result = await this.pool.query(`
+            const result = await this.pool.query(
+                `
                 SELECT * FROM rpd_complects
                 WHERE ID = (
                     SELECT id_rpd_complect FROM rpd_profile_templates
                     WHERE id = $1
-                )`, [template_id]);
+                )`,
+                [template_id]
+            );
             return result.rows[0];
         } catch (error) {
             console.log(error);
@@ -55,8 +61,8 @@ class RpdComplects {
                 educationLevel: data.levelEducation,
                 educationForm: data.formEducation,
                 profile: data.profile,
-                direction: data.directionOfStudy
-            }
+                direction: data.directionOfStudy,
+            };
             const RpdComplectId = await exchange1C(apiData);
             return RpdComplectId;
         } catch (error) {
@@ -76,6 +82,21 @@ class RpdComplects {
             return result.rows;
         } catch (error) {
             console.log(error);
+            throw new Error(error);
+        }
+    }
+
+    async deleteRpdComplect(ids) {
+        try {
+            const result = await this.pool.query(
+                `
+                DELETE FROM rpd_complects
+                WHERE id = ANY($1)`,
+                [ids]
+            );
+            return result
+        } catch (error) {
+            console.error(error);
             throw new Error(error);
         }
     }

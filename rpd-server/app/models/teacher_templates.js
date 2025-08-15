@@ -50,6 +50,7 @@ class TeacherTemplates {
 
             return "binnedSuccess";
         } catch (error) {
+            console.error(error)
             throw error;
         }
     }
@@ -95,6 +96,7 @@ class TeacherTemplates {
 
             return result.rows;
         } catch (error) {
+            console.error(error)
             throw error;
         }
     }
@@ -115,6 +117,7 @@ class TeacherTemplates {
 
             return "success";
         } catch (error) {
+            console.error(error)
             throw error
         }
     }
