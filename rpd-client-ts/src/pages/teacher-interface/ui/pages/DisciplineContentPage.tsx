@@ -32,7 +32,9 @@ const DisciplineContentPage: FC = () => {
     | DisciplineContentData
     | undefined;
   const dataHours: StudyLoad[] = useStore.getState().jsonData.study_load || [];
-  const maxHours: ObjectHours = dataHours.reduce(
+  const maxHours: ObjectHours = (
+    Array.isArray(dataHours) ? dataHours : []
+  ).reduce(
     (acc, item) => {
       const hours = parseFloat(item.id);
 

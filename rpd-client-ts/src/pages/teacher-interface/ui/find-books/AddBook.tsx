@@ -215,7 +215,7 @@ const AddBook: FC<AddBook> = ({ elementName }) => {
           )}
         </DialogContent>
         <DialogActions>
-          <Button onClick={handleFindBooks} color="primary">
+          <Button variant="contained" onClick={handleFindBooks}>
             Найти
           </Button>
         </DialogActions>

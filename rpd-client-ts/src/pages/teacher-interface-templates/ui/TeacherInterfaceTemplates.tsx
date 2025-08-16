@@ -224,7 +224,7 @@ export const TeacherInterfaceTemplates: FC = () => {
                       </>
                     ) : (
                       <Button
-                        variant="outlined"
+                        variant="contained"
                         size="small"
                         onClick={() => employedTemplate(row.id)}
                       >
