@@ -9,3 +9,8 @@ export const showSuccessMessage = (message: string) => {
   const variant: VariantType = "success";
   return enqueueSnackbar(message, { variant });
 };
+
+export const showWarningMessage = (message: string) => {
+  const variant: VariantType = "warning";
+  return enqueueSnackbar(message, { variant });
+};

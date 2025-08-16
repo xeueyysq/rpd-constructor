@@ -51,17 +51,17 @@ const TemplateMenu: FC<TemplateMenu> = ({ id, teacher, status, fetchData }) => {
 
   const sendTemplateToTeacher = async (id: number, teacher: string) => {
     try {
-      const responce = await axiosBase.post("send-template-to-teacher", {
+      const response = await axiosBase.post("send-template-to-teacher", {
         id,
         teacher,
         userName,
       });
 
-      if (responce.data === "UserNotFound")
+      if (response.data === "UserNotFound")
         showErrorMessage("Ошибка. Пользователь не найден");
-      if (responce.data === "TemplateAlreadyBinned")
+      if (response.data === "TemplateAlreadyBinned")
         showErrorMessage("Ошибка. Данный шаблон уже отправлен преподавателю");
-      if (responce.data === "binnedSuccess") {
+      if (response.data === "binnedSuccess") {
         showSuccessMessage("Шаблон успешно отправлен преподавателю");
         fetchData();
       }
@@ -73,7 +73,9 @@ const TemplateMenu: FC<TemplateMenu> = ({ id, teacher, status, fetchData }) => {
 
   const uploadTemplateData = async () => {
     try {
-      const response = await axiosBase.post("rpd-profile-templates", { id });
+      const response = await axiosBase.post("rpd-profile-templates", {
+        id,
+      });
       setJsonData(response.data);
       setTabState("createTemplateFromExchange", true);
       navigate("/teacher-interface");
@@ -85,7 +87,9 @@ const TemplateMenu: FC<TemplateMenu> = ({ id, teacher, status, fetchData }) => {
 
   const getTemplateHistory = async () => {
     try {
-      const response = await axiosBase.post("get-template-history", { id });
+      const response = await axiosBase.post("get-template-history", {
+        id,
+      });
       setHistory(response.data);
       setOpenDialog(true);
     } catch (error) {

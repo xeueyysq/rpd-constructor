@@ -5,7 +5,7 @@ import { Box } from "@mui/material";
 const AimsPage: FC = () => {
   return (
     <Box>
-      <Box component="h2" sx={{ pb: 2 }}>
+      <Box fontSize={"1.5rem"} sx={{ pb: 2 }}>
         Цели и задачи освоения дисциплины
       </Box>
       <JsonChangeValue elementName="goals" />

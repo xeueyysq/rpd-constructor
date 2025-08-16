@@ -6,7 +6,7 @@ import AddBook from "../find-books/AddBook.tsx";
 const ResourceSupportPage: FC = () => {
   return (
     <Box>
-      <Box component="h2">Ресурсное обеспечение</Box>
+      <Box fontSize={"1.5rem"}>Ресурсное обеспечение</Box>
       <Box component="h4" sx={{ pt: 2, pb: 1 }}>
         Перечень литературы
       </Box>

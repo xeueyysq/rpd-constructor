@@ -14,7 +14,7 @@ const DisciplinePlace: FC = () => {
 
   return (
     <Box>
-      <Box component="h2">Место дисциплины в структуре ОПОП</Box>
+      <Box fontSize={"1.5rem"}>Место дисциплины в структуре ОПОП</Box>
       {Object.keys(data).length ? (
         <Box sx={{ py: 2 }}>
           Дисциплина

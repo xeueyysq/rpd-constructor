@@ -5,7 +5,7 @@ import { useNavigate } from "react-router-dom";
 const HeaderLogo: FC = () => {
   const navigate = useNavigate();
   return (
-    <Box sx={{ px: 1 }} alignItems={"center"} alignContent={"center"}>
+    <Box sx={{ px: 1 }} alignItems={"center"} alignItems={"center"}>
       <Button
         // type="overline"
         // display="block"

@@ -24,7 +24,11 @@ import {
 import { useAuth } from "@entities/auth";
 import TemplateMenu from "./TemplateMenu.tsx";
 import { axiosBase } from "@shared/api";
-import { showErrorMessage, showSuccessMessage } from "@shared/lib";
+import {
+  showErrorMessage,
+  showSuccessMessage,
+  showWarningMessage,
+} from "@shared/lib";
 import { Loader } from "@shared/ui";
 import { templateDataTitles } from "@shared/model/templateDataTitles";
 import { Search } from "@mui/icons-material";
@@ -104,7 +108,7 @@ export const CreateRpdTemplateFrom1CExchange: FC<TemplateConstructorType> = ({
   const createTemplateData = async (id: number, discipline: string) => {
     const teacher = selectedTeachers[id];
     if (!teacher) {
-      showErrorMessage("Ошибка. Необходимо выбрать преподавателя");
+      showWarningMessage("Необходимо выбрать преподавателя");
       return;
     }
 
@@ -171,16 +175,40 @@ export const CreateRpdTemplateFrom1CExchange: FC<TemplateConstructorType> = ({
               >
                 Дисциплина
               </TableCell>
-              <TableCell sx={{ fontWeight: "600", fontSize: "18px", py: 2 }}>
+              <TableCell
+                sx={{
+                  fontWeight: "600",
+                  fontSize: "18px",
+                  py: 2,
+                }}
+              >
                 Семестр
               </TableCell>
-              <TableCell sx={{ fontWeight: "600", fontSize: "18px", py: 2 }}>
+              <TableCell
+                sx={{
+                  fontWeight: "600",
+                  fontSize: "18px",
+                  py: 2,
+                }}
+              >
                 Преподаватель
               </TableCell>
-              <TableCell sx={{ fontWeight: "600", fontSize: "18px", py: 2 }}>
+              <TableCell
+                sx={{
+                  fontWeight: "600",
+                  fontSize: "18px",
+                  py: 2,
+                }}
+              >
                 Статус
               </TableCell>
-              <TableCell sx={{ fontWeight: "600", fontSize: "18px", py: 2 }}>
+              <TableCell
+                sx={{
+                  fontWeight: "600",
+                  fontSize: "18px",
+                  py: 2,
+                }}
+              >
                 Выбрать
               </TableCell>
             </TableRow>

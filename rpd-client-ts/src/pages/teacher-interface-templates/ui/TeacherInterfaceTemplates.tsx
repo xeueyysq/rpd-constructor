@@ -65,6 +65,7 @@ export const TeacherInterfaceTemplates: FC = () => {
       const response = await axiosBase.post("find-teacher-templates", {
         userName,
       });
+      console.log(response.data);
       setData(response.data);
     } catch (error) {
       showErrorMessage("Ошибка при получении данных");
@@ -98,7 +99,9 @@ export const TeacherInterfaceTemplates: FC = () => {
 
   const uploadTemplateData = async (id: number) => {
     try {
-      const response = await axiosBase.post("rpd-profile-templates", { id });
+      const response = await axiosBase.post("rpd-profile-templates", {
+        id,
+      });
       setJsonData(response.data);
       navigate("/teacher-interface");
     } catch (error) {
@@ -142,7 +145,7 @@ export const TeacherInterfaceTemplates: FC = () => {
     <>
       <Header />
       <Container maxWidth="xl">
-        <Box component="h2" sx={{ py: 1 }}>
+        <Box fontSize={"1.5rem"} sx={{ py: 1 }}>
           Выбор шаблона для редактирования
         </Box>
         <Box sx={{ py: 2, fontSize: "18px", fontWeight: "600" }}>Шаблоны:</Box>
@@ -171,7 +174,11 @@ export const TeacherInterfaceTemplates: FC = () => {
               {data.map((row) => (
                 <TableRow
                   key={row.id}
-                  sx={{ "&:last-child td, &:last-child th": { border: 0 } }}
+                  sx={{
+                    "&:last-child td, &:last-child th": {
+                      border: 0,
+                    },
+                  }}
                 >
                   <TableCell>{row.disciplins_name}</TableCell>
                   <TableCell>{row.faculty}</TableCell>

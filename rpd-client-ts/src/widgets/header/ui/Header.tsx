@@ -28,10 +28,18 @@ export const Header: FC = () => {
 
   return (
     <AppBar
-      sx={{ zIndex: (theme) => theme.zIndex.drawer + 1, background: "#29363d" }}
+      sx={{
+        zIndex: (theme) => theme.zIndex.drawer + 1,
+        background: "#29363d",
+      }}
     >
       <Toolbar>
-        <Box width={"100%"} display={"flex"} justifyContent={"space-between"}>
+        <Box
+          width={"100%"}
+          display={"flex"}
+          justifyContent={"space-between"}
+          alignItems={"center"}
+        >
           <HeaderLogo />
           {isUserLogged && (
             <Box sx={{ display: "flex", alignItems: "center" }}>

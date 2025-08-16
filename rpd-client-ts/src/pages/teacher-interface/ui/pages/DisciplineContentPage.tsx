@@ -126,7 +126,12 @@ const DisciplineContentPage: FC = () => {
     setNextId(nextId + 1);
     const newData = {
       ...data,
-      [nextId]: { theme: "", lectures: "", seminars: "", independent_work: "" },
+      [nextId]: {
+        theme: "",
+        lectures: "",
+        seminars: "",
+        independent_work: "",
+      },
     };
     setData(newData);
   };
@@ -209,7 +214,7 @@ const DisciplineContentPage: FC = () => {
 
   return (
     <Box>
-      <Box component="h2">Содержание дисциплины</Box>
+      <Box fontSize={"1.5rem"}>Содержание дисциплины</Box>
       <TableContainer component={Paper} sx={{ my: 2 }}>
         <Table
           sx={{ minWidth: 650 }}
@@ -252,7 +257,10 @@ const DisciplineContentPage: FC = () => {
                     />
                   </TableCell>
                   <TableCell
-                    style={{ alignContent: "center", textAlign: "center" }}
+                    style={{
+                      alignContent: "center",
+                      textAlign: "center",
+                    }}
                   >
                     {data[row].lectures +
                       data[row].seminars +
@@ -275,7 +283,10 @@ const DisciplineContentPage: FC = () => {
                     />
                   </TableCell>
                   <TableCell
-                    style={{ alignContent: "center", textAlign: "center" }}
+                    style={{
+                      alignContent: "center",
+                      textAlign: "center",
+                    }}
                   >
                     {data[row].lectures + data[row].seminars}
                   </TableCell>
@@ -291,16 +302,24 @@ const DisciplineContentPage: FC = () => {
               ))}
             <TableRow>
               <TableCell>Итого за семестр / курс</TableCell>
-              <TableCell sx={{ color: validateHours(summ.all, maxHours.all) }}>
+              <TableCell
+                sx={{
+                  color: validateHours(summ.all, maxHours.all),
+                }}
+              >
                 {summ.all} / {maxHours.all}
               </TableCell>
               <TableCell
-                sx={{ color: validateHours(summ.lectures, maxHours.lectures) }}
+                sx={{
+                  color: validateHours(summ.lectures, maxHours.lectures),
+                }}
               >
                 {summ.lectures} / {maxHours.lectures}
               </TableCell>
               <TableCell
-                sx={{ color: validateHours(summ.seminars, maxHours.seminars) }}
+                sx={{
+                  color: validateHours(summ.seminars, maxHours.seminars),
+                }}
               >
                 {summ.seminars} / {maxHours.seminars}
               </TableCell>
@@ -340,7 +359,7 @@ const DisciplineContentPage: FC = () => {
         </Button>
       </ButtonGroup>
 
-      <Box component="h2" sx={{ py: 2 }}>
+      <Box fontSize={"1.5rem"} sx={{ py: 2 }}>
         Содержание дисциплины{" "}
       </Box>
       <Box

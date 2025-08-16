@@ -14,7 +14,7 @@ const ScopeDisciplinePage: FC = () => {
 
   return (
     <Box>
-      <Box component="h2">Объем дисциплины</Box>
+      <Box fontSize={"1.5rem"}>Объем дисциплины</Box>
       <Box sx={{ py: 2 }}>
         Объем дисциплины составляет
         <Box component="span" sx={{ fontWeight: "600" }}>
