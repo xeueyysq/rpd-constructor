@@ -133,7 +133,8 @@ const TemplateMenu: FC<TemplateMenu> = ({ id, teacher, status, fetchData }) => {
         </MenuItem>
         {!(
           status === TemplateStatusEnum.ON_TEACHER ||
-          status === TemplateStatusEnum.IN_PROGRESS
+          status === TemplateStatusEnum.IN_PROGRESS ||
+          status === TemplateStatusEnum.ON_REFINEMENT
         ) && (
           <MenuItem
             onClick={() =>
