@@ -51,9 +51,9 @@ export const SignIn: FC = () => {
           <SvgIcon
             component={Logo}
             inheritViewBox
-            sx={{ fontSize: "90px", ml: 2.5 }}
+            sx={{ fontSize: "85px", ml: 2.5 }}
           />
-          <Typography fontSize={"1.2rem"}>
+          <Typography color="#737781" fontSize={"1.2rem"}>
             Государственный университет Дубна
           </Typography>
         </Box>
