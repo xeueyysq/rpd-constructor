@@ -199,7 +199,7 @@ const insertStatusHistory = async (templateId) => {
   const history = [
     {
       date: moment().format(),
-      status: "Выгружен из 1С",
+      status: "unloaded",
       user: "Система",
     },
   ];

@@ -164,7 +164,7 @@ class RpdProfileTemplates {
         const history = [
           {
             date: moment().format(),
-            status: "Создан",
+            status: "created",
             user: userName,
           },
         ];
