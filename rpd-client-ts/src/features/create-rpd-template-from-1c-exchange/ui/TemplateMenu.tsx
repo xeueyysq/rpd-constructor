@@ -12,12 +12,14 @@ import { useAuth } from "@entities/auth";
 import { useNavigate } from "react-router-dom";
 import HistoryModal from "./HistoryModal.tsx";
 import OpenInBrowserIcon from "@mui/icons-material/OpenInBrowser";
-import ReplyIcon from "@mui/icons-material/Reply";
 import DeleteForeverIcon from "@mui/icons-material/DeleteForever";
 import HistoryIcon from "@mui/icons-material/History";
 import { axiosBase } from "@shared/api";
 import { showErrorMessage, showSuccessMessage } from "@shared/lib";
 import { useStore } from "@shared/hooks";
+import { TemplateStatusEnum } from "@entities/template/index.ts";
+import ForwardToInboxSharpIcon from "@mui/icons-material/ForwardToInboxSharp";
+import { setTemplateStatus } from "@entities/template/index.ts";
 
 interface TemplateMenu {
   id: number;
@@ -41,12 +43,6 @@ const TemplateMenu: FC<TemplateMenu> = ({ id, teacher, status, fetchData }) => {
   };
   const handleClose = () => {
     setAnchorEl(null);
-  };
-
-  const statusValidate = () => {
-    if (status === "Отправлен преподавателю" || status === "Взят в работу")
-      return false;
-    return true;
   };
 
   const sendTemplateToTeacher = async (id: number, teacher: string) => {
@@ -135,10 +131,26 @@ const TemplateMenu: FC<TemplateMenu> = ({ id, teacher, status, fetchData }) => {
             </Typography>
           </ListItemText>
         </MenuItem>
-        {statusValidate() && (
-          <MenuItem onClick={() => sendTemplateToTeacher(id, teacher)}>
+        {!(
+          status === TemplateStatusEnum.ON_TEACHER ||
+          status === TemplateStatusEnum.IN_PROGRESS
+        ) && (
+          <MenuItem
+            onClick={() =>
+              status === TemplateStatusEnum.READY
+                ? setTemplateStatus(
+                    {
+                      id: id,
+                      userName: userName,
+                      status: "on_refinement",
+                    },
+                    fetchData
+                  )
+                : sendTemplateToTeacher(id, teacher)
+            }
+          >
             <ListItemIcon>
-              <ReplyIcon />
+              <ForwardToInboxSharpIcon />
             </ListItemIcon>
             <ListItemText>
               <Typography
@@ -148,12 +160,14 @@ const TemplateMenu: FC<TemplateMenu> = ({ id, teacher, status, fetchData }) => {
                 color="grey"
                 m="0"
               >
-                Отправить преподавателю
+                {status === TemplateStatusEnum.READY
+                  ? "Отправить на доработку"
+                  : "Отправить преподавателю"}
               </Typography>
             </ListItemText>
           </MenuItem>
         )}
-        <MenuItem>
+        {/* <MenuItem>
           <ListItemIcon>
             <DeleteForeverIcon />
           </ListItemIcon>
@@ -168,7 +182,7 @@ const TemplateMenu: FC<TemplateMenu> = ({ id, teacher, status, fetchData }) => {
               Удалить
             </Typography>
           </ListItemText>
-        </MenuItem>
+        </MenuItem> */}
         <MenuItem onClick={() => getTemplateHistory()}>
           <ListItemIcon>
             <HistoryIcon />

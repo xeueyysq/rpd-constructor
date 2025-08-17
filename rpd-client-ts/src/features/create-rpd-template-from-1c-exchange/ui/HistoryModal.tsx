@@ -10,6 +10,7 @@ import { FC } from "react";
 import ArrowDownwardIcon from "@mui/icons-material/ArrowDownward";
 import { format, parseISO } from "date-fns";
 import { ru } from "date-fns/locale";
+import { statusConfig } from "@entities/template/model/templateStatusCodes";
 
 interface history {
   date: string;
@@ -40,7 +41,7 @@ const HistoryModal: FC<HistoryModal> = ({
               <Box key={index} sx={{ p: 1 }}>
                 <Box>{formattedDate(data.date)}</Box>
                 <Box>{data.user}</Box>
-                <Box>{data.status}</Box>
+                <Box>{statusConfig[data.status]?.label}</Box>
               </Box>
               {index < history.length - 1 && (
                 <Box sx={{ textAlign: "center" }}>
