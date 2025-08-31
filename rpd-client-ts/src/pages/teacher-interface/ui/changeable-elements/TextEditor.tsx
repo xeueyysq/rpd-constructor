@@ -19,14 +19,12 @@ import {
   focusOnEditor,
 } from "contenido";
 
-import { IconButton, Box, Button } from "@mui/material";
+import { IconButton, Box, Button, ButtonGroup } from "@mui/material";
 import FormatBoldIcon from "@mui/icons-material/FormatBold";
 import FormatItalicIcon from "@mui/icons-material/FormatItalic";
 import FormatUnderlinedIcon from "@mui/icons-material/FormatUnderlined";
 import FormatListBulletedIcon from "@mui/icons-material/FormatListBulleted";
 import FormatListNumberedIcon from "@mui/icons-material/FormatListNumbered";
-import SaveAltIcon from "@mui/icons-material/SaveAlt";
-import DeleteIcon from "@mui/icons-material/Delete";
 
 interface TestEditor {
   value: string;
@@ -141,22 +139,28 @@ const TextEditor: FC<TestEditor> = ({ value, saveContent, setIsEditing }) => {
           editorRef={editorRef}
         />
       </Box>
-      <Button
-        variant="contained"
-        size="small"
-        endIcon={<SaveAltIcon color="primary" />}
-        onClick={handleSaveClick}
-      >
-        сохранить изменения
-      </Button>
-      <Button
+      <ButtonGroup
         variant="outlined"
+        aria-label="Basic button group"
         size="small"
-        endIcon={<DeleteIcon color="primary" />}
-        onClick={() => setIsEditing(false)}
       >
-        отменить изменения
-      </Button>
+        <Button
+          variant="contained"
+          size="small"
+          // endIcon={<SaveAltIcon color="primary" />}
+          onClick={handleSaveClick}
+        >
+          Сохранить изменения
+        </Button>
+        <Button
+          variant="outlined"
+          size="small"
+          // endIcon={<DeleteIcon color="primary" />}
+          onClick={() => setIsEditing(false)}
+        >
+          Отменить
+        </Button>
+      </ButtonGroup>
     </>
   );
 };

@@ -16,14 +16,20 @@ import { showErrorMessage, showSuccessMessage } from "@shared/lib";
 import MoreHorizIcon from "@mui/icons-material/MoreHoriz";
 import DownloadIcon from "@mui/icons-material/Download";
 import { axiosBase } from "@shared/api";
+import { DataDialogBox } from "../DataDialogBox.tsx";
 
 interface JsonChangeValue {
   elementName: string;
 }
 
 const JsonChangeValue: FC<JsonChangeValue> = ({ elementName }) => {
+  const [openFromYearDialog, setOpenFromYearDialog] = useState<boolean>(false);
+  const [openFromDirectionDialog, setOpenFromDirectionDialog] =
+    useState<boolean>(false);
   const { updateJsonData } = useStore();
   const elementValue = useStore.getState().jsonData[elementName];
+  const teacherTemplates = useStore.getState().teacherTemplates;
+  const JsonData = useStore.getState().jsonData;
 
   const [isEditing, setIsEditing] = useState<boolean>(false);
   const [changeableValue, setChangeableValue] = useState<string>(
@@ -42,6 +48,49 @@ const JsonChangeValue: FC<JsonChangeValue> = ({ elementName }) => {
   };
   const handleClose = () => {
     setAnchorEl(null);
+  };
+
+  const handleCloseDialog = async (type: string, value?: number) => {
+    switch (type) {
+      case "from-year-dialog":
+        setOpenFromYearDialog(false);
+        if (value) {
+          await copyTemplateData(value, elementName);
+        }
+        break;
+      case "from-direction-dialog":
+        setOpenFromDirectionDialog(false);
+        if (value) {
+          await copyTemplateData(value, elementName);
+        }
+        break;
+      default:
+        break;
+    }
+  };
+
+  const copyTemplateData = async (
+    sourceTemplateId: number,
+    fieldToCopy: string
+  ) => {
+    const currentTemplateId = useStore.getState().jsonData.id;
+
+    try {
+      const response = await axiosBase.post("/copy-template-data", {
+        sourceTemplateId,
+        targetTemplateId: currentTemplateId,
+        fieldToCopy,
+      });
+
+      if (response.data.success) {
+        showSuccessMessage("Данные успешно скопированы");
+        updateJsonData(fieldToCopy, response.data.targetTemplate[fieldToCopy]);
+        setChangeableValue(response.data.targetTemplate[fieldToCopy]);
+      }
+    } catch (error) {
+      showErrorMessage("Ошибка при копировании данных");
+      console.error(error);
+    }
   };
 
   const saveContent = async (htmlValue: string) => {
@@ -134,7 +183,7 @@ const JsonChangeValue: FC<JsonChangeValue> = ({ elementName }) => {
                 "aria-labelledby": "basic-button",
               }}
             >
-              <MenuItem disabled>
+              <MenuItem onClick={() => setOpenFromYearDialog(true)}>
                 <ListItemIcon>
                   <DownloadIcon />
                 </ListItemIcon>
@@ -142,16 +191,16 @@ const JsonChangeValue: FC<JsonChangeValue> = ({ elementName }) => {
                   <Typography
                     variant="button"
                     display="block"
-                    gutterBottom
                     color="grey"
+                    gutterBottom
                     m="0"
                   >
                     Загрузить данные из шаблона
-                    <br /> другого года (в разработке)
+                    <br /> другого года
                   </Typography>
                 </ListItemText>
               </MenuItem>
-              <MenuItem disabled>
+              <MenuItem onClick={() => setOpenFromDirectionDialog(true)}>
                 <ListItemIcon>
                   <DownloadIcon />
                 </ListItemIcon>
@@ -164,12 +213,36 @@ const JsonChangeValue: FC<JsonChangeValue> = ({ elementName }) => {
                     m="0"
                   >
                     Загрузить данные из шаблона
-                    <br /> другого института (в разработке)
+                    <br /> другого направления
                   </Typography>
                 </ListItemText>
               </MenuItem>
             </Menu>
           </Box>
+          <DataDialogBox
+            id={"from-year-dialog"}
+            open={openFromYearDialog}
+            title={"Выгрузить из другого года"}
+            onClose={handleCloseDialog}
+            options={teacherTemplates.filter(
+              (option) =>
+                option.year !== JsonData.year &&
+                option.text === JsonData.disciplins_name
+            )}
+            fieldName={elementName}
+          />
+          <DataDialogBox
+            id={"from-direction-dialog"}
+            open={openFromDirectionDialog}
+            title={"Выгрузить из другого направления"}
+            onClose={handleCloseDialog}
+            options={teacherTemplates.filter(
+              (option) =>
+                option.id !== JsonData.id &&
+                option.text !== JsonData.disciplins_name
+            )}
+            fieldName={elementName}
+          />
         </Box>
       )}
     </Box>

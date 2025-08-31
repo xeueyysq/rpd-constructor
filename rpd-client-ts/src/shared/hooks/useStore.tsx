@@ -1,7 +1,7 @@
 import { create } from "zustand";
 import { immer } from "zustand/middleware/immer";
 
-type JsonValue = string | number | boolean | null | Record<string, unknown>;
+type JsonValue = any;
 
 interface JsonData {
   [key: string]: JsonValue;
@@ -31,6 +31,12 @@ interface TabState {
   isEnabled: boolean;
 }
 
+interface TeacherTemplate {
+  id: number | undefined;
+  text: string | undefined;
+  year: number | undefined;
+}
+
 interface StoreState {
   jsonData: JsonData;
   selectedTemplateData: SelectedTemplateData;
@@ -39,6 +45,7 @@ interface StoreState {
   tabs: Record<string, TabState>;
   managerPage: string;
   templatePage: string;
+  teacherTemplates: TeacherTemplate[];
   setJsonData: (data: JsonData) => void;
   updateJsonData: (key: string, value: JsonValue) => void;
   setSelectedTemplateData: (
@@ -58,10 +65,12 @@ interface StoreState {
   deInitializeTabs: () => void;
   setManagerPage: (page: string) => void;
   setTemplatePage: (templatePage: string) => void;
+  setTeacherTemplates: (templates: TeacherTemplate[]) => void;
 }
 
 export const useStore = create<StoreState>()(
   immer((set) => ({
+    openedTemplateId: undefined,
     jsonData: {},
     selectedTemplateData: {
       faculty: undefined,
@@ -84,6 +93,11 @@ export const useStore = create<StoreState>()(
     managerPage: "selectData",
     complectId: undefined,
     templatePage: "coverPage",
+    teacherTemplates: {
+      id: undefined,
+      text: undefined,
+      year: undefined,
+    },
     setJsonData: (data) => {
       set((state) => {
         state.jsonData = data;
@@ -159,6 +173,11 @@ export const useStore = create<StoreState>()(
     setTemplatePage: (templatePage) => {
       set((state) => {
         state.templatePage = templatePage;
+      });
+    },
+    setTeacherTemplates: (templates) => {
+      set((state) => {
+        state.teacherTemplates = templates;
       });
     },
   }))

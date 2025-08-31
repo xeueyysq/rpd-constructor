@@ -49,7 +49,7 @@ interface TemplateData {
 
 export const TeacherInterfaceTemplates: FC = () => {
   const userName = useAuth.getState().userName;
-  const { setJsonData } = useStore();
+  const { setJsonData, setTeacherTemplates } = useStore();
   const [data, setData] = useState<TemplateData[]>();
   const navigate = useNavigate();
   const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null);
@@ -72,6 +72,19 @@ export const TeacherInterfaceTemplates: FC = () => {
   useEffect(() => {
     fetchData();
   }, [fetchData]);
+
+  useEffect(() => {
+    if (data) {
+      const templates = data.map((row) => {
+        return {
+          id: row.id,
+          text: row.disciplins_name,
+          year: row.year,
+        };
+      });
+      setTeacherTemplates(templates || []);
+    }
+  }, [data, setTeacherTemplates]);
 
   const uploadTemplateData = async (id: number) => {
     try {

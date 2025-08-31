@@ -1,4 +1,5 @@
 import {
+  alpha,
   Box,
   Divider,
   List,
@@ -41,22 +42,22 @@ export const RpdList: FC<RpdListProps> = ({ RpdListItems }) => {
               <TreeItem
                 itemId="direction"
                 label={`${jsonData.direction}, ${jsonData.profile}`}
-                disabled
+                sx={{ color: alpha("#000000", 0.5) }}
               />
               <TreeItem
                 itemId="education_level"
                 label={`Уровень образования - ${jsonData.education_level}`}
-                disabled
+                sx={{ color: alpha("#000000", 0.5) }}
               />
               <TreeItem
                 itemId="education_form"
                 label={`Форма обучения - ${jsonData.education_form}`}
-                disabled
+                sx={{ color: alpha("#000000", 0.5) }}
               />
               <TreeItem
                 itemId="year"
                 label={`Год набора - ${jsonData.year}`}
-                disabled
+                sx={{ color: alpha("#000000", 0.5) }}
               />
             </TreeItem>
           </SimpleTreeView>
