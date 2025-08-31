@@ -69,6 +69,49 @@ class RpdProfileTemplatesController {
       res.status(500).json({ message: err.message });
     }
   }
+
+  async copyTemplateData(req, res) {
+    try {
+      const { sourceTemplateId, targetTemplateId, fieldToCopy } = req.body;
+
+      if (!sourceTemplateId || !targetTemplateId || !fieldToCopy) {
+        return res.status(400).json({
+          message: "Нет необходимых параметров",
+        });
+      }
+
+      const result = await this.model.copyTemplateData(
+        sourceTemplateId,
+        targetTemplateId,
+        fieldToCopy
+      );
+
+      res.json(result);
+    } catch (err) {
+      console.error("Ошибка контроллера:", err);
+      res.status(500).json({ message: err.message });
+    }
+  }
+
+  async getChangeableValues(req, res) {
+    try {
+      const { ids, rowName } = req.query;
+      console.log(ids, rowName);
+
+      if (!ids || !rowName) {
+        return res.status(400).json({
+          message: "Нет необходимых параметров",
+        });
+      }
+
+      const result = await this.model.getChangeableValues(ids, rowName);
+
+      res.json(result);
+    } catch (error) {
+      console.error(error);
+      res.status(500).json({ message: error.message });
+    }
+  }
 }
 
 module.exports = RpdProfileTemplatesController;

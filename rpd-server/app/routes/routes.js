@@ -42,6 +42,18 @@ router.post(
   "/find-or-create-profile-template",
   rpdProfileTemplatesController.findOrCreate.bind(rpdProfileTemplatesController)
 );
+router.post(
+  "/copy-template-data",
+  rpdProfileTemplatesController.copyTemplateData.bind(
+    rpdProfileTemplatesController
+  )
+);
+router.get(
+  "/get-changeable-values",
+  rpdProfileTemplatesController.getChangeableValues.bind(
+    rpdProfileTemplatesController
+  )
+);
 
 const Rpd1cExchangeController = require("../controllers/rpd1cExchangeController");
 const rpd1cExchangeController = new Rpd1cExchangeController(pool);

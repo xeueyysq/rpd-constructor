@@ -128,6 +128,7 @@ class TeacherTemplates {
       throw error;
     }
   }
+
 }
 
 module.exports = TeacherTemplates;

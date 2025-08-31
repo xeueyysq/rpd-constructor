@@ -181,6 +181,44 @@ class RpdProfileTemplates {
       throw error;
     }
   }
+
+  async copyTemplateData(sourceTemplateId, targetTemplateId, fieldToCopy) {
+    try {
+      const sourceTemplateResult = await this.pool.query(
+        `SELECT ${fieldToCopy} FROM rpd_profile_templates WHERE id = $1`,
+        [sourceTemplateId]
+      );
+
+      const sourceValue = sourceTemplateResult.rows[0][fieldToCopy];
+
+      const updateResult = await this.pool.query(
+        `UPDATE rpd_profile_templates SET ${fieldToCopy} = $1 WHERE id = $2 RETURNING *`,
+        [sourceValue, targetTemplateId]
+      );
+
+      return {
+        success: true,
+        message: `Поле ${fieldToCopy} успешно скопировано`,
+        targetTemplate: updateResult.rows[0],
+      };
+    } catch (error) {
+      console.error("Ошибка копирования:", error);
+      throw error;
+    }
+  }
+
+  async getChangeableValues(ids, rowName) {
+    try {
+      const queryResult = await this.pool.query(
+        `SELECT ${rowName}, id FROM rpd_profile_templates where id = any($1)`,
+        [ids]
+      );
+      return queryResult.rows;
+    } catch (error) {
+      console.error(error);
+      throw error;
+    }
+  }
 }
 
 module.exports = RpdProfileTemplates;
