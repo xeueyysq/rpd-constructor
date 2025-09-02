@@ -49,6 +49,13 @@ class RpdComplectsController {
                 message: error.message,
                 code: errorCode,
             });
+
+    async getAllRpdComplects(req, res) {
+        try {
+            const records = await this.model.getAllRpdComplects();
+            res.json(records);
+        } catch (error) {
+            res.status(500).json({ message: error.message });
         }
     }
 }
