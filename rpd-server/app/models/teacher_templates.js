@@ -1,76 +1,80 @@
-const moment = require('moment');
+const moment = require("moment");
 
 class TeacherTemplates {
-    constructor(pool) {
-        this.pool = pool;
-    }
+  constructor(pool) {
+    this.pool = pool;
+  }
 
-    async bindTemplateWithTeacher(id, teacher, userName) {
-        try {
-            const fullname = teacher.split(' ');
-            const nameParam = {
-                name: fullname[1],
-                surname: fullname[0],
-                patronymic: fullname[2]
-            }
+  async bindTemplateWithTeacher(id, teacher, userName) {
+    try {
+      const fullname = teacher.split(" ");
+      const nameParam = {
+        name: fullname[1],
+        surname: fullname[0],
+        patronymic: fullname[2],
+      };
 
-            const userIdResult = await this.pool.query(`
+      const userIdResult = await this.pool.query(
+        `
                 SELECT id FROM users WHERE fullname = $1
-            `, [nameParam]);
+            `,
+        [nameParam]
+      );
 
-            if (!userIdResult.rows[0]) return "UserNotFound";
-            const userId = userIdResult.rows[0].id;
+      if (!userIdResult.rows[0]) return "UserNotFound";
+      const userId = userIdResult.rows[0].id;
 
-            const teacherTemplateRowResult = await this.pool.query(`
+      const teacherTemplateRowResult = await this.pool.query(
+        `
                 SELECT id from teacher_templates 
                 WHERE user_id = $1 and template_id = $2
-            `, [userId, id]);
+            `,
+        [userId, id]
+      );
 
-            if (teacherTemplateRowResult.rows[0]) return "TemplateAlreadyBinned";
+      if (teacherTemplateRowResult.rows[0]) return "TemplateAlreadyBinned";
 
-            await this.pool.query(`
+      await this.pool.query(
+        `
                 INSERT INTO teacher_templates (
                     user_id, template_id
                 ) VALUES (
                     $1, $2
                 )
-            `, [userId, id]);
+            `,
+        [userId, id]
+      );
 
-            const status = {
-                date: moment().format(),
-                status: "Отправлен преподавателю",
-                user: userName
-            }
+      await this.setTemplateStatus(id, userName, "on_teacher");
 
-            await this.pool.query(`
-                UPDATE template_status
-                SET history = history || $1::jsonb
-                WHERE id_profile_template = $2
-            `, [status, id]);
-
-            return "binnedSuccess";
-        } catch (error) {
-            throw error;
-        }
+      return "binnedSuccess";
+    } catch (error) {
+      console.error(error);
+      throw error;
     }
+  }
 
-    async findTeacherTemplates(userName) {
-        try {
-            const fullname = userName.split(' ');
-            const nameParam = {
-                name: fullname[1],
-                surname: fullname[0],
-                patronymic: fullname[2]
-            }
+  async findTeacherTemplates(userName) {
+    try {
+      const fullname = userName.split(" ");
+      const nameParam = {
+        name: fullname[1],
+        surname: fullname[0],
+        patronymic: fullname[2],
+      };
 
-            const userIdResult = await this.pool.query(`
+      const userIdResult = await this.pool.query(
+        `
                 SELECT id FROM users WHERE fullname = $1
-            `, [nameParam]);
+            `,
+        [nameParam]
+      );
 
-            if (!userIdResult.rows[0]) return "UserNotFound";
-            const userId = userIdResult.rows[0].id;
+      if (!userIdResult.rows[0]) return "UserNotFound";
+      const userId = userIdResult.rows[0].id;
 
-            const result = await this.pool.query(`
+      const result = await this.pool.query(
+        `
                 SELECT rpt.id, rpt.disciplins_name, rc.faculty,
                 rc.direction, rc.profile, rc.education_level,
                 rc.education_form, rc.year, (
@@ -90,34 +94,41 @@ class TeacherTemplates {
                     SELECT template_id
                     FROM teacher_templates
                     WHERE user_id = $1
-                );`, 
-            [userId]);
+                );`,
+        [userId]
+      );
 
-            return result.rows;
-        } catch (error) {
-            throw error;
-        }
+      return result.rows;
+    } catch (error) {
+      console.error(error);
+      throw error;
     }
+  }
 
-    async employedTemplate(id, userName) {
-        try {
-            const status = {
-                date: moment().format(),
-                status: "Взят в работу",
-                user: userName
-            };
+  async setTemplateStatus(id, userName, status) {
+    try {
+      const statusLog = {
+        date: moment().format(),
+        status,
+        user: userName,
+      };
 
-            await this.pool.query(`
-                UPDATE template_status
-                SET history = history || $1::jsonb
-                WHERE id_profile_template = $2
-            `, [status, id]);
+      await this.pool.query(
+        `
+                  UPDATE template_status
+                  SET history = history || $1::jsonb
+                  WHERE id_profile_template = $2
+                  `,
+        [statusLog, id]
+      );
 
-            return "success";
-        } catch (error) {
-            throw error
-        }
+      return "success";
+    } catch (error) {
+      console.error(error);
+      throw error;
     }
+  }
+
 }
 
 module.exports = TeacherTemplates;

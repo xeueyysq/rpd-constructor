@@ -13,13 +13,11 @@ async function exchange1C(apiData) {
         return await fetchDiscs(upLink);
       })
     );
-    console.log("discs", discs);
     const RpdComplectId = await createRpdComplect(apiData);
     await processDisciplines(discs, RpdComplectId);
-    console.log("Данные успешно добавлены в базу данных.");
     return RpdComplectId;
   } catch (error) {
-    console.error("Ошибка загрузки комплекта:", error);
+    console.error("ошибка загрузки комплекта:", error);
     throw error;
   }
 }
@@ -201,7 +199,7 @@ const insertStatusHistory = async (templateId) => {
   const history = [
     {
       date: moment().format(),
-      status: "Выгружен из 1С",
+      status: "unloaded",
       user: "Система",
     },
   ];

@@ -31,10 +31,10 @@ class TeacherTemplatesController {
     }
   }
 
-  async employedTemplate(req, res) {
+  async setTemplateStatus(req, res) {
     try {
-      const { id, userName } = req.body;
-      const record = await this.model.employedTemplate(id, userName);
+      const { id, userName, status } = req.body;
+      const record = await this.model.setTemplateStatus(id, userName, status);
       res.json(record);
     } catch (error) {
       console.log(error);

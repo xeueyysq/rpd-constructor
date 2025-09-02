@@ -21,8 +21,11 @@ class RpdComplectsController {
             const record = await this.model.createRpdComplect(data);
             res.json(record);
         } catch (error) {
-            const errorCode = error.statusCode || 500
-            res.status(errorCode).json({ message: error.message, code: errorCode });
+            const errorCode = error.statusCode || 500;
+            res.status(errorCode).json({
+                message: error.message,
+                code: errorCode,
+            });
         }
     }
 
@@ -34,6 +37,18 @@ class RpdComplectsController {
             res.status(500).json({ message: error.message });
         }
     }
+
+    async deleteRbdComplect(req, res) {
+        try {
+            const ids = req.body;
+            const records = await this.model.deleteRpdComplect(ids);
+            res.json(records);
+        } catch (error) {
+            const errorCode = error.statusCode || 500;
+            res.status(errorCode).json({
+                message: error.message,
+                code: errorCode,
+            });
 
     async getAllRpdComplects(req, res) {
         try {

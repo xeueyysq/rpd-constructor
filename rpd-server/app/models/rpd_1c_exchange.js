@@ -128,7 +128,7 @@ class Rpd1cExchange {
       const idProfileTemplate = queryResult.rows[0].id;
       const status = {
         date: moment().format(),
-        status: "Создан",
+        status: "created",
         user: userName,
       };
 

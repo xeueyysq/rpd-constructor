@@ -8,17 +8,17 @@ const {
 async function createPDF(htmlPages) {
   const browser = await puppeteer.launch({
     args: [
-      '--no-sandbox',
-      '--disable-setuid-sandbox',
-      '--disable-gpu',
-      '--disable-dev-shm-usage',
-      '--disable-software-rasterizer',
-      '--disable-features=VizDisplayCompositor',
-      '--disable-extensions',
-      '--disable-dev-tools',
-      '--no-zygote',
+      "--no-sandbox",
+      "--disable-setuid-sandbox",
+      "--disable-gpu",
+      "--disable-dev-shm-usage",
+      "--disable-software-rasterizer",
+      "--disable-features=VizDisplayCompositor",
+      "--disable-extensions",
+      "--disable-dev-tools",
+      "--no-zygote",  
     ],
-    headless: 'new', // Use 'true' or 'new' depending on Puppeteer version
+    headless: "new",
   });
   const page = await browser.newPage();
   const fullHtml = htmlPages.join(
@@ -58,4 +58,3 @@ async function generatePDF(id) {
 }
 
 module.exports = generatePDF;
-
