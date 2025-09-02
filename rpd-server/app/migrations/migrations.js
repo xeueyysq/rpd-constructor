@@ -39,7 +39,7 @@ const { pool } = require("../../config/db");
         semester INTEGER,
         certification TEXT,
         place_more_text TEXT,
-        competencies TEXT[],
+        competencies JSONB,
         zet INTEGER,
         content JSONB,
         study_load JSONB,
