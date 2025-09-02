@@ -31,11 +31,13 @@ export const ComplectTabsList: FC = () => {
             {value.name === "Назад" && <Divider />}
             <ListItem
               key={value.name}
-              onClick={() =>
-                isPath(value.page)
-                  ? navigate(value.page)
-                  : setManagerPage(value.page)
-              }
+              onClick={() => {
+                if (value.name !== "Назад" && !tabs[value.page]?.isEnabled) {
+                  return;
+                } else if (isPath(value.page)) {
+                  navigate(value.page);
+                } else setManagerPage(value.page);
+              }}
               disablePadding
               sx={{ width: "100%" }}
             >

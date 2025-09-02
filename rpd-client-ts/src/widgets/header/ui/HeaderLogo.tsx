@@ -1,21 +1,24 @@
-import { Box, Typography } from "@mui/material";
+import { Box, Button } from "@mui/material";
 import { FC } from "react";
+import { useNavigate } from "react-router-dom";
 
 const HeaderLogo: FC = () => {
+  const navigate = useNavigate();
   return (
-    <Box sx={{ px: 1 }} alignItems={"center"} alignContent={"center"}>
-      <Typography
-        variant="overline"
-        display="block"
+    <Box sx={{ px: 1 }} alignItems={"center"} alignItems={"center"}>
+      <Button
+        // type="overline"
+        // display="block"
+        onClick={() => navigate("/complects")}
         sx={{
-          color: "black",
+          color: "white",
           fontWeight: "600",
-          fontSize: "14px",
+          fontSize: "16px",
           userSelect: "none",
         }}
       >
         Конструктор РПД
-      </Typography>
+      </Button>
     </Box>
   );
 };

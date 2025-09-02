@@ -115,7 +115,7 @@ export const TemplateConstructor: FC<TemplateConstructorType> = ({
                 <Box>
                   <Box>Шаблон создан успешно. Перейти к редактированию?</Box>
                   <Button
-                    variant="outlined"
+                    variant="contained"
                     size="small"
                     onClick={() => setChoise("createTemplateFromExchange")}
                   >

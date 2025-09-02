@@ -138,7 +138,7 @@ const PlannedResultsPage: FC = () => {
 
   return (
     <Box>
-      <Box component="h2">
+      <Box fontSize={"1.5rem"}>
         Планируемые результаты обучения по дисциплине (модулю)
       </Box>
       <Box
@@ -163,19 +163,28 @@ const PlannedResultsPage: FC = () => {
             <TableRow>
               <TableCell
                 align="center"
-                sx={{ fontFamily: "Times New Roman", fontSize: 16 }}
+                sx={{
+                  fontFamily: "Times New Roman",
+                  fontSize: 16,
+                }}
               >
                 Формируемые компетенции (код и наименование)
               </TableCell>
               <TableCell
                 align="center"
-                sx={{ fontFamily: "Times New Roman", fontSize: 16 }}
+                sx={{
+                  fontFamily: "Times New Roman",
+                  fontSize: 16,
+                }}
               >
                 Индикаторы достижения компетенций (код и формулировка)
               </TableCell>
               <TableCell
                 align="center"
-                sx={{ fontFamily: "Times New Roman", fontSize: 16 }}
+                sx={{
+                  fontFamily: "Times New Roman",
+                  fontSize: 16,
+                }}
               >
                 Планируемые результаты обучения по дисциплине (модулю)
               </TableCell>

@@ -5,6 +5,7 @@ import { useStore } from "@shared/hooks";
 const ScopeDisciplinePage: FC = () => {
   const jsonData = useStore.getState().jsonData;
   const summHours = () => {
+    if (!Array.isArray(jsonData.study_load)) return "?";
     let summ = 0;
     for (const value of jsonData.study_load) {
       summ += Number(value.id);
@@ -14,17 +15,17 @@ const ScopeDisciplinePage: FC = () => {
 
   return (
     <Box>
-      <Box component="h2">Объем дисциплины</Box>
+      <Box fontSize={"1.5rem"}>Объем дисциплины</Box>
       <Box sx={{ py: 2 }}>
         Объем дисциплины составляет
         <Box component="span" sx={{ fontWeight: "600" }}>
           {" "}
-          {jsonData.zet}{" "}
+          {jsonData.zet || ""}{" "}
         </Box>
         зачетных единиц, всего
         <Box component="span" sx={{ fontWeight: "600" }}>
           {" "}
-          {summHours()}{" "}
+          {summHours() || ""}{" "}
         </Box>
         академических часа(ов)
       </Box>

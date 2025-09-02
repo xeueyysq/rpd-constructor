@@ -34,6 +34,7 @@ import axios from "axios";
 import { UserRole } from "@shared/ability";
 import type { User, NewUser } from "../model/types";
 import { ClippedDrawer } from "@widgets/drawer";
+import { KeyboardEvent } from "react";
 
 type Order = "asc" | "desc";
 
@@ -177,6 +178,10 @@ export const UserManagementPage: FC = () => {
   ) => {
     setRowsPerPage(parseInt(event.target.value, 10));
     setPage(0);
+  };
+
+  const handleKeyDown = (e: KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === " ") e.preventDefault();
   };
 
   const isSelected = (id: number) => selected.indexOf(id) !== -1;
@@ -413,6 +418,7 @@ export const UserManagementPage: FC = () => {
               label="Логин"
               value={newUser.username}
               onChange={handleChange("username")}
+              onKeyDown={handleKeyDown}
             />
             <TextField
               size="small"
@@ -420,6 +426,7 @@ export const UserManagementPage: FC = () => {
               type="password"
               value={newUser.password}
               onChange={handleChange("password")}
+              onKeyDown={handleKeyDown}
             />
             <FormControl>
               <InputLabel>Роль</InputLabel>
@@ -440,18 +447,21 @@ export const UserManagementPage: FC = () => {
               label="Фамилия"
               value={newUser.surname}
               onChange={handleChange("surname")}
+              onKeyDown={handleKeyDown}
             />
             <TextField
               size="small"
               label="Имя"
               value={newUser.name}
               onChange={handleChange("name")}
+              onKeyDown={handleKeyDown}
             />
             <TextField
               size="small"
               label="Отчество"
               value={newUser.patronymic}
               onChange={handleChange("patronymic")}
+              onKeyDown={handleKeyDown}
             />
           </Box>
         </DialogContent>

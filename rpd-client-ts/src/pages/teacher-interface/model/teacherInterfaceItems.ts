@@ -41,8 +41,4 @@ export const TeacherRpdListItems: RpdListItem[] = [
     id: "resourceSupport",
     text: "Ресурсное обеспечение",
   },
-  {
-    id: "testPdf",
-    text: "Тест формирования документа",
-  },
 ];

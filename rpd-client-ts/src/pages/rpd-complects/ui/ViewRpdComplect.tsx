@@ -33,7 +33,7 @@ export const ViewRpdComplect: FC = () => {
           >
             Назад к списку
           </Button>
-          <Box component="h2" sx={{ m: 0 }}>
+          <Box fontSize={"1.5rem"} sx={{ m: 0 }}>
             Просмотр комплекта РПД
           </Box>
         </Box>

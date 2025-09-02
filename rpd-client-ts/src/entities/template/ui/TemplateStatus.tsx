@@ -2,6 +2,7 @@ import { Box } from "@mui/material";
 import { FC } from "react";
 import { format, parseISO } from "date-fns";
 import { ru } from "date-fns/locale";
+import { statusConfig } from "../model/templateStatusCodes";
 
 interface TemplateStatusObject {
   date: string;
@@ -19,7 +20,7 @@ export const TemplateStatus: FC<TemplateStatus> = ({ status }) => {
   });
   return (
     <Box>
-      <Box>{status.status}</Box>
+      <Box>{statusConfig[status.status]?.label}</Box>
       <Box
         sx={{
           color: "grey",

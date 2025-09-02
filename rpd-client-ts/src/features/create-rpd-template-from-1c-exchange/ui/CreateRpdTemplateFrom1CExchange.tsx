@@ -5,7 +5,6 @@ import {
   Box,
   Button,
   FormControl,
-  InputLabel,
   MenuItem,
   Paper,
   Select,
@@ -18,15 +17,18 @@ import {
   TableRow,
   Typography,
   TextField,
-  IconButton,
 } from "@mui/material";
 import { useAuth } from "@entities/auth";
 import TemplateMenu from "./TemplateMenu.tsx";
 import { axiosBase } from "@shared/api";
-import { showErrorMessage, showSuccessMessage } from "@shared/lib";
+import {
+  showErrorMessage,
+  showSuccessMessage,
+  showWarningMessage,
+} from "@shared/lib";
 import { Loader } from "@shared/ui";
-import { templateDataTitles } from "@shared/model/templateDataTitles";
-import { Search } from "@mui/icons-material";
+import { StatusCell } from "@pages/teacher-interface-templates/ui/StatusCell.tsx";
+import { TemplateStatusEnum } from "@entities/template";
 
 interface TemplateStatusObject {
   date: string;
@@ -73,7 +75,7 @@ export const CreateRpdTemplateFrom1CExchange: FC<TemplateConstructorType> = ({
         )
         .sort((a, b) => {
           const priority: Record<string, number> = {
-            "Выгружен из 1С": 1,
+            [TemplateStatusEnum.UNLOADED]: 1,
           };
           return (
             (priority[a.status.status] || 0) - (priority[b.status.status] || 0)
@@ -102,7 +104,7 @@ export const CreateRpdTemplateFrom1CExchange: FC<TemplateConstructorType> = ({
   const createTemplateData = async (id: number, discipline: string) => {
     const teacher = selectedTeachers[id];
     if (!teacher) {
-      showErrorMessage("Ошибка. Необходимо выбрать преподавателя");
+      showWarningMessage("Необходимо выбрать преподавателя");
       return;
     }
 
@@ -141,9 +143,11 @@ export const CreateRpdTemplateFrom1CExchange: FC<TemplateConstructorType> = ({
 
   return (
     <>
-      <Typography component="span">
-        {selectedTemplateData.profile} ({selectedTemplateData.year})
-      </Typography>
+      <Box sx={{ display: "flex", alignItems: "center", gap: 2, mb: 2 }}>
+        <Typography component="span" variant="h6">
+          {selectedTemplateData.profile} ({selectedTemplateData.year})
+        </Typography>
+      </Box>
 
       <Box sx={{ py: 2 }}>
         <TextField
@@ -158,6 +162,7 @@ export const CreateRpdTemplateFrom1CExchange: FC<TemplateConstructorType> = ({
         <Table sx={{ minWidth: 650 }} aria-label="simple table" size="small">
           <TableHead>
             <TableRow>
+              <TableCell sx={{ fontWeight: "600" }}></TableCell>
               <TableCell
                 sx={{
                   fontWeight: "600",
@@ -167,16 +172,40 @@ export const CreateRpdTemplateFrom1CExchange: FC<TemplateConstructorType> = ({
               >
                 Дисциплина
               </TableCell>
-              <TableCell sx={{ fontWeight: "600", fontSize: "18px", py: 2 }}>
+              <TableCell
+                sx={{
+                  fontWeight: "600",
+                  fontSize: "18px",
+                  py: 2,
+                }}
+              >
                 Семестр
               </TableCell>
-              <TableCell sx={{ fontWeight: "600", fontSize: "18px", py: 2 }}>
+              <TableCell
+                sx={{
+                  fontWeight: "600",
+                  fontSize: "18px",
+                  py: 2,
+                }}
+              >
                 Преподаватель
               </TableCell>
-              <TableCell sx={{ fontWeight: "600", fontSize: "18px", py: 2 }}>
+              <TableCell
+                sx={{
+                  fontWeight: "600",
+                  fontSize: "18px",
+                  py: 2,
+                }}
+              >
                 Статус
               </TableCell>
-              <TableCell sx={{ fontWeight: "600", fontSize: "18px", py: 2 }}>
+              <TableCell
+                sx={{
+                  fontWeight: "600",
+                  fontSize: "18px",
+                  py: 2,
+                }}
+              >
                 Выбрать
               </TableCell>
             </TableRow>
@@ -184,6 +213,7 @@ export const CreateRpdTemplateFrom1CExchange: FC<TemplateConstructorType> = ({
           <TableBody>
             {handleFilteredData()?.map((row) => (
               <TableRow key={row.id}>
+                <StatusCell status={row.status.status} />
                 <TableCell sx={{ maxWidth: "400px" }}>
                   {row.discipline}
                 </TableCell>
@@ -227,7 +257,7 @@ export const CreateRpdTemplateFrom1CExchange: FC<TemplateConstructorType> = ({
                   <TemplateStatus status={row.status} />
                 </TableCell>
                 <TableCell>
-                  {row.status.status === "Выгружен из 1С" ? (
+                  {row.status.status === TemplateStatusEnum.UNLOADED ? (
                     <Button
                       variant="contained"
                       size="small"

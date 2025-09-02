@@ -129,6 +129,14 @@ export const Selectors: FC<Selectors> = ({ setChoise }) => {
     selectorPath: Array<string>,
     indicator?: string
   ): OptionType[] => {
+    if (indicator && indicator === "lastChild") {
+      const currentYear = new Date().getFullYear();
+      const yearsCount = 5;
+      return Array.from({ length: yearsCount }, (_, i) => {
+        const year = currentYear + 1 - i;
+        return { label: String(year), value: String(year) };
+      });
+    }
     if (!data) return [];
     let currentData = data;
 
@@ -138,12 +146,10 @@ export const Selectors: FC<Selectors> = ({ setChoise }) => {
         return [];
       }
     }
-    if (indicator && indicator === "lastChild")
-      return Object.values(currentData).map((value) => ({
-        label: String(value),
-        value: String(value),
-      }));
-    return Object.keys(currentData).map((key) => ({ label: key, value: key }));
+    return Object.keys(currentData).map((key) => ({
+      label: key,
+      value: key,
+    }));
   };
 
   const saveTemplateData = () => {

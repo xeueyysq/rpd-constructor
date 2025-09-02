@@ -20,6 +20,7 @@ import { showErrorMessage, showSuccessMessage } from "@shared/lib";
 import { useAuth } from "@entities/auth";
 import { axiosBase } from "@shared/api";
 import { Loader } from "@shared/ui";
+import { TemplateStatusEnum } from "@entities/template";
 
 interface TemplateStatusObject {
   date: string;
@@ -47,7 +48,9 @@ export const ChangeRpdTemplate: FC<TemplateConstructorType> = ({
     };
 
     try {
-      const response = await axiosBase.get("find-by-criteria", { params });
+      const response = await axiosBase.get("find-by-criteria", {
+        params,
+      });
       setData(response.data);
     } catch (error) {
       showErrorMessage("Ошибка при получении данных");
@@ -108,7 +111,11 @@ export const ChangeRpdTemplate: FC<TemplateConstructorType> = ({
             {data.map((row) => (
               <TableRow
                 key={row.id}
-                sx={{ "&:last-child td, &:last-child th": { border: 0 } }}
+                sx={{
+                  "&:last-child td, &:last-child th": {
+                    border: 0,
+                  },
+                }}
               >
                 <TableCell>{row.disciplins_name}</TableCell>
                 <TableCell>{row.teacher}</TableCell>
@@ -116,7 +123,7 @@ export const ChangeRpdTemplate: FC<TemplateConstructorType> = ({
                   <TemplateStatus status={row.status} />
                 </TableCell>
                 <TableCell>
-                  {row.status.status !== "Отправлен преподавателю" && (
+                  {row.status.status !== TemplateStatusEnum.ON_TEACHER && (
                     <Button
                       variant="outlined"
                       size="small"

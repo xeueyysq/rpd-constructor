@@ -89,8 +89,8 @@ export const PlannedResultsList: FC = () => {
     "Дисциплины",
   ];
   return (
-    <Container maxWidth="xl">
-      <Box component="h2" sx={{ py: 1 }}>
+    <Container maxWidth="xlap">
+      <Box fontSize={"1.5rem"} sx={{ py: 1 }}>
         Загрузка компетенций для всех дисциплин
       </Box>
       <Box

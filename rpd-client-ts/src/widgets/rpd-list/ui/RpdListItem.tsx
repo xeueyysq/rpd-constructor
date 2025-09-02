@@ -46,7 +46,7 @@ const RpdListItem: FC<RpdListItemProps> = ({
         }}
         disabled={id === "approvalPage"}
       >
-        <ListItemIcon sx={{ pl: 2, color: "#1976d2" }}>
+        <ListItemIcon sx={{ pl: 2 }}>
           <MoreVertIcon />
         </ListItemIcon>
         <ListItemText

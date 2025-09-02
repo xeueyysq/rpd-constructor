@@ -12,7 +12,7 @@ export const Manager: FC = () => {
 
   return (
     <Container maxWidth="xl">
-      <Box component="h2" sx={{ py: 1 }}>
+      <Box fontSize={"1.5rem"} sx={{ py: 1 }}>
         Создание комплекта РПД на основе учебного плана
       </Box>
       <Box
