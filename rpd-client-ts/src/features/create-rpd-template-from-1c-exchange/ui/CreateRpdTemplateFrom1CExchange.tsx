@@ -199,7 +199,9 @@ export const CreateRpdTemplateFrom1CExchange: FC<TemplateConstructorType> = ({ s
           <TableBody>
             {handleFilteredData()?.map((row) => (
               <TableRow key={row.id}>
-                <StatusCell status={row.status.status} />
+                <TableCell sx={{ textAlign: "center", padding: "8px" }}>
+                  <StatusCell status={row.status.status} />
+                </TableCell>
                 <TableCell sx={{ maxWidth: "400px" }}>{row.discipline}</TableCell>
                 <TableCell>{row.semester}</TableCell>
                 <TableCell>

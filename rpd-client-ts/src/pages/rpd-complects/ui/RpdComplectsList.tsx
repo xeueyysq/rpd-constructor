@@ -6,15 +6,15 @@ import { Loader } from "@shared/ui";
 import { useStore } from "@shared/hooks";
 import VisibilityIcon from "@mui/icons-material/Visibility";
 import { showErrorMessage } from "@shared/lib";
-import type { RpdComplect } from "../model";
 import { CreateRpdTemplateFrom1CExchange } from "@features/create-rpd-template-from-1c-exchange";
 import { MaterialReactTable, useMaterialReactTable, type MRT_ColumnDef, MRT_TableInstance } from "material-react-table";
 import { MRT_Localization_RU } from "material-react-table/locales/ru";
-import CachedIcon from "@mui/icons-material/Cached";
+import type { BasicComplectData } from "@shared/types";
+import { DeleteComplectDialog } from "@widgets/dialogs/ui";
 
 export const RpdComplectsList: FC = () => {
-  const [open, setOpen] = useState<boolean>(false);
-  const [complects, setComplects] = useState<RpdComplect[]>([]);
+  const [openDeleteConfirm, setOpenDeleteConfirm] = useState<boolean>(false);
+  const [complects, setComplects] = useState<BasicComplectData[]>([]);
   const [loading, setLoading] = useState(true);
   const [showTemplates, setShowTemplates] = useState(false);
   const { setComplectId, setSelectedTemplateData } = useStore();
@@ -55,7 +55,7 @@ export const RpdComplectsList: FC = () => {
   };
 
   const handleViewComplect = useCallback(
-    (complect: RpdComplect) => {
+    (complect: BasicComplectData) => {
       setSelectedTemplateData(
         complect.faculty,
         complect.levelEducation,
@@ -73,7 +73,7 @@ export const RpdComplectsList: FC = () => {
     [setComplectId, setSelectedTemplateData, navigate]
   );
 
-  const columns = useMemo<MRT_ColumnDef<RpdComplect>[]>(
+  const columns = useMemo<MRT_ColumnDef<BasicComplectData>[]>(
     () => [
       {
         accessorKey: "faculty",
@@ -120,7 +120,7 @@ export const RpdComplectsList: FC = () => {
     [handleViewComplect]
   );
 
-  const table = useMaterialReactTable<RpdComplect>({
+  const table = useMaterialReactTable<BasicComplectData>({
     columns,
     data: complects,
     localization: MRT_Localization_RU,
@@ -145,7 +145,7 @@ export const RpdComplectsList: FC = () => {
       >
         <Button onClick={() => table.resetRowSelection()}>Очистить выбор</Button>
 
-        <Button color="error" onClick={() => setOpen(true)}>
+        <Button color="error" onClick={() => setOpenDeleteConfirm(true)}>
           Удалить
         </Button>
       </Box>
@@ -162,7 +162,7 @@ export const RpdComplectsList: FC = () => {
 
   const handleConfirm = async () => {
     const currentSelectedIds = Object.keys(rowSelection).map((id) => complects[Number(id)].id);
-    setOpen(false);
+    setOpenDeleteConfirm(false);
     await deleteComplect(currentSelectedIds);
   };
 
@@ -175,18 +175,7 @@ export const RpdComplectsList: FC = () => {
       <Box py={2}>
         <MaterialReactTable table={table} />
       </Box>
-      <Dialog open={open} onClose={() => setOpen(false)}>
-        <DialogTitle>Подтверждение</DialogTitle>
-        <DialogContent>Вы уверены, что хотите удалить выбранные комплекты?</DialogContent>
-        <DialogActions>
-          <Button size="small" variant="contained" onClick={() => setOpen(false)}>
-            Отмена
-          </Button>
-          <Button size="small" variant="contained" color="error" onClick={handleConfirm}>
-            Удалить
-          </Button>
-        </DialogActions>
-      </Dialog>
+      <DeleteComplectDialog open={openDeleteConfirm} onAccept={handleConfirm} />
     </Box>
   );
 };
