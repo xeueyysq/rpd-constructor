@@ -22,21 +22,11 @@ export const Manager: FC = () => {
           width: "100%",
         }}
       >
-        {managerPage === "selectData" && (
-          <Selectors setChoise={setManagerPage} />
-        )}
-        {managerPage === "workingType" && (
-          <TemplateConstructor setChoise={setManagerPage} />
-        )}
-        {managerPage === "changeTemplate" && (
-          <ChangeRpdTemplate setChoise={setManagerPage} />
-        )}
-        {managerPage === "createTemplateFromCurrentYear" && (
-          <CreateRpdTemplateFromYear setChoise={setManagerPage} />
-        )}
-        {managerPage === "createTemplateFromExchange" && (
-          <CreateRpdTemplateFrom1CExchange setChoise={setManagerPage} />
-        )}
+        {managerPage === "selectData" && <Selectors setChoise={setManagerPage} />}
+        {managerPage === "workingType" && <TemplateConstructor setChoise={setManagerPage} />}
+        {managerPage === "changeTemplate" && <ChangeRpdTemplate setChoise={setManagerPage} />}
+        {managerPage === "createTemplateFromCurrentYear" && <CreateRpdTemplateFromYear setChoise={setManagerPage} />}
+        {managerPage === "createTemplateFromExchange" && <CreateRpdTemplateFrom1CExchange setChoise={setManagerPage} />}
       </Box>
     </Container>
   );

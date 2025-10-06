@@ -1,26 +1,12 @@
 import { FC, useEffect, useState } from "react";
 import { pdfjs } from "react-pdf";
-pdfjs.GlobalWorkerOptions.workerSrc =
-  "https://cdnjs.cloudflare.com/ajax/libs/pdf.js/4.8.69/pdf.worker.min.mjs";
+pdfjs.GlobalWorkerOptions.workerSrc = "https://cdnjs.cloudflare.com/ajax/libs/pdf.js/4.8.69/pdf.worker.min.mjs";
 
 import { Document, Page } from "react-pdf";
 import "react-pdf/dist/esm/Page/AnnotationLayer.css";
 import "react-pdf/dist/esm/Page/TextLayer.css";
-import {
-  Box,
-  Button,
-  Container,
-  IconButton,
-  Stack,
-  Typography,
-} from "@mui/material";
-import {
-  ChevronLeft,
-  ChevronRight,
-  ZoomIn,
-  ZoomOut,
-  Download,
-} from "@mui/icons-material";
+import { Box, Button, Container, IconButton, Stack, Typography } from "@mui/material";
+import { ChevronLeft, ChevronRight, ZoomIn, ZoomOut, Download } from "@mui/icons-material";
 import { useStore } from "@shared/hooks";
 
 interface PdfReaderProps {
@@ -110,9 +96,7 @@ export const PdfReader: FC<PdfReaderProps> = ({ file }) => {
           <IconButton onClick={() => handleZoom(-0.1)}>
             <ZoomOut />
           </IconButton>
-          <Typography sx={{ minWidth: 100 }}>
-            Увеличить: {Math.round(scale * 100)}%
-          </Typography>
+          <Typography sx={{ minWidth: 100 }}>Увеличить: {Math.round(scale * 100)}%</Typography>
           <IconButton onClick={() => handleZoom(0.1)}>
             <ZoomIn />
           </IconButton>
@@ -143,9 +127,7 @@ export const PdfReader: FC<PdfReaderProps> = ({ file }) => {
           pageNumber={pageNumber}
           scale={scale}
           loading={<Typography>Загрузка страницы...</Typography>}
-          error={
-            <Typography color="error">Ошибка при загрузке страницы</Typography>
-          }
+          error={<Typography color="error">Ошибка при загрузке страницы</Typography>}
         />
       </Document>
 
@@ -159,10 +141,7 @@ export const PdfReader: FC<PdfReaderProps> = ({ file }) => {
             Страница {pageNumber} из {numPages}
           </Typography>
 
-          <IconButton
-            onClick={() => changePage(1)}
-            disabled={pageNumber >= numPages}
-          >
+          <IconButton onClick={() => changePage(1)} disabled={pageNumber >= numPages}>
             <ChevronRight />
           </IconButton>
         </Stack>

@@ -48,12 +48,7 @@ export const ClippedDrawer: FC<ClippedDrawerProps> = ({ page }) => {
         {page === "teacher" && <TeacherTabsList />}
         {page === "main" && <MainTabsList />}
         {page === "manager" && <ComplectTabsList />}
-        {page === "template" && (
-          <RpdList
-            setChoise={() => setChoise}
-            RpdListItems={TeacherRpdListItems}
-          />
-        )}
+        {page === "template" && <RpdList setChoise={() => setChoise} RpdListItems={TeacherRpdListItems} />}
       </Drawer>
       <Box component={"main"} sx={{ flexGrow: 1, p: 3, width: "60%" }}>
         <Toolbar />

@@ -5,10 +5,7 @@ interface EditableNumberProps {
   onValueChange: (value: number) => void;
 }
 
-export const EditableNumber: FC<EditableNumberProps> = ({
-  value,
-  onValueChange,
-}) => {
+export const EditableNumber: FC<EditableNumberProps> = ({ value, onValueChange }) => {
   const [inputValue, setInputValue] = useState(value);
   const [isEditing, setIsEditing] = useState(false);
 
@@ -40,10 +37,7 @@ export const EditableNumber: FC<EditableNumberProps> = ({
   }
 
   return (
-    <div
-      onClick={handleDivClick}
-      style={{ alignContent: "center", textAlign: "center" }}
-    >
+    <div onClick={handleDivClick} style={{ alignContent: "center", textAlign: "center" }}>
       {value}
     </div>
   );

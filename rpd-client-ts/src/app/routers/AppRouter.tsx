@@ -1,10 +1,5 @@
 import { lazy, Suspense } from "react";
-import {
-  BrowserRouter as Router,
-  Navigate,
-  Route,
-  Routes,
-} from "react-router-dom";
+import { BrowserRouter as Router, Navigate, Route, Routes } from "react-router-dom";
 
 import { useUserRedirect } from "@entities/auth";
 import { Loader } from "@shared/ui/";
@@ -15,9 +10,7 @@ const TeacherInterface = lazy(() => import("@pages/teacher-interface"));
 const SignIn = lazy(() => import("@pages/sign-in"));
 const UserManagement = lazy(() => import("@pages/user-management"));
 const RpdComplectsList = lazy(() => import("@pages/rpd-complects"));
-const TeacherInterfaceTemplates = lazy(
-  () => import("@pages/teacher-interface-templates")
-);
+const TeacherInterfaceTemplates = lazy(() => import("@pages/teacher-interface-templates"));
 const PlannedResultsList = lazy(() => import("@pages/planned-results"));
 import { ClippedDrawer } from "@widgets/drawer";
 
@@ -31,28 +24,19 @@ export const AppRouter = () => {
           {isUserLogged ? (
             <>
               <Route element={<ClippedDrawer page="teacher" />}>
-                <Route
-                  path="/teacher-interface-templates"
-                  element={<TeacherInterfaceTemplates />}
-                />
+                <Route path="/teacher-interface-templates" element={<TeacherInterfaceTemplates />} />
               </Route>
               <Route element={<ClippedDrawer page="main" />}>
                 <Route path="/rpd-template" element={<RPDTemplate />} />
                 <Route path="/users" element={<UserManagement />} />
                 <Route path="/complects" element={<RpdComplectsList />} />
-                <Route
-                  path="/planned-results"
-                  element={<PlannedResultsList />}
-                />
+                <Route path="/planned-results" element={<PlannedResultsList />} />
               </Route>
               <Route element={<ClippedDrawer page="manager" />}>
                 <Route path="/manager" element={<Manager />} />
               </Route>
               <Route element={<ClippedDrawer page="template" />}>
-                <Route
-                  path="/teacher-interface"
-                  element={<TeacherInterface />}
-                />
+                <Route path="/teacher-interface" element={<TeacherInterface />} />
               </Route>
             </>
           ) : (

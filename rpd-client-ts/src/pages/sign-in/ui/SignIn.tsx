@@ -33,8 +33,7 @@ export const SignIn: FC = () => {
   } = formMethods;
 
   const [showPassword, setShowPassword] = useState(false);
-  const handleClickShowPassword = () =>
-    setShowPassword((show: boolean) => !show);
+  const handleClickShowPassword = () => setShowPassword((show: boolean) => !show);
   const handleMouseDownPassword = (event: MouseEvent<HTMLButtonElement>) => {
     event.preventDefault();
   };
@@ -48,23 +47,13 @@ export const SignIn: FC = () => {
         p={5}
       >
         <Box display={"flex"} alignItems={"center"} gap={3}>
-          <SvgIcon
-            component={Logo}
-            inheritViewBox
-            sx={{ fontSize: "85px", ml: 2.5 }}
-          />
+          <SvgIcon component={Logo} inheritViewBox sx={{ fontSize: "85px", ml: 2.5 }} />
           <Typography color="#737781" fontSize={"1.2rem"}>
             Государственный университет Дубна
           </Typography>
         </Box>
         <Box pt={15}>
-          <Typography
-            ml={2.5}
-            fontSize={"30px"}
-            width={"500px"}
-            fontWeight={"bold"}
-            gutterBottom
-          >
+          <Typography ml={2.5} fontSize={"30px"} width={"500px"} fontWeight={"bold"} gutterBottom>
             Добро пожаловать в конструктор рабочих программ дисциплин
           </Typography>
           <List>
@@ -124,12 +113,7 @@ export const SignIn: FC = () => {
         </Box>
       </Box>
       <FormProvider {...formMethods}>
-        <Box
-          width={"100%"}
-          alignContent={"center"}
-          alignItems={"center"}
-          pb={5}
-        >
+        <Box width={"100%"} alignContent={"center"} alignItems={"center"} pb={5}>
           <Box
             sx={{
               borderRadius: 5,
@@ -149,14 +133,8 @@ export const SignIn: FC = () => {
                   margin: "0 auto",
                 }}
               >
-                <FormControl
-                  sx={{ width: "100%", my: 1 }}
-                  variant="outlined"
-                  size="small"
-                >
-                  <InputLabel htmlFor="outlined-adornment-username">
-                    Имя пользователя
-                  </InputLabel>
+                <FormControl sx={{ width: "100%", my: 1 }} variant="outlined" size="small">
+                  <InputLabel htmlFor="outlined-adornment-username">Имя пользователя</InputLabel>
                   <OutlinedInput
                     sx={{
                       width: "100%",
@@ -177,14 +155,8 @@ export const SignIn: FC = () => {
                     {errors.userName.message}
                   </Box>
                 )}
-                <FormControl
-                  sx={{ width: "100%", my: 1 }}
-                  variant="outlined"
-                  size="small"
-                >
-                  <InputLabel htmlFor="outlined-adornment-password">
-                    Пароль
-                  </InputLabel>
+                <FormControl sx={{ width: "100%", my: 1 }} variant="outlined" size="small">
+                  <InputLabel htmlFor="outlined-adornment-password">Пароль</InputLabel>
                   <OutlinedInput
                     id="outlined-adornment-password"
                     error={Boolean(errors.password)}
@@ -216,12 +188,7 @@ export const SignIn: FC = () => {
                   </Box>
                 )}
                 <Box sx={{ py: 2 }}>
-                  <Button
-                    fullWidth
-                    variant="contained"
-                    disabled={isSubmitting}
-                    type="submit"
-                  >
+                  <Button fullWidth variant="contained" disabled={isSubmitting} type="submit">
                     Войти
                   </Button>
                 </Box>

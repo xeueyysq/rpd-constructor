@@ -1,14 +1,5 @@
 import { FC, MouseEvent, useState } from "react";
-import {
-  Box,
-  Button,
-  IconButton,
-  ListItemIcon,
-  ListItemText,
-  Menu,
-  MenuItem,
-  Typography,
-} from "@mui/material";
+import { Box, Button, IconButton, ListItemIcon, ListItemText, Menu, MenuItem, Typography } from "@mui/material";
 import EditIcon from "@mui/icons-material/Edit";
 import { useStore } from "@shared/hooks";
 import TextEditor from "./TextEditor.tsx";
@@ -26,8 +17,7 @@ interface JsonChangeValue {
 
 const JsonChangeValue: FC<JsonChangeValue> = ({ elementName }) => {
   const [openFromYearDialog, setOpenFromYearDialog] = useState<boolean>(false);
-  const [openFromDirectionDialog, setOpenFromDirectionDialog] =
-    useState<boolean>(false);
+  const [openFromDirectionDialog, setOpenFromDirectionDialog] = useState<boolean>(false);
   const { updateJsonData } = useStore();
   const elementValue = useStore.getState().jsonData[elementName];
   const teacherTemplates = useStore.getState().teacherTemplates;
@@ -37,9 +27,7 @@ const JsonChangeValue: FC<JsonChangeValue> = ({ elementName }) => {
   const isTeacher = userRole === UserRole.TEACHER;
 
   const [isEditing, setIsEditing] = useState<boolean>(false);
-  const [changeableValue, setChangeableValue] = useState<string>(
-    elementValue || ""
-  );
+  const [changeableValue, setChangeableValue] = useState<string>(elementValue || "");
 
   const handleEditClick = () => {
     setIsEditing(true);
@@ -74,10 +62,7 @@ const JsonChangeValue: FC<JsonChangeValue> = ({ elementName }) => {
     }
   };
 
-  const copyTemplateData = async (
-    sourceTemplateId: number,
-    fieldToCopy: string
-  ) => {
+  const copyTemplateData = async (sourceTemplateId: number, fieldToCopy: string) => {
     const currentTemplateId = useStore.getState().jsonData.id;
 
     try {
@@ -137,18 +122,11 @@ const JsonChangeValue: FC<JsonChangeValue> = ({ elementName }) => {
       }}
     >
       {isEditing ? (
-        <TextEditor
-          value={changeableValue}
-          saveContent={saveContent}
-          setIsEditing={setIsEditing}
-        />
+        <TextEditor value={changeableValue} saveContent={saveContent} setIsEditing={setIsEditing} />
       ) : (
         <Box>
           {changeableValue ? (
-            <Box
-              dangerouslySetInnerHTML={{ __html: changeableValue }}
-              sx={{ py: 1 }}
-            ></Box>
+            <Box dangerouslySetInnerHTML={{ __html: changeableValue }} sx={{ py: 1 }}></Box>
           ) : (
             <Box
               sx={{
@@ -195,13 +173,7 @@ const JsonChangeValue: FC<JsonChangeValue> = ({ elementName }) => {
                       <DownloadIcon />
                     </ListItemIcon>
                     <ListItemText>
-                      <Typography
-                        variant="button"
-                        display="block"
-                        color="grey"
-                        gutterBottom
-                        m="0"
-                      >
+                      <Typography variant="button" display="block" color="grey" gutterBottom m="0">
                         Загрузить данные из шаблона
                         <br /> другого года
                       </Typography>
@@ -212,13 +184,7 @@ const JsonChangeValue: FC<JsonChangeValue> = ({ elementName }) => {
                       <DownloadIcon />
                     </ListItemIcon>
                     <ListItemText>
-                      <Typography
-                        variant="button"
-                        display="block"
-                        gutterBottom
-                        color="grey"
-                        m="0"
-                      >
+                      <Typography variant="button" display="block" gutterBottom color="grey" m="0">
                         Загрузить данные из шаблона
                         <br /> другого направления
                       </Typography>
@@ -231,9 +197,7 @@ const JsonChangeValue: FC<JsonChangeValue> = ({ elementName }) => {
                   title={"Выгрузить из другого года"}
                   onClose={handleCloseDialog}
                   options={teacherTemplates.filter(
-                    (option) =>
-                      option.year !== JsonData.year &&
-                      option.text === JsonData.disciplins_name
+                    (option) => option.year !== JsonData.year && option.text === JsonData.disciplins_name
                   )}
                   fieldName={elementName}
                 />
@@ -243,9 +207,7 @@ const JsonChangeValue: FC<JsonChangeValue> = ({ elementName }) => {
                   title={"Выгрузить из другого направления"}
                   onClose={handleCloseDialog}
                   options={teacherTemplates.filter(
-                    (option) =>
-                      option.id !== JsonData.id &&
-                      option.text !== JsonData.disciplins_name
+                    (option) => option.id !== JsonData.id && option.text !== JsonData.disciplins_name
                   )}
                   fieldName={elementName}
                 />

@@ -1,11 +1,4 @@
-import {
-  IconButton,
-  ListItemIcon,
-  ListItemText,
-  Menu,
-  MenuItem,
-  Typography,
-} from "@mui/material";
+import { IconButton, ListItemIcon, ListItemText, Menu, MenuItem, Typography } from "@mui/material";
 import { FC, MouseEvent, useState } from "react";
 import MoreHorizIcon from "@mui/icons-material/MoreHoriz";
 import { useAuth } from "@entities/auth";
@@ -53,8 +46,7 @@ const TemplateMenu: FC<TemplateMenu> = ({ id, teacher, status, fetchData }) => {
         userName,
       });
 
-      if (response.data === "UserNotFound")
-        showErrorMessage("Ошибка. Пользователь не найден");
+      if (response.data === "UserNotFound") showErrorMessage("Ошибка. Пользователь не найден");
       if (response.data === "TemplateAlreadyBinned")
         showErrorMessage("Ошибка. Данный шаблон уже отправлен преподавателю");
       if (response.data === "binnedSuccess") {
@@ -120,13 +112,7 @@ const TemplateMenu: FC<TemplateMenu> = ({ id, teacher, status, fetchData }) => {
             <OpenInBrowserIcon />
           </ListItemIcon>
           <ListItemText>
-            <Typography
-              variant="button"
-              display="block"
-              gutterBottom
-              color="grey"
-              m="0"
-            >
+            <Typography variant="button" display="block" gutterBottom color="grey" m="0">
               Открыть
             </Typography>
           </ListItemText>
@@ -154,16 +140,8 @@ const TemplateMenu: FC<TemplateMenu> = ({ id, teacher, status, fetchData }) => {
               <ForwardToInboxSharpIcon />
             </ListItemIcon>
             <ListItemText>
-              <Typography
-                variant="button"
-                display="block"
-                gutterBottom
-                color="grey"
-                m="0"
-              >
-                {status === TemplateStatusEnum.READY
-                  ? "Отправить на доработку"
-                  : "Отправить преподавателю"}
+              <Typography variant="button" display="block" gutterBottom color="grey" m="0">
+                {status === TemplateStatusEnum.READY ? "Отправить на доработку" : "Отправить преподавателю"}
               </Typography>
             </ListItemText>
           </MenuItem>
@@ -189,25 +167,13 @@ const TemplateMenu: FC<TemplateMenu> = ({ id, teacher, status, fetchData }) => {
             <HistoryIcon />
           </ListItemIcon>
           <ListItemText>
-            <Typography
-              variant="button"
-              display="block"
-              gutterBottom
-              color="grey"
-              m="0"
-            >
+            <Typography variant="button" display="block" gutterBottom color="grey" m="0">
               История шаблона
             </Typography>
           </ListItemText>
         </MenuItem>
       </Menu>
-      {history && (
-        <HistoryModal
-          history={history}
-          openDialog={openDialog}
-          setOpenDialog={setOpenDialog}
-        />
-      )}
+      {history && <HistoryModal history={history} openDialog={openDialog} setOpenDialog={setOpenDialog} />}
     </>
   );
 };

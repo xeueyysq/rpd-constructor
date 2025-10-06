@@ -32,12 +32,7 @@ export const TeacherInterface: FC = () => {
 
   return (
     <Container maxWidth="md">
-      <Box
-        p={3}
-        sx={{ backgroundColor: "#fefefe" }}
-        fontFamily={"Times New Roman"}
-        fontSize={18}
-      >
+      <Box p={3} sx={{ backgroundColor: "#fefefe" }} fontFamily={"Times New Roman"} fontSize={18}>
         {templatePage === "coverPage" && <CoverPage />}
         {templatePage === "approvalPage" && <ApprovalPage />}
         {templatePage === "aimsPage" && <AimsPage />}
@@ -46,9 +41,7 @@ export const TeacherInterface: FC = () => {
         {templatePage === "disciplineScope" && <ScopeDisciplinePage />}
         {templatePage === "disciplineContent" && <DisciplineContentPage />}
         {templatePage === "disciplineSupport" && <DisciplineSupportPage />}
-        {templatePage === "disciplineEvaluationsFunds" && (
-          <DisciplineEvaluationsFunds />
-        )}
+        {templatePage === "disciplineEvaluationsFunds" && <DisciplineEvaluationsFunds />}
         {templatePage === "resourceSupport" && <ResourceSupportPage />}
         {templatePage === "testPdf" && <TestPdf />}
       </Box>

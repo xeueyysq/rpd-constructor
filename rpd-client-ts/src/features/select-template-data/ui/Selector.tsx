@@ -1,10 +1,4 @@
-import {
-  Box,
-  AutocompleteChangeReason,
-  AutocompleteChangeDetails,
-  Autocomplete,
-  TextField,
-} from "@mui/material";
+import { Box, AutocompleteChangeReason, AutocompleteChangeDetails, Autocomplete, TextField } from "@mui/material";
 import React from "react";
 import { OptionType } from "../model/SelectorTypes.ts";
 
@@ -22,13 +16,7 @@ interface CustomSelector {
   "data-cy"?: string;
 }
 
-export const CustomSelector: React.FC<CustomSelector> = ({
-  title,
-  placeholder,
-  value,
-  onChange,
-  options,
-}) => {
+export const CustomSelector: React.FC<CustomSelector> = ({ title, placeholder, value, onChange, options }) => {
   return (
     <Box sx={{ my: 1 }}>
       <Box sx={{ fontSize: "15px", fontWeight: "600", py: 1 }}>{title}</Box>
@@ -37,9 +25,7 @@ export const CustomSelector: React.FC<CustomSelector> = ({
         onChange={onChange}
         options={options}
         data-cy="select-option"
-        renderInput={(params) => (
-          <TextField {...params} label={placeholder} size="small" />
-        )}
+        renderInput={(params) => <TextField {...params} label={placeholder} size="small" />}
       />
     </Box>
   );

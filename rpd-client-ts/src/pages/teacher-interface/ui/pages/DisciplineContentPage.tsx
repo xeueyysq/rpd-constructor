@@ -13,10 +13,7 @@ import {
   TableHead,
   TableRow,
 } from "@mui/material";
-import {
-  DisciplineContentData,
-  ObjectHours,
-} from "../../model/DisciplineContentPageTypes.ts";
+import { DisciplineContentData, ObjectHours } from "../../model/DisciplineContentPageTypes.ts";
 import { showErrorMessage, showSuccessMessage } from "@shared/lib";
 import EditableCell from "../changeable-elements/EditableCell.tsx";
 import { EditableNumber } from "../changeable-elements/EditableNumber.tsx";
@@ -28,13 +25,9 @@ interface StudyLoad {
 }
 
 const DisciplineContentPage: FC = () => {
-  const initialData = useStore.getState().jsonData.content as
-    | DisciplineContentData
-    | undefined;
+  const initialData = useStore.getState().jsonData.content as DisciplineContentData | undefined;
   const dataHours: StudyLoad[] = useStore.getState().jsonData.study_load || [];
-  const maxHours: ObjectHours = (
-    Array.isArray(dataHours) ? dataHours : []
-  ).reduce(
+  const maxHours: ObjectHours = (Array.isArray(dataHours) ? dataHours : []).reduce(
     (acc, item) => {
       const hours = parseFloat(item.id);
 
@@ -101,10 +94,7 @@ const DisciplineContentPage: FC = () => {
       if (data) {
         Object.keys(data).forEach((key) => {
           const row = data[key];
-          all +=
-            Number(row.lectures) +
-            Number(row.seminars) +
-            Number(row.independent_work);
+          all += Number(row.lectures) + Number(row.seminars) + Number(row.independent_work);
           lectures += Number(row.lectures);
           seminars += Number(row.seminars);
           lect_and_sems += Number(row.lectures) + Number(row.seminars);
@@ -138,11 +128,7 @@ const DisciplineContentPage: FC = () => {
     setData(newData);
   };
 
-  const handleValueChange = (
-    id: number,
-    key: string,
-    value: string | number
-  ) => {
+  const handleValueChange = (id: number, key: string, value: string | number) => {
     if (!data) return;
 
     const newData = {
@@ -170,27 +156,17 @@ const DisciplineContentPage: FC = () => {
   const saveData = async () => {
     if (!data) return;
     if (!compareObjects(summ, maxHours)) {
-      showErrorMessage(
-        "Ошибка заполнения данных. Данные по часам не совпадают"
-      );
+      showErrorMessage("Ошибка заполнения данных. Данные по часам не совпадают");
       return;
     }
     const id = useStore.getState().jsonData.id;
 
-    const filteredData = Object.entries(data).reduce(
-      (acc: DisciplineContentData, [key, value]) => {
-        if (
-          value.theme ||
-          value.lectures ||
-          value.seminars ||
-          value.independent_work
-        ) {
-          acc[key] = value;
-        }
-        return acc;
-      },
-      {}
-    );
+    const filteredData = Object.entries(data).reduce((acc: DisciplineContentData, [key, value]) => {
+      if (value.theme || value.lectures || value.seminars || value.independent_work) {
+        acc[key] = value;
+      }
+      return acc;
+    }, {});
 
     try {
       await axiosBase.put(`update-json-value/${id}`, {
@@ -218,12 +194,7 @@ const DisciplineContentPage: FC = () => {
     <Box>
       <Box fontSize={"1.5rem"}>Содержание дисциплины</Box>
       <TableContainer component={Paper} sx={{ my: 2 }}>
-        <Table
-          sx={{ minWidth: 650 }}
-          aria-label="simple table"
-          size="small"
-          className="table"
-        >
+        <Table sx={{ minWidth: 650 }} aria-label="simple table" size="small" className="table">
           <TableHead>
             <TableRow>
               <TableCell align="center" width="180px">
@@ -253,9 +224,7 @@ const DisciplineContentPage: FC = () => {
                   <TableCell>
                     <EditableCell
                       value={data[row].theme}
-                      onValueChange={(value: string) =>
-                        handleValueChange(index, "theme", value)
-                      }
+                      onValueChange={(value: string) => handleValueChange(index, "theme", value)}
                     />
                   </TableCell>
                   <TableCell
@@ -264,24 +233,18 @@ const DisciplineContentPage: FC = () => {
                       textAlign: "center",
                     }}
                   >
-                    {data[row].lectures +
-                      data[row].seminars +
-                      data[row].independent_work}
+                    {data[row].lectures + data[row].seminars + data[row].independent_work}
                   </TableCell>
                   <TableCell>
                     <EditableNumber
                       value={data[row].lectures}
-                      onValueChange={(value: number) =>
-                        handleValueChange(index, "lectures", value)
-                      }
+                      onValueChange={(value: number) => handleValueChange(index, "lectures", value)}
                     />
                   </TableCell>
                   <TableCell>
                     <EditableNumber
                       value={data[row].seminars}
-                      onValueChange={(value: number) =>
-                        handleValueChange(index, "seminars", value)
-                      }
+                      onValueChange={(value: number) => handleValueChange(index, "seminars", value)}
                     />
                   </TableCell>
                   <TableCell
@@ -295,9 +258,7 @@ const DisciplineContentPage: FC = () => {
                   <TableCell>
                     <EditableNumber
                       value={data[row].independent_work}
-                      onValueChange={(value: number) =>
-                        handleValueChange(index, "independent_work", value)
-                      }
+                      onValueChange={(value: number) => handleValueChange(index, "independent_work", value)}
                     />
                   </TableCell>
                 </TableRow>
@@ -327,20 +288,14 @@ const DisciplineContentPage: FC = () => {
               </TableCell>
               <TableCell
                 sx={{
-                  color: validateHours(
-                    summ.lect_and_sems,
-                    maxHours.lect_and_sems
-                  ),
+                  color: validateHours(summ.lect_and_sems, maxHours.lect_and_sems),
                 }}
               >
                 {summ.lect_and_sems} / {maxHours.lect_and_sems}
               </TableCell>
               <TableCell
                 sx={{
-                  color: validateHours(
-                    summ.independent_work,
-                    maxHours.independent_work
-                  ),
+                  color: validateHours(summ.independent_work, maxHours.independent_work),
                 }}
               >
                 {summ.independent_work} / {maxHours.independent_work}
@@ -350,11 +305,7 @@ const DisciplineContentPage: FC = () => {
         </Table>
       </TableContainer>
 
-      <ButtonGroup
-        variant="outlined"
-        aria-label="Basic button group"
-        size="small"
-      >
+      <ButtonGroup variant="outlined" aria-label="Basic button group" size="small">
         <Button onClick={handleAddRow}>Добавить строку</Button>
         <Button variant="contained" onClick={saveData}>
           Сохранить изменения

@@ -35,10 +35,7 @@ export const RpdList: FC<RpdListProps> = ({ RpdListItems }) => {
       {jsonData?.disciplins_name && (
         <Box sx={{ py: 1 }}>
           <SimpleTreeView>
-            <TreeItem
-              itemId="disciplins_name"
-              label={String(jsonData.disciplins_name)}
-            >
+            <TreeItem itemId="disciplins_name" label={String(jsonData.disciplins_name)}>
               <TreeItem
                 itemId="direction"
                 label={`${jsonData.direction}, ${jsonData.profile}`}
@@ -54,11 +51,7 @@ export const RpdList: FC<RpdListProps> = ({ RpdListItems }) => {
                 label={`Форма обучения - ${jsonData.education_form}`}
                 sx={{ color: alpha("#000000", 0.5) }}
               />
-              <TreeItem
-                itemId="year"
-                label={`Год набора - ${jsonData.year}`}
-                sx={{ color: alpha("#000000", 0.5) }}
-              />
+              <TreeItem itemId="year" label={`Год набора - ${jsonData.year}`} sx={{ color: alpha("#000000", 0.5) }} />
             </TreeItem>
           </SimpleTreeView>
         </Box>
@@ -81,10 +74,7 @@ export const RpdList: FC<RpdListProps> = ({ RpdListItems }) => {
       <List dense>
         <Can I="get" a="rop_interface">
           <ListItem disableGutters sx={{ p: 0 }}>
-            <ListItemButton
-              onClick={() => setTemplatePage("testPdf")}
-              sx={{ py: 1 }}
-            >
+            <ListItemButton onClick={() => setTemplatePage("testPdf")} sx={{ py: 1 }}>
               <ListItemIcon sx={{ pl: 2 }}>
                 <PictureAsPdfIcon />
               </ListItemIcon>
@@ -109,9 +99,7 @@ export const RpdList: FC<RpdListProps> = ({ RpdListItems }) => {
             <ListItemIcon sx={{ pl: 2 }}>
               <ArrowBackIcon />
             </ListItemIcon>
-            <ListItemText
-              primary={<Typography>Вернуться к выбору шаблона</Typography>}
-            />
+            <ListItemText primary={<Typography>Вернуться к выбору шаблона</Typography>} />
           </ListItemButton>
         </ListItem>
       </List>

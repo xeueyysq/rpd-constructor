@@ -34,12 +34,7 @@ export const Header: FC = () => {
       }}
     >
       <Toolbar>
-        <Box
-          width={"100%"}
-          display={"flex"}
-          justifyContent={"space-between"}
-          alignItems={"center"}
-        >
+        <Box width={"100%"} display={"flex"} justifyContent={"space-between"} alignItems={"center"}>
           <HeaderLogo />
           {isUserLogged && (
             <Box sx={{ display: "flex", alignItems: "center" }}>

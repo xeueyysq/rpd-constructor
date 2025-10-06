@@ -20,15 +20,13 @@ module.exports = {
   plugins: ["react-refresh", "prettier"],
   rules: {
     "@typescript-eslint/no-unused-vars": "warn",
-    "react-refresh/only-export-components": [
-      "warn",
-      { allowConstantExport: true },
-    ],
+    "react-refresh/only-export-components": ["warn", { allowConstantExport: true }],
     "prettier/prettier": [
       "error",
       {
         endOfLine: "auto",
         tabWidth: 2,
+        printWidth: 120,
       },
     ],
     quotes: ["error", "double", { avoidEscape: true }],

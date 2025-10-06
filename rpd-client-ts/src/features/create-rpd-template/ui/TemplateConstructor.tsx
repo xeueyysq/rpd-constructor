@@ -8,16 +8,11 @@ import { axiosBase } from "@shared/api";
 import { showErrorMessage, showSuccessMessage } from "@shared/lib";
 import { isAxiosError } from "axios";
 
-export const TemplateConstructor: FC<TemplateConstructorType> = ({
-  setChoise,
-}) => {
+export const TemplateConstructor: FC<TemplateConstructorType> = ({ setChoise }) => {
   const selectedTemplateData = useStore.getState().selectedTemplateData;
   const { setComplectId } = useStore();
-  const [createComplectStatus, setCreateComplectStatus] =
-    useState<string>("pending");
-  const [isFindComplect, setIsFindComplect] = useState<boolean | undefined>(
-    undefined
-  );
+  const [createComplectStatus, setCreateComplectStatus] = useState<string>("pending");
+  const [isFindComplect, setIsFindComplect] = useState<boolean | undefined>(undefined);
   const { setTabState } = useStore();
 
   const createRpdComplect = async () => {
@@ -69,9 +64,7 @@ export const TemplateConstructor: FC<TemplateConstructorType> = ({
 
   return (
     <>
-      <Box sx={{ py: 2, fontSize: "18px", fontWeight: "600" }}>
-        Выбранные данные:
-      </Box>
+      <Box sx={{ py: 2, fontSize: "18px", fontWeight: "600" }}>Выбранные данные:</Box>
       {Object.entries(selectedTemplateData).map(([key, value]) => (
         <Box sx={{ pl: "40px" }} key={key}>
           <Box component="span" sx={{ fontWeight: "600" }}>
@@ -88,11 +81,7 @@ export const TemplateConstructor: FC<TemplateConstructorType> = ({
             <Box sx={{ py: 2 }}>
               {createComplectStatus === "pending" && (
                 <Box>
-                  <Button
-                    variant="contained"
-                    size="small"
-                    onClick={() => createRpdComplect()}
-                  >
+                  <Button variant="contained" size="small" onClick={() => createRpdComplect()}>
                     Создать шаблон
                   </Button>
                   <Box color={"orange"} fontWeight={"bold"}>
@@ -103,22 +92,14 @@ export const TemplateConstructor: FC<TemplateConstructorType> = ({
               {createComplectStatus === "loading" && (
                 <Box sx={{ p: 1, display: "flex" }}>
                   <CircularProgress color="inherit" size="1rem" />
-                  <Box sx={{ px: 1 }}>
-                    Идет поиск комплекта РПД. Это может занять какое-то время
-                  </Box>
+                  <Box sx={{ px: 1 }}>Идет поиск комплекта РПД. Это может занять какое-то время</Box>
                 </Box>
               )}
-              {createComplectStatus === "error" && (
-                <Box color={"red"}>Сервис 1С временно недоступен</Box>
-              )}
+              {createComplectStatus === "error" && <Box color={"red"}>Сервис 1С временно недоступен</Box>}
               {createComplectStatus === "success" && (
                 <Box>
                   <Box>Шаблон создан успешно. Перейти к редактированию?</Box>
-                  <Button
-                    variant="contained"
-                    size="small"
-                    onClick={() => setChoise("createTemplateFromExchange")}
-                  >
+                  <Button variant="contained" size="small" onClick={() => setChoise("createTemplateFromExchange")}>
                     Перейти
                   </Button>
                 </Box>
@@ -133,11 +114,7 @@ export const TemplateConstructor: FC<TemplateConstructorType> = ({
       )}
       <Box display="flex" gap={3}>
         {isFindComplect && (
-          <Button
-            variant="contained"
-            size="small"
-            onClick={() => handleChangePage()}
-          >
+          <Button variant="contained" size="small" onClick={() => handleChangePage()}>
             Перейти к редактированию
           </Button>
         )}

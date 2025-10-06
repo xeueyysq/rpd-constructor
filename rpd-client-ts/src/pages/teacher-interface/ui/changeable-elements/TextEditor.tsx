@@ -34,9 +34,7 @@ interface TestEditor {
 
 const TextEditor: FC<TestEditor> = ({ value, saveContent, setIsEditing }) => {
   const content = stateFromHTML(value);
-  const [editorState, setEditorState] = useState(
-    EditorState.createWithContent(content)
-  );
+  const [editorState, setEditorState] = useState(EditorState.createWithContent(content));
   const editorRef = useRef(null);
 
   useEffect(() => focusOnEditor(editorRef), [editorRef]);
@@ -139,11 +137,7 @@ const TextEditor: FC<TestEditor> = ({ value, saveContent, setIsEditing }) => {
           editorRef={editorRef}
         />
       </Box>
-      <ButtonGroup
-        variant="outlined"
-        aria-label="Basic button group"
-        size="small"
-      >
+      <ButtonGroup variant="outlined" aria-label="Basic button group" size="small">
         <Button
           variant="contained"
           size="small"

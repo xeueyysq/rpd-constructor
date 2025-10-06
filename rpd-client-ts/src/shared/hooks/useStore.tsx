@@ -56,10 +56,7 @@ interface StoreState {
     formEducation: string | undefined,
     year: string | undefined
   ) => void;
-  setCreateByCriteria: (
-    faculty?: string | undefined,
-    year?: string | undefined
-  ) => void;
+  setCreateByCriteria: (faculty?: string | undefined, year?: string | undefined) => void;
   setComplectId: (id: number) => void;
   setTabState: (tabId: string, isEnabled: boolean) => void;
   deInitializeTabs: () => void;
@@ -112,23 +109,9 @@ export const useStore = create<StoreState>()(
         }
       });
     },
-    setSelectedTemplateData: (
-      faculty,
-      levelEducation,
-      directionOfStudy,
-      profile,
-      formEducation,
-      year
-    ) => {
+    setSelectedTemplateData: (faculty, levelEducation, directionOfStudy, profile, formEducation, year) => {
       set((state) => {
-        if (
-          faculty &&
-          levelEducation &&
-          directionOfStudy &&
-          profile &&
-          formEducation &&
-          year
-        ) {
+        if (faculty && levelEducation && directionOfStudy && profile && formEducation && year) {
           state.selectedTemplateData = {
             faculty: faculty,
             levelEducation: levelEducation,

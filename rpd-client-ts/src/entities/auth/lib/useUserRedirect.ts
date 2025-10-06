@@ -28,9 +28,7 @@ export const useUserRedirect = (): TUseUserRedirectResult => {
   const userRole = useAuth.getState().userRole;
 
   const redirectPath = useMemo(() => {
-    return isUserLogged
-      ? roleToRedirectPath[userRole] || RedirectPath.SIGN_IN
-      : RedirectPath.SIGN_IN;
+    return isUserLogged ? roleToRedirectPath[userRole] || RedirectPath.SIGN_IN : RedirectPath.SIGN_IN;
   }, [isUserLogged, userRole]);
 
   return { isUserLogged, redirectPath };

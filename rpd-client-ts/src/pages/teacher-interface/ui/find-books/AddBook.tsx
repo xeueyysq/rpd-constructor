@@ -41,8 +41,7 @@ const AddBook: FC<AddBook> = ({ elementName }) => {
   const jsonData = useStore.getState().jsonData[elementName];
   const [booksData, setBooksData] = useState<BookData[]>(jsonData);
 
-  const elementValue: string[] =
-    useStore.getState().jsonData[elementName] || [];
+  const elementValue: string[] = useStore.getState().jsonData[elementName] || [];
   const [addedBooks, setAddedBooks] = useState<string[]>(elementValue);
 
   const { updateJsonData } = useStore();
@@ -145,11 +144,7 @@ const AddBook: FC<AddBook> = ({ elementName }) => {
                   >
                     <Box width={"90%"}>{biblio}</Box>
 
-                    <Button
-                      size="small"
-                      color="error"
-                      onClick={() => handleRemoveBook(biblio)}
-                    >
+                    <Button size="small" color="error" onClick={() => handleRemoveBook(biblio)}>
                       Удалить
                     </Button>
                   </Box>
@@ -207,12 +202,7 @@ const AddBook: FC<AddBook> = ({ elementName }) => {
             error={error}
             helperText={error ? "Ошибка. Поле обязательно для заполнения" : ""}
           />
-          {booksData && (
-            <ShowBooks
-              books={booksData}
-              onAddBookToList={handleAddBookToList}
-            />
-          )}
+          {booksData && <ShowBooks books={booksData} onAddBookToList={handleAddBookToList} />}
         </DialogContent>
         <DialogActions>
           <Button variant="contained" onClick={handleFindBooks}>

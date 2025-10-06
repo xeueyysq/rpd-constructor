@@ -121,16 +121,8 @@ export function DataDialogBox(props: DataDialogBoxProps) {
                     label={`${option.text} (${option.year})`}
                     sx={{ flex: 1 }}
                   />
-                  <IconButton
-                    size="small"
-                    onClick={() => handleToggleExpand(option.id!)}
-                    sx={{ ml: 1 }}
-                  >
-                    {expandedItems.has(option.id!) ? (
-                      <ExpandLess />
-                    ) : (
-                      <ExpandMore />
-                    )}
+                  <IconButton size="small" onClick={() => handleToggleExpand(option.id!)} sx={{ ml: 1 }}>
+                    {expandedItems.has(option.id!) ? <ExpandLess /> : <ExpandMore />}
                   </IconButton>
                 </Box>
                 <Collapse in={expandedItems.has(option.id!)}>

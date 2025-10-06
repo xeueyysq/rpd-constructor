@@ -3,8 +3,7 @@ import { AuthContext, useAuthContextValue } from "@entities/auth";
 import { Loader } from "@shared/ui";
 
 const AuthProvider: FC<{ children: ReactNode }> = ({ children }) => {
-  const { data, handleSignIn, handleLogOut, isAppReady, isUserLogged } =
-    useAuthContextValue();
+  const { data, handleSignIn, handleLogOut, isAppReady, isUserLogged } = useAuthContextValue();
 
   return (
     <AuthContext.Provider

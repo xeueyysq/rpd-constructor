@@ -52,10 +52,7 @@ export const statusConfig = {
   },
 };
 
-export const setTemplateStatus = async (
-  params: StatusTemplateParams,
-  fetchData: () => Promise<void>
-) => {
+export const setTemplateStatus = async (params: StatusTemplateParams, fetchData: () => Promise<void>) => {
   try {
     const response = await axiosBase.post("set-template-status", params);
     if (response.data === "success") {

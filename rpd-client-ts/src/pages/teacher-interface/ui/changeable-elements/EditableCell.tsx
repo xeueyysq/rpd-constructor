@@ -6,11 +6,7 @@ type EditableCellProps = {
   readOnly?: boolean;
 };
 
-function EditableCell({
-  value,
-  onValueChange,
-  readOnly = false,
-}: EditableCellProps) {
+function EditableCell({ value, onValueChange, readOnly = false }: EditableCellProps) {
   const [inputValue, setInputValue] = useState(value);
   const [isEditing, setIsEditing] = useState(false);
   const textAreaRef = useRef<HTMLTextAreaElement>(null);

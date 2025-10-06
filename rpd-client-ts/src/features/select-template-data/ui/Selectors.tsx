@@ -31,9 +31,7 @@ export const Selectors: FC<Selectors> = ({ setChoise }) => {
   const { deInitializeTabs } = useStore();
   const selectorsData = useStore.getState().selectedTemplateData;
   const [selectors, setSelectors] = useState<SelectorsState>({
-    faculty: selectorsData.faculty
-      ? { value: selectorsData.faculty, label: selectorsData.faculty }
-      : undefined,
+    faculty: selectorsData.faculty ? { value: selectorsData.faculty, label: selectorsData.faculty } : undefined,
     levelEducation: selectorsData.levelEducation
       ? {
           value: selectorsData.levelEducation,
@@ -46,18 +44,14 @@ export const Selectors: FC<Selectors> = ({ setChoise }) => {
           label: selectorsData.directionOfStudy,
         }
       : undefined,
-    profile: selectorsData.profile
-      ? { value: selectorsData.profile, label: selectorsData.profile }
-      : undefined,
+    profile: selectorsData.profile ? { value: selectorsData.profile, label: selectorsData.profile } : undefined,
     formEducation: selectorsData.formEducation
       ? {
           value: selectorsData.formEducation,
           label: selectorsData.formEducation,
         }
       : undefined,
-    year: selectorsData.year
-      ? { value: selectorsData.year, label: selectorsData.year }
-      : undefined,
+    year: selectorsData.year ? { value: selectorsData.year, label: selectorsData.year } : undefined,
   });
 
   const [data, setData] = useState<Nullable<JsonData>>(undefined);
@@ -85,11 +79,7 @@ export const Selectors: FC<Selectors> = ({ setChoise }) => {
   }, []);
 
   const handleChange =
-    (name: keyof SelectorsState) =>
-    (
-      _: React.SyntheticEvent<Element, Event>,
-      selectedOption: OptionType | null
-    ) => {
+    (name: keyof SelectorsState) => (_: React.SyntheticEvent<Element, Event>, selectedOption: OptionType | null) => {
       setSelectors((prevSelectors) => ({
         ...prevSelectors,
         [name]: selectedOption || undefined,
@@ -120,15 +110,10 @@ export const Selectors: FC<Selectors> = ({ setChoise }) => {
     };
 
   const getOptions = (): OptionType[] => {
-    return data
-      ? Object.keys(data).map((key) => ({ label: key, value: key }))
-      : [];
+    return data ? Object.keys(data).map((key) => ({ label: key, value: key })) : [];
   };
 
-  const getOptionsForSelector = (
-    selectorPath: Array<string>,
-    indicator?: string
-  ): OptionType[] => {
+  const getOptionsForSelector = (selectorPath: Array<string>, indicator?: string): OptionType[] => {
     if (indicator && indicator === "lastChild") {
       const currentYear = new Date().getFullYear();
       const yearsCount = 5;
@@ -182,14 +167,7 @@ export const Selectors: FC<Selectors> = ({ setChoise }) => {
         onChange={handleChange("faculty")}
         options={getOptions()}
         data-cy="faculty-select"
-        renderInput={(params) => (
-          <TextField
-            {...params}
-            label="Выберите институт"
-            size="small"
-            data-cy="text-field"
-          />
-        )}
+        renderInput={(params) => <TextField {...params} label="Выберите институт" size="small" data-cy="text-field" />}
       />
       {selectors.faculty && (
         <Selector
@@ -207,47 +185,39 @@ export const Selectors: FC<Selectors> = ({ setChoise }) => {
           placeholder="Выберите направление обучения"
           value={selectors.directionOfStudy}
           onChange={handleChange("directionOfStudy")}
-          options={getOptionsForSelector([
-            selectors.faculty.value,
-            selectors.levelEducation.value,
-          ])}
+          options={getOptionsForSelector([selectors.faculty.value, selectors.levelEducation.value])}
           data-cy="direction-select"
         />
       )}
-      {selectors.faculty &&
-        selectors.levelEducation &&
-        selectors.directionOfStudy && (
-          <Selector
-            title="Профиль направления обучения"
-            placeholder="Выберите профиль обучения"
-            value={selectors.profile}
-            onChange={handleChange("profile")}
-            options={getOptionsForSelector([
-              selectors.faculty.value,
-              selectors.levelEducation.value,
-              selectors.directionOfStudy.value,
-            ])}
-            data-cy="profile-select"
-          />
-        )}
-      {selectors.faculty &&
-        selectors.levelEducation &&
-        selectors.directionOfStudy &&
-        selectors.profile && (
-          <Selector
-            title="Форма обучения"
-            placeholder="Выберите форму обучения"
-            value={selectors.formEducation}
-            onChange={handleChange("formEducation")}
-            options={getOptionsForSelector([
-              selectors.faculty.value,
-              selectors.levelEducation.value,
-              selectors.directionOfStudy.value,
-              selectors.profile.value,
-            ])}
-            data-cy="education-form-select"
-          />
-        )}
+      {selectors.faculty && selectors.levelEducation && selectors.directionOfStudy && (
+        <Selector
+          title="Профиль направления обучения"
+          placeholder="Выберите профиль обучения"
+          value={selectors.profile}
+          onChange={handleChange("profile")}
+          options={getOptionsForSelector([
+            selectors.faculty.value,
+            selectors.levelEducation.value,
+            selectors.directionOfStudy.value,
+          ])}
+          data-cy="profile-select"
+        />
+      )}
+      {selectors.faculty && selectors.levelEducation && selectors.directionOfStudy && selectors.profile && (
+        <Selector
+          title="Форма обучения"
+          placeholder="Выберите форму обучения"
+          value={selectors.formEducation}
+          onChange={handleChange("formEducation")}
+          options={getOptionsForSelector([
+            selectors.faculty.value,
+            selectors.levelEducation.value,
+            selectors.directionOfStudy.value,
+            selectors.profile.value,
+          ])}
+          data-cy="education-form-select"
+        />
+      )}
       {selectors.faculty &&
         selectors.levelEducation &&
         selectors.directionOfStudy &&

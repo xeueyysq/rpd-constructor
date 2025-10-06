@@ -7,9 +7,7 @@ import { showErrorMessage } from "@shared/lib";
 import { Loader } from "@shared/ui/Loader.tsx";
 
 export default function TestPdf() {
-  const [fileName, setFileName] = useState<Blob | MediaSource | undefined>(
-    undefined
-  );
+  const [fileName, setFileName] = useState<Blob | MediaSource | undefined>(undefined);
   const [isLoading, setIsLoading] = useState(false);
 
   useEffect(() => {

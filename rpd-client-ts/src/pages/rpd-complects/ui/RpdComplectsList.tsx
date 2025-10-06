@@ -1,14 +1,5 @@
 import { FC, useEffect, useState, useMemo, useCallback } from "react";
-import {
-  Box,
-  Button,
-  Dialog,
-  DialogTitle,
-  DialogContent,
-  DialogActions,
-  CssBaseline,
-  IconButton,
-} from "@mui/material";
+import { Box, Button, Dialog, DialogTitle, DialogContent, DialogActions, CssBaseline, IconButton } from "@mui/material";
 import { useNavigate, useLocation } from "react-router-dom";
 import { axiosBase } from "@shared/api";
 import { Loader } from "@shared/ui";
@@ -17,12 +8,7 @@ import VisibilityIcon from "@mui/icons-material/Visibility";
 import { showErrorMessage } from "@shared/lib";
 import type { RpdComplect } from "../model";
 import { CreateRpdTemplateFrom1CExchange } from "@features/create-rpd-template-from-1c-exchange";
-import {
-  MaterialReactTable,
-  useMaterialReactTable,
-  type MRT_ColumnDef,
-  MRT_TableInstance,
-} from "material-react-table";
+import { MaterialReactTable, useMaterialReactTable, type MRT_ColumnDef, MRT_TableInstance } from "material-react-table";
 import { MRT_Localization_RU } from "material-react-table/locales/ru";
 import CachedIcon from "@mui/icons-material/Cached";
 
@@ -143,16 +129,10 @@ export const RpdComplectsList: FC = () => {
       sx: { px: 2 },
     },
     muiTableBodyCellProps: ({ column }) => ({
-      sx:
-        column.id === "mrt-row-select"
-          ? { paddingRight: 0, paddingLeft: 0 }
-          : { py: 0.5, px: 0.5 },
+      sx: column.id === "mrt-row-select" ? { paddingRight: 0, paddingLeft: 0 } : { py: 0.5, px: 0.5 },
     }),
     muiTableHeadCellProps: ({ column }) => ({
-      sx:
-        column.id === "mrt-row-select"
-          ? { paddingRight: 0, paddingLeft: 0 }
-          : { py: 0.5, px: 0.5 },
+      sx: column.id === "mrt-row-select" ? { paddingRight: 0, paddingLeft: 0 } : { py: 0.5, px: 0.5 },
     }),
     enableRowSelection: true,
     renderToolbarAlertBannerContent: ({ table }) => (
@@ -163,9 +143,7 @@ export const RpdComplectsList: FC = () => {
           gap: "8px",
         }}
       >
-        <Button onClick={() => table.resetRowSelection()}>
-          Очистить выбор
-        </Button>
+        <Button onClick={() => table.resetRowSelection()}>Очистить выбор</Button>
 
         <Button color="error" onClick={() => setOpen(true)}>
           Удалить
@@ -179,17 +157,11 @@ export const RpdComplectsList: FC = () => {
   if (loading) return <Loader />;
 
   if (showTemplates) {
-    return (
-      <CreateRpdTemplateFrom1CExchange
-        setChoise={() => setShowTemplates(false)}
-      />
-    );
+    return <CreateRpdTemplateFrom1CExchange setChoise={() => setShowTemplates(false)} />;
   }
 
   const handleConfirm = async () => {
-    const currentSelectedIds = Object.keys(rowSelection).map(
-      (id) => complects[Number(id)].id
-    );
+    const currentSelectedIds = Object.keys(rowSelection).map((id) => complects[Number(id)].id);
     setOpen(false);
     await deleteComplect(currentSelectedIds);
   };
@@ -205,23 +177,12 @@ export const RpdComplectsList: FC = () => {
       </Box>
       <Dialog open={open} onClose={() => setOpen(false)}>
         <DialogTitle>Подтверждение</DialogTitle>
-        <DialogContent>
-          Вы уверены, что хотите удалить выбранные комплекты?
-        </DialogContent>
+        <DialogContent>Вы уверены, что хотите удалить выбранные комплекты?</DialogContent>
         <DialogActions>
-          <Button
-            size="small"
-            variant="contained"
-            onClick={() => setOpen(false)}
-          >
+          <Button size="small" variant="contained" onClick={() => setOpen(false)}>
             Отмена
           </Button>
-          <Button
-            size="small"
-            variant="contained"
-            color="error"
-            onClick={handleConfirm}
-          >
+          <Button size="small" variant="contained" color="error" onClick={handleConfirm}>
             Удалить
           </Button>
         </DialogActions>

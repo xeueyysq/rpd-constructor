@@ -1,14 +1,5 @@
 import { FC, MouseEvent, useContext, useState } from "react";
-import {
-  Box,
-  Button,
-  Divider,
-  ListItemIcon,
-  ListItemText,
-  Menu,
-  MenuItem,
-  Typography,
-} from "@mui/material";
+import { Box, Button, Divider, ListItemIcon, ListItemText, Menu, MenuItem, Typography } from "@mui/material";
 import { AccountCircle, Logout } from "@mui/icons-material";
 import MenuIcon from "@mui/icons-material/Menu";
 import { AuthContext, useAuth } from "@entities/auth";
@@ -60,13 +51,7 @@ const HeaderMenuMobile: FC = () => {
                 <AccountCircle />
               </ListItemIcon>
               <ListItemText>
-                <Typography
-                  variant="button"
-                  display="block"
-                  gutterBottom
-                  color="grey"
-                  m="0"
-                >
+                <Typography variant="button" display="block" gutterBottom color="grey" m="0">
                   {userName}
                 </Typography>
               </ListItemText>
@@ -76,11 +61,7 @@ const HeaderMenuMobile: FC = () => {
                 <Logout />
               </ListItemIcon>
               <ListItemText>
-                <Button
-                  onClick={handleLogOut}
-                  size="small"
-                  sx={{ color: "grey" }}
-                >
+                <Button onClick={handleLogOut} size="small" sx={{ color: "grey" }}>
                   Выйти
                 </Button>
               </ListItemText>

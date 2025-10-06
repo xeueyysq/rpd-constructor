@@ -21,11 +21,7 @@ import {
 import { useAuth } from "@entities/auth";
 import TemplateMenu from "./TemplateMenu.tsx";
 import { axiosBase } from "@shared/api";
-import {
-  showErrorMessage,
-  showSuccessMessage,
-  showWarningMessage,
-} from "@shared/lib";
+import { showErrorMessage, showSuccessMessage, showWarningMessage } from "@shared/lib";
 import { Loader } from "@shared/ui";
 import { StatusCell } from "@pages/teacher-interface-templates/ui/StatusCell.tsx";
 import { TemplateStatusEnum } from "@entities/template";
@@ -55,9 +51,7 @@ export interface CreateTemplateDataParams {
   userName: string | undefined;
 }
 
-export const CreateRpdTemplateFrom1CExchange: FC<TemplateConstructorType> = ({
-  setChoise,
-}) => {
+export const CreateRpdTemplateFrom1CExchange: FC<TemplateConstructorType> = ({ setChoise }) => {
   const selectedTemplateData = useStore.getState().selectedTemplateData;
   const complectId = useStore.getState().complectId;
   const [data, setData] = useState<TemplateData[]>();
@@ -70,16 +64,12 @@ export const CreateRpdTemplateFrom1CExchange: FC<TemplateConstructorType> = ({
   const handleFilteredData = () => {
     if (data) {
       return data
-        .filter((row) =>
-          row.discipline.toLowerCase().includes(searchValue.toLowerCase())
-        )
+        .filter((row) => row.discipline.toLowerCase().includes(searchValue.toLowerCase()))
         .sort((a, b) => {
           const priority: Record<string, number> = {
             [TemplateStatusEnum.UNLOADED]: 1,
           };
-          return (
-            (priority[a.status.status] || 0) - (priority[b.status.status] || 0)
-          );
+          return (priority[a.status.status] || 0) - (priority[b.status.status] || 0);
         });
     }
   };
@@ -118,13 +108,9 @@ export const CreateRpdTemplateFrom1CExchange: FC<TemplateConstructorType> = ({
         userName,
       };
 
-      const response = await axiosBase.post(
-        "create-profile-template-from-1c",
-        params
-      );
+      const response = await axiosBase.post("create-profile-template-from-1c", params);
 
-      if (response.data === "record exists")
-        showErrorMessage("Ошибка. Шаблон с текущими данными уже существует");
+      if (response.data === "record exists") showErrorMessage("Ошибка. Шаблон с текущими данными уже существует");
       if (response.data === "template created") {
         showSuccessMessage("Шаблон успешно создан");
         fetchData();
@@ -214,9 +200,7 @@ export const CreateRpdTemplateFrom1CExchange: FC<TemplateConstructorType> = ({
             {handleFilteredData()?.map((row) => (
               <TableRow key={row.id}>
                 <StatusCell status={row.status.status} />
-                <TableCell sx={{ maxWidth: "400px" }}>
-                  {row.discipline}
-                </TableCell>
+                <TableCell sx={{ maxWidth: "400px" }}>{row.discipline}</TableCell>
                 <TableCell>{row.semester}</TableCell>
                 <TableCell>
                   <FormControl fullWidth variant="standard" size="small">
@@ -258,11 +242,7 @@ export const CreateRpdTemplateFrom1CExchange: FC<TemplateConstructorType> = ({
                 </TableCell>
                 <TableCell>
                   {row.status.status === TemplateStatusEnum.UNLOADED ? (
-                    <Button
-                      variant="contained"
-                      size="small"
-                      onClick={() => createTemplateData(row.id, row.discipline)}
-                    >
+                    <Button variant="contained" size="small" onClick={() => createTemplateData(row.id, row.discipline)}>
                       Создать
                     </Button>
                   ) : (

@@ -54,9 +54,7 @@ export const PlannedResultsList: FC = () => {
     return resultsData;
   };
 
-  const handleFileUpload = async (
-    event: React.ChangeEvent<HTMLInputElement>
-  ) => {
+  const handleFileUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
     if (!file) return;
     try {
@@ -77,8 +75,7 @@ export const PlannedResultsList: FC = () => {
         showSuccessMessage("Данные успешно загружены");
       }
     } catch (error) {
-      const errorMessage =
-        error instanceof Error ? error.message : "Неизвестная ошибка";
+      const errorMessage = error instanceof Error ? error.message : "Неизвестная ошибка";
       showErrorMessage(errorMessage);
       console.error(error);
     }
@@ -93,12 +90,7 @@ export const PlannedResultsList: FC = () => {
       <Box fontSize={"1.5rem"} sx={{ py: 1 }}>
         Загрузка компетенций для всех дисциплин
       </Box>
-      <Box
-        display={"flex"}
-        justifyContent={"space-between"}
-        alignItems={"center"}
-        py={1}
-      >
+      <Box display={"flex"} justifyContent={"space-between"} alignItems={"center"} py={1}>
         <input type="file" accept=".csv" onChange={handleFileUpload} />
         <Button onClick={() => saveData()} variant="contained">
           Сохранить
@@ -118,10 +110,7 @@ export const PlannedResultsList: FC = () => {
               Object.entries(data).map(([key, row]) => (
                 <TableRow key={key}>
                   <TableCell>
-                    {Number(key) === 0 ||
-                    row.competence !== data[Number(key) - 1].competence
-                      ? row.competence
-                      : ""}
+                    {Number(key) === 0 || row.competence !== data[Number(key) - 1].competence ? row.competence : ""}
                   </TableCell>
                   <TableCell>{row.indicator}</TableCell>
                   <TableCell>{row.disciplines.join(", ")}</TableCell>

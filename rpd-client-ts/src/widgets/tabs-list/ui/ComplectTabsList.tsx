@@ -1,13 +1,5 @@
 import { FC } from "react";
-import {
-  List,
-  Box,
-  ListItem,
-  ListItemButton,
-  ListItemText,
-  Divider,
-  ListItemIcon,
-} from "@mui/material";
+import { List, Box, ListItem, ListItemButton, ListItemText, Divider, ListItemIcon } from "@mui/material";
 import { complectTabs } from "../model/consts";
 import { useStore } from "@shared/hooks";
 import { useNavigate } from "react-router-dom";
@@ -42,9 +34,7 @@ export const ComplectTabsList: FC = () => {
               sx={{ width: "100%" }}
             >
               <ListItemButton
-                disabled={
-                  value.name !== "Назад" && !tabs[value.page]?.isEnabled
-                }
+                disabled={value.name !== "Назад" && !tabs[value.page]?.isEnabled}
                 sx={{ width: "100%", py: 2 }}
               >
                 <ListItemIcon sx={{ marginLeft: 2 }}>{value.icon}</ListItemIcon>

@@ -1,11 +1,4 @@
-import {
-  Box,
-  Button,
-  Dialog,
-  DialogActions,
-  DialogContent,
-  DialogTitle,
-} from "@mui/material";
+import { Box, Button, Dialog, DialogActions, DialogContent, DialogTitle } from "@mui/material";
 import { FC } from "react";
 import ArrowDownwardIcon from "@mui/icons-material/ArrowDownward";
 import { format, parseISO } from "date-fns";
@@ -23,13 +16,8 @@ interface HistoryModal {
   setOpenDialog: (open: boolean) => void;
 }
 
-const HistoryModal: FC<HistoryModal> = ({
-  history,
-  openDialog,
-  setOpenDialog,
-}) => {
-  const formattedDate = (date: string) =>
-    format(parseISO(date), "d MMMM yyyy, HH:mm", { locale: ru });
+const HistoryModal: FC<HistoryModal> = ({ history, openDialog, setOpenDialog }) => {
+  const formattedDate = (date: string) => format(parseISO(date), "d MMMM yyyy, HH:mm", { locale: ru });
 
   return (
     <Dialog open={openDialog} onClose={() => setOpenDialog(false)}>

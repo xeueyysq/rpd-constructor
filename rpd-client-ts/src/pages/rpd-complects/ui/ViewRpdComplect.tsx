@@ -38,9 +38,7 @@ export const ViewRpdComplect: FC = () => {
           </Box>
         </Box>
 
-        <CreateRpdTemplateFrom1CExchange
-          setChoise={() => navigate("/rpd-complects")}
-        />
+        <CreateRpdTemplateFrom1CExchange setChoise={() => navigate("/rpd-complects")} />
       </Box>
     </Container>
   );

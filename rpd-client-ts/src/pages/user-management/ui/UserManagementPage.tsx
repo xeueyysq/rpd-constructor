@@ -88,11 +88,7 @@ export const UserManagementPage: FC = () => {
 
   const handleChange =
     (prop: keyof NewUser) =>
-    (
-      event: React.ChangeEvent<
-        HTMLInputElement | HTMLTextAreaElement | { value: unknown }
-      >
-    ) => {
+    (event: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | { value: unknown }>) => {
       setNewUser({ ...newUser, [prop]: event.target.value });
     };
 
@@ -160,10 +156,7 @@ export const UserManagementPage: FC = () => {
     } else if (selectedIndex === selected.length - 1) {
       newSelected = newSelected.concat(selected.slice(0, -1));
     } else if (selectedIndex > 0) {
-      newSelected = newSelected.concat(
-        selected.slice(0, selectedIndex),
-        selected.slice(selectedIndex + 1)
-      );
+      newSelected = newSelected.concat(selected.slice(0, selectedIndex), selected.slice(selectedIndex + 1));
     }
 
     setSelected(newSelected);
@@ -173,9 +166,7 @@ export const UserManagementPage: FC = () => {
     setPage(newPage);
   };
 
-  const handleChangeRowsPerPage = (
-    event: React.ChangeEvent<HTMLInputElement>
-  ) => {
+  const handleChangeRowsPerPage = (event: React.ChangeEvent<HTMLInputElement>) => {
     setRowsPerPage(parseInt(event.target.value, 10));
     setPage(0);
   };
@@ -234,25 +225,17 @@ export const UserManagementPage: FC = () => {
   };
 
   const sortedUsers = users
-    .filter((user) =>
-      userRole === UserRole.ROP ? user.role === UserRole.TEACHER : true
-    )
+    .filter((user) => (userRole === UserRole.ROP ? user.role === UserRole.TEACHER : true))
     .slice()
     .sort((a, b) => {
       const comparator = order === "asc" ? 1 : -1;
       if (typeof a[orderBy] === "string" && typeof b[orderBy] === "string") {
-        return (
-          (a[orderBy] as string).localeCompare(b[orderBy] as string) *
-          comparator
-        );
+        return (a[orderBy] as string).localeCompare(b[orderBy] as string) * comparator;
       }
       return a[orderBy] < b[orderBy] ? -comparator : comparator;
     });
 
-  const paginatedUsers = sortedUsers.slice(
-    page * rowsPerPage,
-    page * rowsPerPage + rowsPerPage
-  );
+  const paginatedUsers = sortedUsers.slice(page * rowsPerPage, page * rowsPerPage + rowsPerPage);
 
   const handleRoleChange = (event: SelectChangeEvent<UserRole>) => {
     setNewUser({ ...newUser, role: event.target.value as UserRole });
@@ -277,10 +260,7 @@ export const UserManagementPage: FC = () => {
                     defaultValue=""
                     onChange={(e) => {
                       selected.forEach((userId) => {
-                        updateUserRole(
-                          userId,
-                          Number(e.target.value) as UserRole
-                        );
+                        updateUserRole(userId, Number(e.target.value) as UserRole);
                       });
                       setSelected([]);
                     }}
@@ -291,23 +271,14 @@ export const UserManagementPage: FC = () => {
                 </FormControl>
               )}
               {userRole === UserRole.ADMIN && (
-                <Button
-                  color="error"
-                  variant="contained"
-                  onClick={deleteUsers}
-                  sx={{ fontSize: 12 }}
-                >
+                <Button color="error" variant="contained" onClick={deleteUsers} sx={{ fontSize: 12 }}>
                   Удалить
                 </Button>
               )}
             </>
           )}
           {userRole !== UserRole.TEACHER && (
-            <Button
-              sx={{ fontSize: 12, width: 260 }}
-              variant="contained"
-              onClick={handleOpen}
-            >
+            <Button sx={{ fontSize: 12, width: 260 }} variant="contained" onClick={handleOpen}>
               Добавить пользователя
             </Button>
           )}
@@ -320,9 +291,7 @@ export const UserManagementPage: FC = () => {
             <TableRow>
               <TableCell padding="checkbox">
                 <Checkbox
-                  indeterminate={
-                    selected.length > 0 && selected.length < users.length
-                  }
+                  indeterminate={selected.length > 0 && selected.length < users.length}
                   checked={users.length > 0 && selected.length === users.length}
                   onChange={handleSelectAllClick}
                 />
@@ -377,15 +346,10 @@ export const UserManagementPage: FC = () => {
                   }}
                 >
                   <TableCell padding="checkbox">
-                    <Checkbox
-                      checked={isItemSelected}
-                      onChange={() => handleClick(user.id)}
-                    />
+                    <Checkbox checked={isItemSelected} onChange={() => handleClick(user.id)} />
                   </TableCell>
                   <TableCell>{user.name}</TableCell>
-                  <TableCell>
-                    {`${user.fullname.surname} ${user.fullname.name} ${user.fullname.patronymic}`}
-                  </TableCell>
+                  <TableCell>{`${user.fullname.surname} ${user.fullname.name} ${user.fullname.patronymic}`}</TableCell>
                   <TableCell>{getRoleName(user.role)}</TableCell>
                 </TableRow>
               );
@@ -393,11 +357,7 @@ export const UserManagementPage: FC = () => {
           </TableBody>
         </Table>
       </TableContainer>
-      <Box
-        alignItems={"center"}
-        display={"flex"}
-        justifyContent={"space-between"}
-      >
+      <Box alignItems={"center"} display={"flex"} justifyContent={"space-between"}>
         <TablePagination
           rowsPerPageOptions={[5, 10, 25]}
           component="div"
@@ -430,15 +390,8 @@ export const UserManagementPage: FC = () => {
             />
             <FormControl>
               <InputLabel>Роль</InputLabel>
-              <Select<UserRole>
-                size="small"
-                value={newUser.role}
-                label="Роль"
-                onChange={handleRoleChange}
-              >
-                {userRole === UserRole.ADMIN && (
-                  <MenuItem value={UserRole.ROP}>РОП</MenuItem>
-                )}
+              <Select<UserRole> size="small" value={newUser.role} label="Роль" onChange={handleRoleChange}>
+                {userRole === UserRole.ADMIN && <MenuItem value={UserRole.ROP}>РОП</MenuItem>}
                 <MenuItem value={UserRole.TEACHER}>Преподаватель</MenuItem>
               </Select>
             </FormControl>
