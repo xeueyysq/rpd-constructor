@@ -25,7 +25,7 @@ const RpdListItem: FC<RpdListItemProps> = ({ id, text, setChoise, activePage }) 
         onClick={() => setChoise(id)}
         sx={{
           px: 3,
-          py: 0.7,
+          py: 0.15,
           width: "100%",
           bgcolor: isActive ? "#f1f1f1" : "#ffffff",
           "&:hover": {

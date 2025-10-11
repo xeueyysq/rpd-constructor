@@ -33,7 +33,7 @@ export const RpdList: FC<RpdListProps> = ({ RpdListItems }) => {
   return (
     <>
       {jsonData?.disciplins_name && (
-        <Box sx={{ py: 1 }}>
+        <Box pt={1}>
           <SimpleTreeView>
             <TreeItem itemId="disciplins_name" label={String(jsonData.disciplins_name)}>
               <TreeItem
@@ -56,53 +56,78 @@ export const RpdList: FC<RpdListProps> = ({ RpdListItems }) => {
           </SimpleTreeView>
         </Box>
       )}
-      <List dense>
-        {RpdListItems.map((item) => (
-          <>
-            <Divider sx={{ bgcolor: "#ffffff", height: 0 }} />
-            <RpdListItemComponent
-              setChoise={setTemplatePage}
-              key={item.id}
-              id={item.id}
-              text={item.text}
-              activePage={templatePage}
-            />
-          </>
-        ))}
-      </List>
-      <Divider sx={{ bgcolor: "#ffffff", height: 0 }} />
-      <List dense>
-        <Can I="get" a="rop_interface">
-          <ListItem disableGutters sx={{ p: 0 }}>
-            <ListItemButton onClick={() => setTemplatePage("testPdf")} sx={{ py: 1 }}>
-              <ListItemIcon sx={{ pl: 2 }}>
-                <PictureAsPdfIcon />
-              </ListItemIcon>
-              <ListItemText
-                primary={
-                  <Typography
-                    style={{
-                      color: "black",
-                      fontFamily: "Arial",
-                      fontSize: "16px",
-                    }}
-                  >
-                    Сформировать документ
-                  </Typography>
-                }
+      <Box
+        sx={{
+          height: "calc(100vh - 115px)",
+          flex: 1,
+          overflowY: "auto",
+          overflowX: "hidden",
+          scrollbarColor: "#bdbdbd #f5f5f5",
+          scrollbarWidth: "auto",
+          "&::-webkit-scrollbar": {
+            width: "8px",
+            backgroundColor: "#f5f5f5",
+          },
+          "&::-webkit-scrollbar-thumb": {
+            backgroundColor: "#bdbdbd",
+            borderRadius: "4px",
+          },
+          "&::-webkit-scrollbar-track": {
+            backgroundColor: "#f5f5f5",
+          },
+        }}
+      >
+        <List dense>
+          {RpdListItems.map((item) => (
+            <>
+              <Divider sx={{ bgcolor: "#ffffff", height: 0 }} />
+              <RpdListItemComponent
+                setChoise={setTemplatePage}
+                key={item.id}
+                id={item.id}
+                text={item.text}
+                activePage={templatePage}
               />
+            </>
+          ))}
+          <Divider sx={{ bgcolor: "#ffffff", height: 0 }} />
+        </List>
+      </Box>
+      <Box sx={{ backgroundColor: "background.paper", flexShrink: 0 }}>
+        <Divider sx={{ bgcolor: "#ffffff", height: 0 }} />
+        <List dense>
+          <Can I="get" a="rop_interface">
+            <ListItem disableGutters sx={{ p: 0 }}>
+              <ListItemButton onClick={() => setTemplatePage("testPdf")} sx={{ py: 1 }}>
+                <ListItemIcon sx={{ pl: 2 }}>
+                  <PictureAsPdfIcon />
+                </ListItemIcon>
+                <ListItemText
+                  primary={
+                    <Typography
+                      style={{
+                        color: "black",
+                        fontFamily: "Arial",
+                        fontSize: "16px",
+                      }}
+                    >
+                      Сформировать документ
+                    </Typography>
+                  }
+                />
+              </ListItemButton>
+            </ListItem>
+          </Can>
+          <ListItem disableGutters sx={{ p: 0 }}>
+            <ListItemButton onClick={() => navigate(-1)} sx={{ py: 1 }}>
+              <ListItemIcon sx={{ pl: 2 }}>
+                <ArrowBackIcon />
+              </ListItemIcon>
+              <ListItemText primary={<Typography>Список РПД</Typography>} />
             </ListItemButton>
           </ListItem>
-        </Can>
-        <ListItem disableGutters sx={{ p: 0 }}>
-          <ListItemButton onClick={() => navigate(-1)} sx={{ py: 1 }}>
-            <ListItemIcon sx={{ pl: 2 }}>
-              <ArrowBackIcon />
-            </ListItemIcon>
-            <ListItemText primary={<Typography>Вернуться к выбору шаблона</Typography>} />
-          </ListItemButton>
-        </ListItem>
-      </List>
+        </List>
+      </Box>
     </>
   );
 };

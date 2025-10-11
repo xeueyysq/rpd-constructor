@@ -27,9 +27,7 @@ export const RpdComplectsList: FC = () => {
   }, []);
 
   useEffect(() => {
-    if (!location.hash) {
-      setShowTemplates(false);
-    }
+    setShowTemplates(Boolean(location.hash));
   }, [location.hash]);
 
   const fetchComplects = async () => {
