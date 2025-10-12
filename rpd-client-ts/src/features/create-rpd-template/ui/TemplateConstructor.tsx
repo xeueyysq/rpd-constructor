@@ -87,13 +87,13 @@ export const TemplateConstructor: FC<TemplateConstructorType> = ({ setChoise }) 
             <Box sx={{ py: 2 }}>
               {createComplectStatus === "pending" && (
                 <Box>
+                  <Box color={"orange"} fontWeight={"bold"} pb={2}>
+                    Пожалуйста, проверьте данные комплекта РПД
+                  </Box>
                   <BackButton text="Назад" />
                   <Button variant="contained" size="small" onClick={() => createRpdComplect()}>
-                    Создать шаблон
+                    Создать комплект
                   </Button>
-                  <Box color={"orange"} fontWeight={"bold"}>
-                    Пожалуйста, проверьте данные шаблона.
-                  </Box>
                 </Box>
               )}
               {createComplectStatus === "loading" && (
@@ -105,7 +105,7 @@ export const TemplateConstructor: FC<TemplateConstructorType> = ({ setChoise }) 
               {createComplectStatus === "error" && <Box color={"red"}>Сервис 1С временно недоступен</Box>}
               {createComplectStatus === "success" && (
                 <Box>
-                  <Box>Шаблон создан успешно. Перейти к редактированию?</Box>
+                  <Box pb={2}>Комплект РПД создан успешно. Перейти к редактированию?</Box>
                   <BackButton text="Назад" />
                   <Button
                     variant="contained"

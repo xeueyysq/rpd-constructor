@@ -1,13 +1,12 @@
-import { FC, MouseEvent, useContext, useState } from "react";
-import { Box, IconButton, Divider, ListItemIcon, ListItemText, Menu, MenuItem, Typography } from "@mui/material";
-import { AccountCircle, Logout } from "@mui/icons-material";
-import { AuthContext, useAuth } from "@entities/auth";
+import { AuthContext } from "@entities/auth";
+import { Logout } from "@mui/icons-material";
 import AccountCircleIcon from "@mui/icons-material/AccountCircle";
 import SettingsIcon from "@mui/icons-material/Settings";
+import { Box, IconButton, ListItemIcon, ListItemText, Menu, MenuItem, Typography } from "@mui/material";
+import { FC, MouseEvent, useContext, useState } from "react";
 
 const AccountMenuButton: FC = () => {
   const { handleLogOut, isUserLogged } = useContext(AuthContext);
-  const userName = useAuth.getState().userName;
 
   const [anchorEl, setAnchorEl] = useState<null | HTMLButtonElement>(null);
   const open = Boolean(anchorEl);

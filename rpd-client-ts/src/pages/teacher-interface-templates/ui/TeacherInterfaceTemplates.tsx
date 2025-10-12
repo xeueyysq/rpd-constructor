@@ -3,12 +3,11 @@ import { setTemplateStatus, TemplateStatus, TemplateStatusEnum } from "@entities
 import CheckCircle from "@mui/icons-material/CheckCircle";
 import FolderOpen from "@mui/icons-material/FolderOpen";
 import MoreHorizIcon from "@mui/icons-material/MoreHoriz";
-import { Box, Button, Container, IconButton, ListItemIcon, Menu, MenuItem, TableCell } from "@mui/material";
+import { Box, Button, CssBaseline, IconButton, ListItemIcon, Menu, MenuItem } from "@mui/material";
 import { axiosBase } from "@shared/api";
 import { useStore } from "@shared/hooks";
 import { showErrorMessage } from "@shared/lib";
 import { Loader } from "@shared/ui";
-import { Header } from "@widgets/header";
 import { MaterialReactTable, MRT_ColumnDef, useMaterialReactTable } from "material-react-table";
 import { MRT_Localization_RU } from "material-react-table/locales/ru";
 import { FC, useCallback, useEffect, useMemo, useState } from "react";
@@ -229,16 +228,14 @@ export const TeacherInterfaceTemplates: FC = () => {
   if (!templatesData) return <Loader />;
 
   return (
-    <>
-      <Header />
-      <Container maxWidth="xl">
-        <Box fontSize={"1.5rem"} sx={{ py: 1 }}>
-          Выбор РПД для редактирования
-        </Box>
-        <Box py={2}>
-          <MaterialReactTable table={table} />
-        </Box>
-      </Container>
-    </>
+    <Box>
+      <CssBaseline />
+      <Box fontSize={"1.5rem"} sx={{ py: 1 }}>
+        Выбор РПД для редактирования
+      </Box>
+      <Box py={2}>
+        <MaterialReactTable table={table} />
+      </Box>
+    </Box>
   );
 };

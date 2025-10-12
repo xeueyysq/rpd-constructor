@@ -46,6 +46,7 @@ interface StoreState {
   managerPage: string;
   templatePage: string;
   teacherTemplates: TeacherTemplate[];
+  isDrawerOpen: boolean;
   setJsonData: (data: JsonData) => void;
   updateJsonData: (key: string, value: JsonValue) => void;
   setSelectedTemplateData: (
@@ -63,6 +64,7 @@ interface StoreState {
   setManagerPage: (page: string) => void;
   setTemplatePage: (templatePage: string) => void;
   setTeacherTemplates: (templates: TeacherTemplate[]) => void;
+  toggleDrawer: () => void;
 }
 
 export const useStore = create<StoreState>()(
@@ -90,11 +92,8 @@ export const useStore = create<StoreState>()(
     managerPage: "selectData",
     complectId: undefined,
     templatePage: "coverPage",
-    teacherTemplates: {
-      id: undefined,
-      text: undefined,
-      year: undefined,
-    },
+    teacherTemplates: [],
+    isDrawerOpen: false,
     setJsonData: (data) => {
       set((state) => {
         state.jsonData = data;
@@ -161,6 +160,11 @@ export const useStore = create<StoreState>()(
     setTeacherTemplates: (templates) => {
       set((state) => {
         state.teacherTemplates = templates;
+      });
+    },
+    toggleDrawer: () => {
+      set((state) => {
+        state.isDrawerOpen = !state.isDrawerOpen;
       });
     },
   }))

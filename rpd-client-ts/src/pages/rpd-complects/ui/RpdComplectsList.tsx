@@ -165,7 +165,7 @@ export const RpdComplectsList: FC = () => {
   };
 
   return (
-    <Box pl={3}>
+    <Box>
       <CssBaseline />
       <Box fontSize={"1.5rem"} sx={{ py: 1 }}>
         Список загруженных комплектов РПД

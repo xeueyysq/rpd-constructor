@@ -15,7 +15,7 @@ import RpdListItemComponent from "./RpdListItem.tsx";
 import { FC } from "react";
 import { RpdListItem } from "../model/types.ts";
 import PictureAsPdfIcon from "@mui/icons-material/PictureAsPdf";
-import ExitToAppIcon from "@mui/icons-material/ExitToApp";
+// import ExitToAppIcon from "@mui/icons-material/ExitToApp";
 import { useStore } from "@shared/hooks";
 import { Can } from "@shared/ability";
 import ArrowBackIcon from "@mui/icons-material/ArrowBack";
@@ -31,7 +31,7 @@ export const RpdList: FC<RpdListProps> = ({ RpdListItems }) => {
   const navigate = useNavigate();
   const { setTemplatePage, templatePage } = useStore();
   return (
-    <>
+    <Box sx={{ display: "flex", flexDirection: "column", height: "100%" }}>
       {jsonData?.disciplins_name && (
         <Box pt={1}>
           <SimpleTreeView>
@@ -58,7 +58,6 @@ export const RpdList: FC<RpdListProps> = ({ RpdListItems }) => {
       )}
       <Box
         sx={{
-          height: "calc(100vh - 115px)",
           flex: 1,
           overflowY: "auto",
           overflowX: "hidden",
@@ -128,6 +127,6 @@ export const RpdList: FC<RpdListProps> = ({ RpdListItems }) => {
           </ListItem>
         </List>
       </Box>
-    </>
+    </Box>
   );
 };

@@ -1,14 +1,17 @@
 import { FC, useContext, useMemo } from "react";
-import { Box, AppBar, Toolbar } from "@mui/material";
+import { Box, AppBar, Toolbar, IconButton } from "@mui/material";
 import AccountMenuButton from "./AccountMenuButton.tsx";
 import HeaderLogo from "./HeaderLogo.tsx";
 import { AuthContext, useAuth } from "@entities/auth";
 import { UserRole } from "@shared/ability";
+import { useStore } from "@shared/hooks";
+import MenuIcon from "@mui/icons-material/Menu";
 
 export const Header: FC = () => {
   const { isUserLogged } = useContext(AuthContext);
   const userName = useAuth.getState().userName;
   const userRole = useAuth.getState().userRole;
+  const { toggleDrawer } = useStore();
 
   const userRoleLocale = useMemo(() => {
     switch (userRole) {
@@ -32,7 +35,12 @@ export const Header: FC = () => {
     >
       <Toolbar>
         <Box width={"100%"} display={"flex"} justifyContent={"space-between"} alignItems={"center"}>
-          <HeaderLogo />
+          <Box display={"flex"} alignItems={"center"}>
+            <IconButton color="inherit" aria-label="toggle drawer" onClick={toggleDrawer} edge="start" sx={{ mr: 2 }}>
+              <MenuIcon />
+            </IconButton>
+            <HeaderLogo />
+          </Box>
           {isUserLogged && (
             <Box sx={{ display: "flex", alignItems: "center" }}>
               <Box>

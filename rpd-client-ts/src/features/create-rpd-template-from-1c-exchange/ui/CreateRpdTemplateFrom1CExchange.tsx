@@ -116,8 +116,6 @@ export const CreateRpdTemplateFrom1CExchange: FC<TemplateConstructorType> = () =
 
   const filteredData = useMemo(() => handleFilteredData(), [handleFilteredData]);
 
-  console.log(filteredData);
-
   const columns = useMemo<MRT_ColumnDef<TemplateData>[]>(
     () => [
       {
@@ -242,7 +240,7 @@ export const CreateRpdTemplateFrom1CExchange: FC<TemplateConstructorType> = () =
 
   return (
     <>
-      <Box sx={{ display: "flex", alignItems: "center", gap: 2, mb: 2 }}>
+      <Box sx={{ display: "flex", alignItems: "center", gap: 2 }}>
         <Typography component="span" variant="h6">
           {selectedTemplateData.profile} ({selectedTemplateData.year})
         </Typography>

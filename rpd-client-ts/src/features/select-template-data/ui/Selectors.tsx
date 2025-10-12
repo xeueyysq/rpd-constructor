@@ -30,6 +30,7 @@ export const Selectors: FC<Selectors> = ({ setChoise }) => {
   const { setTabState } = useStore();
   const { deInitializeTabs } = useStore();
   const selectorsData = useStore.getState().selectedTemplateData;
+  const [isFacultyOpen, setIsFacultyOpen] = useState(!selectorsData.faculty);
   const [selectors, setSelectors] = useState<SelectorsState>({
     faculty: selectorsData.faculty ? { value: selectorsData.faculty, label: selectorsData.faculty } : undefined,
     levelEducation: selectorsData.levelEducation
@@ -56,6 +57,10 @@ export const Selectors: FC<Selectors> = ({ setChoise }) => {
 
   const [data, setData] = useState<Nullable<JsonData>>(undefined);
   const { setSelectedTemplateData } = useStore();
+
+  useEffect(() => {
+    setIsFacultyOpen(!selectors.faculty);
+  }, [selectors.faculty]);
 
   useEffect(() => {
     const fetchData = async () => {
@@ -107,6 +112,10 @@ export const Selectors: FC<Selectors> = ({ setChoise }) => {
         }),
         ...(name === "formEducation" && { year: undefined }),
       }));
+
+      if (name === "faculty" && selectedOption) {
+        setIsFacultyOpen(false);
+      }
     };
 
   const getOptions = (): OptionType[] => {
@@ -167,6 +176,9 @@ export const Selectors: FC<Selectors> = ({ setChoise }) => {
         onChange={handleChange("faculty")}
         options={getOptions()}
         data-cy="faculty-select"
+        open={isFacultyOpen}
+        onOpen={() => setIsFacultyOpen(true)}
+        onClose={() => setIsFacultyOpen(false)}
         renderInput={(params) => <TextField {...params} label="Выберите институт" size="small" data-cy="text-field" />}
       />
       {selectors.faculty && (
