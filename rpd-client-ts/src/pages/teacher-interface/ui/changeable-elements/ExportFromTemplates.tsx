@@ -34,7 +34,7 @@ export function ExportFromTemplates({
     setAnchorEl(null);
   };
 
-  const handleCloseDialog = async (type: string, value?: number) => {
+  const handleCloseDialog = async (type: string, value?: number | null) => {
     switch (type) {
       case "from-year-dialog":
         setOpenFromYearDialog(false);
@@ -97,7 +97,12 @@ export function ExportFromTemplates({
           "aria-labelledby": "basic-button",
         }}
       >
-        <MenuItem onClick={() => setOpenFromYearDialog(true)}>
+        <MenuItem
+          onClick={() => {
+            setOpenFromYearDialog(true);
+            handleClose();
+          }}
+        >
           <ListItemIcon>
             <DownloadIcon />
           </ListItemIcon>
@@ -108,7 +113,12 @@ export function ExportFromTemplates({
             </Typography>
           </ListItemText>
         </MenuItem>
-        <MenuItem onClick={() => setOpenFromDirectionDialog(true)}>
+        <MenuItem
+          onClick={() => {
+            setOpenFromDirectionDialog(true);
+            handleClose();
+          }}
+        >
           <ListItemIcon>
             <DownloadIcon />
           </ListItemIcon>

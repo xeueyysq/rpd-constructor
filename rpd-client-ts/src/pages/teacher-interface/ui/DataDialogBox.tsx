@@ -39,8 +39,8 @@ interface DataDialogBoxProps {
 
 export function DataDialogBox(props: DataDialogBoxProps) {
   const { onClose, open, options, title, fieldName, ...other } = props;
-  const [value, setValue] = useState<string | number>();
-  const [expandedItems, setExpandedItems] = useState<Set<number>>(new Set());
+  const [value, setValue] = useState<string | number | null>();
+  const [expandedItems, setExpandedItems] = useState<Set<number> | null>(new Set());
   const radioGroupRef = useRef<HTMLElement>(null);
 
   const ids = options.map((option) => option.id!).filter(Boolean);
@@ -67,10 +67,23 @@ export function DataDialogBox(props: DataDialogBoxProps) {
 
   const handleCancel = () => {
     onClose(other.id);
+    setExpandedItems(null);
+    setValue(null);
   };
 
   const handleOk = () => {
-    onClose(other.id, typeof value === "string" ? parseInt(value) : value);
+    let parsedValue: number | undefined;
+    if (value !== null && value !== undefined) {
+      if (typeof value === "string") {
+        const num = parseInt(value);
+        parsedValue = isNaN(num) ? undefined : num;
+      } else {
+        parsedValue = value as number;
+      }
+    }
+    onClose(other.id, parsedValue);
+    setExpandedItems(null);
+    setValue(null);
   };
 
   const handleChange = (event: React.ChangeEvent<HTMLInputElement>) => {
@@ -93,15 +106,11 @@ export function DataDialogBox(props: DataDialogBoxProps) {
     [fieldData, fieldName]
   );
 
-  options.map((option) => {
-    console.log(getCurrentFieldData(option), typeof getCurrentFieldData(option));
-  });
-
   return (
     <Dialog
       sx={{
         "& .MuiDialog-paper": {
-          maxHeight: 435,
+          maxHeight: 600,
         },
       }}
       maxWidth={"md"}
@@ -134,10 +143,10 @@ export function DataDialogBox(props: DataDialogBoxProps) {
                     sx={{ flex: 1 }}
                   />
                   <IconButton size="small" onClick={() => handleToggleExpand(option.id!)} sx={{ ml: 1 }}>
-                    {expandedItems.has(option.id!) ? <ExpandLess /> : <ExpandMore />}
+                    {expandedItems?.has(option.id!) ? <ExpandLess /> : <ExpandMore />}
                   </IconButton>
                 </Box>
-                <Collapse in={expandedItems.has(option.id!)}>
+                <Collapse in={expandedItems?.has(option.id!)}>
                   <Box
                     sx={{
                       p: 2,
@@ -155,7 +164,7 @@ export function DataDialogBox(props: DataDialogBoxProps) {
                       <Alert severity="error" sx={{ mb: 1 }}>
                         Ошибка загрузки данных: {error.message}
                       </Alert>
-                    ) : typeof getCurrentFieldData(option) === "object" ? (
+                    ) : typeof getCurrentFieldData(option) === "object" && getCurrentFieldData(option) !== null ? (
                       <Box>
                         <DisciplineContentTable
                           readOnly
@@ -184,7 +193,7 @@ export function DataDialogBox(props: DataDialogBoxProps) {
           Отмена
         </Button>
         {options.length ? (
-          <Button variant="contained" onClick={handleOk}>
+          <Button disabled={!value} variant="contained" onClick={handleOk}>
             Выгрузить
           </Button>
         ) : null}
