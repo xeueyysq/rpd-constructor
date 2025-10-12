@@ -31,8 +31,6 @@ export const AppRouter = () => {
                 <Route path="/users" element={<UserManagement />} />
                 <Route path="/complects" element={<RpdComplectsList />} />
                 <Route path="/planned-results" element={<PlannedResultsList />} />
-              </Route>
-              <Route element={<ClippedDrawer page="manager" />}>
                 <Route path="/manager" element={<Manager />} />
               </Route>
               <Route element={<ClippedDrawer page="template" />}>

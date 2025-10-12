@@ -1,6 +1,7 @@
 import { FC, useCallback, useEffect, useState } from "react";
+import { useNavigate } from "react-router-dom";
 import { useStore } from "@shared/hooks";
-import { Box, Button, CircularProgress } from "@mui/material";
+import { Box, Button, ButtonBaseProps, CircularProgress } from "@mui/material";
 import { TemplateConstructorType } from "@entities/template";
 import { templateDataTitles } from "../model/templateDataTitles.ts";
 import { Loader } from "@shared/ui";
@@ -13,7 +14,7 @@ export const TemplateConstructor: FC<TemplateConstructorType> = ({ setChoise }) 
   const { setComplectId } = useStore();
   const [createComplectStatus, setCreateComplectStatus] = useState<string>("pending");
   const [isFindComplect, setIsFindComplect] = useState<boolean | undefined>(undefined);
-  const { setTabState } = useStore();
+  const navigate = useNavigate();
 
   const createRpdComplect = async () => {
     try {
@@ -53,14 +54,19 @@ export const TemplateConstructor: FC<TemplateConstructorType> = ({ setChoise }) 
     }
   }, [selectedTemplateData, setComplectId]);
 
-  const handleChangePage = () => {
-    setChoise("createTemplateFromExchange");
-    setTabState("createTemplateFromExchange", true);
-  };
-
   useEffect(() => {
     fetchData();
   }, [fetchData]);
+
+  function BackButton({ text }: { text: string }) {
+    return (
+      <Button sx={{ mr: 1 }} variant="outlined" size="small" onClick={() => setChoise("selectData")}>
+        {text}
+      </Button>
+    );
+  }
+
+  const hashFragment = `${selectedTemplateData.profile} ${selectedTemplateData.year}`;
 
   return (
     <>
@@ -81,6 +87,7 @@ export const TemplateConstructor: FC<TemplateConstructorType> = ({ setChoise }) 
             <Box sx={{ py: 2 }}>
               {createComplectStatus === "pending" && (
                 <Box>
+                  <BackButton text="Назад" />
                   <Button variant="contained" size="small" onClick={() => createRpdComplect()}>
                     Создать шаблон
                   </Button>
@@ -99,7 +106,12 @@ export const TemplateConstructor: FC<TemplateConstructorType> = ({ setChoise }) 
               {createComplectStatus === "success" && (
                 <Box>
                   <Box>Шаблон создан успешно. Перейти к редактированию?</Box>
-                  <Button variant="contained" size="small" onClick={() => setChoise("createTemplateFromExchange")}>
+                  <BackButton text="Назад" />
+                  <Button
+                    variant="contained"
+                    size="small"
+                    onClick={() => navigate(`/complects#${encodeURIComponent(hashFragment)}`)}
+                  >
                     Перейти
                   </Button>
                 </Box>
@@ -114,9 +126,16 @@ export const TemplateConstructor: FC<TemplateConstructorType> = ({ setChoise }) 
       )}
       <Box display="flex" gap={3}>
         {isFindComplect && (
-          <Button variant="contained" size="small" onClick={() => handleChangePage()}>
-            Перейти к редактированию
-          </Button>
+          <Box>
+            <BackButton text="Назад" />
+            <Button
+              variant="contained"
+              size="small"
+              onClick={() => navigate(`/complects#${encodeURIComponent(hashFragment)}`)}
+            >
+              Перейти к редактированию
+            </Button>
+          </Box>
         )}
       </Box>
     </>

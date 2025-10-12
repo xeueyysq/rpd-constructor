@@ -1,4 +1,4 @@
-import { FC, useState } from "react";
+import { FC, useState, useEffect } from "react";
 import { List, Box, ListItem, ListItemButton, ListItemText, Divider, ListItemIcon } from "@mui/material";
 import { useNavigate, useLocation } from "react-router-dom";
 import { useContext } from "react";
@@ -11,6 +11,11 @@ export const MainTabsList: FC = () => {
   const navigate = useNavigate();
   const location = useLocation();
   const [activeTab, setActiveTab] = useState<string | null>(location.pathname);
+
+  useEffect(() => {
+    setActiveTab(location.pathname);
+  }, [location]);
+
   return (
     <Box sx={{ overflow: "auto" }}>
       <List>

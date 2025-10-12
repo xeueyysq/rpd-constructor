@@ -5,11 +5,8 @@ import { Header } from "@widgets/header";
 import { FC } from "react";
 import { Outlet } from "react-router-dom";
 import { MainTabsList } from "@widgets/tabs-list";
-import { ComplectTabsList } from "@widgets/tabs-list/ui/ComplectTabsList";
 import { RpdList } from "@widgets/rpd-list";
 import { useState } from "react";
-import { UserRole } from "@shared/ability";
-import { useAuth } from "@entities/auth";
 import { TeacherRpdListItems } from "@pages/teacher-interface/model/teacherInterfaceItems";
 import { useEffect } from "react";
 import { TeacherTabsList } from "@widgets/tabs-list";
@@ -47,7 +44,6 @@ export const ClippedDrawer: FC<ClippedDrawerProps> = ({ page }) => {
         <Toolbar />
         {page === "teacher" && <TeacherTabsList />}
         {page === "main" && <MainTabsList />}
-        {page === "manager" && <ComplectTabsList />}
         {page === "template" && <RpdList setChoise={() => setChoise} RpdListItems={TeacherRpdListItems} />}
       </Drawer>
       <Box component={"main"} sx={{ flexGrow: 1, p: 3, width: "60%" }}>

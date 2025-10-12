@@ -173,7 +173,7 @@ export const RpdComplectsList: FC = () => {
       <Box py={2}>
         <MaterialReactTable table={table} />
       </Box>
-      <DeleteComplectDialog open={openDeleteConfirm} onAccept={handleConfirm} />
+      <DeleteComplectDialog open={openDeleteConfirm} setOpen={setOpenDeleteConfirm} onAccept={handleConfirm} />
     </Box>
   );
 };
