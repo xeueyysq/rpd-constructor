@@ -3,7 +3,7 @@ import { setTemplateStatus, TemplateStatus, TemplateStatusEnum } from "@entities
 import CheckCircle from "@mui/icons-material/CheckCircle";
 import FolderOpen from "@mui/icons-material/FolderOpen";
 import MoreHorizIcon from "@mui/icons-material/MoreHoriz";
-import { Box, Button, Container, IconButton, ListItemIcon, Menu, MenuItem } from "@mui/material";
+import { Box, Button, Container, IconButton, ListItemIcon, Menu, MenuItem, TableCell } from "@mui/material";
 import { axiosBase } from "@shared/api";
 import { useStore } from "@shared/hooks";
 import { showErrorMessage } from "@shared/lib";
@@ -101,7 +101,11 @@ export const TeacherInterfaceTemplates: FC = () => {
       {
         accessorKey: "statusIcon",
         header: "",
-        Cell: ({ row }) => <StatusCell status={row.original.status.status} />,
+        Cell: ({ row }) => (
+          <Box pl={1.5}>
+            <StatusCell status={row.original.status.status} />
+          </Box>
+        ),
         enableColumnFilter: false,
         size: 10,
       },

@@ -3,14 +3,15 @@ import { ChangeEvent, FC, useState } from "react";
 interface EditableNumberProps {
   value: number;
   onValueChange: (value: number) => void;
+  readOnly?: boolean;
 }
 
-export const EditableNumber: FC<EditableNumberProps> = ({ value, onValueChange }) => {
+export const EditableNumber: FC<EditableNumberProps> = ({ value, onValueChange, readOnly }) => {
   const [inputValue, setInputValue] = useState(value);
   const [isEditing, setIsEditing] = useState(false);
 
   const handleDivClick = () => {
-    setIsEditing(true);
+    if (!readOnly) setIsEditing(true);
   };
 
   const handleInputChange = (event: ChangeEvent<HTMLInputElement>) => {

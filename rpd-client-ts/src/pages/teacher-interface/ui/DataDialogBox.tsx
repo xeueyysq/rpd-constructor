@@ -10,15 +10,16 @@ import {
   DialogContentText,
   Collapse,
   Box,
-  Typography,
   IconButton,
   Alert,
 } from "@mui/material";
-import { useState, useRef } from "react";
+import { useState, useRef, useCallback } from "react";
 import { ExpandMore, ExpandLess } from "@mui/icons-material";
 import { getTemplateField } from "../model/api";
 import { useQuery } from "@tanstack/react-query";
 import CircularProgress from "@mui/material/CircularProgress";
+import { DisciplineContentTable } from "./changeable-elements/DisciplineContentTable";
+import { DisciplineContentData } from "../model/DisciplineContentPageTypes";
 
 interface TemplateObject {
   id: number | undefined;
@@ -86,16 +87,27 @@ export function DataDialogBox(props: DataDialogBoxProps) {
     setExpandedItems(newExpandedItems);
   };
 
+  const getCurrentFieldData = useCallback(
+    (option: TemplateObject) =>
+      fieldData?.find((row) => row.id === option.id)?.[fieldName as keyof (typeof fieldData)[0]],
+    [fieldData, fieldName]
+  );
+
+  options.map((option) => {
+    console.log(getCurrentFieldData(option), typeof getCurrentFieldData(option));
+  });
+
   return (
     <Dialog
       sx={{
         "& .MuiDialog-paper": {
-          width: "80%",
           maxHeight: 435,
         },
       }}
+      maxWidth={"md"}
       TransitionProps={{ onEntering: handleEntering }}
       open={open}
+      onClose={handleCancel}
       {...other}
     >
       <DialogTitle>{title}</DialogTitle>
@@ -143,16 +155,20 @@ export function DataDialogBox(props: DataDialogBoxProps) {
                       <Alert severity="error" sx={{ mb: 1 }}>
                         Ошибка загрузки данных: {error.message}
                       </Alert>
+                    ) : typeof getCurrentFieldData(option) === "object" ? (
+                      <Box>
+                        <DisciplineContentTable
+                          readOnly
+                          tableData={getCurrentFieldData(option) as DisciplineContentData}
+                        />
+                      </Box>
                     ) : (
                       <Box
                         dangerouslySetInnerHTML={{
-                          __html:
-                            fieldData?.find((row) => row.id === option.id)?.[
-                              fieldName as keyof (typeof fieldData)[0]
-                            ] || "Нет данных для отображения",
+                          __html: getCurrentFieldData(option) || "Нет данных для отображения",
                         }}
                         color="text.secondary"
-                      ></Box>
+                      />
                     )}
                   </Box>
                 </Collapse>

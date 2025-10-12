@@ -1,10 +1,11 @@
 import { FC, MouseEvent, useContext, useState } from "react";
-import { Box, Button, Divider, ListItemIcon, ListItemText, Menu, MenuItem, Typography } from "@mui/material";
+import { Box, IconButton, Divider, ListItemIcon, ListItemText, Menu, MenuItem, Typography } from "@mui/material";
 import { AccountCircle, Logout } from "@mui/icons-material";
-import MenuIcon from "@mui/icons-material/Menu";
 import { AuthContext, useAuth } from "@entities/auth";
+import AccountCircleIcon from "@mui/icons-material/AccountCircle";
+import SettingsIcon from "@mui/icons-material/Settings";
 
-const HeaderMenuMobile: FC = () => {
+const AccountMenuButton: FC = () => {
   const { handleLogOut, isUserLogged } = useContext(AuthContext);
   const userName = useAuth.getState().userName;
 
@@ -22,48 +23,35 @@ const HeaderMenuMobile: FC = () => {
     <>
       {isUserLogged && (
         <Box>
-          <Button
+          <IconButton
             id="basic-button"
             aria-controls={open ? "basic-menu" : undefined}
             aria-haspopup="true"
             aria-expanded={open ? "true" : undefined}
             onClick={handleClick}
-            endIcon={<MenuIcon sx={{ color: "black" }} />}
-            sx={{
-              color: "black",
-              my: "10px",
-            }}
+            color="inherit"
           >
-            Меню
-          </Button>
-          <Menu
-            id="basic-menu"
-            anchorEl={anchorEl}
-            open={open}
-            onClose={handleClose}
-            MenuListProps={{
-              "aria-labelledby": "basic-button",
-            }}
-          >
-            <Divider />
-            <MenuItem>
+            <AccountCircleIcon sx={{ fontSize: "50px" }} />
+          </IconButton>
+          <Menu id="basic-menu" anchorEl={anchorEl} open={open} onClose={handleClose}>
+            <MenuItem disabled>
               <ListItemIcon>
-                <AccountCircle />
+                <SettingsIcon />
               </ListItemIcon>
               <ListItemText>
-                <Typography variant="button" display="block" gutterBottom color="grey" m="0">
-                  {userName}
+                <Typography variant="button" display="block" color="grey">
+                  Настройки
                 </Typography>
               </ListItemText>
             </MenuItem>
-            <MenuItem>
+            <MenuItem onClick={handleLogOut}>
               <ListItemIcon>
                 <Logout />
               </ListItemIcon>
               <ListItemText>
-                <Button onClick={handleLogOut} size="small" sx={{ color: "grey" }}>
+                <Typography variant="button" display="block" color="grey">
                   Выйти
-                </Button>
+                </Typography>
               </ListItemText>
             </MenuItem>
           </Menu>
@@ -73,4 +61,4 @@ const HeaderMenuMobile: FC = () => {
   );
 };
 
-export default HeaderMenuMobile;
+export default AccountMenuButton;

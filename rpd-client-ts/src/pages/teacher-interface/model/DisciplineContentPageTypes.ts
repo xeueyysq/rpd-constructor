@@ -8,6 +8,10 @@ interface DisciplineContent {
   results: string;
 }
 
+export interface JsonChangeValueTypes {
+  elementName: string;
+}
+
 export interface Results {
   know: string;
   beAble: string;

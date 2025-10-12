@@ -1,16 +1,12 @@
 import { FC, useContext, useMemo } from "react";
-import { Box, AppBar, Toolbar, IconButton, Tooltip } from "@mui/material";
-import { useWindowSize } from "@shared/hooks";
-import HeaderMenuMobile from "./HeaderMenuMobile.tsx";
+import { Box, AppBar, Toolbar } from "@mui/material";
+import AccountMenuButton from "./AccountMenuButton.tsx";
 import HeaderLogo from "./HeaderLogo.tsx";
 import { AuthContext, useAuth } from "@entities/auth";
-import AccountCircleIcon from "@mui/icons-material/AccountCircle";
 import { UserRole } from "@shared/ability";
-import LogoutIcon from "@mui/icons-material/Logout";
 
 export const Header: FC = () => {
-  const size = useWindowSize();
-  const { isUserLogged, handleLogOut } = useContext(AuthContext);
+  const { isUserLogged } = useContext(AuthContext);
   const userName = useAuth.getState().userName;
   const userRole = useAuth.getState().userRole;
 
@@ -39,11 +35,6 @@ export const Header: FC = () => {
           <HeaderLogo />
           {isUserLogged && (
             <Box sx={{ display: "flex", alignItems: "center" }}>
-              <Tooltip title="Выйти">
-                <IconButton color="inherit" aria-label="header-logout" onClick={handleLogOut} sx={{ pr: 2 }}>
-                  <LogoutIcon />
-                </IconButton>
-              </Tooltip>
               <Box>
                 <Box>{userName}</Box>
                 <Box
@@ -58,11 +49,10 @@ export const Header: FC = () => {
                 </Box>
               </Box>
               <Box sx={{ px: 1 }}>
-                <AccountCircleIcon sx={{ fontSize: "50px" }} />
+                <AccountMenuButton />
               </Box>
             </Box>
           )}
-          {/* {size.width && size.width < 1090 && <HeaderMenuMobile />} */}
         </Box>
       </Toolbar>
     </AppBar>
