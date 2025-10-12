@@ -1,8 +1,6 @@
 import { ListItem, ListItemButton, ListItemText, Typography, ListItemIcon } from "@mui/material";
 import { FC } from "react";
 import type { RpdListItem } from "../model/types.ts";
-import DragIndicatorIcon from "@mui/icons-material/DragIndicator";
-import ArrowRightIcon from "@mui/icons-material/ArrowRight";
 import MoreVertIcon from "@mui/icons-material/MoreVert";
 
 type RpdListItemProps = RpdListItem & {
