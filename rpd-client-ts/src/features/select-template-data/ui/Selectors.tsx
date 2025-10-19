@@ -167,7 +167,7 @@ export const Selectors: FC<Selectors> = ({ setChoise }) => {
   if (!data) return <Loader />;
 
   return (
-    <Box sx={{ maxWidth: "500px" }}>
+    <Box sx={{ maxWidth: "700px" }}>
       <Box sx={{ fontSize: "15px", fontWeight: "600", py: 1 }}>Институт</Box>
       <Autocomplete
         // placeholder="Выберите институт"
@@ -254,7 +254,7 @@ export const Selectors: FC<Selectors> = ({ setChoise }) => {
           />
         )}
       {selectors.year && (
-        <Button variant="contained" onClick={saveTemplateData}>
+        <Button sx={{ my: 1 }} variant="contained" onClick={saveTemplateData}>
           Продолжить
         </Button>
       )}

@@ -1,22 +1,20 @@
-import { FC, useState } from "react";
-import { parseCsvToJson } from "@shared/ability/lib/parseCsvToJson";
-import { ParsedPlannedResults } from "@shared/ability/lib/parseCsvToJson";
-import { showSuccessMessage, showErrorMessage } from "@shared/lib";
-import { Box } from "@mui/system";
 import {
+  Button,
+  Container,
   Paper,
+  Table,
+  TableBody,
   TableCell,
   TableContainer,
   TableHead,
   TableRow,
-  Table,
-  TableBody,
-  Container,
-  Typography,
-  Button,
 } from "@mui/material";
-import { Rowing } from "@mui/icons-material";
+import { Box } from "@mui/system";
+import { parseCsvToJson, ParsedPlannedResults } from "@shared/ability/lib/parseCsvToJson";
 import { axiosBase } from "@shared/api";
+import { showErrorMessage, showSuccessMessage } from "@shared/lib";
+import { FC, useState } from "react";
+import { PageTitle } from "@shared/ui";
 
 interface ResultsRow {
   competence: string;
@@ -86,10 +84,8 @@ export const PlannedResultsList: FC = () => {
     "Дисциплины",
   ];
   return (
-    <Container maxWidth="xlap">
-      <Box fontSize={"1.5rem"} sx={{ py: 1 }}>
-        Загрузка компетенций для всех дисциплин
-      </Box>
+    <Box>
+      <PageTitle title={"Загрузка компетенций для всех дисциплин"} />
       <Box display={"flex"} justifyContent={"space-between"} alignItems={"center"} py={1}>
         <input type="file" accept=".csv" onChange={handleFileUpload} />
         <Button onClick={() => saveData()} variant="contained">
@@ -119,6 +115,6 @@ export const PlannedResultsList: FC = () => {
           </TableBody>
         </Table>
       </TableContainer>
-    </Container>
+    </Box>
   );
 };

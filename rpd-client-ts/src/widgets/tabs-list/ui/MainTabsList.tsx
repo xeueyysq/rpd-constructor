@@ -46,7 +46,7 @@ export const MainTabsList: FC = () => {
                     <ListItemButton
                       sx={{
                         width: "100%",
-                        py: 2,
+                        py: 1.5,
                         bgcolor: activeTab === value.path ? "#f1f1f1" : "inherit",
                       }}
                     >
@@ -86,7 +86,7 @@ export const MainTabsList: FC = () => {
                 }}
               >
                 <ListItemButton
-                  sx={{ width: "100%", py: 2, bgcolor: activeTab === value.path ? "#f1f1f1" : "inherit" }}
+                  sx={{ width: "100%", py: 1.5, bgcolor: activeTab === value.path ? "#f1f1f1" : "inherit" }}
                 >
                   <ListItemIcon
                     sx={{

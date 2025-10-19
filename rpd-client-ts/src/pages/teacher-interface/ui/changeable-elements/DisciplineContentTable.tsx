@@ -330,7 +330,7 @@ export function DisciplineContentTable({ readOnly = false, tableData }: ContentT
       </Box>
 
       {!readOnly && (
-        <ButtonGroup variant="outlined" aria-label="Basic button group" size="small">
+        <ButtonGroup variant="outlined" aria-label="Basic button group">
           <Button onClick={handleAddRow}>Добавить строку</Button>
           <Button variant="contained" onClick={saveData}>
             Сохранить изменения

@@ -1,1 +1,1 @@
-export * from "./DeleteComplectConfirm";
+export * from "./WarningDeleteDialog";

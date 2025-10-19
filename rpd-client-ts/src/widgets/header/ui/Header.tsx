@@ -43,20 +43,25 @@ export const Header: FC = () => {
           </Box>
           {isUserLogged && (
             <Box sx={{ display: "flex", alignItems: "center" }}>
-              <Box>
-                <Box>{userName}</Box>
+              <Box sx={{ display: "flex", flexDirection: "column", lineHeight: 1.5, pb: 0.5 }}>
+                <Box
+                  sx={{
+                    fontSize: "15px",
+                  }}
+                >
+                  {userName}
+                </Box>
                 <Box
                   sx={{
                     fontSize: "12px",
                     fontWeight: 400,
                     color: "#B2B2B2",
-                    textAlign: "right",
                   }}
                 >
                   {userRoleLocale}
                 </Box>
               </Box>
-              <Box sx={{ px: 1 }}>
+              <Box sx={{ pl: 2 }}>
                 <AccountMenuButton />
               </Box>
             </Box>

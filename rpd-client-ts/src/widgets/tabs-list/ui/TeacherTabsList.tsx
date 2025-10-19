@@ -24,7 +24,7 @@ export const TeacherTabsList: FC = () => {
               disablePadding
               sx={{ width: "100%" }}
             >
-              <ListItemButton disabled={value.path === ""} sx={{ width: "100%", py: 2 }}>
+              <ListItemButton disabled={value.path === ""} sx={{ width: "100%", py: 1.5 }}>
                 <ListItemIcon sx={{ marginLeft: 2 }}>{value.icon}</ListItemIcon>
                 <ListItemText primary={value.name} />
               </ListItemButton>

@@ -1,7 +1,3 @@
-import { useStore } from "@shared/hooks";
-import axios from "axios";
-import { FC, useState } from "react";
-import EditableCell from "../changeable-elements/EditableCell.tsx";
 import {
   Box,
   Button,
@@ -14,16 +10,17 @@ import {
   TableHead,
   TableRow,
 } from "@mui/material";
-import { Loader } from "@shared/ui";
-import { showErrorMessage, showSuccessMessage } from "@shared/lib";
-import { axiosBase } from "@shared/api";
-import Papa from "papaparse";
-import { Can } from "@shared/ability";
-import { KeyOutlined } from "@mui/icons-material";
-import PlannedResultsCell from "../changeable-elements/PlannedResultsCell.tsx";
 import { PlannedResultsData, Results } from "@pages/teacher-interface/model/DisciplineContentPageTypes.ts";
-import { parseCsvToJson } from "@shared/ability/lib/parseCsvToJson.ts";
-import { ParsedPlannedResults } from "@shared/ability/lib/parseCsvToJson.ts";
+import { Can } from "@shared/ability";
+import { parseCsvToJson, ParsedPlannedResults } from "@shared/ability/lib/parseCsvToJson.ts";
+import { axiosBase } from "@shared/api";
+import { useStore } from "@shared/hooks";
+import { showErrorMessage, showSuccessMessage } from "@shared/lib";
+import { Loader } from "@shared/ui";
+import axios from "axios";
+import { FC, useState } from "react";
+import EditableCell from "../changeable-elements/EditableCell.tsx";
+import PlannedResultsCell from "../changeable-elements/PlannedResultsCell.tsx";
 
 const PlannedResultsPage: FC = () => {
   const initialData = useStore.getState().jsonData.competencies as PlannedResultsData | undefined;
@@ -128,7 +125,7 @@ const PlannedResultsPage: FC = () => {
       <Box fontSize={"1.5rem"}>Планируемые результаты обучения по дисциплине (модулю)</Box>
       <Box pt={3} display={"flex"} justifyContent={"space-between"} alignItems={"center"}>
         <input type="file" accept=".csv" onChange={handleFileUpload} />
-        <Button size="medium" variant="contained" onClick={saveData}>
+        <Button variant="contained" onClick={saveData}>
           Сохранить
         </Button>
       </Box>
@@ -195,7 +192,7 @@ const PlannedResultsPage: FC = () => {
           </TableBody>
         </Table>
       </TableContainer>
-      <ButtonGroup variant="outlined" aria-label="Basic button group" size="small">
+      <ButtonGroup variant="outlined" aria-label="Basic button group">
         {/* <Button onClick={handleAddRow}>Добавить строку</Button> */}
       </ButtonGroup>
     </Box>

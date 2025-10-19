@@ -56,11 +56,7 @@ const ShowBooks: FC<ShowBooksProps> = ({ books, onAddBookToList }) => {
             </Box>
           </Box>
           <Box sx={{ textAlign: "end", py: 1 }}>
-            <Button
-              size="small"
-              variant="outlined"
-              onClick={() => onAddBookToList(book.biblio.replace(/<b>.*?<\/b>|<br>/g, ""))}
-            >
+            <Button variant="outlined" onClick={() => onAddBookToList(book.biblio.replace(/<b>.*?<\/b>|<br>/g, ""))}>
               Добавить к списку
             </Button>
           </Box>

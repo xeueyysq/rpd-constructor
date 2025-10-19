@@ -6,17 +6,16 @@ import { ChangeRpdTemplate } from "@features/change-rpd-template";
 import { CreateRpdTemplateFromYear } from "@features/create-rpd-template-from-year";
 import { CreateRpdTemplateFrom1CExchange } from "@features/create-rpd-template-from-1c-exchange";
 import { useStore } from "@shared/hooks";
+import { PageTitle } from "@shared/ui";
 
 export const Manager: FC = () => {
   const { managerPage, setManagerPage } = useStore();
 
   return (
-    <Container maxWidth="xl">
-      <Box fontSize={"1.5rem"} sx={{ py: 1 }}>
-        Создание комплекта РПД на основе учебного плана
-      </Box>
+    <Box>
+      <PageTitle title={"Создание комплекта РПД на основе учебного плана"} />
       <Box
-        p={2}
+        pl={1}
         sx={{
           backgroundColor: "#fefefe",
           width: "100%",
@@ -28,6 +27,6 @@ export const Manager: FC = () => {
         {managerPage === "createTemplateFromCurrentYear" && <CreateRpdTemplateFromYear setChoise={setManagerPage} />}
         {managerPage === "createTemplateFromExchange" && <CreateRpdTemplateFrom1CExchange setChoise={setManagerPage} />}
       </Box>
-    </Container>
+    </Box>
   );
 };

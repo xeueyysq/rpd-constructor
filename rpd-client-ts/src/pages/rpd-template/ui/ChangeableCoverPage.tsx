@@ -68,7 +68,7 @@ const ChangeableCoverPage = ({ title }: ChangeableCoverPageProps) => {
             defaultValue={value.value}
             sx={{ my: 1 }}
           />
-          <Button variant="contained" size="small" endIcon={<SaveAltIcon color="primary" />} onClick={handleSaveClick}>
+          <Button variant="contained" endIcon={<SaveAltIcon color="primary" />} onClick={handleSaveClick}>
             сохранить изменения
           </Button>
         </Box>
@@ -79,7 +79,7 @@ const ChangeableCoverPage = ({ title }: ChangeableCoverPageProps) => {
           ) : (
             <p>Нет доступного контента</p>
           )}
-          <Button variant="outlined" size="small" endIcon={<EditIcon color="primary" />} onClick={handleEditClick}>
+          <Button variant="outlined" endIcon={<EditIcon color="primary" />} onClick={handleEditClick}>
             редактировать
           </Button>
         </Box>

@@ -89,7 +89,6 @@ const TextEditor: FC<TestEditor> = ({ value, saveContent, setIsEditing }) => {
       >
         {toolbarButtons.map((btn) => (
           <IconButton
-            size="small"
             key={btn.name}
             onMouseDown={(e) => {
               e.preventDefault();
@@ -137,10 +136,9 @@ const TextEditor: FC<TestEditor> = ({ value, saveContent, setIsEditing }) => {
           editorRef={editorRef}
         />
       </Box>
-      <ButtonGroup variant="outlined" aria-label="Basic button group" size="small">
+      <ButtonGroup variant="outlined" aria-label="Basic button group">
         <Button
           variant="contained"
-          size="small"
           // endIcon={<SaveAltIcon color="primary" />}
           onClick={handleSaveClick}
         >
@@ -148,7 +146,6 @@ const TextEditor: FC<TestEditor> = ({ value, saveContent, setIsEditing }) => {
         </Button>
         <Button
           variant="outlined"
-          size="small"
           // endIcon={<DeleteIcon color="primary" />}
           onClick={() => setIsEditing(false)}
         >

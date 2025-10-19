@@ -121,7 +121,6 @@ const AddBook: FC<AddBook> = ({ elementName }) => {
       <Box pt={3}>
         <Button
           variant="contained"
-          size="small"
           onClick={handleOpenDialog}
           // endIcon={<AddIcon />}
         >
@@ -144,7 +143,7 @@ const AddBook: FC<AddBook> = ({ elementName }) => {
                   >
                     <Box width={"90%"}>{biblio}</Box>
 
-                    <Button size="small" color="error" onClick={() => handleRemoveBook(biblio)}>
+                    <Button color="error" onClick={() => handleRemoveBook(biblio)}>
                       Удалить
                     </Button>
                   </Box>

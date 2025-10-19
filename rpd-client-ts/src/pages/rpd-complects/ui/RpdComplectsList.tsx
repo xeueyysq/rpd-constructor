@@ -1,16 +1,17 @@
-import { FC, useEffect, useState, useMemo, useCallback } from "react";
-import { Box, Button, Dialog, DialogTitle, DialogContent, DialogActions, CssBaseline, IconButton } from "@mui/material";
-import { useNavigate, useLocation } from "react-router-dom";
-import { axiosBase } from "@shared/api";
-import { Loader } from "@shared/ui";
-import { useStore } from "@shared/hooks";
-import VisibilityIcon from "@mui/icons-material/Visibility";
-import { showErrorMessage } from "@shared/lib";
 import { CreateRpdTemplateFrom1CExchange } from "@features/create-rpd-template-from-1c-exchange";
-import { MaterialReactTable, useMaterialReactTable, type MRT_ColumnDef, MRT_TableInstance } from "material-react-table";
-import { MRT_Localization_RU } from "material-react-table/locales/ru";
+import VisibilityIcon from "@mui/icons-material/Visibility";
+import { Box, Button, CssBaseline, Paper } from "@mui/material";
+import { axiosBase } from "@shared/api";
+import { useStore } from "@shared/hooks";
+import { showErrorMessage } from "@shared/lib";
 import type { BasicComplectData } from "@shared/types";
-import { DeleteComplectDialog } from "@widgets/dialogs/ui";
+import { Loader } from "@shared/ui";
+import { WarningDeleteDialog } from "@widgets/dialogs/ui";
+import { MaterialReactTable, useMaterialReactTable, type MRT_ColumnDef } from "material-react-table";
+import { MRT_Localization_RU } from "material-react-table/locales/ru";
+import { FC, useCallback, useEffect, useMemo, useState } from "react";
+import { useLocation, useNavigate } from "react-router-dom";
+import { PageTitle } from "@shared/ui";
 
 export const RpdComplectsList: FC = () => {
   const [openDeleteConfirm, setOpenDeleteConfirm] = useState<boolean>(false);
@@ -104,12 +105,7 @@ export const RpdComplectsList: FC = () => {
         accessorKey: "action",
         header: "Действие",
         Cell: ({ row }) => (
-          <Button
-            variant="contained"
-            size="small"
-            startIcon={<VisibilityIcon />}
-            onClick={() => handleViewComplect(row.original)}
-          >
+          <Button variant="contained" startIcon={<VisibilityIcon />} onClick={() => handleViewComplect(row.original)}>
             Просмотр
           </Button>
         ),
@@ -167,13 +163,16 @@ export const RpdComplectsList: FC = () => {
   return (
     <Box>
       <CssBaseline />
-      <Box fontSize={"1.5rem"} sx={{ py: 1 }}>
-        Список загруженных комплектов РПД
-      </Box>
-      <Box py={2}>
+      <PageTitle title={"Список загруженных комплектов РПД"} />
+      <Box pt={2}>
         <MaterialReactTable table={table} />
       </Box>
-      <DeleteComplectDialog open={openDeleteConfirm} setOpen={setOpenDeleteConfirm} onAccept={handleConfirm} />
+      <WarningDeleteDialog
+        open={openDeleteConfirm}
+        setOpen={setOpenDeleteConfirm}
+        onAccept={handleConfirm}
+        description={"Вы уверены, что хотите удалить выбранные комплекты?"}
+      />
     </Box>
   );
 };

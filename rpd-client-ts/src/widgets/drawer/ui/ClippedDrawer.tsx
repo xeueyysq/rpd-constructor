@@ -18,12 +18,12 @@ interface ClippedDrawerProps {
 export const ClippedDrawer: FC<ClippedDrawerProps> = ({ page }) => {
   // const userRole = useAuth.getState().userRole;
   const [setChoise] = useState<string>("coverPage");
-  const [drawerWidth, setDrawerWidth] = useState<number>(270);
+  const [drawerWidth, setDrawerWidth] = useState<number>(290);
   const { isDrawerOpen } = useStore();
 
   useEffect(() => {
     if (page === "template") setDrawerWidth(430);
-    else setDrawerWidth(270);
+    else setDrawerWidth(290);
   }, [page]);
 
   return (
@@ -42,12 +42,17 @@ export const ClippedDrawer: FC<ClippedDrawerProps> = ({ page }) => {
           ["& .MuiDrawer-paper"]: {
             width: drawerWidth,
             boxSizing: "border-box",
-            overflowY: "auto",
-            overflowX: "hidden",
+            overflow: "hidden",
             minHeight: "100vh",
+            display: "flex",
+            flexDirection: "column",
             transition: "transform 0.3s cubic-bezier(0.4, 0, 0.2, 1)",
             transform: isDrawerOpen ? "translateX(0)" : `translateX(-${drawerWidth}px)`,
             borderRight: "1px solid rgba(0, 0, 0, 0.12)",
+            boxShadow: isDrawerOpen ? "4px 0 16px rgba(0, 0, 0, 0.12)" : "none",
+            "& .MuiListItemIcon-root, & svg": {
+              color: "#29363d",
+            },
           },
         }}
       >
@@ -60,7 +65,9 @@ export const ClippedDrawer: FC<ClippedDrawerProps> = ({ page }) => {
             pointerEvents: isDrawerOpen ? "auto" : "none",
             display: "flex",
             flexDirection: "column",
-            height: "100%",
+            flex: 1,
+            minHeight: 0,
+            overflow: "hidden",
           }}
         >
           {page === "teacher" && <TeacherTabsList />}

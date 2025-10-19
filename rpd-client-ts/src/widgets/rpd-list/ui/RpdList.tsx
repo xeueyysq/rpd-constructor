@@ -31,7 +31,15 @@ export const RpdList: FC<RpdListProps> = ({ RpdListItems }) => {
   const navigate = useNavigate();
   const { setTemplatePage, templatePage } = useStore();
   return (
-    <Box sx={{ display: "flex", flexDirection: "column", height: "100%" }}>
+    <Box
+      sx={{
+        display: "grid",
+        gridTemplateRows: "auto 1fr auto",
+        height: "100%",
+        minHeight: 0,
+        overflow: "hidden",
+      }}
+    >
       {jsonData?.disciplins_name && (
         <Box pt={1}>
           <SimpleTreeView>
@@ -59,10 +67,12 @@ export const RpdList: FC<RpdListProps> = ({ RpdListItems }) => {
       <Box
         sx={{
           flex: 1,
-          overflowY: "auto",
+          overflowY: "scroll",
           overflowX: "hidden",
+          minHeight: 0,
           scrollbarColor: "#bdbdbd #f5f5f5",
-          scrollbarWidth: "auto",
+          scrollbarWidth: "thin",
+          scrollbarGutter: "stable",
           "&::-webkit-scrollbar": {
             width: "8px",
             backgroundColor: "#f5f5f5",
@@ -92,7 +102,13 @@ export const RpdList: FC<RpdListProps> = ({ RpdListItems }) => {
           <Divider sx={{ bgcolor: "#ffffff", height: 0 }} />
         </List>
       </Box>
-      <Box sx={{ backgroundColor: "background.paper", flexShrink: 0 }}>
+      <Box
+        sx={{
+          backgroundColor: "background.paper",
+          flexShrink: 0,
+          width: "100%",
+        }}
+      >
         <Divider sx={{ bgcolor: "#ffffff", height: 0 }} />
         <List dense>
           <Can I="get" a="rop_interface">

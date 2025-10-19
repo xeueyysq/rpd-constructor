@@ -77,7 +77,6 @@ const JsonChangeValue: FC<JsonChangeValueTypes> = ({ elementName }) => {
           <Box sx={{ display: "flex", justifyContent: "space-between" }}>
             <Button
               variant="outlined"
-              size="small"
               endIcon={<EditIcon color="primary" />}
               onClick={() => handleEditClick()}
               sx={{ alignSelf: "flex-start" }}

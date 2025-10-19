@@ -93,7 +93,7 @@ export const useStore = create<StoreState>()(
     complectId: undefined,
     templatePage: "coverPage",
     teacherTemplates: [],
-    isDrawerOpen: false,
+    isDrawerOpen: true,
     setJsonData: (data) => {
       set((state) => {
         state.jsonData = data;

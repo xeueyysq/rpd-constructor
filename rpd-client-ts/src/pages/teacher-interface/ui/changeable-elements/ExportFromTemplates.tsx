@@ -80,7 +80,6 @@ export function ExportFromTemplates({
     <Box>
       <IconButton
         id="basic-button"
-        size="small"
         aria-controls={open ? "basic-menu" : undefined}
         aria-haspopup="true"
         aria-expanded={open ? "true" : undefined}

@@ -60,7 +60,7 @@ export const TemplateConstructor: FC<TemplateConstructorType> = ({ setChoise }) 
 
   function BackButton({ text }: { text: string }) {
     return (
-      <Button sx={{ mr: 1 }} variant="outlined" size="small" onClick={() => setChoise("selectData")}>
+      <Button sx={{ mr: 1 }} variant="outlined" onClick={() => setChoise("selectData")}>
         {text}
       </Button>
     );
@@ -91,7 +91,7 @@ export const TemplateConstructor: FC<TemplateConstructorType> = ({ setChoise }) 
                     Пожалуйста, проверьте данные комплекта РПД
                   </Box>
                   <BackButton text="Назад" />
-                  <Button variant="contained" size="small" onClick={() => createRpdComplect()}>
+                  <Button variant="contained" onClick={() => createRpdComplect()}>
                     Создать комплект
                   </Button>
                 </Box>
@@ -109,7 +109,6 @@ export const TemplateConstructor: FC<TemplateConstructorType> = ({ setChoise }) 
                   <BackButton text="Назад" />
                   <Button
                     variant="contained"
-                    size="small"
                     onClick={() => navigate(`/complects#${encodeURIComponent(hashFragment)}`)}
                   >
                     Перейти
@@ -128,11 +127,7 @@ export const TemplateConstructor: FC<TemplateConstructorType> = ({ setChoise }) 
         {isFindComplect && (
           <Box>
             <BackButton text="Назад" />
-            <Button
-              variant="contained"
-              size="small"
-              onClick={() => navigate(`/complects#${encodeURIComponent(hashFragment)}`)}
-            >
+            <Button variant="contained" onClick={() => navigate(`/complects#${encodeURIComponent(hashFragment)}`)}>
               Перейти к редактированию
             </Button>
           </Box>

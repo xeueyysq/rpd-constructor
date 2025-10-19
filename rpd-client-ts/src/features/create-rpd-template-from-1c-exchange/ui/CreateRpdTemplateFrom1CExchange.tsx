@@ -1,15 +1,15 @@
-import { FC, useCallback, useEffect, useMemo, useState } from "react";
-import { TemplateConstructorType, TemplateStatus } from "@entities/template";
-import { useStore } from "@shared/hooks";
-import { Box, Button, FormControl, MenuItem, Select, SelectChangeEvent, Typography } from "@mui/material";
 import { useAuth } from "@entities/auth";
-import TemplateMenu from "./TemplateMenu.tsx";
+import { TemplateConstructorType, TemplateStatus, TemplateStatusEnum } from "@entities/template";
+import { Box, Button, FormControl, MenuItem, Paper, Select, SelectChangeEvent } from "@mui/material";
 import { axiosBase } from "@shared/api";
+import { useStore } from "@shared/hooks";
 import { showErrorMessage, showSuccessMessage, showWarningMessage } from "@shared/lib";
 import { Loader } from "@shared/ui";
-import { TemplateStatusEnum } from "@entities/template";
 import { MaterialReactTable, useMaterialReactTable, type MRT_ColumnDef } from "material-react-table";
 import { MRT_Localization_RU } from "material-react-table/locales/ru";
+import { FC, useCallback, useEffect, useMemo, useState } from "react";
+import TemplateMenu from "./TemplateMenu.tsx";
+import { PageTitle } from "@shared/ui";
 
 interface TemplateStatusObject {
   date: string;
@@ -132,7 +132,7 @@ export const CreateRpdTemplateFrom1CExchange: FC<TemplateConstructorType> = () =
         header: "Преподаватель",
         Cell: ({ row }: { row: { original: TemplateData } }) => (
           <Box>
-            <FormControl fullWidth variant="standard" size="small">
+            <FormControl fullWidth variant="standard">
               {row.original.teacher ? (
                 <Select
                   sx={{ width: 160 }}
@@ -186,11 +186,7 @@ export const CreateRpdTemplateFrom1CExchange: FC<TemplateConstructorType> = () =
         Cell: ({ row }: { row: { original: TemplateData } }) => (
           <Box>
             {row.original.status.status === TemplateStatusEnum.UNLOADED ? (
-              <Button
-                variant="contained"
-                size="small"
-                onClick={() => createTemplateData(row.original.id, row.original.discipline)}
-              >
+              <Button variant="contained" onClick={() => createTemplateData(row.original.id, row.original.discipline)}>
                 Создать
               </Button>
             ) : (
@@ -239,15 +235,11 @@ export const CreateRpdTemplateFrom1CExchange: FC<TemplateConstructorType> = () =
   if (!data) return <Loader />;
 
   return (
-    <>
-      <Box sx={{ display: "flex", alignItems: "center", gap: 2 }}>
-        <Typography component="span" variant="h6">
-          {selectedTemplateData.profile} ({selectedTemplateData.year})
-        </Typography>
-      </Box>
-      <Box sx={{ py: 2 }}>
+    <Box>
+      <PageTitle title={`${selectedTemplateData.profile} ${selectedTemplateData.year}`} backButton />
+      <Box pt={2}>
         <MaterialReactTable table={table} />
       </Box>
-    </>
+    </Box>
   );
 };

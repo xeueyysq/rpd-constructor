@@ -1,21 +1,22 @@
 import { Button, Dialog, DialogActions, DialogTitle, DialogContent } from "@mui/material";
 
-type DeleteComplectDialogType = {
+type WarningDeleteDialogProps = {
   onAccept: () => void;
   open: boolean;
   setOpen: (value: boolean) => void;
+  description: string;
 };
 
-export function DeleteComplectDialog({ onAccept, open, setOpen }: DeleteComplectDialogType) {
+export function WarningDeleteDialog({ onAccept, open, setOpen, description }: WarningDeleteDialogProps) {
   return (
     <Dialog open={open} onClose={() => setOpen(false)}>
       <DialogTitle>Подтверждение</DialogTitle>
-      <DialogContent>Вы уверены, что хотите удалить выбранные комплекты?</DialogContent>
+      <DialogContent>{description}</DialogContent>
       <DialogActions>
-        <Button size="small" variant="contained" onClick={() => setOpen(false)}>
+        <Button variant="contained" onClick={() => setOpen(false)}>
           Отмена
         </Button>
-        <Button size="small" variant="contained" color="error" onClick={onAccept}>
+        <Button variant="contained" color="error" onClick={onAccept}>
           Удалить
         </Button>
       </DialogActions>

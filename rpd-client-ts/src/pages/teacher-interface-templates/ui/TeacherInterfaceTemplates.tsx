@@ -7,7 +7,7 @@ import { Box, Button, CssBaseline, IconButton, ListItemIcon, Menu, MenuItem } fr
 import { axiosBase } from "@shared/api";
 import { useStore } from "@shared/hooks";
 import { showErrorMessage } from "@shared/lib";
-import { Loader } from "@shared/ui";
+import { Loader, PageTitle } from "@shared/ui";
 import { MaterialReactTable, MRT_ColumnDef, useMaterialReactTable } from "material-react-table";
 import { MRT_Localization_RU } from "material-react-table/locales/ru";
 import { FC, useCallback, useEffect, useMemo, useState } from "react";
@@ -76,13 +76,12 @@ export const TeacherInterfaceTemplates: FC = () => {
           id,
         });
         setJsonData(response.data);
-        navigate("/teacher-interface");
       } catch (error) {
         showErrorMessage("Ошибка при получении данных");
         console.error(error);
       }
     },
-    [navigate, setJsonData]
+    [setJsonData]
   );
 
   const handleMenuOpen = (event: React.MouseEvent<HTMLElement>, id: number) => {
@@ -94,6 +93,15 @@ export const TeacherInterfaceTemplates: FC = () => {
     setAnchorEl(null);
     setSelectedTemplateId(null);
   };
+
+  const handleOpenTemplate = useCallback(
+    (templateId: number) => {
+      handleMenuClose();
+      uploadTemplateData(templateId);
+      navigate("/teacher-interface");
+    },
+    [navigate, uploadTemplateData]
+  );
 
   const columns = useMemo<MRT_ColumnDef<TemplateData>[]>(
     () => [
@@ -159,12 +167,7 @@ export const TeacherInterfaceTemplates: FC = () => {
                 open={Boolean(anchorEl) && selectedTemplateId === row.original.id}
                 onClose={handleMenuClose}
               >
-                <MenuItem
-                  onClick={() => {
-                    uploadTemplateData(row.original.id);
-                    handleMenuClose();
-                  }}
-                >
+                <MenuItem onClick={() => handleOpenTemplate(row.original.id)}>
                   <ListItemIcon>
                     <FolderOpen fontSize="small" />
                   </ListItemIcon>
@@ -192,7 +195,6 @@ export const TeacherInterfaceTemplates: FC = () => {
           ) : (
             <Button
               variant="contained"
-              size="small"
               onClick={() =>
                 setTemplateStatus(
                   {
@@ -210,7 +212,7 @@ export const TeacherInterfaceTemplates: FC = () => {
         },
       },
     ],
-    [anchorEl, fetchData, selectedTemplateId, uploadTemplateData, userName]
+    [anchorEl, fetchData, selectedTemplateId, userName, handleOpenTemplate]
   );
 
   const table = useMaterialReactTable<TemplateData>({
@@ -230,9 +232,7 @@ export const TeacherInterfaceTemplates: FC = () => {
   return (
     <Box>
       <CssBaseline />
-      <Box fontSize={"1.5rem"} sx={{ py: 1 }}>
-        Выбор РПД для редактирования
-      </Box>
+      <PageTitle title={"Выбор РПД для редактирования"} />
       <Box py={2}>
         <MaterialReactTable table={table} />
       </Box>

@@ -103,7 +103,7 @@ export const ChangeRpdTemplate: FC<TemplateConstructorType> = ({ setChoise }) =>
                 </TableCell>
                 <TableCell>
                   {row.status.status !== TemplateStatusEnum.ON_TEACHER && (
-                    <Button variant="outlined" size="small" onClick={() => sendTemplateToTeacher(row.id, row.teacher)}>
+                    <Button variant="outlined" onClick={() => sendTemplateToTeacher(row.id, row.teacher)}>
                       Отправить преподавателю
                     </Button>
                   )}

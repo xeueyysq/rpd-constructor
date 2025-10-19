@@ -105,11 +105,7 @@ export const CreateRpdTemplateFromYear: FC<TemplateConstructorType> = ({ setChoi
                   <TemplateStatus status={row.status} />
                 </TableCell>
                 <TableCell>
-                  <Button
-                    variant="outlined"
-                    size="small"
-                    onClick={() => uploadTempllateData(row.disciplins_name, row.id)}
-                  >
+                  <Button variant="outlined" onClick={() => uploadTempllateData(row.disciplins_name, row.id)}>
                     Создать шаблон
                   </Button>
                 </TableCell>
