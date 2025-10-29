@@ -1,4 +1,5 @@
 const RpdComplects = require("../models/rpd_complects");
+const { USER_ROLE } = require("../../constants");
 
 class RpdComplectsController {
   constructor(pool) {
@@ -18,7 +19,8 @@ class RpdComplectsController {
   async createRpdComplect(req, res) {
     try {
       const { data } = req.body;
-      const record = await this.model.createRpdComplect(data);
+      const userId = req.user?.id;
+      const record = await this.model.createRpdComplect({ data, userId });
       res.json(record);
     } catch (error) {
       const errorCode = error.statusCode || 500;
@@ -29,9 +31,15 @@ class RpdComplectsController {
     }
   }
 
-  async getAllRpdComplects(req, res) {
+  async getRpdComplects(req, res) {
     try {
-      const records = await this.model.getAllRpdComplects();
+      const currentUser = req.user;
+      let records = undefined;
+
+      if (currentUser.role === USER_ROLE.ADMIN)
+        records = await this.model.getAllRpdComplects();
+      else records = await this.model.getRopComplects(currentUser.id);
+
       res.json(records);
     } catch (error) {
       res.status(500).json({ message: error.message });

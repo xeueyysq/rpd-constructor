@@ -1,4 +1,5 @@
 const { pool } = require("../../config/db");
+const process = require("process");
 
 (async () => {
   try {
@@ -120,13 +121,11 @@ const { pool } = require("../../config/db");
       )
     `);
 
-    // Добавить роли пользователя
-    // УДАЛИТЬ после окончания тестирования
+    // Добавить роли пользователя (идемпотентно)
     await pool.query(`
-      INSERT INTO users (
-        name, password, role, fullname 
-      ) VALUES (
-        'rop', 
+      INSERT INTO users (name, password, role, fullname)
+      VALUES (
+        'rop',
         '$2a$08$sFjUzFJaMI/jCHYzolneXOuCMveOESatqTZTgn8P2rjQzSIet2Y76',
         3,
         '{
@@ -134,11 +133,12 @@ const { pool } = require("../../config/db");
           "surname": "Иванов",
           "patronymic": "Иванович"
         }'
-      );
-      INSERT INTO users (
-        name, password, role, fullname 
-      ) VALUES (
-        'teacher', 
+      )
+      ON CONFLICT (name) DO NOTHING;
+
+      INSERT INTO users (name, password, role, fullname)
+      VALUES (
+        'teacher',
         '$2a$08$sFjUzFJaMI/jCHYzolneXOuCMveOESatqTZTgn8P2rjQzSIet2Y76',
         2,
         '{
@@ -146,42 +146,51 @@ const { pool } = require("../../config/db");
           "surname": "Беднякова",
           "patronymic": "Михайловна"
         }'
-      );
-      INSERT INTO users (
-        name, password, role, fullname 
-      ) VALUES (
-        'admin', 
+      )
+      ON CONFLICT (name) DO NOTHING;
+
+      INSERT INTO users (name, password, role, fullname)
+      VALUES (
+        'admin',
         '$2a$08$sFjUzFJaMI/jCHYzolneXOuCMveOESatqTZTgn8P2rjQzSIet2Y76',
         1,
-       ' {
+        '{
           "name": "Админ",
           "surname": "Админов",
           "patronymic": "Админович"
         }'
-      );
+      )
+      ON CONFLICT (name) DO NOTHING;
     `);
 
-    //Добавить изменяемые поля для админа
+    // Добавить изменяемые поля для админа (идемпотентно)
     await pool.query(`
-      INSERT INTO rpd_changeable_values (
-        title, value
-      ) VALUES (
-        'uniName',
-        'Государственное бюджетное образовательное учреждение</br>
+      INSERT INTO rpd_changeable_values (title, value)
+      SELECT 'uniName', 'Государственное бюджетное образовательное учреждение</br>
         высшего образования</br>
         «Университет «Дубна»</br>
         (государственный университет «Дубна»)'        
+      WHERE NOT EXISTS (
+        SELECT 1 FROM rpd_changeable_values WHERE title = 'uniName'
       );
-      INSERT INTO rpd_changeable_values (
-        title, value
-      ) VALUES (
-        'approvalField',
-        'УТВЕРЖДАЮ</br>
+
+      INSERT INTO rpd_changeable_values (title, value)
+      SELECT 'approvalField', 'УТВЕРЖДАЮ</br>
         и.о. проректора по учебно-методической работе</br>
         __________________/ Анисимова О.В.</br>
         __________________202_ год</br>'        
+      WHERE NOT EXISTS (
+        SELECT 1 FROM rpd_changeable_values WHERE title = 'approvalField'
       );
     `);
+
+    await pool.query(`
+      CREATE TABLE IF NOT EXISTS user_complect (
+        id SERIAL PRIMARY KEY,
+        user_id INT REFERENCES users(id) ON DELETE CASCADE,
+        complect_id INT REFERENCES rpd_complects(id) ON DELETE CASCADE
+      )
+      `);
 
     console.log("Все миграции загружены успешно");
   } catch (error) {

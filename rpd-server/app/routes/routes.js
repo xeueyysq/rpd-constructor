@@ -2,6 +2,7 @@ const express = require("express");
 const router = express.Router();
 const generatePDF = require("../pdf-generator/document-generator");
 const { pool } = require("../../config/db");
+const TokenService = require("../services/Token");
 
 const RpdChangeableValuesController = require("../controllers/rpdChangeableValuesController");
 const rpdChangeableValuesController = new RpdChangeableValuesController(pool);
@@ -100,11 +101,13 @@ router.post(
 );
 router.post(
   "/create_rpd_complect",
+  TokenService.checkAccess,
   rpdComplectsController.createRpdComplect.bind(rpdComplectsController)
 );
 router.get(
   "/get-rpd-complects",
-  rpdComplectsController.getAllRpdComplects.bind(rpdComplectsController)
+  TokenService.checkAccess,
+  rpdComplectsController.getRpdComplects.bind(rpdComplectsController)
 );
 router.post(
   "/delete_rpd_complect",

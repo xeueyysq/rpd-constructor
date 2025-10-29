@@ -1,6 +1,7 @@
 const jwt = require("jsonwebtoken");
 const dotenv = require("dotenv");
 const { Forbidden, Unauthorized } = require("../utils/Errors.js");
+const process = require("process");
 
 dotenv.config();
 
