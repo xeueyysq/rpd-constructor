@@ -8,6 +8,20 @@ export const axiosBase = axios.create({
   },
 });
 
+let accessToken: string | null = null;
+
+export const setAccessToken = (token?: string) => {
+  accessToken = token ?? null;
+};
+
+axiosBase.interceptors.request.use((config) => {
+  if (accessToken) {
+    config.headers = config.headers ?? {};
+    config.headers.Authorization = `Bearer ${accessToken}`;
+  }
+  return config;
+});
+
 // Add interceptor for handling errors
 axiosBase.interceptors.response.use(
   (response) => response,

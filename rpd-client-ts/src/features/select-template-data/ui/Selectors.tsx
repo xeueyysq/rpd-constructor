@@ -23,7 +23,7 @@ interface SelectorsState {
 }
 
 interface Selectors {
-  setChoise: (value: string) => void;
+  setChoise?: (value: string) => void;
 }
 
 export const Selectors: FC<Selectors> = ({ setChoise }) => {

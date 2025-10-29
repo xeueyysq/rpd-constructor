@@ -1,12 +1,12 @@
-import { FC } from "react";
-import { Box, Container } from "@mui/material";
-import { Selectors } from "@features/select-template-data";
-import { TemplateConstructor } from "@features/create-rpd-template";
 import { ChangeRpdTemplate } from "@features/change-rpd-template";
-import { CreateRpdTemplateFromYear } from "@features/create-rpd-template-from-year";
+import { TemplateConstructor } from "@features/create-rpd-template";
 import { CreateRpdTemplateFrom1CExchange } from "@features/create-rpd-template-from-1c-exchange";
+import { CreateRpdTemplateFromYear } from "@features/create-rpd-template-from-year";
+import { Selectors } from "@features/select-template-data";
+import { Box } from "@mui/material";
 import { useStore } from "@shared/hooks";
 import { PageTitle } from "@shared/ui";
+import { FC } from "react";
 
 export const Manager: FC = () => {
   const { managerPage, setManagerPage } = useStore();

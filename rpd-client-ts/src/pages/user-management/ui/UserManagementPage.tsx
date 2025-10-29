@@ -1,44 +1,21 @@
-import { useAuth } from "@entities/auth";
-import {
-  Box,
-  Button,
-  Dialog,
-  DialogActions,
-  DialogContent,
-  DialogTitle,
-  FormControl,
-  InputLabel,
-  MenuItem,
-  OutlinedInput,
-  Select,
-  SelectChangeEvent,
-  TextField,
-} from "@mui/material";
+import { Box, Button, FormControl, InputLabel, MenuItem, OutlinedInput, Select } from "@mui/material";
 import { UserRole } from "@shared/ability";
 import { axiosBase } from "@shared/api";
 import { showErrorMessage, showSuccessMessage } from "@shared/lib";
 import { Loader, PageTitle } from "@shared/ui";
+import { WarningDeleteDialog } from "@widgets/dialogs/ui";
 import axios from "axios";
 import { MaterialReactTable, MRT_ColumnDef, useMaterialReactTable } from "material-react-table";
 import { MRT_Localization_RU } from "material-react-table/locales/ru";
-import { FC, KeyboardEvent, useEffect, useMemo, useState } from "react";
-import type { NewUser, User } from "../model/types";
-import { WarningDeleteDialog } from "@widgets/dialogs/ui";
+import { FC, useEffect, useMemo, useState } from "react";
+import type { User } from "../model/types";
+import { DialogAddUser } from "./DialogAddUser";
 
 export const UserManagementPage: FC = () => {
   const [users, setUsers] = useState<User[]>([]);
   const [rowSelection, setRowSelection] = useState<Record<string, boolean>>({});
   const [open, setOpen] = useState(false);
   const [openDeleteConfirm, setOpenDeleteConfirm] = useState<boolean>(false);
-
-  const [newUser, setNewUser] = useState<NewUser>({
-    username: "",
-    password: "",
-    role: UserRole.TEACHER,
-    name: "",
-    surname: "",
-    patronymic: "",
-  });
 
   const fetchUsers = async () => {
     try {
@@ -55,48 +32,6 @@ export const UserManagementPage: FC = () => {
   }, []);
 
   const handleOpen = () => setOpen(true);
-  const handleClose = () => {
-    setOpen(false);
-    setNewUser({
-      username: "",
-      password: "",
-      role: UserRole.TEACHER,
-      name: "",
-      surname: "",
-      patronymic: "",
-    });
-  };
-
-  const handleChange =
-    (prop: keyof NewUser) =>
-    (event: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | { value: unknown }>) => {
-      setNewUser({ ...newUser, [prop]: event.target.value });
-    };
-
-  const handleSubmit = async () => {
-    try {
-      const userData = {
-        newUser: {
-          username: newUser.username,
-          hashedPassword: newUser.password,
-          role: newUser.role,
-          fullname: {
-            name: newUser.name,
-            surname: newUser.surname,
-            patronymic: newUser.patronymic,
-          },
-        },
-      };
-
-      await axiosBase.post("add-user", userData);
-      showSuccessMessage("Пользователь успешно добавлен");
-      handleClose();
-      fetchUsers();
-    } catch (error) {
-      showErrorMessage("Ошибка при добавлении пользователя");
-      console.error(error);
-    }
-  };
 
   const getRoleName = (role: UserRole) => {
     switch (role) {
@@ -111,10 +46,6 @@ export const UserManagementPage: FC = () => {
     }
   };
 
-  const handleKeyDown = (e: KeyboardEvent<HTMLInputElement>) => {
-    if (e.key === " ") e.preventDefault();
-  };
-
   const selectedIds = useMemo(
     () =>
       Object.keys(rowSelection)
@@ -125,6 +56,7 @@ export const UserManagementPage: FC = () => {
 
   const deleteUsers = async () => {
     try {
+      setOpenDeleteConfirm(false);
       for (const userId of selectedIds) {
         await axiosBase.delete(`delete-user/${userId}`);
       }
@@ -258,10 +190,6 @@ export const UserManagementPage: FC = () => {
     ),
   });
 
-  const handleRoleChange = (event: SelectChangeEvent<UserRole>) => {
-    setNewUser({ ...newUser, role: event.target.value as UserRole });
-  };
-
   if (!users) return <Loader />;
 
   return (
@@ -276,62 +204,7 @@ export const UserManagementPage: FC = () => {
         onAccept={deleteUsers}
         description={"Вы уверены, что хотите удалить выбранных пользователей?"}
       />
-      <Dialog open={open} onClose={handleClose}>
-        <DialogTitle>Добавить нового пользователя</DialogTitle>
-        <DialogContent>
-          <Box sx={{ display: "flex", flexDirection: "column", gap: 2, mt: 2 }}>
-            <TextField
-              size="small"
-              label="Логин"
-              value={newUser.username}
-              onChange={handleChange("username")}
-              onKeyDown={handleKeyDown}
-            />
-            <TextField
-              size="small"
-              label="Пароль"
-              type="password"
-              value={newUser.password}
-              onChange={handleChange("password")}
-              onKeyDown={handleKeyDown}
-            />
-            <FormControl>
-              <InputLabel>Роль</InputLabel>
-              <Select<UserRole> size="small" value={newUser.role} label="Роль" onChange={handleRoleChange}>
-                <MenuItem value={UserRole.ROP}>РОП</MenuItem>
-                <MenuItem value={UserRole.TEACHER}>Преподаватель</MenuItem>
-              </Select>
-            </FormControl>
-            <TextField
-              size="small"
-              label="Фамилия"
-              value={newUser.surname}
-              onChange={handleChange("surname")}
-              onKeyDown={handleKeyDown}
-            />
-            <TextField
-              size="small"
-              label="Имя"
-              value={newUser.name}
-              onChange={handleChange("name")}
-              onKeyDown={handleKeyDown}
-            />
-            <TextField
-              size="small"
-              label="Отчество"
-              value={newUser.patronymic}
-              onChange={handleChange("patronymic")}
-              onKeyDown={handleKeyDown}
-            />
-          </Box>
-        </DialogContent>
-        <DialogActions>
-          <Button onClick={handleClose}>Отмена</Button>
-          <Button onClick={handleSubmit} variant="contained">
-            Добавить
-          </Button>
-        </DialogActions>
-      </Dialog>
+      <DialogAddUser open={open} setOpen={setOpen} fetchUsers={fetchUsers} />
     </Box>
   );
 };
