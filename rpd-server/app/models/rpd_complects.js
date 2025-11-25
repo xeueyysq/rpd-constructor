@@ -35,6 +35,22 @@ class RpdComplects {
     }
   }
 
+  async findRpdComplectMeta(complect_id) {
+    try {
+      const result = await this.pool.query(
+        `
+          select * from rpd_complects
+          where id = $1
+        `,
+        [complect_id]
+      );
+      return result.rows[0];
+    } catch (error) {
+      console.log(error);
+      throw new Error(error);
+    }
+  }
+
   async findRpdComplectData(template_id) {
     try {
       const result = await this.pool.query(

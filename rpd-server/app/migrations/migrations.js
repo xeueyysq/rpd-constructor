@@ -5,14 +5,41 @@ const process = require("process");
   try {
     console.log("Starting migrations...");
 
-    //Миграции для таблицы `results_data`
-    // await pool.query(`
-    //   CREATE TABLE IF NOT EXISTS results_data (
-    //     id SERIAL PRIMARY KEY,
-    //     competence VARCHAR(100),
-    //     indicator VARCHAR(100),
-    //     disciplines TEXT[]
-    //   )`);
+    // Миграции для таблиц планируемых результатов
+
+    await pool.query(`
+      CREATE TABLE IF NOT EXISTS planned_results_sets (
+        id SERIAL PRIMARY KEY,
+        complect_id INT NOT NULL REFERENCES rpd_complects(id) ON DELETE CASCADE,
+        UNIQUE (complect_id)
+      )
+    `);
+
+    await pool.query(`
+      CREATE TABLE IF NOT EXISTS planned_competencies (
+        id SERIAL PRIMARY KEY,
+        set_id INT NOT NULL REFERENCES planned_results_sets(id) ON DELETE CASCADE,
+        competence TEXT NOT NULL
+      )
+    `);
+
+    await pool.query(`
+      CREATE TABLE IF NOT EXISTS planned_indicators (
+        id SERIAL PRIMARY KEY,
+        competence_id INT NOT NULL REFERENCES planned_competencies(id) ON DELETE CASCADE,
+        indicator TEXT NOT NULL,
+        UNIQUE (competence_id, indicator)
+      )
+    `);
+
+    await pool.query(`
+      CREATE TABLE IF NOT EXISTS planned_indicator_disciplines (
+        id SERIAL PRIMARY KEY,
+        indicator_id INT NOT NULL REFERENCES planned_indicators(id) ON DELETE CASCADE,
+        discipline TEXT NOT NULL,
+        UNIQUE (indicator_id, discipline)
+      )
+    `);
 
     // Миграция для таблицы `rpd_complects`
     await pool.query(`
@@ -196,5 +223,6 @@ const process = require("process");
   } catch (error) {
     console.error("Ошибка загрузки миграций", error.stack);
     process.exit(1); // Выход с ошибкой
+    4;
   }
 })();

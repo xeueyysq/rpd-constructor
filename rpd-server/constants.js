@@ -7,7 +7,15 @@ const COOKIE_SETTINGS = {
 
 const ACCESS_TOKEN_EXPIRATION = 18e5; // 1800 * 1000 (30 минут)
 
+const USER_ROLE = {
+  ADMIN: 1,
+  TEACHER: 2,
+  ROP: 3,
+  ANONYMOUS: 0,
+};
+
 module.exports = {
   COOKIE_SETTINGS,
-  ACCESS_TOKEN_EXPIRATION
-}
+  ACCESS_TOKEN_EXPIRATION,
+  USER_ROLE,
+};

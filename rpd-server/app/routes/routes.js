@@ -71,6 +71,10 @@ router.post(
   "/create-profile-template-from-1c",
   rpd1cExchangeController.createTemplate.bind(rpd1cExchangeController)
 );
+router.get(
+  "/get-results-data",
+  rpd1cExchangeController.getResultsData.bind(rpd1cExchangeController)
+);
 
 const TeacherTemplatesController = require("../controllers/teacherTemplatesController");
 const teacherTemplatesController = new TeacherTemplatesController(pool);

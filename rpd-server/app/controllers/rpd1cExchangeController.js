@@ -1,4 +1,5 @@
 const Rpd1cExchange = require("../models/rpd_1c_exchange");
+const { findRpd } = require("../services/Complects");
 
 class Rpd1cExchangeController {
   constructor(pool) {
@@ -7,8 +8,35 @@ class Rpd1cExchangeController {
 
   async setResultsData(req, res) {
     try {
-      const { data } = req.body;
-      const records = await this.model.setResultsData(data);
+      const { data, complectId } = req.body;
+
+      if (!complectId) {
+        return res
+          .status(400)
+          .json({ message: "Не указан идентификатор комплекта" });
+      }
+
+      const records = await this.model.setResultsData(
+        Array.isArray(data) ? data : [],
+        Number(complectId)
+      );
+      res.json(records);
+    } catch (err) {
+      res.status(500).json({ message: err.message });
+    }
+  }
+
+  async getResultsData(req, res) {
+    try {
+      const complectId = Number(req.query?.complectId);
+
+      if (!complectId) {
+        return res
+          .status(400)
+          .json({ message: "Не указан идентификатор комплекта" });
+      }
+
+      const records = await this.model.getResultsData(complectId);
       res.json(records);
     } catch (err) {
       res.status(500).json({ message: err.message });
@@ -18,7 +46,7 @@ class Rpd1cExchangeController {
   async findRpd(req, res) {
     try {
       const { complectId } = req.body;
-      const records = await this.model.findRpd(complectId);
+      const records = await findRpd(this.model.pool, complectId);
       res.json(records);
     } catch (err) {
       res.status(500).json({ message: err.message });
