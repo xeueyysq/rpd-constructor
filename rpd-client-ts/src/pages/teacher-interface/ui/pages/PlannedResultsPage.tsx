@@ -1,26 +1,14 @@
-import {
-  Box,
-  Button,
-  ButtonGroup,
-  Paper,
-  Table,
-  TableBody,
-  TableCell,
-  TableContainer,
-  TableHead,
-  TableRow,
-} from "@mui/material";
+import { Box, Button, ButtonGroup, Paper, Table, TableBody, TableCell, TableContainer, TableHead, TableRow } from "@mui/material";
 import { PlannedResultsData, Results } from "@pages/teacher-interface/model/DisciplineContentPageTypes.ts";
-import { Can } from "@shared/ability";
 import { parseCsvToJson, ParsedPlannedResults } from "@shared/ability/lib/parseCsvToJson.ts";
 import { axiosBase } from "@shared/api";
 import { useStore } from "@shared/hooks";
 import { showErrorMessage, showSuccessMessage } from "@shared/lib";
 import { Loader } from "@shared/ui";
-import axios from "axios";
-import { FC, useState } from "react";
+import { FC, useState, useEffect } from "react";
 import EditableCell from "../changeable-elements/EditableCell.tsx";
 import PlannedResultsCell from "../changeable-elements/PlannedResultsCell.tsx";
+import { isAxiosError } from "axios";
 
 const PlannedResultsPage: FC = () => {
   const initialData = useStore.getState().jsonData.competencies as PlannedResultsData | undefined;
@@ -37,7 +25,7 @@ const PlannedResultsPage: FC = () => {
     let indicator = "";
 
     parsedData &&
-      Object.entries(parsedData).forEach(([key, row]) => {
+      Object.values(parsedData).forEach((row) => {
         const dataLenght = Object.keys(filteredDataMap).length;
         if (row.competence) {
           competence = `${row.competence}. ${row.results}`;
@@ -95,7 +83,7 @@ const PlannedResultsPage: FC = () => {
       showSuccessMessage("Данные успешно сохранены");
     } catch (error) {
       showErrorMessage("Ошибка сохранения данных");
-      if (axios.isAxiosError(error)) {
+      if (isAxiosError(error)) {
         console.error("Ошибка Axios:", error.response?.data);
         console.error("Статус ошибки:", error.response?.status);
         console.error("Заголовки ошибки:", error.response?.headers);
@@ -117,6 +105,39 @@ const PlannedResultsPage: FC = () => {
     };
     setData(newData);
   };
+
+  const complectId = useStore.getState().complectId;
+
+  useEffect(() => {
+    if (data && Object.keys(data).length) return;
+    if (!complectId) return;
+
+    (async () => {
+      try {
+        const response = await axiosBase.get("get-results-data", { params: { complectId } });
+        type Row = { competence: string; indicator: string; disciplines: string[] };
+        const rows = response.data as Row[];
+        const filtered = rows.filter((r) => r.disciplines.includes(disciplineName));
+
+        const mapped: PlannedResultsData = {};
+        let idx = 0;
+        let lastCompetence = "";
+        filtered.forEach((r) => {
+          const competenceToSet = r.competence === lastCompetence ? "" : r.competence;
+          lastCompetence = r.competence;
+          mapped[idx++] = {
+            competence: competenceToSet,
+            indicator: r.indicator,
+            results: { know: "", beAble: "", own: "" },
+          };
+        });
+
+        setData(mapped);
+      } catch (error) {
+        console.error(error);
+      }
+    })();
+  }, [data, complectId, disciplineName]);
 
   if (!data) return <Loader />;
 
@@ -172,20 +193,7 @@ const PlannedResultsPage: FC = () => {
                   <TableCell>
                     <EditableCell value={data[key].indicator} onValueChange={() => {}} readOnly />
                   </TableCell>
-                  <TableCell>
-                    <Can I="edit" a="competencies">
-                      <PlannedResultsCell
-                        value={data[key].results}
-                        onValueChange={(value: Results) => handleValueChange(Number(key), value)}
-                      />
-                    </Can>
-                    <Can not I="edit" a="competencies">
-                      <PlannedResultsCell
-                        value={data[key].results}
-                        onValueChange={(value: Results) => handleValueChange(Number(key), value)}
-                      />
-                    </Can>
-                  </TableCell>
+                  <PlannedResultsCell value={data[key].results} onValueChange={(value: Results) => handleValueChange(Number(key), value)} />
                 </TableRow>
               );
             })}

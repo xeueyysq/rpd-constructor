@@ -1,1 +1,1 @@
-export * from "./RpdCompectColumns";
+export * from "./complect";

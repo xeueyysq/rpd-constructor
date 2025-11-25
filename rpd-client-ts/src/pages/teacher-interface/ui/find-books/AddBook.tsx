@@ -7,17 +7,16 @@ import {
   DialogContent,
   DialogTitle,
   Divider,
+  InputAdornment,
   List,
   ListItem,
   ListItemText,
   TextField,
 } from "@mui/material";
-import AddIcon from "@mui/icons-material/Add";
 import ShowBooks from "./ShowBooks.tsx";
 import { useStore } from "@shared/hooks";
 import { showErrorMessage, showSuccessMessage } from "@shared/lib";
 import { axiosBase } from "@shared/api";
-import { IconButton } from "@mui/material";
 
 interface AddBook {
   elementName: string;
@@ -34,12 +33,12 @@ interface BookData {
 
 const AddBook: FC<AddBook> = ({ elementName }) => {
   const [open, setOpen] = useState<boolean>(false);
-  const [bookName, setBookName] = useState<string>("");
-  const [error, setError] = useState<boolean>(false);
+  const [bookName, setBookName] = useState<string | null>(null);
+  const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [manualInput, setManualInput] = useState<string>("");
 
   const jsonData = useStore.getState().jsonData[elementName];
-  const [booksData, setBooksData] = useState<BookData[]>(jsonData);
+  const [booksData, setBooksData] = useState<BookData[] | null>(jsonData);
 
   const elementValue: string[] = useStore.getState().jsonData[elementName] || [];
   const [addedBooks, setAddedBooks] = useState<string[]>(elementValue);
@@ -53,23 +52,30 @@ const AddBook: FC<AddBook> = ({ elementName }) => {
 
   const handleCloseDialog = () => {
     setOpen(false);
-    setError(false);
+    setErrorMessage(null);
+    setBookName(null);
   };
 
   const handleBookNameChange = (event: ChangeEvent<HTMLInputElement>) => {
     setBookName(event.target.value);
-    if (error) setError(false);
+    if (errorMessage) setErrorMessage(null);
   };
 
   const handleFindBooks = async () => {
     if (!bookName) {
-      setError(true);
+      setErrorMessage("Поле обязательно для заполнения");
       return;
     }
-    setError(false);
+    setBooksData(null);
+    setErrorMessage(null);
 
     try {
       const response = await axiosBase.post("find-books", { bookName });
+      const books = response.data;
+      if (!books.length) {
+        setErrorMessage("По вашему запросу ничего не найдено");
+        return;
+      }
       setBooksData(response.data);
     } catch (error) {
       console.error(error);
@@ -92,7 +98,6 @@ const AddBook: FC<AddBook> = ({ elementName }) => {
       showErrorMessage("Ошибка сохранения данных");
       console.error(error);
     }
-    handleCloseDialog();
   };
 
   const handleAddBookToList = (biblio: string) => {
@@ -101,10 +106,8 @@ const AddBook: FC<AddBook> = ({ elementName }) => {
 
   const handleAddManualBook = () => {
     if (manualInput.trim() === "") {
-      setError(true);
       return;
     }
-    setError(false);
 
     const newBooks = [...addedBooks, manualInput];
     saveContent(newBooks);
@@ -190,23 +193,35 @@ const AddBook: FC<AddBook> = ({ elementName }) => {
       >
         <DialogTitle>Поиск книг</DialogTitle>
         <DialogContent>
-          <TextField
-            autoFocus
-            margin="dense"
-            label="Ключевые слова"
-            fullWidth
-            variant="standard"
-            value={bookName}
-            onChange={handleBookNameChange}
-            error={error}
-            helperText={error ? "Ошибка. Поле обязательно для заполнения" : ""}
-          />
-          {booksData && <ShowBooks books={booksData} onAddBookToList={handleAddBookToList} />}
+          <Box position="sticky" top={0} zIndex={1} bgcolor="background.paper">
+            <TextField
+              autoFocus
+              margin="dense"
+              label="Ключевые слова"
+              fullWidth
+              variant="standard"
+              value={bookName}
+              onChange={handleBookNameChange}
+              helperText={errorMessage}
+              slotProps={{
+                input: {
+                  endAdornment: (
+                    <InputAdornment position="end">
+                      <Box pb={1}>
+                        <Button variant="contained" onClick={handleFindBooks}>
+                          Найти
+                        </Button>
+                      </Box>
+                    </InputAdornment>
+                  ),
+                },
+              }}
+            />
+          </Box>
+          <ShowBooks books={booksData} onAddBookToList={handleAddBookToList} />
         </DialogContent>
         <DialogActions>
-          <Button variant="contained" onClick={handleFindBooks}>
-            Найти
-          </Button>
+          <Button onClick={handleCloseDialog}>Отмена</Button>
         </DialogActions>
       </Dialog>
     </>

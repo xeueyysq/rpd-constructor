@@ -1,17 +1,18 @@
+import { TemplateConstructorType } from "@entities/template";
+import { Box, Button, CircularProgress } from "@mui/material";
+import { axiosBase } from "@shared/api";
+import { useStore } from "@shared/hooks";
+import { showErrorMessage, showSuccessMessage } from "@shared/lib";
+import { Loader } from "@shared/ui";
+import { isAxiosError } from "axios";
 import { FC, useCallback, useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { useStore } from "@shared/hooks";
-import { Box, Button, ButtonBaseProps, CircularProgress } from "@mui/material";
-import { TemplateConstructorType } from "@entities/template";
 import { templateDataTitles } from "../model/templateDataTitles.ts";
-import { Loader } from "@shared/ui";
-import { axiosBase } from "@shared/api";
-import { showErrorMessage, showSuccessMessage } from "@shared/lib";
-import { isAxiosError } from "axios";
+import { RedirectPath } from "@shared/enums.ts";
 
 export const TemplateConstructor: FC<TemplateConstructorType> = ({ setChoise }) => {
   const selectedTemplateData = useStore.getState().selectedTemplateData;
-  const { setComplectId } = useStore();
+  const { setComplectId, complectId } = useStore();
   const [createComplectStatus, setCreateComplectStatus] = useState<string>("pending");
   const [isFindComplect, setIsFindComplect] = useState<boolean | undefined>(undefined);
   const navigate = useNavigate();
@@ -66,8 +67,6 @@ export const TemplateConstructor: FC<TemplateConstructorType> = ({ setChoise }) 
     );
   }
 
-  const hashFragment = `${selectedTemplateData.profile} ${selectedTemplateData.year}`;
-
   return (
     <>
       <Box sx={{ py: 2, fontSize: "18px", fontWeight: "600" }}>Выбранные данные:</Box>
@@ -107,10 +106,7 @@ export const TemplateConstructor: FC<TemplateConstructorType> = ({ setChoise }) 
                 <Box>
                   <Box pb={2}>Комплект РПД создан успешно. Перейти к редактированию?</Box>
                   <BackButton text="Назад" />
-                  <Button
-                    variant="contained"
-                    onClick={() => navigate(`/complects#${encodeURIComponent(hashFragment)}`)}
-                  >
+                  <Button variant="contained" onClick={() => navigate(`${RedirectPath.COMPLECTS}/${complectId}`)}>
                     Перейти
                   </Button>
                 </Box>
@@ -127,7 +123,7 @@ export const TemplateConstructor: FC<TemplateConstructorType> = ({ setChoise }) 
         {isFindComplect && (
           <Box>
             <BackButton text="Назад" />
-            <Button variant="contained" onClick={() => navigate(`/complects#${encodeURIComponent(hashFragment)}`)}>
+            <Button variant="contained" onClick={() => navigate(`${RedirectPath.COMPLECTS}/${complectId}`)}>
               Перейти к редактированию
             </Button>
           </Box>

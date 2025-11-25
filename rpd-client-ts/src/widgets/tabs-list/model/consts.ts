@@ -5,26 +5,27 @@ import GroupIcon from "@mui/icons-material/Group";
 import LogoutIcon from "@mui/icons-material/Logout";
 import QuestionMarkIcon from "@mui/icons-material/QuestionMark";
 import SegmentIcon from "@mui/icons-material/Segment";
+import { RedirectPath } from "@shared/enums";
 
 export const mainTabs = [
   {
     name: "Создание комплекта",
-    path: "/manager",
+    path: RedirectPath.MANAGER,
     icon: createElement(AddIcon),
   },
   {
     name: "Список комплектов",
-    path: "/complects",
+    path: RedirectPath.COMPLECTS,
     icon: createElement(ViewListIcon),
   },
   {
     name: "Список компетенций",
-    path: "/planned-results",
+    path: RedirectPath.PLANNED_RESULTS,
     icon: createElement(SegmentIcon),
   },
   {
     name: "Пользователи",
-    path: "/users",
+    path: RedirectPath.USER_MANAGEMENT,
     icon: createElement(GroupIcon),
   },
   {
@@ -36,7 +37,7 @@ export const mainTabs = [
 export const teacherTabs = [
   {
     name: "Список шаблонов",
-    path: "/teacher-interface-templates",
+    path: RedirectPath.TEMPLATES,
     icon: createElement(ViewListIcon),
   },
   {

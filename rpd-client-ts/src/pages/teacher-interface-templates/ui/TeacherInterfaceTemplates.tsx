@@ -5,6 +5,7 @@ import FolderOpen from "@mui/icons-material/FolderOpen";
 import MoreHorizIcon from "@mui/icons-material/MoreHoriz";
 import { Box, Button, CssBaseline, IconButton, ListItemIcon, Menu, MenuItem } from "@mui/material";
 import { axiosBase } from "@shared/api";
+import { RedirectPath } from "@shared/enums";
 import { useStore } from "@shared/hooks";
 import { showErrorMessage } from "@shared/lib";
 import { Loader, PageTitle } from "@shared/ui";
@@ -69,21 +70,6 @@ export const TeacherInterfaceTemplates: FC = () => {
     }
   }, [templatesData, setTeacherTemplates]);
 
-  const uploadTemplateData = useCallback(
-    async (id: number) => {
-      try {
-        const response = await axiosBase.post("rpd-profile-templates", {
-          id,
-        });
-        setJsonData(response.data);
-      } catch (error) {
-        showErrorMessage("Ошибка при получении данных");
-        console.error(error);
-      }
-    },
-    [setJsonData]
-  );
-
   const handleMenuOpen = (event: React.MouseEvent<HTMLElement>, id: number) => {
     setAnchorEl(event.currentTarget);
     setSelectedTemplateId(id);
@@ -97,10 +83,9 @@ export const TeacherInterfaceTemplates: FC = () => {
   const handleOpenTemplate = useCallback(
     (templateId: number) => {
       handleMenuClose();
-      uploadTemplateData(templateId);
-      navigate("/teacher-interface");
+      navigate(`${RedirectPath.TEMPLATES}/${templateId}`);
     },
-    [navigate, uploadTemplateData]
+    [navigate]
   );
 
   const columns = useMemo<MRT_ColumnDef<TemplateData>[]>(

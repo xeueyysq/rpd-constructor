@@ -7,18 +7,17 @@ interface BookData {
   biblio: string;
   url: string;
   thumb?: string;
-  // ... другие поля, если они есть
 }
 
 interface ShowBooksProps {
-  books: BookData[];
+  books: BookData[] | null;
   onAddBookToList: (biblio: string) => void;
 }
 
 const ShowBooks: FC<ShowBooksProps> = ({ books, onAddBookToList }) => {
   return (
     <>
-      {books.map((book, index) => (
+      {books?.map((book, index) => (
         <>
           <Box key={index} sx={{ display: "flex" }}>
             <Box sx={{ width: "120px", py: 2 }}>

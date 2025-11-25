@@ -1,18 +1,17 @@
-import { IconButton, ListItemIcon, ListItemText, Menu, MenuItem, Typography } from "@mui/material";
-import { FC, MouseEvent, useState } from "react";
-import MoreHorizIcon from "@mui/icons-material/MoreHoriz";
 import { useAuth } from "@entities/auth";
+import { setTemplateStatus, TemplateStatusEnum } from "@entities/template/index.ts";
+import ForwardToInboxSharpIcon from "@mui/icons-material/ForwardToInboxSharp";
+import HistoryIcon from "@mui/icons-material/History";
+import MoreHorizIcon from "@mui/icons-material/MoreHoriz";
+import OpenInBrowserIcon from "@mui/icons-material/OpenInBrowser";
+import { IconButton, ListItemIcon, ListItemText, Menu, MenuItem, Typography } from "@mui/material";
+import { axiosBase } from "@shared/api";
+import { useStore } from "@shared/hooks";
+import { showErrorMessage, showSuccessMessage } from "@shared/lib";
+import { FC, MouseEvent, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import HistoryModal from "./HistoryModal.tsx";
-import OpenInBrowserIcon from "@mui/icons-material/OpenInBrowser";
-import DeleteForeverIcon from "@mui/icons-material/DeleteForever";
-import HistoryIcon from "@mui/icons-material/History";
-import { axiosBase } from "@shared/api";
-import { showErrorMessage, showSuccessMessage } from "@shared/lib";
-import { useStore } from "@shared/hooks";
-import { TemplateStatusEnum } from "@entities/template/index.ts";
-import ForwardToInboxSharpIcon from "@mui/icons-material/ForwardToInboxSharp";
-import { setTemplateStatus } from "@entities/template/index.ts";
+import { RedirectPath } from "@shared/enums.ts";
 
 interface TemplateMenu {
   id: number;
@@ -59,20 +58,6 @@ const TemplateMenu: FC<TemplateMenu> = ({ id, teacher, status, fetchData }) => {
     }
   };
 
-  const uploadTemplateData = async () => {
-    try {
-      const response = await axiosBase.post("rpd-profile-templates", {
-        id,
-      });
-      setJsonData(response.data);
-      setTabState("createTemplateFromExchange", true);
-      navigate("/teacher-interface");
-    } catch (error) {
-      showErrorMessage("Ошибка при получении данных");
-      console.error(error);
-    }
-  };
-
   const getTemplateHistory = async () => {
     try {
       const response = await axiosBase.post("get-template-history", {
@@ -106,7 +91,7 @@ const TemplateMenu: FC<TemplateMenu> = ({ id, teacher, status, fetchData }) => {
           "aria-labelledby": "basic-button",
         }}
       >
-        <MenuItem onClick={() => uploadTemplateData()}>
+        <MenuItem onClick={() => navigate(`${RedirectPath.TEMPLATES}/${id}`)}>
           <ListItemIcon>
             <OpenInBrowserIcon />
           </ListItemIcon>

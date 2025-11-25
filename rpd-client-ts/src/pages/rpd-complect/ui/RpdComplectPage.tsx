@@ -1,15 +1,17 @@
 import { useAuth } from "@entities/auth";
-import { TemplateConstructorType, TemplateStatus, TemplateStatusEnum } from "@entities/template";
-import { Box, Button, FormControl, MenuItem, Paper, Select, SelectChangeEvent } from "@mui/material";
+import { TemplateStatus, TemplateStatusEnum } from "@entities/template";
+import { Box, Button, FormControl, MenuItem, Select, SelectChangeEvent } from "@mui/material";
 import { axiosBase } from "@shared/api";
 import { useStore } from "@shared/hooks";
 import { showErrorMessage, showSuccessMessage, showWarningMessage } from "@shared/lib";
 import { Loader } from "@shared/ui";
 import { MaterialReactTable, useMaterialReactTable, type MRT_ColumnDef } from "material-react-table";
 import { MRT_Localization_RU } from "material-react-table/locales/ru";
-import { FC, useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import TemplateMenu from "./TemplateMenu.tsx";
 import { PageTitle } from "@shared/ui";
+import { useParams } from "react-router-dom";
+import { ComplectData } from "@shared/types/complect.ts";
 
 interface TemplateStatusObject {
   date: string;
@@ -27,6 +29,10 @@ interface TemplateData {
   status: TemplateStatusObject;
 }
 
+type ComplectMeta = ComplectData & {
+  templates: TemplateData[];
+};
+
 export interface CreateTemplateDataParams {
   id_1c: number;
   complectId: number | undefined;
@@ -36,19 +42,21 @@ export interface CreateTemplateDataParams {
   userName: string | undefined;
 }
 
-export const CreateRpdTemplateFrom1CExchange: FC<TemplateConstructorType> = () => {
+export function RpdComplectPage() {
   const selectedTemplateData = useStore.getState().selectedTemplateData;
-  const complectId = useStore.getState().complectId;
-  const [data, setData] = useState<TemplateData[]>();
+  const { id } = useParams();
+  const complectId = Number(id);
+  const [complectMeta, setComplectMeta] = useState<ComplectMeta>();
+  const complectTemplates = complectMeta?.templates;
   const [selectedTeachers, setSelectedTeachers] = useState<{
     [key: number]: string;
   }>({});
   const userName = useAuth.getState().userName;
 
-  const fetchData = useCallback(async () => {
+  const fetchComplectData = useCallback(async () => {
     try {
       const response = await axiosBase.post("find-rpd", { complectId });
-      setData(response.data);
+      setComplectMeta(response.data);
     } catch (error) {
       showErrorMessage("Ошибка при получении данных");
       console.error(error);
@@ -56,12 +64,12 @@ export const CreateRpdTemplateFrom1CExchange: FC<TemplateConstructorType> = () =
   }, [complectId]);
 
   useEffect(() => {
-    fetchData();
-  }, [fetchData]);
+    fetchComplectData();
+  }, [fetchComplectData]);
 
   const handleFilteredData = useCallback(() => {
-    if (data) {
-      return data.sort((a, b) => {
+    if (complectTemplates) {
+      return complectTemplates.sort((a, b) => {
         const priority: Record<string, number> = {
           [TemplateStatusEnum.UNLOADED]: 1,
         };
@@ -69,7 +77,7 @@ export const CreateRpdTemplateFrom1CExchange: FC<TemplateConstructorType> = () =
       });
     }
     return [];
-  }, [data]);
+  }, [complectTemplates]);
 
   const handleChange = useCallback(
     (templateId: number) => (event: SelectChangeEvent) => {
@@ -104,14 +112,14 @@ export const CreateRpdTemplateFrom1CExchange: FC<TemplateConstructorType> = () =
         if (response.data === "record exists") showErrorMessage("Ошибка. Шаблон с текущими данными уже существует");
         if (response.data === "template created") {
           showSuccessMessage("Шаблон успешно создан");
-          fetchData();
+          fetchComplectData();
         }
       } catch (error) {
         showErrorMessage("Ошибка. Не удалось создать шаблон");
         console.error(error);
       }
     },
-    [selectedTeachers, complectId, selectedTemplateData.year, userName, fetchData]
+    [selectedTeachers, complectId, selectedTemplateData.year, userName, fetchComplectData]
   );
 
   const filteredData = useMemo(() => handleFilteredData(), [handleFilteredData]);
@@ -194,14 +202,14 @@ export const CreateRpdTemplateFrom1CExchange: FC<TemplateConstructorType> = () =
                 id={row.original.id_profile_template}
                 teacher={row.original.teacher}
                 status={row.original.status.status}
-                fetchData={fetchData}
+                fetchData={fetchComplectData}
               />
             )}
           </Box>
         ),
       },
     ],
-    [selectedTeachers, handleChange, createTemplateData, fetchData]
+    [selectedTeachers, handleChange, createTemplateData, fetchComplectData]
   );
 
   const table = useMaterialReactTable<TemplateData>({
@@ -232,14 +240,14 @@ export const CreateRpdTemplateFrom1CExchange: FC<TemplateConstructorType> = () =
     ),
   });
 
-  if (!data) return <Loader />;
+  if (!complectMeta) return <Loader />;
 
   return (
     <Box>
-      <PageTitle title={`${selectedTemplateData.profile} ${selectedTemplateData.year}`} backButton />
+      <PageTitle title={`${complectMeta.profile} ${complectMeta.year}`} backButton />
       <Box pt={2}>
         <MaterialReactTable table={table} />
       </Box>
     </Box>
   );
-};
+}

@@ -21,6 +21,7 @@ module.exports = {
   rules: {
     "@typescript-eslint/no-unused-vars": "warn",
     "react-refresh/only-export-components": ["warn", { allowConstantExport: true }],
+    "react-hooks/exhaustive-deps": ["off"],
     "prettier/prettier": [
       "error",
       {
@@ -32,5 +33,6 @@ module.exports = {
     quotes: ["error", "double", { avoidEscape: true }],
     "import/order": ["off"],
     "import/no-internal-modules": ["off"],
+    "eslintboundaries/element-types": ["off"],
   },
 };

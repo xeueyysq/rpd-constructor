@@ -1,9 +1,9 @@
 import { ChangeRpdTemplate } from "@features/change-rpd-template";
 import { TemplateConstructor } from "@features/create-rpd-template";
-import { CreateRpdTemplateFrom1CExchange } from "@features/create-rpd-template-from-1c-exchange";
 import { CreateRpdTemplateFromYear } from "@features/create-rpd-template-from-year";
 import { Selectors } from "@features/select-template-data";
 import { Box } from "@mui/material";
+import RpdComplectPage from "@pages/rpd-complect";
 import { useStore } from "@shared/hooks";
 import { PageTitle } from "@shared/ui";
 import { FC } from "react";
@@ -25,7 +25,7 @@ export const Manager: FC = () => {
         {managerPage === "workingType" && <TemplateConstructor setChoise={setManagerPage} />}
         {managerPage === "changeTemplate" && <ChangeRpdTemplate setChoise={setManagerPage} />}
         {managerPage === "createTemplateFromCurrentYear" && <CreateRpdTemplateFromYear setChoise={setManagerPage} />}
-        {managerPage === "createTemplateFromExchange" && <CreateRpdTemplateFrom1CExchange setChoise={setManagerPage} />}
+        {managerPage === "createTemplateFromExchange" && <RpdComplectPage />}
       </Box>
     </Box>
   );

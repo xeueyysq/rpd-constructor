@@ -1,30 +1,57 @@
+import { useAuth } from "@entities/auth";
 import Box from "@mui/material/Box";
 import Drawer from "@mui/material/Drawer";
 import Toolbar from "@mui/material/Toolbar";
-import { Header } from "@widgets/header";
-import { FC } from "react";
-import { Outlet } from "react-router-dom";
-import { MainTabsList } from "@widgets/tabs-list";
-import { RpdList } from "@widgets/rpd-list";
-import { useState } from "react";
 import { TeacherRpdListItems } from "@pages/teacher-interface/model/teacherInterfaceItems";
-import { useEffect } from "react";
-import { TeacherTabsList } from "@widgets/tabs-list";
+import { UserRole } from "@shared/ability";
+import { RedirectPath } from "@shared/enums";
 import { useStore } from "@shared/hooks";
-interface ClippedDrawerProps {
-  page: string;
-}
+import { Header } from "@widgets/header";
+import { RpdList } from "@widgets/rpd-list";
+import { MainTabsList, TeacherTabsList } from "@widgets/tabs-list";
+import { useEffect, useMemo, useState } from "react";
+import { Outlet, useLocation } from "react-router-dom";
 
-export const ClippedDrawer: FC<ClippedDrawerProps> = ({ page }) => {
-  // const userRole = useAuth.getState().userRole;
+export function ClippedDrawer() {
+  const userRole = useAuth((state) => state.userRole);
+  const location = useLocation();
+  const path = location.pathname;
   const [setChoise] = useState<string>("coverPage");
   const [drawerWidth, setDrawerWidth] = useState<number>(290);
   const { isDrawerOpen } = useStore();
 
+  //@TODO Костыль на определение страницы
+  const isTemplatePage = useMemo(
+    () =>
+      path.includes(RedirectPath.TEMPLATES) && path.split("/").filter((part) => part && !isNaN(Number(part))).length,
+    [path]
+  );
+
+  const page = useMemo(() => {
+    if (isTemplatePage) return "template";
+    switch (userRole) {
+      case UserRole.ROP:
+      case UserRole.ADMIN:
+        return "main";
+      case UserRole.TEACHER:
+        return "teacher";
+      default:
+        break;
+    }
+  }, [userRole, path]);
+
+  const switchMap = {
+    main: <MainTabsList />,
+    teacher: <TeacherTabsList />,
+    template: <RpdList setChoise={() => setChoise} RpdListItems={TeacherRpdListItems} />,
+  };
+
   useEffect(() => {
-    if (page === "template") setDrawerWidth(430);
+    if (isTemplatePage) setDrawerWidth(430);
     else setDrawerWidth(290);
   }, [page]);
+
+  if (path === RedirectPath.SIGN_IN) return <Outlet />;
 
   return (
     <Box sx={{ position: "relative", minHeight: "100vh" }}>
@@ -70,9 +97,7 @@ export const ClippedDrawer: FC<ClippedDrawerProps> = ({ page }) => {
             overflow: "hidden",
           }}
         >
-          {page === "teacher" && <TeacherTabsList />}
-          {page === "main" && <MainTabsList />}
-          {page === "template" && <RpdList setChoise={() => setChoise} RpdListItems={TeacherRpdListItems} />}
+          {switchMap[page as keyof typeof switchMap]}
         </Box>
       </Drawer>
       <Box
@@ -90,4 +115,4 @@ export const ClippedDrawer: FC<ClippedDrawerProps> = ({ page }) => {
       </Box>
     </Box>
   );
-};
+}

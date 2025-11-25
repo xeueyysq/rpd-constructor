@@ -20,7 +20,7 @@ export const MainTabsList: FC = () => {
     <Box sx={{ overflow: "auto" }}>
       <List>
         {mainTabs.map((value) => {
-          const isAdminOnly = value.name === "Пользователи" || value.name === "Список компетенций";
+          const isAdminOnly = value.name === "Пользователи";
 
           if (isAdminOnly) {
             return (
