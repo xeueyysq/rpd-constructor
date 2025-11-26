@@ -5,38 +5,189 @@ class Rpd1cExchange {
     this.pool = pool;
   }
 
-  async setResultsData(data) {
+  async setResultsData(data, complectId) {
+    if (!complectId) {
+      throw new Error("Не указан идентификатор комплекта");
+    }
+
+    if (!Array.isArray(data)) {
+      throw new Error("Некорректный формат данных компетенций");
+    }
+
+    const client = await this.pool.connect();
+
     try {
-      console.log(data);
-      const existingTemplates = await this.pool.query(
-        `SELECT id, disciplins_name, competencies FROM rpd_profile_templates`
+      await client.query("BEGIN");
+
+      const { rows: setRows } = await client.query(
+        `
+          INSERT INTO planned_results_sets (complect_id)
+          VALUES ($1)
+          ON CONFLICT (complect_id)
+          DO UPDATE SET complect_id = EXCLUDED.complect_id
+          RETURNING id
+        `,
+        [complectId]
       );
 
-      for (const row of Object.values(data)) {
-        for (const template of existingTemplates.rows) {
-          if (row.disciplines.includes(template.disciplins_name)) {
-            if (!Array.isArray(template.competencies)) {
-              template.competencies = [];
-            }
+      const setId = setRows[0]?.id;
 
-            const exists = template.competencies.some(
-              (comp) => comp.competence === row.competence
-            );
+      if (!setId) {
+        throw new Error("Не удалось создать набор планируемых результатов");
+      }
 
-            template.competencies.push({
-              competence: exists ? "" : row.competence,
-              indicator: row.indicator,
-              results: { know: "", beAble: "", own: "" },
-            });
-            await this.pool.query(
-              `UPDATE rpd_profile_templates 
-                 SET competencies = $1 
-                 WHERE id = $2`,
-              [JSON.stringify(template.competencies), template.id]
-            );
-          }
+      await client.query(
+        `
+          DELETE FROM planned_competencies
+          WHERE set_id = $1
+        `,
+        [setId]
+      );
+
+      const competenciesMap = new Map();
+
+      for (const row of data) {
+        if (!row) continue;
+
+        const competenceText =
+          typeof row.competence === "string" ? row.competence.trim() : "";
+        const indicatorText =
+          typeof row.indicator === "string" ? row.indicator.trim() : "";
+        const disciplines = Array.isArray(row.disciplines)
+          ? row.disciplines
+          : [];
+
+        if (!competenceText || !indicatorText) {
+          continue;
+        }
+
+        let competenceRecord = competenciesMap.get(competenceText);
+
+        if (!competenceRecord) {
+          const {
+            rows: competenceRows,
+          } = await client.query(
+            `
+              INSERT INTO planned_competencies (set_id, competence)
+              VALUES ($1, $2)
+              RETURNING id
+            `,
+            [setId, competenceText]
+          );
+
+          competenceRecord = {
+            id: competenceRows[0]?.id,
+            indicators: new Map(),
+          };
+
+          competenciesMap.set(competenceText, competenceRecord);
+        }
+
+        if (!competenceRecord?.id) {
+          throw new Error(
+            "Не удалось сохранить компетенцию при загрузке данных"
+          );
+        }
+
+        let indicatorRecord = competenceRecord.indicators.get(indicatorText);
+
+        if (!indicatorRecord) {
+          const {
+            rows: indicatorRows,
+          } = await client.query(
+            `
+              INSERT INTO planned_indicators (competence_id, indicator)
+              VALUES ($1, $2)
+              RETURNING id
+            `,
+            [competenceRecord.id, indicatorText]
+          );
+
+          indicatorRecord = { id: indicatorRows[0]?.id };
+          competenceRecord.indicators.set(indicatorText, indicatorRecord);
+        }
+
+        if (!indicatorRecord?.id) {
+          throw new Error(
+            "Не удалось сохранить индикатор при загрузке данных"
+          );
+        }
+
+        const uniqueDisciplines = [
+          ...new Set(
+            disciplines
+              .filter((discipline) => typeof discipline === "string")
+              .map((discipline) => discipline.trim())
+              .filter(Boolean)
+          ),
+        ];
+
+        for (const discipline of uniqueDisciplines) {
+          await client.query(
+            `
+              INSERT INTO planned_indicator_disciplines (indicator_id, discipline)
+              VALUES ($1, $2)
+            `,
+            [indicatorRecord.id, discipline]
+          );
         }
       }
+
+      await client.query("COMMIT");
+      return { setId };
+    } catch (error) {
+      await client.query("ROLLBACK");
+      console.log(error);
+      throw error;
+    } finally {
+      client.release();
+    }
+  }
+
+  async getResultsData(complectId) {
+    if (!complectId) {
+      throw new Error("Не указан идентификатор комплекта");
+    }
+
+    try {
+      const { rows } = await this.pool.query(
+        `
+          SELECT 
+            c.id AS competence_id,
+            c.competence,
+            i.id AS indicator_id,
+            i.indicator,
+            d.discipline
+          FROM planned_results_sets prs
+          JOIN planned_competencies c ON c.set_id = prs.id
+          JOIN planned_indicators i ON i.competence_id = c.id
+          LEFT JOIN planned_indicator_disciplines d ON d.indicator_id = i.id
+          WHERE prs.complect_id = $1
+          ORDER BY c.id, i.id, d.id
+        `,
+        [complectId]
+      );
+
+      const indicatorsMap = new Map();
+      const orderedResults = [];
+
+      for (const row of rows) {
+        if (!indicatorsMap.has(row.indicator_id)) {
+          const entry = {
+            competence: row.competence,
+            indicator: row.indicator,
+            disciplines: [],
+          };
+          indicatorsMap.set(row.indicator_id, entry);
+          orderedResults.push(entry);
+        }
+
+        if (row.discipline) {
+          indicatorsMap.get(row.indicator_id).disciplines.push(row.discipline);
+        }
+      }
+
+      return orderedResults;
     } catch (error) {
       console.log(error);
       throw error;

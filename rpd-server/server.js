@@ -20,9 +20,14 @@ app.use(express.json());
 app.use(bodyParser.urlencoded({ extended: true }));
 
 const allowedOrigins = [
-  "https://rpd-uni-dubna.ru",
-  "https://www.rpd-uni-dubna.ru",
-  "https://api.rpd-uni-dubna.ru",
+  "http://localhost:5173",
+  "http://localhost:8000",
+  "http://localhost:8080",
+  "http://localhost",
+  "http://localhost:80",
+  "http://localhost:5432",
+  CLIENT_URL,
+  API_URL,
 ];
 
 // CORS Middleware

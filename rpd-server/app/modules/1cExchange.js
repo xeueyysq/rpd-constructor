@@ -4,7 +4,7 @@ const moment = require("moment");
 
 const apiUrl = "https://1c-api.uni-dubna.ru/v1/api/persons/reports";
 
-async function exchange1C(apiData) {
+async function exchange1C(apiData, { userId } = {}) {
   try {
     const disc = await fetchUpLink(apiData);
     const upLinks = disc[0].upLink;
@@ -14,6 +14,9 @@ async function exchange1C(apiData) {
       })
     );
     const RpdComplectId = await createRpdComplect(apiData);
+    if (userId) {
+      await insertUserComplectId(userId, RpdComplectId);
+    }
     await processDisciplines(discs, RpdComplectId);
     return RpdComplectId;
   } catch (error) {
@@ -210,6 +213,16 @@ const insertStatusHistory = async (templateId) => {
     VALUES ($1, $2)
     `,
     [templateId, JSON.stringify(history)]
+  );
+};
+
+const insertUserComplectId = async (userId, complectId) => {
+  await pool.query(
+    `
+    INSERT INTO user_complect (user_id, complect_id)
+    VALUES ($1, $2)
+    `,
+    [userId, complectId]
   );
 };
 
