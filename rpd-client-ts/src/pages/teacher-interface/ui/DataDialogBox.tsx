@@ -10,15 +10,16 @@ import {
   DialogContentText,
   Collapse,
   Box,
-  Typography,
   IconButton,
   Alert,
 } from "@mui/material";
-import { useState, useRef } from "react";
+import { useState, useRef, useCallback } from "react";
 import { ExpandMore, ExpandLess } from "@mui/icons-material";
 import { getTemplateField } from "../model/api";
 import { useQuery } from "@tanstack/react-query";
 import CircularProgress from "@mui/material/CircularProgress";
+import { DisciplineContentTable } from "./changeable-elements/DisciplineContentTable";
+import { DisciplineContentData } from "../model/DisciplineContentPageTypes";
 
 interface TemplateObject {
   id: number | undefined;
@@ -38,8 +39,8 @@ interface DataDialogBoxProps {
 
 export function DataDialogBox(props: DataDialogBoxProps) {
   const { onClose, open, options, title, fieldName, ...other } = props;
-  const [value, setValue] = useState<string | number>();
-  const [expandedItems, setExpandedItems] = useState<Set<number>>(new Set());
+  const [value, setValue] = useState<string | number | null>();
+  const [expandedItems, setExpandedItems] = useState<Set<number> | null>(new Set());
   const radioGroupRef = useRef<HTMLElement>(null);
 
   const ids = options.map((option) => option.id!).filter(Boolean);
@@ -66,10 +67,23 @@ export function DataDialogBox(props: DataDialogBoxProps) {
 
   const handleCancel = () => {
     onClose(other.id);
+    setExpandedItems(null);
+    setValue(null);
   };
 
   const handleOk = () => {
-    onClose(other.id, typeof value === "string" ? parseInt(value) : value);
+    let parsedValue: number | undefined;
+    if (value !== null && value !== undefined) {
+      if (typeof value === "string") {
+        const num = parseInt(value);
+        parsedValue = isNaN(num) ? undefined : num;
+      } else {
+        parsedValue = value as number;
+      }
+    }
+    onClose(other.id, parsedValue);
+    setExpandedItems(null);
+    setValue(null);
   };
 
   const handleChange = (event: React.ChangeEvent<HTMLInputElement>) => {
@@ -86,16 +100,23 @@ export function DataDialogBox(props: DataDialogBoxProps) {
     setExpandedItems(newExpandedItems);
   };
 
+  const getCurrentFieldData = useCallback(
+    (option: TemplateObject) =>
+      fieldData?.find((row) => row.id === option.id)?.[fieldName as keyof (typeof fieldData)[0]],
+    [fieldData, fieldName]
+  );
+
   return (
     <Dialog
       sx={{
         "& .MuiDialog-paper": {
-          width: "80%",
-          maxHeight: 435,
+          maxHeight: 600,
         },
       }}
+      maxWidth={"md"}
       TransitionProps={{ onEntering: handleEntering }}
       open={open}
+      onClose={handleCancel}
       {...other}
     >
       <DialogTitle>{title}</DialogTitle>
@@ -121,19 +142,11 @@ export function DataDialogBox(props: DataDialogBoxProps) {
                     label={`${option.text} (${option.year})`}
                     sx={{ flex: 1 }}
                   />
-                  <IconButton
-                    size="small"
-                    onClick={() => handleToggleExpand(option.id!)}
-                    sx={{ ml: 1 }}
-                  >
-                    {expandedItems.has(option.id!) ? (
-                      <ExpandLess />
-                    ) : (
-                      <ExpandMore />
-                    )}
+                  <IconButton onClick={() => handleToggleExpand(option.id!)} sx={{ ml: 1 }}>
+                    {expandedItems?.has(option.id!) ? <ExpandLess /> : <ExpandMore />}
                   </IconButton>
                 </Box>
-                <Collapse in={expandedItems.has(option.id!)}>
+                <Collapse in={expandedItems?.has(option.id!)}>
                   <Box
                     sx={{
                       p: 2,
@@ -151,16 +164,20 @@ export function DataDialogBox(props: DataDialogBoxProps) {
                       <Alert severity="error" sx={{ mb: 1 }}>
                         Ошибка загрузки данных: {error.message}
                       </Alert>
+                    ) : typeof getCurrentFieldData(option) === "object" && getCurrentFieldData(option) !== null ? (
+                      <Box>
+                        <DisciplineContentTable
+                          readOnly
+                          tableData={getCurrentFieldData(option) as DisciplineContentData}
+                        />
+                      </Box>
                     ) : (
                       <Box
                         dangerouslySetInnerHTML={{
-                          __html:
-                            fieldData?.find((row) => row.id === option.id)?.[
-                              fieldName as keyof (typeof fieldData)[0]
-                            ] || "Нет данных для отображения",
+                          __html: getCurrentFieldData(option) || "Нет данных для отображения",
                         }}
                         color="text.secondary"
-                      ></Box>
+                      />
                     )}
                   </Box>
                 </Collapse>
@@ -176,7 +193,7 @@ export function DataDialogBox(props: DataDialogBoxProps) {
           Отмена
         </Button>
         {options.length ? (
-          <Button variant="contained" onClick={handleOk}>
+          <Button disabled={!value} variant="contained" onClick={handleOk}>
             Выгрузить
           </Button>
         ) : null}

@@ -4,12 +4,13 @@ import { useNavigate } from "react-router-dom";
 
 const HeaderLogo: FC = () => {
   const navigate = useNavigate();
+
   return (
-    <Box sx={{ px: 1 }} alignItems={"center"} alignItems={"center"}>
+    <Box sx={{ px: 1 }} alignItems={"center"}>
       <Button
         // type="overline"
         // display="block"
-        onClick={() => navigate("/complects")}
+        onClick={() => navigate("/")}
         sx={{
           color: "white",
           fontWeight: "600",

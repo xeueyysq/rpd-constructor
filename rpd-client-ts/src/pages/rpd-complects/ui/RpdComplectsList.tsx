@@ -1,50 +1,30 @@
-import { FC, useEffect, useState, useMemo, useCallback } from "react";
-import {
-  Box,
-  Button,
-  Dialog,
-  DialogTitle,
-  DialogContent,
-  DialogActions,
-  CssBaseline,
-  IconButton,
-} from "@mui/material";
-import { useNavigate, useLocation } from "react-router-dom";
-import { axiosBase } from "@shared/api";
-import { Loader } from "@shared/ui";
-import { useStore } from "@shared/hooks";
-import VisibilityIcon from "@mui/icons-material/Visibility";
-import { showErrorMessage } from "@shared/lib";
-import type { RpdComplect } from "../model";
-import { CreateRpdTemplateFrom1CExchange } from "@features/create-rpd-template-from-1c-exchange";
-import {
-  MaterialReactTable,
-  useMaterialReactTable,
-  type MRT_ColumnDef,
-  MRT_TableInstance,
-} from "material-react-table";
-import { MRT_Localization_RU } from "material-react-table/locales/ru";
 import CachedIcon from "@mui/icons-material/Cached";
+import FiberManualRecordIcon from "@mui/icons-material/FiberManualRecord";
+import { Box, Breadcrumbs, Button, CssBaseline } from "@mui/material";
+import { axiosBase } from "@shared/api";
+import { RedirectPath } from "@shared/enums";
+import { useStore } from "@shared/hooks";
+import { showErrorMessage, showWarningMessage } from "@shared/lib";
+import type { ComplectData } from "@shared/types";
+import { Loader, PageTitle } from "@shared/ui";
+import { WarningDeleteDialog } from "@widgets/dialogs/ui";
+import { orderBy } from "lodash";
+import { MaterialReactTable, useMaterialReactTable, type MRT_ColumnDef } from "material-react-table";
+import { MRT_Localization_RU } from "material-react-table/locales/ru";
+import { FC, useCallback, useEffect, useMemo, useState } from "react";
+import { useNavigate } from "react-router-dom";
 
 export const RpdComplectsList: FC = () => {
-  const [open, setOpen] = useState<boolean>(false);
-  const [complects, setComplects] = useState<RpdComplect[]>([]);
+  const [openDeleteConfirm, setOpenDeleteConfirm] = useState<boolean>(false);
+  const [complects, setComplects] = useState<ComplectData[]>([]);
   const [loading, setLoading] = useState(true);
-  const [showTemplates, setShowTemplates] = useState(false);
-  const { setComplectId, setSelectedTemplateData } = useStore();
+  const { setComplectId } = useStore();
   const navigate = useNavigate();
-  const location = useLocation();
   const [rowSelection, setRowSelection] = useState<Record<string, boolean>>({});
 
   useEffect(() => {
     fetchComplects();
   }, []);
-
-  useEffect(() => {
-    if (!location.hash) {
-      setShowTemplates(false);
-    }
-  }, [location.hash]);
 
   const fetchComplects = async () => {
     try {
@@ -69,163 +49,147 @@ export const RpdComplectsList: FC = () => {
   };
 
   const handleViewComplect = useCallback(
-    (complect: RpdComplect) => {
-      setSelectedTemplateData(
-        complect.faculty,
-        complect.levelEducation,
-        complect.directionOfStudy,
-        complect.profile,
-        complect.formEducation,
-        complect.year
-      );
+    (complect: ComplectData) => {
+      navigate(`${RedirectPath.COMPLECTS}/${complect.id}`);
       setComplectId(complect.id);
-      setShowTemplates(true);
-
-      const hashFragment = `${complect.profile} ${complect.year}`;
-      navigate(`/complects#${encodeURIComponent(hashFragment)}`);
     },
-    [setComplectId, setSelectedTemplateData, navigate]
+    [setComplectId, navigate]
   );
 
-  const columns = useMemo<MRT_ColumnDef<RpdComplect>[]>(
+  const sortedComplectsByYear = useMemo(() => orderBy(complects, ["profile", "year"], ["asc", "asc"]), [complects]);
+
+  const columns = useMemo<MRT_ColumnDef<ComplectData>[]>(
     () => [
-      {
-        accessorKey: "faculty",
-        header: "Институт",
-      },
-      {
-        accessorKey: "levelEducation",
-        header: "Уровень \nобразования",
-        size: 10,
-      },
-      {
-        accessorKey: "directionOfStudy",
-        header: "Направление",
-      },
       {
         accessorKey: "profile",
         header: "Профиль",
+        Cell: ({ table, row }) => {
+          const rows = table.getRowModel().rows;
+          const prev = rows[row.index - 1];
+          return prev && prev.original.profile === row.original.profile ? null : row.original.profile;
+        },
       },
       {
         accessorKey: "formEducation",
         header: "Форма обучения",
-        size: 10,
+        size: 30,
       },
       {
         accessorKey: "year",
         header: "Год набора",
-        size: 10,
+        size: 20,
       },
       {
-        accessorKey: "action",
-        header: "Действие",
+        accessorKey: "actions",
+        header: "",
+        enableSorting: false,
+        enableColumnActions: false,
+        enableColumnFilter: false,
+        size: 200,
         Cell: ({ row }) => (
-          <Button
-            variant="contained"
-            size="small"
-            startIcon={<VisibilityIcon />}
-            onClick={() => handleViewComplect(row.original)}
-          >
-            Просмотр
-          </Button>
+          <Breadcrumbs separator={"/"}>
+            {[
+              <Button sx={{ textDecoration: "underline" }} onClick={() => handleViewComplect(row.original)}>
+                Комплект рпд
+              </Button>,
+              <Button
+                sx={{ textDecoration: "underline" }}
+                onClick={() => {
+                  const originalRow = row.original;
+                  navigate(RedirectPath.PLANNED_RESULTS, {
+                    state: {
+                      profile: originalRow.profile,
+                      formEducation: originalRow.formEducation,
+                      year: originalRow.year,
+                    },
+                  });
+                }}
+              >
+                Компетенции
+              </Button>,
+            ]}
+          </Breadcrumbs>
         ),
       },
     ],
-    [handleViewComplect]
+    [handleViewComplect, navigate]
   );
 
-  const table = useMaterialReactTable<RpdComplect>({
+  const table = useMaterialReactTable<ComplectData>({
     columns,
-    data: complects,
+    data: sortedComplectsByYear,
     localization: MRT_Localization_RU,
+    enableFilters: false,
+    enableSorting: false,
     muiTableProps: {
       size: "small",
       sx: { px: 2 },
     },
     muiTableBodyCellProps: ({ column }) => ({
-      sx:
-        column.id === "mrt-row-select"
-          ? { paddingRight: 0, paddingLeft: 0 }
-          : { py: 0.5, px: 0.5 },
+      sx: column.id === "mrt-row-select" ? { paddingRight: 0, paddingLeft: 0 } : { py: 0.5, px: 0.5 },
     }),
     muiTableHeadCellProps: ({ column }) => ({
-      sx:
-        column.id === "mrt-row-select"
-          ? { paddingRight: 0, paddingLeft: 0 }
-          : { py: 0.5, px: 0.5 },
+      sx: column.id === "mrt-row-select" ? { paddingRight: 0, paddingLeft: 0 } : { py: 0.5, px: 0.5 },
     }),
     enableRowSelection: true,
-    renderToolbarAlertBannerContent: ({ table }) => (
-      <Box
-        sx={{
-          display: "flex",
-          px: 2,
-          gap: "8px",
-        }}
-      >
-        <Button onClick={() => table.resetRowSelection()}>
-          Очистить выбор
-        </Button>
-
-        <Button color="error" onClick={() => setOpen(true)}>
-          Удалить
-        </Button>
-      </Box>
-    ),
+    renderTopToolbarCustomActions: ({ table }) => {
+      const selectedRowsCount = Object.values(table.getState().rowSelection).length;
+      return (
+        <Box
+          sx={{
+            display: "flex",
+            px: 1.5,
+            pt: 0.5,
+            gap: "12px",
+          }}
+        >
+          <Button
+            variant="contained"
+            startIcon={<CachedIcon />}
+            onClick={() => {
+              if (!selectedRowsCount) showWarningMessage("Выберите комплект для обновления");
+            }}
+          >
+            Обновить комплект
+          </Button>
+          {!!selectedRowsCount && <Button color="error">Удалить</Button>}
+        </Box>
+      );
+    },
+    positionToolbarAlertBanner: "none",
     onRowSelectionChange: setRowSelection,
     state: { rowSelection },
   });
 
   if (loading) return <Loader />;
 
-  if (showTemplates) {
-    return (
-      <CreateRpdTemplateFrom1CExchange
-        setChoise={() => setShowTemplates(false)}
-      />
-    );
-  }
-
   const handleConfirm = async () => {
-    const currentSelectedIds = Object.keys(rowSelection).map(
-      (id) => complects[Number(id)].id
-    );
-    setOpen(false);
+    const currentSelectedIds = Object.keys(rowSelection).map((id) => sortedComplectsByYear[Number(id)].id);
+    setOpenDeleteConfirm(false);
     await deleteComplect(currentSelectedIds);
   };
 
   return (
-    <Box pl={3}>
+    <Box>
       <CssBaseline />
-      <Box fontSize={"1.5rem"} sx={{ py: 1 }}>
-        Список загруженных комплектов РПД
+      <PageTitle title={"Список загруженных комплектов РПД"} />
+      <Box py={1}>
+        <Breadcrumbs separator={<FiberManualRecordIcon sx={{ fontSize: 5 }} />}>
+          {[
+            <span>{sortedComplectsByYear[0].directionOfStudy}</span>,
+            <span>{sortedComplectsByYear[0].levelEducation}</span>,
+          ]}
+        </Breadcrumbs>
       </Box>
-      <Box py={2}>
+      <Box pt={2}>
         <MaterialReactTable table={table} />
       </Box>
-      <Dialog open={open} onClose={() => setOpen(false)}>
-        <DialogTitle>Подтверждение</DialogTitle>
-        <DialogContent>
-          Вы уверены, что хотите удалить выбранные комплекты?
-        </DialogContent>
-        <DialogActions>
-          <Button
-            size="small"
-            variant="contained"
-            onClick={() => setOpen(false)}
-          >
-            Отмена
-          </Button>
-          <Button
-            size="small"
-            variant="contained"
-            color="error"
-            onClick={handleConfirm}
-          >
-            Удалить
-          </Button>
-        </DialogActions>
-      </Dialog>
+      <WarningDeleteDialog
+        open={openDeleteConfirm}
+        setOpen={setOpenDeleteConfirm}
+        onAccept={handleConfirm}
+        description={"Вы уверены, что хотите удалить выбранные комплекты?"}
+      />
     </Box>
   );
 };

@@ -7,6 +7,7 @@ export type Subjects =
   | "rop_interface"
   | "teacher_interface"
   | "change_templates"
-  | "competencies";
+  | "competencies"
+  | "admin_tabs";
 
 export type AppAbility = Ability<[Actions, Subjects]>;

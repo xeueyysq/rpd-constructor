@@ -1,5 +1,7 @@
-import { useState } from "react";
+import { TableCell } from "@mui/material";
 import { Results } from "@pages/teacher-interface/model/DisciplineContentPageTypes";
+import { useState } from "react";
+import { CellTextArea } from "./CellTextArea";
 
 type PlannedResultsCellProps = {
   value: Results;
@@ -24,49 +26,18 @@ function PlannedResultsCell({ value, onValueChange }: PlannedResultsCellProps) {
     }
   };
 
-  const styles = {
-    resize: "none" as const,
-    fontFamily: "Times New Roman",
-    fontSize: 16,
-    overflow: "hidden",
-    minHeight: "50px",
-    padding: "5px",
-    border: "1px solid #ccc",
-    borderRadius: "4px",
-    boxSizing: "border-box" as const,
+  const cellTitles = {
+    know: "Знать",
+    beAble: "Уметь",
+    own: "Владеть",
   };
 
   return (
-    <div
-      style={{
-        display: "flex",
-        flexDirection: "column",
-        fontFamily: "Times New Roman",
-        fontSize: 16,
-      }}
-    >
-      <u>Знать:</u>
-      <textarea
-        id="know"
-        value={inputValue.know}
-        onChange={(e) => handleInputChange("know", e.target.value)}
-        style={styles}
-      />
-      <u>Уметь:</u>
-      <textarea
-        id="beAble"
-        value={inputValue.beAble}
-        onChange={(e) => handleInputChange("beAble", e.target.value)}
-        style={styles}
-      />
-      <u>Владеть:</u>
-      <textarea
-        id="own"
-        value={inputValue.own}
-        onChange={(e) => handleInputChange("own", e.target.value)}
-        style={styles}
-      />
-    </div>
+    <TableCell>
+      {Object.entries(inputValue).map(([key, value]) => {
+        return <CellTextArea title={cellTitles[key as keyof typeof cellTitles]} value={value} onChange={handleInputChange} fieldKey={key} />;
+      })}
+    </TableCell>
   );
 }
 

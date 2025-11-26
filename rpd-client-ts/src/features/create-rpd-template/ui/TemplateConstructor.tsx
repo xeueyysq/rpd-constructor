@@ -1,24 +1,21 @@
-import { FC, useCallback, useEffect, useState } from "react";
-import { useStore } from "@shared/hooks";
-import { Box, Button, CircularProgress } from "@mui/material";
 import { TemplateConstructorType } from "@entities/template";
-import { templateDataTitles } from "../model/templateDataTitles.ts";
-import { Loader } from "@shared/ui";
+import { Box, Button, CircularProgress } from "@mui/material";
 import { axiosBase } from "@shared/api";
+import { useStore } from "@shared/hooks";
 import { showErrorMessage, showSuccessMessage } from "@shared/lib";
+import { Loader } from "@shared/ui";
 import { isAxiosError } from "axios";
+import { FC, useCallback, useEffect, useState } from "react";
+import { useNavigate } from "react-router-dom";
+import { templateDataTitles } from "../model/templateDataTitles.ts";
+import { RedirectPath } from "@shared/enums.ts";
 
-export const TemplateConstructor: FC<TemplateConstructorType> = ({
-  setChoise,
-}) => {
+export const TemplateConstructor: FC<TemplateConstructorType> = ({ setChoise }) => {
   const selectedTemplateData = useStore.getState().selectedTemplateData;
-  const { setComplectId } = useStore();
-  const [createComplectStatus, setCreateComplectStatus] =
-    useState<string>("pending");
-  const [isFindComplect, setIsFindComplect] = useState<boolean | undefined>(
-    undefined
-  );
-  const { setTabState } = useStore();
+  const { setComplectId, complectId } = useStore();
+  const [createComplectStatus, setCreateComplectStatus] = useState<string>("pending");
+  const [isFindComplect, setIsFindComplect] = useState<boolean | undefined>(undefined);
+  const navigate = useNavigate();
 
   const createRpdComplect = async () => {
     try {
@@ -58,20 +55,21 @@ export const TemplateConstructor: FC<TemplateConstructorType> = ({
     }
   }, [selectedTemplateData, setComplectId]);
 
-  const handleChangePage = () => {
-    setChoise("createTemplateFromExchange");
-    setTabState("createTemplateFromExchange", true);
-  };
-
   useEffect(() => {
     fetchData();
   }, [fetchData]);
 
+  function BackButton({ text }: { text: string }) {
+    return (
+      <Button sx={{ mr: 1 }} variant="outlined" onClick={() => setChoise("selectData")}>
+        {text}
+      </Button>
+    );
+  }
+
   return (
     <>
-      <Box sx={{ py: 2, fontSize: "18px", fontWeight: "600" }}>
-        Выбранные данные:
-      </Box>
+      <Box sx={{ py: 2, fontSize: "18px", fontWeight: "600" }}>Выбранные данные:</Box>
       {Object.entries(selectedTemplateData).map(([key, value]) => (
         <Box sx={{ pl: "40px" }} key={key}>
           <Box component="span" sx={{ fontWeight: "600" }}>
@@ -88,37 +86,27 @@ export const TemplateConstructor: FC<TemplateConstructorType> = ({
             <Box sx={{ py: 2 }}>
               {createComplectStatus === "pending" && (
                 <Box>
-                  <Button
-                    variant="contained"
-                    size="small"
-                    onClick={() => createRpdComplect()}
-                  >
-                    Создать шаблон
-                  </Button>
-                  <Box color={"orange"} fontWeight={"bold"}>
-                    Пожалуйста, проверьте данные шаблона.
+                  <Box color={"orange"} fontWeight={"bold"} pb={2}>
+                    Пожалуйста, проверьте данные комплекта РПД
                   </Box>
+                  <BackButton text="Назад" />
+                  <Button variant="contained" onClick={() => createRpdComplect()}>
+                    Создать комплект
+                  </Button>
                 </Box>
               )}
               {createComplectStatus === "loading" && (
                 <Box sx={{ p: 1, display: "flex" }}>
                   <CircularProgress color="inherit" size="1rem" />
-                  <Box sx={{ px: 1 }}>
-                    Идет поиск комплекта РПД. Это может занять какое-то время
-                  </Box>
+                  <Box sx={{ px: 1 }}>Идет поиск комплекта РПД. Это может занять какое-то время</Box>
                 </Box>
               )}
-              {createComplectStatus === "error" && (
-                <Box color={"red"}>Сервис 1С временно недоступен</Box>
-              )}
+              {createComplectStatus === "error" && <Box color={"red"}>Сервис 1С временно недоступен</Box>}
               {createComplectStatus === "success" && (
                 <Box>
-                  <Box>Шаблон создан успешно. Перейти к редактированию?</Box>
-                  <Button
-                    variant="contained"
-                    size="small"
-                    onClick={() => setChoise("createTemplateFromExchange")}
-                  >
+                  <Box pb={2}>Комплект РПД создан успешно. Перейти к редактированию?</Box>
+                  <BackButton text="Назад" />
+                  <Button variant="contained" onClick={() => navigate(`${RedirectPath.COMPLECTS}/${complectId}`)}>
                     Перейти
                   </Button>
                 </Box>
@@ -133,13 +121,12 @@ export const TemplateConstructor: FC<TemplateConstructorType> = ({
       )}
       <Box display="flex" gap={3}>
         {isFindComplect && (
-          <Button
-            variant="contained"
-            size="small"
-            onClick={() => handleChangePage()}
-          >
-            Перейти к редактированию
-          </Button>
+          <Box>
+            <BackButton text="Назад" />
+            <Button variant="contained" onClick={() => navigate(`${RedirectPath.COMPLECTS}/${complectId}`)}>
+              Перейти к редактированию
+            </Button>
+          </Box>
         )}
       </Box>
     </>

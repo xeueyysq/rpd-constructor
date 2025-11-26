@@ -1,25 +1,17 @@
-import {
-  IconButton,
-  ListItemIcon,
-  ListItemText,
-  Menu,
-  MenuItem,
-  Typography,
-} from "@mui/material";
-import { FC, MouseEvent, useState } from "react";
-import MoreHorizIcon from "@mui/icons-material/MoreHoriz";
 import { useAuth } from "@entities/auth";
+import { setTemplateStatus, TemplateStatusEnum } from "@entities/template/index.ts";
+import ForwardToInboxSharpIcon from "@mui/icons-material/ForwardToInboxSharp";
+import HistoryIcon from "@mui/icons-material/History";
+import MoreHorizIcon from "@mui/icons-material/MoreHoriz";
+import OpenInBrowserIcon from "@mui/icons-material/OpenInBrowser";
+import { IconButton, ListItemIcon, ListItemText, Menu, MenuItem, Typography } from "@mui/material";
+import { axiosBase } from "@shared/api";
+import { useStore } from "@shared/hooks";
+import { showErrorMessage, showSuccessMessage } from "@shared/lib";
+import { FC, MouseEvent, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import HistoryModal from "./HistoryModal.tsx";
-import OpenInBrowserIcon from "@mui/icons-material/OpenInBrowser";
-import DeleteForeverIcon from "@mui/icons-material/DeleteForever";
-import HistoryIcon from "@mui/icons-material/History";
-import { axiosBase } from "@shared/api";
-import { showErrorMessage, showSuccessMessage } from "@shared/lib";
-import { useStore } from "@shared/hooks";
-import { TemplateStatusEnum } from "@entities/template/index.ts";
-import ForwardToInboxSharpIcon from "@mui/icons-material/ForwardToInboxSharp";
-import { setTemplateStatus } from "@entities/template/index.ts";
+import { RedirectPath } from "@shared/enums.ts";
 
 interface TemplateMenu {
   id: number;
@@ -53,8 +45,7 @@ const TemplateMenu: FC<TemplateMenu> = ({ id, teacher, status, fetchData }) => {
         userName,
       });
 
-      if (response.data === "UserNotFound")
-        showErrorMessage("Ошибка. Пользователь не найден");
+      if (response.data === "UserNotFound") showErrorMessage("Ошибка. Пользователь не найден");
       if (response.data === "TemplateAlreadyBinned")
         showErrorMessage("Ошибка. Данный шаблон уже отправлен преподавателю");
       if (response.data === "binnedSuccess") {
@@ -63,20 +54,6 @@ const TemplateMenu: FC<TemplateMenu> = ({ id, teacher, status, fetchData }) => {
       }
     } catch (error) {
       showErrorMessage("Ошибка отправки шаблона");
-      console.error(error);
-    }
-  };
-
-  const uploadTemplateData = async () => {
-    try {
-      const response = await axiosBase.post("rpd-profile-templates", {
-        id,
-      });
-      setJsonData(response.data);
-      setTabState("createTemplateFromExchange", true);
-      navigate("/teacher-interface");
-    } catch (error) {
-      showErrorMessage("Ошибка при получении данных");
       console.error(error);
     }
   };
@@ -98,7 +75,6 @@ const TemplateMenu: FC<TemplateMenu> = ({ id, teacher, status, fetchData }) => {
     <>
       <IconButton
         id="basic-button"
-        size="small"
         aria-controls={open ? "basic-menu" : undefined}
         aria-haspopup="true"
         aria-expanded={open ? "true" : undefined}
@@ -115,18 +91,12 @@ const TemplateMenu: FC<TemplateMenu> = ({ id, teacher, status, fetchData }) => {
           "aria-labelledby": "basic-button",
         }}
       >
-        <MenuItem onClick={() => uploadTemplateData()}>
+        <MenuItem onClick={() => navigate(`${RedirectPath.TEMPLATES}/${id}`)}>
           <ListItemIcon>
             <OpenInBrowserIcon />
           </ListItemIcon>
           <ListItemText>
-            <Typography
-              variant="button"
-              display="block"
-              gutterBottom
-              color="grey"
-              m="0"
-            >
+            <Typography variant="button" display="block" gutterBottom color="grey" m="0">
               Открыть
             </Typography>
           </ListItemText>
@@ -154,16 +124,8 @@ const TemplateMenu: FC<TemplateMenu> = ({ id, teacher, status, fetchData }) => {
               <ForwardToInboxSharpIcon />
             </ListItemIcon>
             <ListItemText>
-              <Typography
-                variant="button"
-                display="block"
-                gutterBottom
-                color="grey"
-                m="0"
-              >
-                {status === TemplateStatusEnum.READY
-                  ? "Отправить на доработку"
-                  : "Отправить преподавателю"}
+              <Typography variant="button" display="block" gutterBottom color="grey" m="0">
+                {status === TemplateStatusEnum.READY ? "Отправить на доработку" : "Отправить преподавателю"}
               </Typography>
             </ListItemText>
           </MenuItem>
@@ -189,25 +151,13 @@ const TemplateMenu: FC<TemplateMenu> = ({ id, teacher, status, fetchData }) => {
             <HistoryIcon />
           </ListItemIcon>
           <ListItemText>
-            <Typography
-              variant="button"
-              display="block"
-              gutterBottom
-              color="grey"
-              m="0"
-            >
+            <Typography variant="button" display="block" gutterBottom color="grey" m="0">
               История шаблона
             </Typography>
           </ListItemText>
         </MenuItem>
       </Menu>
-      {history && (
-        <HistoryModal
-          history={history}
-          openDialog={openDialog}
-          setOpenDialog={setOpenDialog}
-        />
-      )}
+      {history && <HistoryModal history={history} openDialog={openDialog} setOpenDialog={setOpenDialog} />}
     </>
   );
 };

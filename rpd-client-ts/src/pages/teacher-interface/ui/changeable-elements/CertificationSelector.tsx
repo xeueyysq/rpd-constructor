@@ -9,8 +9,7 @@ interface SelectorProps {
 }
 
 const CertificationSelector: FC<SelectorProps> = ({ certification }) => {
-  const [valueCertification, setValueCertification] =
-    useState<string>(certification);
+  const [valueCertification, setValueCertification] = useState<string>(certification);
   const { updateJsonData } = useStore();
 
   const handleChange = async (event: SelectChangeEvent<string>) => {

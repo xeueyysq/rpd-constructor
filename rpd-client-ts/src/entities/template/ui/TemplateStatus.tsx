@@ -10,9 +10,9 @@ interface TemplateStatusObject {
   user: string;
 }
 
-interface TemplateStatus {
+type TemplateStatus = {
   status: TemplateStatusObject;
-}
+};
 
 export const TemplateStatus: FC<TemplateStatus> = ({ status }) => {
   const formattedDate = format(parseISO(status.date), "d MMMM yyyy, HH:mm", {
@@ -20,7 +20,7 @@ export const TemplateStatus: FC<TemplateStatus> = ({ status }) => {
   });
   return (
     <Box>
-      <Box>{statusConfig[status.status]?.label}</Box>
+      <Box>{statusConfig[status.status as keyof typeof statusConfig]?.label || status.status}</Box>
       <Box
         sx={{
           color: "grey",

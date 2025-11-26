@@ -23,17 +23,16 @@ interface SelectorsState {
 }
 
 interface Selectors {
-  setChoise: (value: string) => void;
+  setChoise?: (value: string) => void;
 }
 
 export const Selectors: FC<Selectors> = ({ setChoise }) => {
   const { setTabState } = useStore();
   const { deInitializeTabs } = useStore();
   const selectorsData = useStore.getState().selectedTemplateData;
+  const [isFacultyOpen, setIsFacultyOpen] = useState(!selectorsData.faculty);
   const [selectors, setSelectors] = useState<SelectorsState>({
-    faculty: selectorsData.faculty
-      ? { value: selectorsData.faculty, label: selectorsData.faculty }
-      : undefined,
+    faculty: selectorsData.faculty ? { value: selectorsData.faculty, label: selectorsData.faculty } : undefined,
     levelEducation: selectorsData.levelEducation
       ? {
           value: selectorsData.levelEducation,
@@ -46,22 +45,22 @@ export const Selectors: FC<Selectors> = ({ setChoise }) => {
           label: selectorsData.directionOfStudy,
         }
       : undefined,
-    profile: selectorsData.profile
-      ? { value: selectorsData.profile, label: selectorsData.profile }
-      : undefined,
+    profile: selectorsData.profile ? { value: selectorsData.profile, label: selectorsData.profile } : undefined,
     formEducation: selectorsData.formEducation
       ? {
           value: selectorsData.formEducation,
           label: selectorsData.formEducation,
         }
       : undefined,
-    year: selectorsData.year
-      ? { value: selectorsData.year, label: selectorsData.year }
-      : undefined,
+    year: selectorsData.year ? { value: selectorsData.year, label: selectorsData.year } : undefined,
   });
 
   const [data, setData] = useState<Nullable<JsonData>>(undefined);
   const { setSelectedTemplateData } = useStore();
+
+  useEffect(() => {
+    setIsFacultyOpen(!selectors.faculty);
+  }, [selectors.faculty]);
 
   useEffect(() => {
     const fetchData = async () => {
@@ -85,11 +84,7 @@ export const Selectors: FC<Selectors> = ({ setChoise }) => {
   }, []);
 
   const handleChange =
-    (name: keyof SelectorsState) =>
-    (
-      _: React.SyntheticEvent<Element, Event>,
-      selectedOption: OptionType | null
-    ) => {
+    (name: keyof SelectorsState) => (_: React.SyntheticEvent<Element, Event>, selectedOption: OptionType | null) => {
       setSelectors((prevSelectors) => ({
         ...prevSelectors,
         [name]: selectedOption || undefined,
@@ -117,18 +112,17 @@ export const Selectors: FC<Selectors> = ({ setChoise }) => {
         }),
         ...(name === "formEducation" && { year: undefined }),
       }));
+
+      if (name === "faculty" && selectedOption) {
+        setIsFacultyOpen(false);
+      }
     };
 
   const getOptions = (): OptionType[] => {
-    return data
-      ? Object.keys(data).map((key) => ({ label: key, value: key }))
-      : [];
+    return data ? Object.keys(data).map((key) => ({ label: key, value: key })) : [];
   };
 
-  const getOptionsForSelector = (
-    selectorPath: Array<string>,
-    indicator?: string
-  ): OptionType[] => {
+  const getOptionsForSelector = (selectorPath: Array<string>, indicator?: string): OptionType[] => {
     if (indicator && indicator === "lastChild") {
       const currentYear = new Date().getFullYear();
       const yearsCount = 5;
@@ -173,7 +167,7 @@ export const Selectors: FC<Selectors> = ({ setChoise }) => {
   if (!data) return <Loader />;
 
   return (
-    <Box sx={{ maxWidth: "500px" }}>
+    <Box sx={{ maxWidth: "700px", py: 2 }}>
       <Box sx={{ fontSize: "15px", fontWeight: "600", py: 1 }}>Институт</Box>
       <Autocomplete
         // placeholder="Выберите институт"
@@ -182,14 +176,10 @@ export const Selectors: FC<Selectors> = ({ setChoise }) => {
         onChange={handleChange("faculty")}
         options={getOptions()}
         data-cy="faculty-select"
-        renderInput={(params) => (
-          <TextField
-            {...params}
-            label="Выберите институт"
-            size="small"
-            data-cy="text-field"
-          />
-        )}
+        open={isFacultyOpen}
+        onOpen={() => setIsFacultyOpen(true)}
+        onClose={() => setIsFacultyOpen(false)}
+        renderInput={(params) => <TextField {...params} label="Выберите институт" size="small" data-cy="text-field" />}
       />
       {selectors.faculty && (
         <Selector
@@ -207,47 +197,39 @@ export const Selectors: FC<Selectors> = ({ setChoise }) => {
           placeholder="Выберите направление обучения"
           value={selectors.directionOfStudy}
           onChange={handleChange("directionOfStudy")}
-          options={getOptionsForSelector([
-            selectors.faculty.value,
-            selectors.levelEducation.value,
-          ])}
+          options={getOptionsForSelector([selectors.faculty.value, selectors.levelEducation.value])}
           data-cy="direction-select"
         />
       )}
-      {selectors.faculty &&
-        selectors.levelEducation &&
-        selectors.directionOfStudy && (
-          <Selector
-            title="Профиль направления обучения"
-            placeholder="Выберите профиль обучения"
-            value={selectors.profile}
-            onChange={handleChange("profile")}
-            options={getOptionsForSelector([
-              selectors.faculty.value,
-              selectors.levelEducation.value,
-              selectors.directionOfStudy.value,
-            ])}
-            data-cy="profile-select"
-          />
-        )}
-      {selectors.faculty &&
-        selectors.levelEducation &&
-        selectors.directionOfStudy &&
-        selectors.profile && (
-          <Selector
-            title="Форма обучения"
-            placeholder="Выберите форму обучения"
-            value={selectors.formEducation}
-            onChange={handleChange("formEducation")}
-            options={getOptionsForSelector([
-              selectors.faculty.value,
-              selectors.levelEducation.value,
-              selectors.directionOfStudy.value,
-              selectors.profile.value,
-            ])}
-            data-cy="education-form-select"
-          />
-        )}
+      {selectors.faculty && selectors.levelEducation && selectors.directionOfStudy && (
+        <Selector
+          title="Профиль направления обучения"
+          placeholder="Выберите профиль обучения"
+          value={selectors.profile}
+          onChange={handleChange("profile")}
+          options={getOptionsForSelector([
+            selectors.faculty.value,
+            selectors.levelEducation.value,
+            selectors.directionOfStudy.value,
+          ])}
+          data-cy="profile-select"
+        />
+      )}
+      {selectors.faculty && selectors.levelEducation && selectors.directionOfStudy && selectors.profile && (
+        <Selector
+          title="Форма обучения"
+          placeholder="Выберите форму обучения"
+          value={selectors.formEducation}
+          onChange={handleChange("formEducation")}
+          options={getOptionsForSelector([
+            selectors.faculty.value,
+            selectors.levelEducation.value,
+            selectors.directionOfStudy.value,
+            selectors.profile.value,
+          ])}
+          data-cy="education-form-select"
+        />
+      )}
       {selectors.faculty &&
         selectors.levelEducation &&
         selectors.directionOfStudy &&
@@ -272,7 +254,7 @@ export const Selectors: FC<Selectors> = ({ setChoise }) => {
           />
         )}
       {selectors.year && (
-        <Button variant="contained" onClick={saveTemplateData}>
+        <Button sx={{ my: 1 }} variant="contained" onClick={saveTemplateData}>
           Продолжить
         </Button>
       )}

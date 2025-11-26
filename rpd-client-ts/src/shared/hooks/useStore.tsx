@@ -46,6 +46,7 @@ interface StoreState {
   managerPage: string;
   templatePage: string;
   teacherTemplates: TeacherTemplate[];
+  isDrawerOpen: boolean;
   setJsonData: (data: JsonData) => void;
   updateJsonData: (key: string, value: JsonValue) => void;
   setSelectedTemplateData: (
@@ -56,16 +57,14 @@ interface StoreState {
     formEducation: string | undefined,
     year: string | undefined
   ) => void;
-  setCreateByCriteria: (
-    faculty?: string | undefined,
-    year?: string | undefined
-  ) => void;
+  setCreateByCriteria: (faculty?: string | undefined, year?: string | undefined) => void;
   setComplectId: (id: number) => void;
   setTabState: (tabId: string, isEnabled: boolean) => void;
   deInitializeTabs: () => void;
   setManagerPage: (page: string) => void;
   setTemplatePage: (templatePage: string) => void;
   setTeacherTemplates: (templates: TeacherTemplate[]) => void;
+  toggleDrawer: () => void;
 }
 
 export const useStore = create<StoreState>()(
@@ -93,11 +92,8 @@ export const useStore = create<StoreState>()(
     managerPage: "selectData",
     complectId: undefined,
     templatePage: "coverPage",
-    teacherTemplates: {
-      id: undefined,
-      text: undefined,
-      year: undefined,
-    },
+    teacherTemplates: [],
+    isDrawerOpen: true,
     setJsonData: (data) => {
       set((state) => {
         state.jsonData = data;
@@ -112,23 +108,9 @@ export const useStore = create<StoreState>()(
         }
       });
     },
-    setSelectedTemplateData: (
-      faculty,
-      levelEducation,
-      directionOfStudy,
-      profile,
-      formEducation,
-      year
-    ) => {
+    setSelectedTemplateData: (faculty, levelEducation, directionOfStudy, profile, formEducation, year) => {
       set((state) => {
-        if (
-          faculty &&
-          levelEducation &&
-          directionOfStudy &&
-          profile &&
-          formEducation &&
-          year
-        ) {
+        if (faculty && levelEducation && directionOfStudy && profile && formEducation && year) {
           state.selectedTemplateData = {
             faculty: faculty,
             levelEducation: levelEducation,
@@ -178,6 +160,11 @@ export const useStore = create<StoreState>()(
     setTeacherTemplates: (templates) => {
       set((state) => {
         state.teacherTemplates = templates;
+      });
+    },
+    toggleDrawer: () => {
+      set((state) => {
+        state.isDrawerOpen = !state.isDrawerOpen;
       });
     },
   }))

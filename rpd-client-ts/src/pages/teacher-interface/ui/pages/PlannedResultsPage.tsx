@@ -1,37 +1,17 @@
-import { useStore } from "@shared/hooks";
-import axios from "axios";
-import { FC, useState } from "react";
-import EditableCell from "../changeable-elements/EditableCell.tsx";
-import {
-  Box,
-  Button,
-  ButtonGroup,
-  Paper,
-  Table,
-  TableBody,
-  TableCell,
-  TableContainer,
-  TableHead,
-  TableRow,
-} from "@mui/material";
-import { Loader } from "@shared/ui";
-import { showErrorMessage, showSuccessMessage } from "@shared/lib";
+import { Box, Button, ButtonGroup, Paper, Table, TableBody, TableCell, TableContainer, TableHead, TableRow } from "@mui/material";
+import { PlannedResultsData, Results } from "@pages/teacher-interface/model/DisciplineContentPageTypes.ts";
+import { parseCsvToJson, ParsedPlannedResults } from "@shared/ability/lib/parseCsvToJson.ts";
 import { axiosBase } from "@shared/api";
-import Papa from "papaparse";
-import { Can } from "@shared/ability";
-import { KeyOutlined } from "@mui/icons-material";
+import { useStore } from "@shared/hooks";
+import { showErrorMessage, showSuccessMessage } from "@shared/lib";
+import { Loader } from "@shared/ui";
+import { FC, useState, useEffect } from "react";
+import EditableCell from "../changeable-elements/EditableCell.tsx";
 import PlannedResultsCell from "../changeable-elements/PlannedResultsCell.tsx";
-import {
-  PlannedResultsData,
-  Results,
-} from "@pages/teacher-interface/model/DisciplineContentPageTypes.ts";
-import { parseCsvToJson } from "@shared/ability/lib/parseCsvToJson.ts";
-import { ParsedPlannedResults } from "@shared/ability/lib/parseCsvToJson.ts";
+import { isAxiosError } from "axios";
 
 const PlannedResultsPage: FC = () => {
-  const initialData = useStore.getState().jsonData.competencies as
-    | PlannedResultsData
-    | undefined;
+  const initialData = useStore.getState().jsonData.competencies as PlannedResultsData | undefined;
   // const initialDataLength = initialData ? Object.keys(initialData).length : 0;
   const disciplineName = useStore.getState().jsonData.disciplins_name as string;
 
@@ -45,21 +25,24 @@ const PlannedResultsPage: FC = () => {
     let indicator = "";
 
     parsedData &&
-      Object.entries(parsedData).forEach(([key, row]) => {
-        const dataLenght = Object.keys(filteredDataMap).length;
+      Object.values(parsedData).forEach((row) => {
+        const dataLength = Object.keys(filteredDataMap).length;
+
         if (row.competence) {
           competence = `${row.competence}. ${row.results}`;
+          indicator = "";
         } else if (row.indicator) {
           indicator = `${row.indicator}. ${row.results}`;
         } else if (row.results === disciplineName) {
-          if (
-            Object.values(filteredDataMap).find(
-              (row) => row.competence === competence
-            )
-          )
-            competence = "";
-          filteredDataMap[dataLenght] = {
-            competence,
+          const hasSameEntry = Object.values(filteredDataMap).some(
+            (existingRow) =>
+              existingRow.competence === competence && existingRow.indicator === indicator
+          );
+
+          const competenceValue = hasSameEntry ? "" : competence;
+
+          filteredDataMap[dataLength] = {
+            competence: competenceValue,
             indicator,
             results: {
               know: "",
@@ -72,9 +55,7 @@ const PlannedResultsPage: FC = () => {
     return filteredDataMap;
   };
 
-  const handleFileUpload = async (
-    event: React.ChangeEvent<HTMLInputElement>
-  ) => {
+  const handleFileUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
     if (!file) return;
 
@@ -84,8 +65,7 @@ const PlannedResultsPage: FC = () => {
       setData(filteredData);
       showSuccessMessage("Данные успешные загружены");
     } catch (error: unknown) {
-      const errorMessage =
-        error instanceof Error ? error.message : "Неизвестная ошибка";
+      const errorMessage = error instanceof Error ? error.message : "Неизвестная ошибка";
       showErrorMessage(errorMessage);
     }
   };
@@ -111,7 +91,7 @@ const PlannedResultsPage: FC = () => {
       showSuccessMessage("Данные успешно сохранены");
     } catch (error) {
       showErrorMessage("Ошибка сохранения данных");
-      if (axios.isAxiosError(error)) {
+      if (isAxiosError(error)) {
         console.error("Ошибка Axios:", error.response?.data);
         console.error("Статус ошибки:", error.response?.status);
         console.error("Заголовки ошибки:", error.response?.headers);
@@ -134,31 +114,52 @@ const PlannedResultsPage: FC = () => {
     setData(newData);
   };
 
+  const complectId = useStore.getState().complectId;
+
+  useEffect(() => {
+    if (data && Object.keys(data).length) return;
+    if (!complectId) return;
+
+    (async () => {
+      try {
+        const response = await axiosBase.get("get-results-data", { params: { complectId } });
+        type Row = { competence: string; indicator: string; disciplines: string[] };
+        const rows = response.data as Row[];
+        const filtered = rows.filter((r) => r.disciplines.includes(disciplineName));
+
+        const mapped: PlannedResultsData = {};
+        let idx = 0;
+        let lastCompetence = "";
+        filtered.forEach((r) => {
+          const competenceToSet = r.competence === lastCompetence ? "" : r.competence;
+          lastCompetence = r.competence;
+          mapped[idx++] = {
+            competence: competenceToSet,
+            indicator: r.indicator,
+            results: { know: "", beAble: "", own: "" },
+          };
+        });
+
+        setData(mapped);
+      } catch (error) {
+        console.error(error);
+      }
+    })();
+  }, [data, complectId, disciplineName]);
+
   if (!data) return <Loader />;
 
   return (
     <Box>
-      <Box fontSize={"1.5rem"}>
-        Планируемые результаты обучения по дисциплине (модулю)
-      </Box>
-      <Box
-        pt={3}
-        display={"flex"}
-        justifyContent={"space-between"}
-        alignItems={"center"}
-      >
-        <input type="file" accept=".csv" onChange={handleFileUpload} />
-        <Button size="medium" variant="contained" onClick={saveData}>
+      <Box fontSize={"1.5rem"}>Планируемые результаты обучения по дисциплине (модулю)</Box>
+      <Box pt={3} display={"flex"} justifyContent={"space-between"} alignItems={"center"}>
+        <input type="file" accept=".csv,.xlsx" onChange={handleFileUpload} />
+        <Button variant="contained" onClick={saveData}>
           Сохранить
         </Button>
       </Box>
       <TableContainer component={Paper} sx={{ my: 2 }}>
-        <Table
-          sx={{ minWidth: 650 }}
-          aria-label="simple table"
-          size="small"
-          className="table"
-        >
+        <Table sx={{ minWidth: 650 }} aria-label="simple table" size="small" className="table">
           <TableHead>
             <TableRow>
               <TableCell
@@ -195,48 +196,19 @@ const PlannedResultsPage: FC = () => {
               return (
                 <TableRow key={key}>
                   <TableCell>
-                    <EditableCell
-                      value={data[key].competence}
-                      onValueChange={() => {}}
-                      readOnly
-                    />
+                    <EditableCell value={data[key].competence} onValueChange={() => {}} readOnly />
                   </TableCell>
                   <TableCell>
-                    <EditableCell
-                      value={data[key].indicator}
-                      onValueChange={() => {}}
-                      readOnly
-                    />
+                    <EditableCell value={data[key].indicator} onValueChange={() => {}} readOnly />
                   </TableCell>
-                  <TableCell>
-                    <Can I="edit" a="competencies">
-                      <PlannedResultsCell
-                        value={data[key].results}
-                        onValueChange={(value: Results) =>
-                          handleValueChange(Number(key), value)
-                        }
-                      />
-                    </Can>
-                    <Can not I="edit" a="competencies">
-                      <PlannedResultsCell
-                        value={data[key].results}
-                        onValueChange={(value: Results) =>
-                          handleValueChange(Number(key), value)
-                        }
-                      />
-                    </Can>
-                  </TableCell>
+                  <PlannedResultsCell value={data[key].results} onValueChange={(value: Results) => handleValueChange(Number(key), value)} />
                 </TableRow>
               );
             })}
           </TableBody>
         </Table>
       </TableContainer>
-      <ButtonGroup
-        variant="outlined"
-        aria-label="Basic button group"
-        size="small"
-      >
+      <ButtonGroup variant="outlined" aria-label="Basic button group">
         {/* <Button onClick={handleAddRow}>Добавить строку</Button> */}
       </ButtonGroup>
     </Box>

@@ -44,8 +44,7 @@ const DisciplinePlace: FC = () => {
           </Box>
           курсе
           <Box sx={{ pt: 2 }}>
-            форма промежуточной аттестации –{" "}
-            <CertificationSelector certification={data.certification} />
+            форма промежуточной аттестации – <CertificationSelector certification={data.certification} />
           </Box>
         </Box>
       ) : (

@@ -1,15 +1,13 @@
-import { useState, useEffect, useCallback } from "react";
-import { useStore } from "@shared/hooks";
-import { Box, Button } from "@mui/material";
-import { PdfReader } from "./PdfReader.tsx";
+import { Box } from "@mui/material";
 import { axiosBase } from "@shared/api";
+import { useStore } from "@shared/hooks";
 import { showErrorMessage } from "@shared/lib";
 import { Loader } from "@shared/ui/Loader.tsx";
+import { useEffect, useState } from "react";
+import { PdfReader } from "./PdfReader.tsx";
 
 export default function TestPdf() {
-  const [fileName, setFileName] = useState<Blob | MediaSource | undefined>(
-    undefined
-  );
+  const [fileName, setFileName] = useState<Blob | MediaSource | undefined>(undefined);
   const [isLoading, setIsLoading] = useState(false);
 
   useEffect(() => {

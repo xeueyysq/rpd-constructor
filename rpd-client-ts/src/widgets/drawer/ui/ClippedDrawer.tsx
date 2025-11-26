@@ -1,34 +1,60 @@
+import { useAuth } from "@entities/auth";
 import Box from "@mui/material/Box";
 import Drawer from "@mui/material/Drawer";
 import Toolbar from "@mui/material/Toolbar";
-import { Header } from "@widgets/header";
-import { FC } from "react";
-import { Outlet } from "react-router-dom";
-import { MainTabsList } from "@widgets/tabs-list";
-import { ComplectTabsList } from "@widgets/tabs-list/ui/ComplectTabsList";
-import { RpdList } from "@widgets/rpd-list";
-import { useState } from "react";
-import { UserRole } from "@shared/ability";
-import { useAuth } from "@entities/auth";
 import { TeacherRpdListItems } from "@pages/teacher-interface/model/teacherInterfaceItems";
-import { useEffect } from "react";
-import { TeacherTabsList } from "@widgets/tabs-list";
-interface ClippedDrawerProps {
-  page: string;
-}
+import { UserRole } from "@shared/ability";
+import { RedirectPath } from "@shared/enums";
+import { useStore } from "@shared/hooks";
+import { Header } from "@widgets/header";
+import { RpdList } from "@widgets/rpd-list";
+import { MainTabsList, TeacherTabsList } from "@widgets/tabs-list";
+import { useEffect, useMemo, useState } from "react";
+import { Outlet, useLocation } from "react-router-dom";
 
-export const ClippedDrawer: FC<ClippedDrawerProps> = ({ page }) => {
-  // const userRole = useAuth.getState().userRole;
+export function ClippedDrawer() {
+  const userRole = useAuth((state) => state.userRole);
+  const location = useLocation();
+  const path = location.pathname;
   const [setChoise] = useState<string>("coverPage");
-  const [drawerWidth, setDrawerWidth] = useState<number>(270);
+  const [drawerWidth, setDrawerWidth] = useState<number>(290);
+  const { isDrawerOpen } = useStore();
+
+  //@TODO Костыль на определение страницы
+  const isTemplatePage = useMemo(
+    () =>
+      path.includes(RedirectPath.TEMPLATES) && path.split("/").filter((part) => part && !isNaN(Number(part))).length,
+    [path]
+  );
+
+  const page = useMemo(() => {
+    if (isTemplatePage) return "template";
+    switch (userRole) {
+      case UserRole.ROP:
+      case UserRole.ADMIN:
+        return "main";
+      case UserRole.TEACHER:
+        return "teacher";
+      default:
+        break;
+    }
+  }, [userRole, path]);
+
+  const switchMap = {
+    main: <MainTabsList />,
+    teacher: <TeacherTabsList />,
+    template: <RpdList setChoise={() => setChoise} RpdListItems={TeacherRpdListItems} />,
+  };
 
   useEffect(() => {
-    if (page === "template") setDrawerWidth(430);
-    else setDrawerWidth(270);
+    if (isTemplatePage) setDrawerWidth(430);
+    else setDrawerWidth(290);
   }, [page]);
 
+  if (path === RedirectPath.SIGN_IN) return <Outlet />;
+
   return (
-    <Box sx={{ display: "flex", overflow: "auto" }}>
+    <Box sx={{ position: "relative", minHeight: "100vh" }}>
       <Header />
       <Drawer
         color="default"
@@ -36,29 +62,57 @@ export const ClippedDrawer: FC<ClippedDrawerProps> = ({ page }) => {
         sx={{
           width: drawerWidth,
           flexShrink: 0,
+          position: "fixed",
+          zIndex: 1200,
+          top: 0,
+          left: 0,
           ["& .MuiDrawer-paper"]: {
             width: drawerWidth,
             boxSizing: "border-box",
-            overflowY: "visible",
+            overflow: "hidden",
             minHeight: "100vh",
+            display: "flex",
+            flexDirection: "column",
+            transition: "transform 0.3s cubic-bezier(0.4, 0, 0.2, 1)",
+            transform: isDrawerOpen ? "translateX(0)" : `translateX(-${drawerWidth}px)`,
+            borderRight: "1px solid rgba(0, 0, 0, 0.12)",
+            boxShadow: isDrawerOpen ? "4px 0 16px rgba(0, 0, 0, 0.12)" : "none",
+            "& .MuiListItemIcon-root, & svg": {
+              color: "#29363d",
+            },
           },
         }}
       >
         <Toolbar />
-        {page === "teacher" && <TeacherTabsList />}
-        {page === "main" && <MainTabsList />}
-        {page === "manager" && <ComplectTabsList />}
-        {page === "template" && (
-          <RpdList
-            setChoise={() => setChoise}
-            RpdListItems={TeacherRpdListItems}
-          />
-        )}
+        <Box
+          sx={{
+            opacity: isDrawerOpen ? 1 : 0,
+            transition: "opacity 0.2s ease-in-out",
+            transitionDelay: isDrawerOpen ? "0.1s" : "0s",
+            pointerEvents: isDrawerOpen ? "auto" : "none",
+            display: "flex",
+            flexDirection: "column",
+            flex: 1,
+            minHeight: 0,
+            overflow: "hidden",
+          }}
+        >
+          {switchMap[page as keyof typeof switchMap]}
+        </Box>
       </Drawer>
-      <Box component={"main"} sx={{ flexGrow: 1, p: 3, width: "60%" }}>
+      <Box
+        component={"main"}
+        sx={{
+          width: isDrawerOpen ? `calc(100% - ${drawerWidth}px)` : "100%",
+          p: 3,
+          marginLeft: isDrawerOpen ? `${drawerWidth}px` : 0,
+          transition: "margin-left 0.3s cubic-bezier(0.4, 0, 0.2, 1), width 0.3s cubic-bezier(0.4, 0, 0.2, 1)",
+          overflowX: "hidden",
+        }}
+      >
         <Toolbar />
         <Outlet />
       </Box>
     </Box>
   );
-};
+}

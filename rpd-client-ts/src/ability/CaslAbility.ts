@@ -8,7 +8,8 @@ type Subjects =
   | "teacher_interface"
   | "change_templates"
   | "competencies"
-  | "rpd_template";
+  | "rpd_template"
+  | "admin_tabs";
 export type UserRole = "anonymous" | "teacher" | "rop" | "admin";
 
 export type AppAbility = Ability<[Actions, Subjects]>;
@@ -32,6 +33,7 @@ const defineRulesFor = (role: UserRole) => {
     can("get", "lk");
     can("get", "rpd_template");
     can("edit", "rpd_template");
+    can("get", "admin_tabs");
   }
 
   return rules;

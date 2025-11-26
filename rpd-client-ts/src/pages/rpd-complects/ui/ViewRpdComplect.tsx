@@ -1,8 +1,9 @@
-import { FC } from "react";
-import { Box, Button, Container } from "@mui/material";
-import { useNavigate } from "react-router-dom";
 import ArrowBackIcon from "@mui/icons-material/ArrowBack";
-import { CreateRpdTemplateFrom1CExchange } from "@features/create-rpd-template-from-1c-exchange";
+import { Box, Button, Container } from "@mui/material";
+import { RpdComplectPage } from "@pages/rpd-complect/ui/RpdComplectPage";
+import { RedirectPath } from "@shared/enums";
+import { FC } from "react";
+import { useNavigate } from "react-router-dom";
 
 export const ViewRpdComplect: FC = () => {
   const navigate = useNavigate();
@@ -27,7 +28,7 @@ export const ViewRpdComplect: FC = () => {
         <Box sx={{ display: "flex", alignItems: "center", mb: 3 }}>
           <Button
             variant="outlined"
-            onClick={() => navigate("/rpd-complects")}
+            onClick={() => navigate(RedirectPath.COMPLECTS)}
             startIcon={<ArrowBackIcon />}
             sx={{ mr: 2 }}
           >
@@ -37,10 +38,7 @@ export const ViewRpdComplect: FC = () => {
             Просмотр комплекта РПД
           </Box>
         </Box>
-
-        <CreateRpdTemplateFrom1CExchange
-          setChoise={() => navigate("/rpd-complects")}
-        />
+        <RpdComplectPage />
       </Box>
     </Container>
   );

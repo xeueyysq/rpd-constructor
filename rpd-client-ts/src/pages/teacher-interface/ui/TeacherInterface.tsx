@@ -1,6 +1,9 @@
-import { FC, useState } from "react";
-import { Box, Container } from "@mui/material";
-
+import { Box } from "@mui/material";
+import { axiosBase } from "@shared/api/index.ts";
+import { useStore } from "@shared/hooks";
+import { showErrorMessage } from "@shared/lib/showMessage.ts";
+import { useCallback, useEffect } from "react";
+import { useParams } from "react-router-dom";
 import AimsPage from "./pages/AimsPage.tsx";
 import ApprovalPage from "./pages/ApprovalPage.tsx";
 import CoverPage from "./pages/CoverPage.tsx";
@@ -11,33 +14,32 @@ import DisciplineSupportPage from "./pages/DisciplineSupportPage.tsx";
 import PlannedResultsPage from "./pages/PlannedResultsPage.tsx";
 import ResourceSupportPage from "./pages/ResourceSupportPage.tsx";
 import ScopeDisciplinePage from "./pages/ScopeDisciplinePage.tsx";
-import TestPdf from "./pdf-page/TestPdf.tsx"; // Assuming PDF Test view
-import { useAuth } from "@entities/auth";
-import { useStore } from "@shared/hooks";
-import { useNavigate } from "react-router-dom";
-import { UserRole } from "@shared/ability";
+import TestPdf from "./pdf-page/TestPdf.tsx";
 
-export const TeacherInterface: FC = () => {
-  // const userRole = useAuth.getState().userRole;
-  // const [choise, setChoise] = useState<string>("coverPage");
-  // const jsonData = useStore.getState().jsonData;
-  // const navigate = useNavigate();
+export function TeacherInterface() {
+  const { templatePage, toggleDrawer, setJsonData } = useStore();
+  const { id: templateId } = useParams();
 
-  // if (!Object.keys(jsonData).length) {
-  //   if (userRole === UserRole.ROP) navigate("/manager");
-  //   if (userRole === UserRole.TEACHER && choise !== "selectTemplate")
-  //     setChoise("selectTemplate");
-  // }
-  const { templatePage } = useStore();
+  const uploadTemplateData = useCallback(async () => {
+    try {
+      const response = await axiosBase.post("rpd-profile-templates", {
+        id: templateId,
+      });
+      setJsonData(response.data);
+    } catch (error) {
+      showErrorMessage("Ошибка при получении данных");
+      console.error(error);
+    }
+  }, [setJsonData, templateId]);
+
+  useEffect(() => {
+    uploadTemplateData();
+    if (!useStore.getState().isDrawerOpen) toggleDrawer();
+  }, [templateId]);
 
   return (
-    <Container maxWidth="md">
-      <Box
-        p={3}
-        sx={{ backgroundColor: "#fefefe" }}
-        fontFamily={"Times New Roman"}
-        fontSize={18}
-      >
+    <Box pl={2}>
+      <Box sx={{ backgroundColor: "#fefefe" }} fontFamily={"Times New Roman"} fontSize={18}>
         {templatePage === "coverPage" && <CoverPage />}
         {templatePage === "approvalPage" && <ApprovalPage />}
         {templatePage === "aimsPage" && <AimsPage />}
@@ -46,12 +48,10 @@ export const TeacherInterface: FC = () => {
         {templatePage === "disciplineScope" && <ScopeDisciplinePage />}
         {templatePage === "disciplineContent" && <DisciplineContentPage />}
         {templatePage === "disciplineSupport" && <DisciplineSupportPage />}
-        {templatePage === "disciplineEvaluationsFunds" && (
-          <DisciplineEvaluationsFunds />
-        )}
+        {templatePage === "disciplineEvaluationsFunds" && <DisciplineEvaluationsFunds />}
         {templatePage === "resourceSupport" && <ResourceSupportPage />}
         {templatePage === "testPdf" && <TestPdf />}
       </Box>
-    </Container>
+    </Box>
   );
-};
+}

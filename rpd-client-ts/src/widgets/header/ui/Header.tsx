@@ -1,17 +1,17 @@
 import { FC, useContext, useMemo } from "react";
-import { Box, AppBar, Toolbar } from "@mui/material";
-import { useWindowSize } from "@shared/hooks";
-import HeaderMenuMobile from "./HeaderMenuMobile.tsx";
+import { Box, AppBar, Toolbar, IconButton } from "@mui/material";
+import AccountMenuButton from "./AccountMenuButton.tsx";
 import HeaderLogo from "./HeaderLogo.tsx";
 import { AuthContext, useAuth } from "@entities/auth";
-import AccountCircleIcon from "@mui/icons-material/AccountCircle";
 import { UserRole } from "@shared/ability";
+import { useStore } from "@shared/hooks";
+import MenuIcon from "@mui/icons-material/Menu";
 
 export const Header: FC = () => {
-  const size = useWindowSize();
   const { isUserLogged } = useContext(AuthContext);
   const userName = useAuth.getState().userName;
   const userRole = useAuth.getState().userRole;
+  const { toggleDrawer } = useStore();
 
   const userRoleLocale = useMemo(() => {
     switch (userRole) {
@@ -34,34 +34,38 @@ export const Header: FC = () => {
       }}
     >
       <Toolbar>
-        <Box
-          width={"100%"}
-          display={"flex"}
-          justifyContent={"space-between"}
-          alignItems={"center"}
-        >
-          <HeaderLogo />
+        <Box width={"100%"} display={"flex"} justifyContent={"space-between"} alignItems={"center"}>
+          <Box display={"flex"} alignItems={"center"}>
+            <IconButton color="inherit" aria-label="toggle drawer" onClick={toggleDrawer} edge="start" sx={{ mr: 2 }}>
+              <MenuIcon />
+            </IconButton>
+            <HeaderLogo />
+          </Box>
           {isUserLogged && (
             <Box sx={{ display: "flex", alignItems: "center" }}>
-              <Box>
-                <Box>{userName}</Box>
+              <Box sx={{ display: "flex", flexDirection: "column", lineHeight: 1.5, pb: 0.5 }}>
+                <Box
+                  sx={{
+                    fontSize: "15px",
+                  }}
+                >
+                  {userName}
+                </Box>
                 <Box
                   sx={{
                     fontSize: "12px",
                     fontWeight: 400,
                     color: "#B2B2B2",
-                    textAlign: "right",
                   }}
                 >
                   {userRoleLocale}
                 </Box>
               </Box>
-              <Box sx={{ px: 1 }}>
-                <AccountCircleIcon sx={{ fontSize: "50px" }} />
+              <Box sx={{ pl: 2 }}>
+                <AccountMenuButton />
               </Box>
             </Box>
           )}
-          {/* {size.width && size.width < 1090 && <HeaderMenuMobile />} */}
         </Box>
       </Toolbar>
     </AppBar>

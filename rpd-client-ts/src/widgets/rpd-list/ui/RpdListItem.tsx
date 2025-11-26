@@ -1,14 +1,6 @@
-import {
-  ListItem,
-  ListItemButton,
-  ListItemText,
-  Typography,
-  ListItemIcon,
-} from "@mui/material";
+import { ListItem, ListItemButton, ListItemText, Typography, ListItemIcon } from "@mui/material";
 import { FC } from "react";
 import type { RpdListItem } from "../model/types.ts";
-import DragIndicatorIcon from "@mui/icons-material/DragIndicator";
-import ArrowRightIcon from "@mui/icons-material/ArrowRight";
 import MoreVertIcon from "@mui/icons-material/MoreVert";
 
 type RpdListItemProps = RpdListItem & {
@@ -16,12 +8,7 @@ type RpdListItemProps = RpdListItem & {
   activePage?: string;
 };
 
-const RpdListItem: FC<RpdListItemProps> = ({
-  id,
-  text,
-  setChoise,
-  activePage,
-}) => {
+const RpdListItem: FC<RpdListItemProps> = ({ id, text, setChoise, activePage }) => {
   const isActive = activePage === id;
 
   return (
@@ -36,7 +23,7 @@ const RpdListItem: FC<RpdListItemProps> = ({
         onClick={() => setChoise(id)}
         sx={{
           px: 3,
-          py: 0.7,
+          py: 0.15,
           width: "100%",
           bgcolor: isActive ? "#f1f1f1" : "#ffffff",
           "&:hover": {
@@ -49,9 +36,7 @@ const RpdListItem: FC<RpdListItemProps> = ({
         <ListItemIcon sx={{ pl: 2 }}>
           <MoreVertIcon />
         </ListItemIcon>
-        <ListItemText
-          primary={<Typography sx={{ pl: 0 }}>{text}</Typography>}
-        />
+        <ListItemText primary={<Typography sx={{ pl: 0 }}>{text}</Typography>} />
       </ListItemButton>
     </ListItem>
   );

@@ -3,6 +3,7 @@ import { useAuth } from "./useAuth.ts";
 import { AuthClient } from "../api/clients.ts";
 import { AuthContextProps, UserCredentials } from "../model/types.ts";
 import { showErrorMessage } from "@shared/lib";
+import { setAccessToken } from "@shared/api";
 
 export const useAuthContextValue = (): AuthContextProps => {
   const [isAppReady, setIsAppReady] = useState(false);
@@ -27,10 +28,11 @@ export const useAuthContextValue = (): AuthContextProps => {
       refreshTimeoutRef.current = setTimeout(() => {
         AuthClient.post("/refresh")
           .then((res) => {
-            const { role, fullname, accessTokenExpiration } = res.data;
+            const { role, fullname, accessToken, accessTokenExpiration } = res.data;
             updateAbility(role);
             updateUserName(fullname);
             setIsUserLogged(true);
+            setAccessToken(accessToken);
             scheduleRefresh(accessTokenExpiration);
           })
           .catch(() => {
@@ -49,6 +51,7 @@ export const useAuthContextValue = (): AuthContextProps => {
         updateUserName(undefined);
         setData(undefined);
         clearRefreshTimer();
+        setAccessToken(undefined);
       })
       .catch((error) => showErrorMessage(error.response.data.error));
   }, [updateAbility, updateUserName, clearRefreshTimer]);
@@ -57,10 +60,11 @@ export const useAuthContextValue = (): AuthContextProps => {
     (credentials: UserCredentials) => {
       AuthClient.post("/sign-in", credentials)
         .then((res) => {
-          const { fullname, role, accessTokenExpiration } = res.data;
+          const { fullname, role, accessToken, accessTokenExpiration } = res.data;
           updateAbility(role);
           updateUserName(fullname);
           setIsUserLogged(true);
+          setAccessToken(accessToken);
           scheduleRefresh(accessTokenExpiration);
         })
         .catch((error) => showErrorMessage(error.response.data.error));
@@ -71,11 +75,12 @@ export const useAuthContextValue = (): AuthContextProps => {
   const refreshToken = useCallback(() => {
     AuthClient.post("/refresh")
       .then((res) => {
-        const { role, fullname, accessTokenExpiration } = res.data;
+        const { role, fullname, accessToken, accessTokenExpiration } = res.data;
         updateAbility(role);
         updateUserName(fullname);
         setIsUserLogged(true);
         setIsAppReady(true);
+        setAccessToken(accessToken);
         scheduleRefresh(accessTokenExpiration);
       })
       .catch(() => {
