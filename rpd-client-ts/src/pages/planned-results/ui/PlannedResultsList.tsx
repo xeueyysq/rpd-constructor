@@ -74,9 +74,12 @@ export const PlannedResultsList: FC = () => {
 
   useEffect(() => {
     if (!filtersComplete) return;
-    const complect = complects.find(
-      (c) => c.profile === filters.profile && c.formEducation === filters.formEducation && Number(c.year) === filters.year
-    );
+    const complect = complects.find((c) => {
+      const matchesProfile = c.profile === filters.profile;
+      const matchesForm = c.formEducation === filters.formEducation;
+      const matchesYear = Number(c.year) === filters.year;
+      return matchesProfile && matchesForm && matchesYear;
+    });
     if (!complect) {
       setData(undefined);
       setSelectedComplectId(undefined);
@@ -100,21 +103,33 @@ export const PlannedResultsList: FC = () => {
     const resultsData: ResultsData = {};
     let currentId = 0;
     let currentCompetence = "";
+    let currentRowIdForCompetence: number | null = null;
 
     for (const index in parsedData) {
       const item = parsedData[index];
 
       if (item.competence) {
         currentCompetence = `${item.competence}. ${item.results}`;
+        currentRowIdForCompetence = null;
       } else if (item.indicator) {
         resultsData[currentId] = {
           competence: currentCompetence,
           indicator: `${item.indicator}. ${item.results}`,
           disciplines: [],
         };
+        currentRowIdForCompetence = currentId;
         currentId++;
       } else if (item.results) {
-        resultsData[currentId - 1].disciplines.push(item.results);
+        if (currentRowIdForCompetence === null) {
+          resultsData[currentId] = {
+            competence: currentCompetence,
+            indicator: "",
+            disciplines: [],
+          };
+          currentRowIdForCompetence = currentId;
+          currentId++;
+        }
+        resultsData[currentRowIdForCompetence].disciplines.push(item.results);
       }
     }
     return resultsData;
@@ -127,7 +142,10 @@ export const PlannedResultsList: FC = () => {
       const parsedData = await parseCsvToJson(file);
       const resultsData = groupData(parsedData as ParsedPlannedResults);
       setData(resultsData);
+      showSuccessMessage("Данные успешно загружены");
     } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : "Не удалось загрузить файл компетенций";
+      showErrorMessage(errorMessage);
       console.error(error);
     }
   };
@@ -147,7 +165,11 @@ export const PlannedResultsList: FC = () => {
       console.error(error);
     }
   };
-  const headers = ["Формируемые компетенции (код и наименование)", "Индикаторы достижения компетенций (код и формулировка)", "Дисциплины"];
+  const headers = [
+    "Формируемые компетенции (код и наименование)",
+    "Индикаторы достижения компетенций (код и формулировка)",
+    "Дисциплины",
+  ];
   return (
     <Box>
       <PageTitle title={"Загрузка компетенций для всех дисциплин"} />
@@ -242,12 +264,18 @@ export const PlannedResultsList: FC = () => {
           </FormControl>
         </Box>
         <Box display={"flex"} justifyContent={"space-between"} alignItems={"center"} py={1} gap={1}>
-          <Tooltip title="Загрузить CSV файл" arrow>
+          <Tooltip title="Загрузить файл компетенций (.csv, .xlsx)" arrow>
             <Box component="label" htmlFor="csv-upload">
               <Button variant="outlined" component="span">
-                Загрузить .CSV
+                Загрузить файл
               </Button>
-              <input id="csv-upload" type="file" accept=".csv" onChange={handleFileUpload} style={{ display: "none" }} />
+              <input
+                id="csv-upload"
+                type="file"
+                accept=".csv,.xlsx"
+                onChange={handleFileUpload}
+                style={{ display: "none" }}
+              />
             </Box>
           </Tooltip>
           <Button onClick={() => saveData()} variant="contained">
@@ -268,7 +296,9 @@ export const PlannedResultsList: FC = () => {
             {filtersComplete && data ? (
               Object.entries(data).map(([key, row]) => (
                 <TableRow key={key}>
-                  <TableCell>{Number(key) === 0 || row.competence !== data[Number(key) - 1].competence ? row.competence : ""}</TableCell>
+                  <TableCell>
+                    {Number(key) === 0 || row.competence !== data[Number(key) - 1].competence ? row.competence : ""}
+                  </TableCell>
                   <TableCell>{row.indicator}</TableCell>
                   <TableCell>{row.disciplines.join(", ")}</TableCell>
                 </TableRow>

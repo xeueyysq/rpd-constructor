@@ -26,15 +26,23 @@ const PlannedResultsPage: FC = () => {
 
     parsedData &&
       Object.values(parsedData).forEach((row) => {
-        const dataLenght = Object.keys(filteredDataMap).length;
+        const dataLength = Object.keys(filteredDataMap).length;
+
         if (row.competence) {
           competence = `${row.competence}. ${row.results}`;
+          indicator = "";
         } else if (row.indicator) {
           indicator = `${row.indicator}. ${row.results}`;
         } else if (row.results === disciplineName) {
-          if (Object.values(filteredDataMap).find((row) => row.competence === competence)) competence = "";
-          filteredDataMap[dataLenght] = {
-            competence,
+          const hasSameEntry = Object.values(filteredDataMap).some(
+            (existingRow) =>
+              existingRow.competence === competence && existingRow.indicator === indicator
+          );
+
+          const competenceValue = hasSameEntry ? "" : competence;
+
+          filteredDataMap[dataLength] = {
+            competence: competenceValue,
             indicator,
             results: {
               know: "",
@@ -145,7 +153,7 @@ const PlannedResultsPage: FC = () => {
     <Box>
       <Box fontSize={"1.5rem"}>Планируемые результаты обучения по дисциплине (модулю)</Box>
       <Box pt={3} display={"flex"} justifyContent={"space-between"} alignItems={"center"}>
-        <input type="file" accept=".csv" onChange={handleFileUpload} />
+        <input type="file" accept=".csv,.xlsx" onChange={handleFileUpload} />
         <Button variant="contained" onClick={saveData}>
           Сохранить
         </Button>
