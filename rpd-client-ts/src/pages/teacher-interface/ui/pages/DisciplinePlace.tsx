@@ -6,10 +6,12 @@ import { FC } from "react";
 import CertificationSelector from "../changeable-elements/CertificationSelector.tsx";
 
 const DisciplinePlace: FC = () => {
-  const data = useStore.getState().jsonData;
+  const data = useStore((state) => state.jsonData);
 
   const placeWrapper = () => {
     if (data.place === "Обязательная часть") return "обязательной части";
+    if (data.place) return String(data.place).toLowerCase();
+    return "";
   };
 
   return (
@@ -44,7 +46,12 @@ const DisciplinePlace: FC = () => {
           </Box>
           курсе
           <Box sx={{ pt: 2 }}>
-            форма промежуточной аттестации – <CertificationSelector certification={data.certification} />
+            {!data.certification && (
+              <Box sx={{ color: "warning.main", fontWeight: 600, mb: 1 }}>
+                Форма промежуточной аттестации не подгрузилась из 1С — выберите вручную.
+              </Box>
+            )}
+            форма промежуточной аттестации – <CertificationSelector certification={data.certification || ""} />
           </Box>
         </Box>
       ) : (

@@ -19,13 +19,11 @@ export function ExportFromTemplates({
 }) {
   const [openFromYearDialog, setOpenFromYearDialog] = useState<boolean>(false);
   const [openFromDirectionDialog, setOpenFromDirectionDialog] = useState<boolean>(false);
-  const teacherTemplates = useStore.getState().teacherTemplates;
-  const JsonData = useStore.getState().jsonData;
-  const userRole = useAuth.getState().userRole;
-  const isTeacher = userRole === UserRole.TEACHER;
+  const teacherTemplates = useStore((state) => state.teacherTemplates);
+  const jsonData = useStore((state) => state.jsonData);
   const [anchorEl, setAnchorEl] = useState<null | HTMLButtonElement>(null);
   const open = Boolean(anchorEl);
-  const { updateJsonData } = useStore();
+  const updateJsonData = useStore((state) => state.updateJsonData);
 
   const handleClick = (event: React.MouseEvent<HTMLButtonElement>) => {
     setAnchorEl(event.currentTarget);
@@ -54,7 +52,7 @@ export function ExportFromTemplates({
   };
 
   const copyTemplateData = async (sourceTemplateId: number, fieldToCopy: string) => {
-    const currentTemplateId = useStore.getState().jsonData.id;
+    const currentTemplateId = jsonData.id;
 
     try {
       const response = await axiosBase.post("/copy-template-data", {
@@ -73,8 +71,6 @@ export function ExportFromTemplates({
       console.error(error);
     }
   };
-
-  if (!isTeacher) return null;
 
   return (
     <Box>
@@ -135,7 +131,7 @@ export function ExportFromTemplates({
         title={"Выгрузить из другого года"}
         onClose={handleCloseDialog}
         options={teacherTemplates.filter(
-          (option) => option.year !== JsonData.year && option.text === JsonData.disciplins_name
+          (option) => option.year !== jsonData.year && option.text === jsonData.disciplins_name
         )}
         fieldName={elementName}
       />
@@ -145,7 +141,7 @@ export function ExportFromTemplates({
         title={"Выгрузить из другого направления"}
         onClose={handleCloseDialog}
         options={teacherTemplates.filter(
-          (option) => option.id !== JsonData.id && option.text !== JsonData.disciplins_name
+          (option) => option.id !== jsonData.id && option.text !== jsonData.disciplins_name
         )}
         fieldName={elementName}
       />

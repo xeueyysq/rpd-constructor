@@ -15,7 +15,7 @@ import { DisciplineContentData, ObjectHours } from "@pages/teacher-interface/mod
 import { axiosBase } from "@shared/api";
 import { useStore } from "@shared/hooks";
 import { showErrorMessage, showSuccessMessage } from "@shared/lib";
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { EditableNumber } from "./EditableNumber";
 import { ExportFromTemplates } from "./ExportFromTemplates";
 
@@ -29,17 +29,72 @@ interface StudyLoad {
   name: string;
 }
 
-export function DisciplineContentTable({ readOnly = false, tableData }: ContentTableType) {
-  const jsonData = useStore.getState().jsonData;
-  const dataHours: StudyLoad[] = jsonData?.study_load || [];
-  const { updateJsonData } = useStore();
-  const initialData = jsonData?.content as DisciplineContentData | undefined;
-  const initialDataLength = initialData ? Object.keys(initialData).length : 0;
-  const [nextId, setNextId] = useState<number>(initialDataLength);
+const ATTESTATION_ROW_ID = "__attestation__";
 
-  const [data, setData] = useState<DisciplineContentData>(
-    tableData ||
-      initialData || {
+function getRecordValue(record: Record<string, unknown>, key: string): unknown {
+  return Object.prototype.hasOwnProperty.call(record, key) ? record[key] : undefined;
+}
+
+function normalizeStudyLoad(studyLoad: unknown): StudyLoad[] {
+  if (!studyLoad) return [];
+
+  // array-like: [{ id, name }], or [{ hours, name }], or similar
+  if (Array.isArray(studyLoad)) {
+    return studyLoad
+      .map((item) => {
+        const rec = item && typeof item === "object" ? (item as Record<string, unknown>) : {};
+        const name = getRecordValue(rec, "name") ?? getRecordValue(rec, "type") ?? getRecordValue(rec, "title");
+        const id = getRecordValue(rec, "id") ?? getRecordValue(rec, "hours") ?? getRecordValue(rec, "value");
+        return {
+          name: name !== undefined ? String(name) : "",
+          id: id !== undefined ? String(id) : "",
+        };
+      })
+      .filter((x) => x.name || x.id);
+  }
+
+  // object-like: { "Лекции": 36, "СРС": 54, ... }
+  if (typeof studyLoad === "object") {
+    return Object.entries(studyLoad as Record<string, unknown>)
+      .map(([name, val]) => {
+        if (val && typeof val === "object") {
+          const v = val as Record<string, unknown>;
+          const hours = getRecordValue(v, "id") ?? getRecordValue(v, "hours") ?? getRecordValue(v, "value");
+          return { name: String(name), id: hours !== undefined ? String(hours) : "" };
+        }
+        return { name: String(name), id: val !== undefined ? String(val) : "" };
+      })
+      .filter((x) => x.name || x.id);
+  }
+
+  return [];
+}
+
+export function DisciplineContentTable({ readOnly = false, tableData }: ContentTableType) {
+  const jsonData = useStore((state) => state.jsonData);
+  const dataHours = useMemo(() => normalizeStudyLoad(jsonData?.study_load), [jsonData?.study_load]);
+  const hasMaxHours = dataHours.length > 0;
+  const hasBreakdownHours = useMemo(() => {
+    const breakdown = new Set(["СРС", "Практические", "Лекции"]);
+    return dataHours.some((x) => breakdown.has(x.name));
+  }, [dataHours]);
+  const updateJsonData = useStore((state) => state.updateJsonData);
+
+  const storeData = jsonData?.content as DisciplineContentData | undefined;
+
+  const getNextIdFromData = useCallback((content: DisciplineContentData | undefined) => {
+    if (!content) return 0;
+    const numericKeys = Object.keys(content)
+      .map((k) => Number(k))
+      .filter((n) => Number.isFinite(n));
+    const maxKey = numericKeys.length ? Math.max(...numericKeys) : -1;
+    return maxKey + 1;
+  }, []);
+
+  const getInitialData = useCallback((): DisciplineContentData => {
+    return (
+      tableData ||
+      storeData || {
         "0": {
           theme: "",
           lectures: 0,
@@ -50,11 +105,23 @@ export function DisciplineContentTable({ readOnly = false, tableData }: ContentT
           results: "",
         },
       }
-  );
+    );
+  }, [storeData, tableData]);
 
-  const maxHours: ObjectHours = (Array.isArray(dataHours) ? dataHours : []).reduce(
+  const [nextId, setNextId] = useState<number>(() => getNextIdFromData(getInitialData()));
+
+  const [data, setData] = useState<DisciplineContentData>(() => getInitialData());
+
+  useEffect(() => {
+    const nextData = getInitialData();
+    setData(nextData);
+    setNextId(getNextIdFromData(nextData));
+  }, [getInitialData, getNextIdFromData, jsonData?.id]);
+
+  const maxHoursBase = dataHours.reduce(
     (acc, item) => {
       const hours = parseFloat(item.id);
+      if (!Number.isFinite(hours)) return acc;
 
       switch (item.name) {
         case "СРС":
@@ -80,10 +147,59 @@ export function DisciplineContentTable({ readOnly = false, tableData }: ContentT
       all: 0,
       lectures: 0,
       seminars: 0,
+      control: 0,
       lect_and_sems: 0,
       independent_work: 0,
     }
   );
+
+  const maxHours: ObjectHours = useMemo(() => {
+    if (!hasBreakdownHours) {
+      return {
+        all: Number(maxHoursBase.all),
+        lectures: 0,
+        seminars: 0,
+        control: 0,
+        lect_and_sems: 0,
+        independent_work: 0,
+      };
+    }
+
+    const maxControl = Math.max(
+      0,
+      Number(maxHoursBase.all) -
+        (Number(maxHoursBase.lectures) + Number(maxHoursBase.seminars) + Number(maxHoursBase.independent_work))
+    );
+
+    return {
+      ...maxHoursBase,
+      control: maxControl,
+      lect_and_sems: Number(maxHoursBase.lectures) + Number(maxHoursBase.seminars) + maxControl,
+    };
+  }, [hasBreakdownHours, maxHoursBase]);
+
+  const certificationLabel = jsonData.certification ? String(jsonData.certification).toLowerCase() : "не выбрано";
+  const attestationTheme = `Промежуточная аттестация: ${certificationLabel}`;
+
+  // Создаём строку аттестации (один раз на шаблон) и дальше НЕ перезатираем вручную отредактированные часы контроля
+  useEffect(() => {
+    setData((prev) => {
+      const existing = prev[ATTESTATION_ROW_ID];
+      return {
+        ...prev,
+        [ATTESTATION_ROW_ID]: {
+          theme: attestationTheme,
+          lectures: 0,
+          seminars: 0,
+          control: existing?.control ?? maxHours.control,
+          independent_work: 0,
+          competence: "",
+          indicator: "",
+          results: "",
+        },
+      };
+    });
+  }, [jsonData?.id, attestationTheme, maxHours.control]);
 
   function compareObjects(object1: ObjectHours, object2: ObjectHours) {
     const keys = Object.keys(object1) as (keyof ObjectHours)[];
@@ -101,6 +217,7 @@ export function DisciplineContentTable({ readOnly = false, tableData }: ContentT
     all: 0,
     lectures: 0,
     seminars: 0,
+    control: 0,
     lect_and_sems: 0,
     independent_work: 0,
   });
@@ -116,10 +233,10 @@ export function DisciplineContentTable({ readOnly = false, tableData }: ContentT
       if (data) {
         Object.keys(data).forEach((key) => {
           const row = data[key];
-          all += Number(row.lectures) + Number(row.seminars) + Number(row.independent_work);
+          all += Number(row.lectures) + Number(row.seminars) + Number(row.control || 0) + Number(row.independent_work);
           lectures += Number(row.lectures);
           seminars += Number(row.seminars);
-          lect_and_sems += Number(row.lectures) + Number(row.seminars);
+          lect_and_sems += Number(row.lectures) + Number(row.seminars) + Number(row.control || 0);
           independent_work += Number(row.independent_work);
         });
 
@@ -127,6 +244,7 @@ export function DisciplineContentTable({ readOnly = false, tableData }: ContentT
           all: all,
           lectures: lectures,
           seminars: seminars,
+          control: lect_and_sems - (lectures + seminars),
           lect_and_sems: lect_and_sems,
           independent_work: independent_work,
         });
@@ -136,21 +254,32 @@ export function DisciplineContentTable({ readOnly = false, tableData }: ContentT
     summHours();
   }, [data]);
 
-  const validateHours = (hours: number, maxHours: number) => {
+  const validateHours = (hours: number, maxHours: number, isComparable: boolean) => {
+    if (!hasMaxHours) return "grey";
+    if (!isComparable) return "grey";
     if (Number(hours) !== Number(maxHours)) return "red";
     return "green";
   };
 
   const saveData = async () => {
     if (!data) return;
-    if (!compareObjects(summ, maxHours)) {
-      showErrorMessage("Ошибка заполнения данных. Данные по часам не совпадают");
-      return;
+    if (hasMaxHours) {
+      if (hasBreakdownHours) {
+        if (!compareObjects(summ, maxHours)) {
+          showErrorMessage("Ошибка заполнения данных. Данные по часам не совпадают");
+          return;
+        }
+      } else {
+        if (Number(summ.all) !== Number(maxHours.all)) {
+          showErrorMessage("Ошибка заполнения данных. Общее количество часов не совпадает");
+          return;
+        }
+      }
     }
-    const id = useStore.getState().jsonData.id;
+    const id = jsonData.id;
 
     const filteredData = Object.entries(data).reduce((acc: DisciplineContentData, [key, value]) => {
-      if (value.theme || value.lectures || value.seminars || value.independent_work) {
+      if (value.theme || value.lectures || value.seminars || value.control || value.independent_work) {
         acc[key] = value;
       }
       return acc;
@@ -172,26 +301,31 @@ export function DisciplineContentTable({ readOnly = false, tableData }: ContentT
   };
 
   const handleAddRow = () => {
-    setNextId(nextId + 1);
+    const newId = nextId;
+    setNextId(newId + 1);
     const newData = {
       ...data,
-      [nextId]: {
+      [String(newId)]: {
         theme: "",
-        lectures: "",
-        seminars: "",
-        independent_work: "",
+        lectures: 0,
+        seminars: 0,
+        control: 0,
+        independent_work: 0,
+        competence: "",
+        indicator: "",
+        results: "",
       },
     };
     setData(newData);
   };
 
-  const handleValueChange = (id: number, key: string, value: string | number) => {
+  const handleValueChange = (rowId: string, key: string, value: string | number) => {
     if (!data || !setData) return;
 
     const newData = {
       ...data,
-      [id]: {
-        ...data[id],
+      [rowId]: {
+        ...data[rowId],
         [key]: value,
       },
     };
@@ -217,6 +351,9 @@ export function DisciplineContentTable({ readOnly = false, tableData }: ContentT
                 <TableCell align="center" width="120px">
                   Практические (семинарские) занятия
                 </TableCell>
+                <TableCell align="center" width="90px">
+                  Контроль
+                </TableCell>
                 <TableCell align="center" width="100px">
                   Всего часов контактной работы
                 </TableCell>
@@ -227,121 +364,147 @@ export function DisciplineContentTable({ readOnly = false, tableData }: ContentT
             </TableHead>
             <TableBody>
               {data &&
-                Object.keys(data).map((row, index) => (
-                  <TableRow key={index}>
-                    <TableCell
-                      padding={"none"}
-                      sx={{
-                        "& .MuiTableCell-root": {
-                          padding: "0px 0px",
-                        },
-                      }}
-                    >
-                      <TextField
-                        sx={{ fontSize: "14px !important", "& .MuiInputBase-input": { fontSize: "14px !important" } }}
-                        multiline
-                        value={data[row].theme}
-                        onChange={(e) => handleValueChange(index, "theme", e.target.value)}
-                        disabled={readOnly}
-                        fullWidth
-                      />
-                    </TableCell>
-                    <TableCell
-                      style={{
-                        alignContent: "center",
-                        textAlign: "center",
-                      }}
-                    >
-                      {data[row].lectures + data[row].seminars + data[row].independent_work}
-                    </TableCell>
-                    <TableCell
-                      padding={"none"}
-                      sx={{
-                        "& .MuiTableCell-root .table td": {
-                          padding: 0,
-                        },
-                      }}
-                    >
-                      <EditableNumber
-                        value={data[row].lectures}
-                        onValueChange={(value: number) => handleValueChange(index, "lectures", value)}
-                        readOnly={readOnly}
-                      />
-                    </TableCell>
-                    <TableCell
-                      padding={"none"}
-                      sx={{
-                        "& .MuiTableCell-root": {
-                          padding: "0px 0px",
-                        },
-                      }}
-                    >
-                      <EditableNumber
-                        value={data[row].seminars}
-                        onValueChange={(value: number) => handleValueChange(index, "seminars", value)}
-                        readOnly={readOnly}
-                      />
-                    </TableCell>
-                    <TableCell
-                      style={{
-                        alignContent: "center",
-                        textAlign: "center",
-                      }}
-                    >
-                      {data[row].lectures + data[row].seminars}
-                    </TableCell>
-                    <TableCell
-                      padding={"none"}
-                      sx={{
-                        "& .MuiTableCell-root": {
-                          padding: "0px 0px",
-                        },
-                      }}
-                    >
-                      <EditableNumber
-                        value={data[row].independent_work}
-                        onValueChange={(value: number) => handleValueChange(index, "independent_work", value)}
-                        readOnly={readOnly}
-                      />
-                    </TableCell>
-                  </TableRow>
-                ))}
+                [...Object.keys(data).filter((id) => id !== ATTESTATION_ROW_ID), ATTESTATION_ROW_ID]
+                  .filter((id) => Boolean(data[id]))
+                  .map((rowId) => (
+                    <TableRow key={rowId}>
+                      <TableCell
+                        padding={"none"}
+                        sx={{
+                          "& .MuiTableCell-root": {
+                            padding: "0px 0px",
+                          },
+                        }}
+                      >
+                        {rowId === ATTESTATION_ROW_ID ? (
+                          <Box sx={{ fontSize: 14, p: 1, fontWeight: 600 }}>{attestationTheme}</Box>
+                        ) : (
+                          <TextField
+                            sx={{
+                              fontSize: "14px !important",
+                              "& .MuiInputBase-input": { fontSize: "14px !important" },
+                            }}
+                            multiline
+                            value={data[rowId].theme}
+                            onChange={(e) => handleValueChange(rowId, "theme", e.target.value)}
+                            disabled={readOnly}
+                            fullWidth
+                          />
+                        )}
+                      </TableCell>
+                      <TableCell
+                        style={{
+                          alignContent: "center",
+                          textAlign: "center",
+                        }}
+                      >
+                        {Number(data[rowId].lectures) +
+                          Number(data[rowId].seminars) +
+                          Number(data[rowId].control || 0) +
+                          Number(data[rowId].independent_work)}
+                      </TableCell>
+                      <TableCell
+                        padding={"none"}
+                        sx={{
+                          "& .MuiTableCell-root .table td": {
+                            padding: 0,
+                          },
+                        }}
+                      >
+                        <EditableNumber
+                          value={data[rowId].lectures}
+                          onValueChange={(value: number) => handleValueChange(rowId, "lectures", value)}
+                          readOnly={readOnly || rowId === ATTESTATION_ROW_ID}
+                        />
+                      </TableCell>
+                      <TableCell
+                        padding={"none"}
+                        sx={{
+                          "& .MuiTableCell-root": {
+                            padding: "0px 0px",
+                          },
+                        }}
+                      >
+                        <EditableNumber
+                          value={data[rowId].seminars}
+                          onValueChange={(value: number) => handleValueChange(rowId, "seminars", value)}
+                          readOnly={readOnly || rowId === ATTESTATION_ROW_ID}
+                        />
+                      </TableCell>
+                      <TableCell padding={"none"}>
+                        <EditableNumber
+                          value={Number(data[rowId].control || 0)}
+                          onValueChange={(value: number) => handleValueChange(rowId, "control", value)}
+                          readOnly={readOnly}
+                        />
+                      </TableCell>
+                      <TableCell
+                        style={{
+                          alignContent: "center",
+                          textAlign: "center",
+                        }}
+                      >
+                        {Number(data[rowId].lectures) + Number(data[rowId].seminars) + Number(data[rowId].control || 0)}
+                      </TableCell>
+                      <TableCell
+                        padding={"none"}
+                        sx={{
+                          "& .MuiTableCell-root": {
+                            padding: "0px 0px",
+                          },
+                        }}
+                      >
+                        <EditableNumber
+                          value={data[rowId].independent_work}
+                          onValueChange={(value: number) => handleValueChange(rowId, "independent_work", value)}
+                          readOnly={readOnly || rowId === ATTESTATION_ROW_ID}
+                        />
+                      </TableCell>
+                    </TableRow>
+                  ))}
               <TableRow>
                 <TableCell>Итого за семестр / курс</TableCell>
                 <TableCell
                   sx={{
-                    color: validateHours(summ.all, maxHours.all),
+                    color: validateHours(summ.all, maxHours.all, true),
                   }}
                 >
-                  {summ.all} / {maxHours.all}
+                  {summ.all} / {hasMaxHours ? maxHours.all : "—"}
                 </TableCell>
                 <TableCell
                   sx={{
-                    color: validateHours(summ.lectures, maxHours.lectures),
+                    color: validateHours(summ.lectures, maxHours.lectures, hasBreakdownHours),
                   }}
                 >
-                  {summ.lectures} / {maxHours.lectures}
+                  {summ.lectures} / {hasMaxHours && hasBreakdownHours ? maxHours.lectures : "—"}
                 </TableCell>
                 <TableCell
                   sx={{
-                    color: validateHours(summ.seminars, maxHours.seminars),
+                    color: validateHours(summ.seminars, maxHours.seminars, hasBreakdownHours),
                   }}
                 >
-                  {summ.seminars} / {maxHours.seminars}
+                  {summ.seminars} / {hasMaxHours && hasBreakdownHours ? maxHours.seminars : "—"}
                 </TableCell>
                 <TableCell
                   sx={{
-                    color: validateHours(summ.lect_and_sems, maxHours.lect_and_sems),
+                    color: validateHours(summ.control, maxHours.control, hasBreakdownHours),
                   }}
                 >
-                  {summ.lect_and_sems} / {maxHours.lect_and_sems}
+                  {summ.control} / {hasMaxHours && hasBreakdownHours ? maxHours.control : "—"}
                 </TableCell>
                 <TableCell
                   sx={{
-                    color: validateHours(summ.independent_work, maxHours.independent_work),
+                    color: validateHours(summ.lect_and_sems, maxHours.lect_and_sems, hasBreakdownHours),
                   }}
                 >
-                  {summ.independent_work} / {maxHours.independent_work}
+                  {summ.lect_and_sems} / {hasMaxHours && hasBreakdownHours ? maxHours.lect_and_sems : "—"}
+                </TableCell>
+                <TableCell
+                  sx={{
+                    color: validateHours(summ.independent_work, maxHours.independent_work, hasBreakdownHours),
+                  }}
+                >
+                  {summ.independent_work} / {hasMaxHours && hasBreakdownHours ? maxHours.independent_work : "—"}
                 </TableCell>
               </TableRow>
             </TableBody>
@@ -355,7 +518,10 @@ export function DisciplineContentTable({ readOnly = false, tableData }: ContentT
               right: 8,
             }}
           >
-            <ExportFromTemplates elementName={"content"} setChangeableValue={setData} />
+            <ExportFromTemplates
+              elementName={"content"}
+              setChangeableValue={(value) => setData(value as DisciplineContentData)}
+            />
           </Box>
         )}
       </Box>
