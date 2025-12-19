@@ -5,6 +5,8 @@ class RpdProfileTemplates {
     this.pool = pool;
   }
 
+  static JSONB_FIELDS = new Set(["competencies", "content", "study_load"]);
+
   async getJsonProfile(id) {
     const queryResult = await this.pool.query(
       `
@@ -20,9 +22,17 @@ class RpdProfileTemplates {
   }
 
   async updateById(id, fieldToUpdate, value) {
+    // node-postgres treats JS arrays as PG arrays, not JSON. For jsonb columns we must stringify explicitly.
+    const preparedValue =
+      RpdProfileTemplates.JSONB_FIELDS.has(fieldToUpdate) &&
+      value !== null &&
+      value !== undefined
+        ? JSON.stringify(value)
+        : value;
+
     const queryResult = await this.pool.query(
       `UPDATE rpd_profile_templates SET ${fieldToUpdate} = $1 WHERE id = $2 RETURNING *`,
-      [value, id]
+      [preparedValue, id]
     );
     return queryResult.rows[0];
   }
