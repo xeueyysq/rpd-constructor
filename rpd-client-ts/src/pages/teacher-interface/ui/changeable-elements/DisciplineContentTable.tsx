@@ -15,7 +15,7 @@ import { DisciplineContentData, ObjectHours } from "@pages/teacher-interface/mod
 import { axiosBase } from "@shared/api";
 import { useStore } from "@shared/hooks";
 import { showErrorMessage, showSuccessMessage } from "@shared/lib";
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { EditableNumber } from "./EditableNumber";
 import { ExportFromTemplates } from "./ExportFromTemplates";
 
@@ -30,16 +30,25 @@ interface StudyLoad {
 }
 
 export function DisciplineContentTable({ readOnly = false, tableData }: ContentTableType) {
-  const jsonData = useStore.getState().jsonData;
+  const jsonData = useStore((state) => state.jsonData);
   const dataHours: StudyLoad[] = jsonData?.study_load || [];
-  const { updateJsonData } = useStore();
-  const initialData = jsonData?.content as DisciplineContentData | undefined;
-  const initialDataLength = initialData ? Object.keys(initialData).length : 0;
-  const [nextId, setNextId] = useState<number>(initialDataLength);
+  const updateJsonData = useStore((state) => state.updateJsonData);
 
-  const [data, setData] = useState<DisciplineContentData>(
-    tableData ||
-      initialData || {
+  const storeData = jsonData?.content as DisciplineContentData | undefined;
+
+  const getNextIdFromData = useCallback((content: DisciplineContentData | undefined) => {
+    if (!content) return 0;
+    const numericKeys = Object.keys(content)
+      .map((k) => Number(k))
+      .filter((n) => Number.isFinite(n));
+    const maxKey = numericKeys.length ? Math.max(...numericKeys) : -1;
+    return maxKey + 1;
+  }, []);
+
+  const getInitialData = useCallback((): DisciplineContentData => {
+    return (
+      tableData ||
+      storeData || {
         "0": {
           theme: "",
           lectures: 0,
@@ -50,7 +59,18 @@ export function DisciplineContentTable({ readOnly = false, tableData }: ContentT
           results: "",
         },
       }
-  );
+    );
+  }, [storeData, tableData]);
+
+  const [nextId, setNextId] = useState<number>(() => getNextIdFromData(getInitialData()));
+
+  const [data, setData] = useState<DisciplineContentData>(() => getInitialData());
+
+  useEffect(() => {
+    const nextData = getInitialData();
+    setData(nextData);
+    setNextId(getNextIdFromData(nextData));
+  }, [getInitialData, getNextIdFromData, jsonData?.id]);
 
   const maxHours: ObjectHours = (Array.isArray(dataHours) ? dataHours : []).reduce(
     (acc, item) => {
@@ -147,7 +167,7 @@ export function DisciplineContentTable({ readOnly = false, tableData }: ContentT
       showErrorMessage("Ошибка заполнения данных. Данные по часам не совпадают");
       return;
     }
-    const id = useStore.getState().jsonData.id;
+    const id = jsonData.id;
 
     const filteredData = Object.entries(data).reduce((acc: DisciplineContentData, [key, value]) => {
       if (value.theme || value.lectures || value.seminars || value.independent_work) {
@@ -172,26 +192,30 @@ export function DisciplineContentTable({ readOnly = false, tableData }: ContentT
   };
 
   const handleAddRow = () => {
-    setNextId(nextId + 1);
+    const newId = nextId;
+    setNextId(newId + 1);
     const newData = {
       ...data,
-      [nextId]: {
+      [String(newId)]: {
         theme: "",
-        lectures: "",
-        seminars: "",
-        independent_work: "",
+        lectures: 0,
+        seminars: 0,
+        independent_work: 0,
+        competence: "",
+        indicator: "",
+        results: "",
       },
     };
     setData(newData);
   };
 
-  const handleValueChange = (id: number, key: string, value: string | number) => {
+  const handleValueChange = (rowId: string, key: string, value: string | number) => {
     if (!data || !setData) return;
 
     const newData = {
       ...data,
-      [id]: {
-        ...data[id],
+      [rowId]: {
+        ...data[rowId],
         [key]: value,
       },
     };
@@ -227,8 +251,8 @@ export function DisciplineContentTable({ readOnly = false, tableData }: ContentT
             </TableHead>
             <TableBody>
               {data &&
-                Object.keys(data).map((row, index) => (
-                  <TableRow key={index}>
+                Object.keys(data).map((rowId) => (
+                  <TableRow key={rowId}>
                     <TableCell
                       padding={"none"}
                       sx={{
@@ -240,8 +264,8 @@ export function DisciplineContentTable({ readOnly = false, tableData }: ContentT
                       <TextField
                         sx={{ fontSize: "14px !important", "& .MuiInputBase-input": { fontSize: "14px !important" } }}
                         multiline
-                        value={data[row].theme}
-                        onChange={(e) => handleValueChange(index, "theme", e.target.value)}
+                        value={data[rowId].theme}
+                        onChange={(e) => handleValueChange(rowId, "theme", e.target.value)}
                         disabled={readOnly}
                         fullWidth
                       />
@@ -252,7 +276,9 @@ export function DisciplineContentTable({ readOnly = false, tableData }: ContentT
                         textAlign: "center",
                       }}
                     >
-                      {data[row].lectures + data[row].seminars + data[row].independent_work}
+                      {Number(data[rowId].lectures) +
+                        Number(data[rowId].seminars) +
+                        Number(data[rowId].independent_work)}
                     </TableCell>
                     <TableCell
                       padding={"none"}
@@ -263,8 +289,8 @@ export function DisciplineContentTable({ readOnly = false, tableData }: ContentT
                       }}
                     >
                       <EditableNumber
-                        value={data[row].lectures}
-                        onValueChange={(value: number) => handleValueChange(index, "lectures", value)}
+                        value={data[rowId].lectures}
+                        onValueChange={(value: number) => handleValueChange(rowId, "lectures", value)}
                         readOnly={readOnly}
                       />
                     </TableCell>
@@ -277,8 +303,8 @@ export function DisciplineContentTable({ readOnly = false, tableData }: ContentT
                       }}
                     >
                       <EditableNumber
-                        value={data[row].seminars}
-                        onValueChange={(value: number) => handleValueChange(index, "seminars", value)}
+                        value={data[rowId].seminars}
+                        onValueChange={(value: number) => handleValueChange(rowId, "seminars", value)}
                         readOnly={readOnly}
                       />
                     </TableCell>
@@ -288,7 +314,7 @@ export function DisciplineContentTable({ readOnly = false, tableData }: ContentT
                         textAlign: "center",
                       }}
                     >
-                      {data[row].lectures + data[row].seminars}
+                      {Number(data[rowId].lectures) + Number(data[rowId].seminars)}
                     </TableCell>
                     <TableCell
                       padding={"none"}
@@ -299,8 +325,8 @@ export function DisciplineContentTable({ readOnly = false, tableData }: ContentT
                       }}
                     >
                       <EditableNumber
-                        value={data[row].independent_work}
-                        onValueChange={(value: number) => handleValueChange(index, "independent_work", value)}
+                        value={data[rowId].independent_work}
+                        onValueChange={(value: number) => handleValueChange(rowId, "independent_work", value)}
                         readOnly={readOnly}
                       />
                     </TableCell>
@@ -355,7 +381,10 @@ export function DisciplineContentTable({ readOnly = false, tableData }: ContentT
               right: 8,
             }}
           >
-            <ExportFromTemplates elementName={"content"} setChangeableValue={setData} />
+            <ExportFromTemplates
+              elementName={"content"}
+              setChangeableValue={(value) => setData(value as DisciplineContentData)}
+            />
           </Box>
         )}
       </Box>

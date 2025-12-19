@@ -1,5 +1,5 @@
 import { TextField } from "@mui/material";
-import { ChangeEvent, FC, useState } from "react";
+import { ChangeEvent, FC, useEffect, useState } from "react";
 
 interface EditableNumberProps {
   value: number;
@@ -10,6 +10,10 @@ interface EditableNumberProps {
 export const EditableNumber: FC<EditableNumberProps> = ({ value, onValueChange, readOnly }) => {
   const [inputValue, setInputValue] = useState(value);
   const [isEditing, setIsEditing] = useState(false);
+
+  useEffect(() => {
+    setInputValue(value);
+  }, [value]);
 
   const handleDivClick = () => {
     if (!readOnly) setIsEditing(true);
