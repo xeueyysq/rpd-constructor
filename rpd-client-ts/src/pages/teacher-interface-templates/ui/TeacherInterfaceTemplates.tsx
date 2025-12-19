@@ -93,18 +93,19 @@ export const TeacherInterfaceTemplates: FC = () => {
       {
         accessorKey: "statusIcon",
         header: "",
+        enableSorting: false,
+        enableColumnFilter: false,
         Cell: ({ row }) => (
           <Box pl={1.5}>
             <StatusCell status={row.original.status.status} />
           </Box>
         ),
-        enableColumnFilter: false,
-        size: 10,
+        size: 50,
       },
       {
         accessorKey: "disciplins_name",
         header: "Название \nдисциплины",
-        size: 10,
+        size: 200,
       },
       {
         accessorKey: "faculty",
@@ -113,7 +114,7 @@ export const TeacherInterfaceTemplates: FC = () => {
       {
         accessorKey: "education_level",
         header: "Уровень \nобразования",
-        size: 10,
+        size: 150,
       },
       {
         accessorKey: "direction",
@@ -126,12 +127,12 @@ export const TeacherInterfaceTemplates: FC = () => {
       {
         accessorKey: "education_form",
         header: "Форма \n\n\n\n\n\nобучения",
-        size: 10,
+        size: 120,
       },
       {
         accessorKey: "year",
         header: "Год набора",
-        size: 10,
+        size: 150,
       },
       {
         accessorKey: "status",
@@ -141,6 +142,8 @@ export const TeacherInterfaceTemplates: FC = () => {
       {
         accessorKey: "action",
         header: "Действие",
+        enableSorting: false,
+        enableColumnFilter: false,
         Cell: ({ row }) => {
           return row.original.status.status === TemplateStatusEnum.IN_PROGRESS ? (
             <>
@@ -204,11 +207,21 @@ export const TeacherInterfaceTemplates: FC = () => {
     columns,
     data: templatesData || [],
     localization: MRT_Localization_RU,
-    muiTableBodyCellProps: ({ column }) => ({
-      sx: column.id === "mrt-row-select" ? { paddingRight: 0, paddingLeft: 0 } : { py: 0.5, px: 0.5 },
-    }),
-    muiTableHeadCellProps: ({ column }) => ({
-      sx: column.id === "mrt-row-select" ? { paddingRight: 0, paddingLeft: 0 } : { py: 0.5, px: 0.5 },
+    layoutMode: "grid",
+    muiTableProps: {
+      size: "small",
+      sx: { px: 2 },
+    },
+    muiTableHeadCellProps: {
+      sx: {
+        backgroundColor: "#eceff1",
+      },
+    },
+    muiTableBodyCellProps: ({ row }) => ({
+      sx: {
+        py: 0.5,
+        backgroundColor: row.index % 2 === 0 ? undefined : "#fafafa",
+      },
     }),
   });
 

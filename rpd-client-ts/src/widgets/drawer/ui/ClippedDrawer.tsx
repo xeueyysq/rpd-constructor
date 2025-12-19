@@ -38,7 +38,7 @@ export function ClippedDrawer() {
       default:
         break;
     }
-  }, [userRole, path]);
+  }, [userRole, isTemplatePage]);
 
   const switchMap = {
     main: <MainTabsList />,
@@ -49,7 +49,7 @@ export function ClippedDrawer() {
   useEffect(() => {
     if (isTemplatePage) setDrawerWidth(430);
     else setDrawerWidth(290);
-  }, [page]);
+  }, [isTemplatePage]);
 
   if (path === RedirectPath.SIGN_IN) return <Outlet />;
 

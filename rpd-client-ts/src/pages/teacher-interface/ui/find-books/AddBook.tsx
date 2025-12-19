@@ -13,10 +13,10 @@ import {
   ListItemText,
   TextField,
 } from "@mui/material";
-import ShowBooks from "./ShowBooks.tsx";
 import { useStore } from "@shared/hooks";
 import { showErrorMessage, showSuccessMessage } from "@shared/lib";
 import { axiosBase } from "@shared/api";
+import { BooksMetaList } from "./BooksMetaList.tsx";
 
 interface AddBook {
   elementName: string;
@@ -28,7 +28,7 @@ interface BookData {
   biblio: string;
   url: string;
   thumb?: string;
-  // ... другие поля, если они есть
+  published: string;
 }
 
 const AddBook: FC<AddBook> = ({ elementName }) => {
@@ -36,6 +36,7 @@ const AddBook: FC<AddBook> = ({ elementName }) => {
   const [bookName, setBookName] = useState<string | null>(null);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [manualInput, setManualInput] = useState<string>("");
+  const [isLoadingBooks, setIsLoadingBooks] = useState<boolean>(false);
 
   const jsonData = useStore.getState().jsonData[elementName];
   const [booksData, setBooksData] = useState<BookData[] | null>(jsonData);
@@ -66,7 +67,8 @@ const AddBook: FC<AddBook> = ({ elementName }) => {
       setErrorMessage("Поле обязательно для заполнения");
       return;
     }
-    setBooksData(null);
+    // setBooksData(null);
+    setIsLoadingBooks(true);
     setErrorMessage(null);
 
     try {
@@ -74,11 +76,14 @@ const AddBook: FC<AddBook> = ({ elementName }) => {
       const books = response.data;
       if (!books.length) {
         setErrorMessage("По вашему запросу ничего не найдено");
+        setBooksData(null);
         return;
       }
       setBooksData(response.data);
     } catch (error) {
       console.error(error);
+    } finally {
+      setIsLoadingBooks(false);
     }
   };
 
@@ -100,8 +105,9 @@ const AddBook: FC<AddBook> = ({ elementName }) => {
     }
   };
 
-  const handleAddBookToList = (biblio: string) => {
-    saveContent([...addedBooks, biblio]);
+  const handleAddBooksToList = (biblios: string[]) => {
+    //TODO добавить фильтр на добавление книг
+    saveContent([...addedBooks, ...biblios]);
   };
 
   const handleAddManualBook = () => {
@@ -181,19 +187,16 @@ const AddBook: FC<AddBook> = ({ elementName }) => {
 
       <Dialog
         open={open}
+        fullWidth
+        maxWidth={booksData && booksData.length > 0 ? "xl" : "sm"}
         onClose={handleCloseDialog}
-        sx={{
-          "& .MuiDialog-container": {
-            "& .MuiPaper-root": {
-              width: "100%",
-              maxWidth: "800px",
-            },
-          },
+        onKeyDown={(e) => {
+          if (e.key === "Enter") handleFindBooks();
         }}
       >
-        <DialogTitle>Поиск книг</DialogTitle>
+        <DialogTitle>Поиск книг в библиотечной системе</DialogTitle>
         <DialogContent>
-          <Box position="sticky" top={0} zIndex={1} bgcolor="background.paper">
+          <Box position="sticky" top={0} zIndex={2} bgcolor="background.paper">
             <TextField
               autoFocus
               margin="dense"
@@ -202,7 +205,7 @@ const AddBook: FC<AddBook> = ({ elementName }) => {
               variant="standard"
               value={bookName}
               onChange={handleBookNameChange}
-              helperText={errorMessage}
+              helperText={isLoadingBooks ? "Поиск книг..." : errorMessage}
               slotProps={{
                 input: {
                   endAdornment: (
@@ -218,7 +221,9 @@ const AddBook: FC<AddBook> = ({ elementName }) => {
               }}
             />
           </Box>
-          <ShowBooks books={booksData} onAddBookToList={handleAddBookToList} />
+          {booksData && booksData?.length > 0 && (
+            <BooksMetaList books={booksData} addBooksToList={handleAddBooksToList} closeDialog={handleCloseDialog} />
+          )}
         </DialogContent>
         <DialogActions>
           <Button onClick={handleCloseDialog}>Отмена</Button>

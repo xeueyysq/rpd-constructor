@@ -1,14 +1,27 @@
-import { Box, Button, ButtonGroup, Paper, Table, TableBody, TableCell, TableContainer, TableHead, TableRow } from "@mui/material";
+import {
+  Box,
+  Button,
+  ButtonGroup,
+  Paper,
+  Table,
+  TableBody,
+  TableCell,
+  TableContainer,
+  TableHead,
+  TableRow,
+  TextField,
+  Tooltip,
+} from "@mui/material";
 import { PlannedResultsData, Results } from "@pages/teacher-interface/model/DisciplineContentPageTypes.ts";
 import { parseCsvToJson, ParsedPlannedResults } from "@shared/ability/lib/parseCsvToJson.ts";
 import { axiosBase } from "@shared/api";
 import { useStore } from "@shared/hooks";
 import { showErrorMessage, showSuccessMessage } from "@shared/lib";
 import { Loader } from "@shared/ui";
-import { FC, useState, useEffect } from "react";
-import EditableCell from "../changeable-elements/EditableCell.tsx";
-import PlannedResultsCell from "../changeable-elements/PlannedResultsCell.tsx";
 import { isAxiosError } from "axios";
+import { FC, useEffect, useState } from "react";
+import { EditableCell } from "../changeable-elements/EditableCell.tsx";
+import { PageTitle } from "@shared/ui";
 
 const PlannedResultsPage: FC = () => {
   const initialData = useStore.getState().jsonData.competencies as PlannedResultsData | undefined;
@@ -35,8 +48,7 @@ const PlannedResultsPage: FC = () => {
           indicator = `${row.indicator}. ${row.results}`;
         } else if (row.results === disciplineName) {
           const hasSameEntry = Object.values(filteredDataMap).some(
-            (existingRow) =>
-              existingRow.competence === competence && existingRow.indicator === indicator
+            (existingRow) => existingRow.competence === competence && existingRow.indicator === indicator
           );
 
           const competenceValue = hasSameEntry ? "" : competence;
@@ -101,14 +113,17 @@ const PlannedResultsPage: FC = () => {
     }
   };
 
-  const handleValueChange = (id: number, value: Results) => {
+  const handleValueChange = (id: number, value: string, key: string) => {
     if (!data) return;
 
     const newData = {
       ...data,
       [id]: {
         ...data[id],
-        results: value,
+        results: {
+          ...data[id].results,
+          [key]: value,
+        },
       },
     };
     setData(newData);
@@ -151,9 +166,22 @@ const PlannedResultsPage: FC = () => {
 
   return (
     <Box>
-      <Box fontSize={"1.5rem"}>Планируемые результаты обучения по дисциплине (модулю)</Box>
-      <Box pt={3} display={"flex"} justifyContent={"space-between"} alignItems={"center"}>
-        <input type="file" accept=".csv,.xlsx" onChange={handleFileUpload} />
+      <PageTitle title="Планируемые результаты обучения по дисциплине (модулю)" />
+      <Box pt={2} display={"flex"} justifyContent="flex-end" gap={1}>
+        <Tooltip title="Загрузить файл компетенций (.csv, .xlsx)" arrow>
+          <Box component="label" htmlFor="csv-upload">
+            <Button variant="outlined" component="span">
+              Загрузить файл
+            </Button>
+            <input
+              id="csv-upload"
+              type="file"
+              accept=".csv,.xlsx"
+              onChange={handleFileUpload}
+              style={{ display: "none" }}
+            />
+          </Box>
+        </Tooltip>
         <Button variant="contained" onClick={saveData}>
           Сохранить
         </Button>
@@ -162,46 +190,45 @@ const PlannedResultsPage: FC = () => {
         <Table sx={{ minWidth: 650 }} aria-label="simple table" size="small" className="table">
           <TableHead>
             <TableRow>
-              <TableCell
-                align="center"
-                sx={{
-                  fontFamily: "Times New Roman",
-                  fontSize: 16,
-                }}
-              >
+              <TableCell align="center" rowSpan={2}>
                 Формируемые компетенции (код и наименование)
               </TableCell>
-              <TableCell
-                align="center"
-                sx={{
-                  fontFamily: "Times New Roman",
-                  fontSize: 16,
-                }}
-              >
+              <TableCell align="center" rowSpan={2}>
                 Индикаторы достижения компетенций (код и формулировка)
               </TableCell>
               <TableCell
+                colSpan={3}
                 align="center"
                 sx={{
-                  fontFamily: "Times New Roman",
-                  fontSize: 16,
+                  textAlign: "center",
                 }}
               >
                 Планируемые результаты обучения по дисциплине (модулю)
               </TableCell>
+            </TableRow>
+            <TableRow>
+              <TableCell align="center">Владеть</TableCell>
+              <TableCell align="center">Знать</TableCell>
+              <TableCell align="center">Уметь</TableCell>
             </TableRow>
           </TableHead>
           <TableBody>
             {Object.keys(data).map((key) => {
               return (
                 <TableRow key={key}>
-                  <TableCell>
-                    <EditableCell value={data[key].competence} onValueChange={() => {}} readOnly />
-                  </TableCell>
-                  <TableCell>
-                    <EditableCell value={data[key].indicator} onValueChange={() => {}} readOnly />
-                  </TableCell>
-                  <PlannedResultsCell value={data[key].results} onValueChange={(value: Results) => handleValueChange(Number(key), value)} />
+                  <TableCell>{data[key].competence}</TableCell>
+                  <TableCell>{data[key].indicator}</TableCell>
+                  {Object.keys(data[key].results).map((resultKey) => (
+                    <TableCell>
+                      <TextField
+                        fullWidth
+                        sx={{ fontSize: "14px !important", "& .MuiInputBase-input": { fontSize: "14px !important" } }}
+                        multiline
+                        value={data[key].results[resultKey]}
+                        onChange={(e) => handleValueChange(Number(key), e.target.value, resultKey)}
+                      />
+                    </TableCell>
+                  ))}
                 </TableRow>
               );
             })}

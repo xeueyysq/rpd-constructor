@@ -2,11 +2,12 @@ import { FC } from "react";
 import JsonChangeValue from "../changeable-elements/JsonChangeValue.tsx";
 import { Box } from "@mui/material";
 import AddBook from "../find-books/AddBook.tsx";
+import { PageTitle } from "@shared/ui";
 
 const ResourceSupportPage: FC = () => {
   return (
     <Box>
-      <Box fontSize={"1.5rem"}>Ресурсное обеспечение</Box>
+      <PageTitle title="Ресурсное обеспечение" />
       <Box component="h4" sx={{ pt: 2, pb: 1 }}>
         Перечень литературы
       </Box>

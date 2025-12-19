@@ -17,26 +17,34 @@
 }
 
 body {
-  background-color: #f0f0f0;
+  background-color: #f4f6f8;
+  color: #212121;
 }
 
 ::-webkit-scrollbar {
   /* chrome based */
-  width: 0px;
+  width: 8px;
   /* ширина scrollbar'a */
   background: transparent;
   /* опционально */
 }
 
+::-webkit-scrollbar-thumb {
+  background-color: #b0bec5;
+  border-radius: 4px;
+}
+
 html {
-  -ms-overflow-style: none;
+  /* -ms-overflow-style: none; */
   /* IE 10+ */
-  scrollbar-width: none;
+  /* scrollbar-width: none; */
   /* Firefox */
 }
 
 .header {
-  background-color: #90e0ef;
+  background-color: #263238;
+  color: #fff;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
 }
 
 .header-wrapper {
@@ -45,6 +53,7 @@ html {
   justify-content: space-between;
   width: 1200px;
   margin: 0 auto;
+  height: 64px; /* Fixed height for consistency */
 }
 
 .header-logo {
@@ -53,20 +62,28 @@ html {
 }
 
 .header-logo img {
-  width: 80px;
+  width: 60px; /* Slightly smaller for strict look */
   height: auto;
 }
 
 .header-logo-name {
-  font-size: 22px;
+  font-size: 20px;
   padding: 0 10px;
   font-weight: 600;
+  color: #fff;
 }
 
 .header-navbar a {
   padding: 0 15px;
   text-decoration: none;
-  color: #000;
+  color: #eceff1;
+  font-size: 14px;
+  font-weight: 500;
+  transition: color 0.2s;
+}
+
+.header-navbar a:hover {
+  color: #fff;
 }
 
 .heder-profile {
@@ -75,21 +92,23 @@ html {
 }
 
 .heder-profile img {
-  width: 40px;
-  height: auto;
+  width: 36px;
+  height: 36px;
   border-radius: 50%;
+  border: 2px solid #eceff1;
 }
 
 .header-profile-name {
-  font-size: 16px;
+  font-size: 14px;
   padding: 0 10px;
+  color: #eceff1;
 }
 
 .header-navbar span {
   text-decoration: none;
-  color: #00000060;
+  color: #b0bec5;
   padding: 0 15px;
-  font-size: 16px;
+  font-size: 14px;
 }
 
 .rpd-template-main {
@@ -99,56 +118,68 @@ html {
 }
 
 .rpd-template-list {
-  background-color: #03045e;
-  min-width: 400px;
-  max-width: 400px;
-  height: 500px;
-  margin: 20px 10px 20px 0;
-  border-radius: 2%;
+  background-color: #ffffff;
+  min-width: 300px; /* Reduced width */
+  max-width: 300px;
+  height: auto;
+  min-height: 500px;
+  margin: 20px 20px 20px 0;
+  border-radius: 4px;
   position: sticky;
   top: 20px;
+  border: 1px solid #e0e0e0;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.12);
 }
 
 .rpd-template-list-title {
-  padding: 20px 10px;
-  color: #fff;
-  font-size: 24px;
+  padding: 15px 20px;
+  color: #263238;
+  font-size: 18px;
+  font-weight: 600;
+  border-bottom: 1px solid #e0e0e0;
 }
 
 .rpd-template-list-ul {
-  padding: 0 10px;
+  padding: 10px 0;
   list-style-type: none;
 }
 
 .rpd-template-list-ul li {
-  padding: 5px 0;
+  padding: 0;
 }
 
 .rpd-template-list-ul li a {
+  display: block;
+  padding: 8px 20px;
   text-decoration: none;
-  color: #fff;
-  font-size: 16px;
+  color: #455a64;
+  font-size: 14px;
+  transition: background-color 0.2s;
 }
 
 .rpd-template-list-ul li a:hover {
-  color: #caf0f8;
-  text-decoration: underline;
+  color: #263238;
+  background-color: #f5f5f5;
+  text-decoration: none;
 }
 
 .rpd-template-content {
-  background-color: #caf0f8;
-  margin: 20px 0 20px 10px;
-  padding: 10px;
-  border-radius: 2%;
+  background-color: #ffffff;
+  margin: 20px 0 20px 0;
+  padding: 24px;
+  border-radius: 4px;
   width: 100%;
+  border: 1px solid #e0e0e0;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.12);
 }
 
 .rpd-template-content div {
-  margin-bottom: 10px;
+  margin-bottom: 16px;
 }
 
 .rpd-template-content p {
-  margin-bottom: 10px;
+  margin-bottom: 16px;
+  line-height: 1.6;
 }
 
 .manager-main {
@@ -157,48 +188,60 @@ html {
 }
 
 .manager-content {
-  background-color: #caf0f8;
-  margin: 20px 0 20px 10px;
-  padding: 20px;
-  border-radius: 2%;
+  background-color: #ffffff;
+  margin: 20px 0 20px 0;
+  padding: 24px;
+  border-radius: 4px;
   width: 100%;
+  border: 1px solid #e0e0e0;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.12);
 }
 
 .manager-content h2 {
-  padding: 20px 0;
-}
-
-.manager-line {
-  margin: 20px;
-  color: #f0f0f0;
-}
-
-.selector {
-  padding: 5px;
-  width: 50%;
-  margin: 10px;
-  font-size: 14px;
-  font-weight: 600;
-}
-
-.table {
-  border: 1px solid grey;
-  table-layout: fixed;
-  width: 100%;
+  padding: 0 0 20px 0;
+  font-size: 24px;
+  color: #263238;
+  border-bottom: 1px solid #eceff1;
   margin-bottom: 20px;
 }
 
+.manager-line {
+  margin: 20px 0;
+  border-top: 1px solid #eceff1;
+}
+
+.selector {
+  padding: 8px;
+  width: 50%;
+  margin: 10px 0;
+  font-size: 14px;
+  font-weight: 500;
+  border: 1px solid #b0bec5;
+  border-radius: 4px;
+}
+
+.table {
+  border: 1px solid #e0e0e0;
+  table-layout: fixed;
+  width: 100%;
+  margin-bottom: 20px;
+  border-collapse: collapse;
+}
+
 .table th {
-  font-weight: bold;
-  padding: 5px;
-  background: #efefef;
-  border: 1px solid grey;
+  font-weight: 600;
+  padding: 12px 16px;
+  background: #eceff1;
+  border: 1px solid #e0e0e0;
+  color: #263238;
+  text-align: left;
 }
 
 .table td {
-  padding: 5px 10px;
-  border: 1px solid grey;
+  padding: 8px 16px;
+  border: 1px solid #e0e0e0;
   text-align: left;
+  color: #455a64;
 }
 
 .table tbody tr:nth-child(odd) {
@@ -206,15 +249,22 @@ html {
 }
 
 .table tbody tr:nth-child(even) {
-  background: #f7f7f7;
+  background: #fafafa;
 }
 
-.table div {
+.table tbody tr:hover {
+  background-color: #f5f5f5;
+}
+
+/* Narrow styling to only "plain" divs directly inside table cells.
+   Avoid affecting MUI components (TextField etc.) which render many nested divs with Mui* classes. */
+.table td > div:not([class*="Mui"]) {
   width: 100%;
-  min-height: 50px;
+  min-height: auto; /* Allow flexible height */
   margin: 0 !important;
+  padding: 4px;
 }
 
-.table div:hover {
+.table td > div:not([class*="Mui"]):hover {
   background: #dddddd;
 }

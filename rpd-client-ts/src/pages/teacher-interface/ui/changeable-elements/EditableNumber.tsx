@@ -1,3 +1,4 @@
+import { TextField } from "@mui/material";
 import { ChangeEvent, FC, useState } from "react";
 
 interface EditableNumberProps {
@@ -26,19 +27,23 @@ export const EditableNumber: FC<EditableNumberProps> = ({ value, onValueChange, 
 
   if (isEditing) {
     return (
-      <input
+      <TextField
         type="number"
+        fullWidth
         autoFocus
+        sx={{ fontSize: "14px !important", "& .MuiInputBase-input": { fontSize: "14px !important" } }}
         value={inputValue}
         onChange={handleInputChange}
         onBlur={handleInputBlur}
-        style={{ width: "100%" }}
       />
     );
   }
 
   return (
-    <div onClick={handleDivClick} style={{ alignContent: "center", textAlign: "center" }}>
+    <div
+      onClick={handleDivClick}
+      style={{ alignContent: "center", textAlign: "center", minHeight: "100%", padding: "10px" }}
+    >
       {value}
     </div>
   );

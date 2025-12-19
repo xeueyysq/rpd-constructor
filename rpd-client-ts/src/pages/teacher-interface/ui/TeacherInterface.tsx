@@ -39,7 +39,7 @@ export function TeacherInterface() {
 
   return (
     <Box pl={2}>
-      <Box sx={{ backgroundColor: "#fefefe" }} fontFamily={"Times New Roman"} fontSize={18}>
+      <Box sx={{ backgroundColor: "#fefefe" }}>
         {templatePage === "coverPage" && <CoverPage />}
         {templatePage === "approvalPage" && <ApprovalPage />}
         {templatePage === "aimsPage" && <AimsPage />}

@@ -134,52 +134,44 @@ export const UserManagementPage: FC = () => {
       size: "small",
       sx: { px: 2 },
     },
-    muiTableBodyCellProps: ({ column }) => ({
-      sx: column.id === "mrt-row-select" ? { paddingRight: 0, paddingLeft: 0 } : { py: 0.5, px: 0.5 },
+    muiTableBodyCellProps: () => ({
+      sx: {
+        py: 0.5,
+      },
     }),
-    muiTableHeadCellProps: ({ column }) => ({
-      sx: column.id === "mrt-row-select" ? { paddingRight: 0, paddingLeft: 0 } : { py: 0.5, px: 0.5 },
-    }),
-    renderToolbarAlertBannerContent: () => {
-      if (selectedIds.length)
-        return (
-          <Box display={"flex"} gap={2} pl={2}>
-            <FormControl size="small" sx={{ minWidth: 175 }}>
-              <InputLabel
-                size="small"
-                sx={{
-                  top: "50%",
-                  transform: "translate(14px, -50%)",
-                  "&.MuiInputLabel-shrink": {
-                    top: 0,
-                    transform: "translate(14px, -9px) scale(0.75)",
-                  },
-                }}
-              >
-                Изменить роль
-              </InputLabel>
-              <Select
-                label="Изменить роль"
-                sx={{ "& .MuiSelect-select": { py: 0.5 } }}
-                input={<OutlinedInput label="Изменить роль" size="small" />}
-                defaultValue=""
-                onChange={(e) => {
-                  selectedIds.forEach((userId) => {
-                    updateUserRole(userId, Number(e.target.value) as UserRole);
-                  });
-                  showSuccessMessage("Роль пользователя успешно обновлена");
-                  setRowSelection({});
-                }}
-              >
-                <MenuItem value={UserRole.TEACHER}>Преподаватель</MenuItem>
-                <MenuItem value={UserRole.ROP}>РОП</MenuItem>
-              </Select>
-            </FormControl>
-            <Button color="error" onClick={() => setOpenDeleteConfirm(true)}>
-              Удалить
-            </Button>
-          </Box>
-        );
+    positionToolbarAlertBanner: "none",
+    renderTopToolbarCustomActions: () => {
+      const selectedRowsCount = Object.values(table.getState().rowSelection).length;
+      return (
+        <Box display={"flex"} gap={2} pl={2} alignItems={"center"}>
+          <FormControl disabled={!selectedRowsCount} size="small" sx={{ minWidth: 175 }}>
+            <InputLabel size="small">Изменить роль</InputLabel>
+            <Select
+              label="Изменить роль"
+              input={<OutlinedInput label="Изменить роль" size="small" />}
+              defaultValue=""
+              onChange={(e) => {
+                selectedIds.forEach((userId) => {
+                  updateUserRole(userId, Number(e.target.value) as UserRole);
+                });
+                showSuccessMessage("Роль пользователя успешно обновлена");
+                setRowSelection({});
+              }}
+            >
+              <MenuItem value={UserRole.TEACHER}>Преподаватель</MenuItem>
+              <MenuItem value={UserRole.ROP}>РОП</MenuItem>
+            </Select>
+          </FormControl>
+          <Button
+            disabled={!selectedRowsCount}
+            color="error"
+            variant="outlined"
+            onClick={() => setOpenDeleteConfirm(true)}
+          >
+            Удалить
+          </Button>
+        </Box>
+      );
     },
     renderToolbarInternalActions: () => (
       <Box pr={1}>
@@ -195,7 +187,7 @@ export const UserManagementPage: FC = () => {
   return (
     <Box>
       <PageTitle title={"Управление пользователями"} />
-      <Box py={2}>
+      <Box pt={3}>
         <MaterialReactTable table={table} />
       </Box>
       <WarningDeleteDialog

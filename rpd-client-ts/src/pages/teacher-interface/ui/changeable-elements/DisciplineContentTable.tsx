@@ -9,13 +9,13 @@ import {
   TableContainer,
   TableHead,
   TableRow,
+  TextField,
 } from "@mui/material";
 import { DisciplineContentData, ObjectHours } from "@pages/teacher-interface/model/DisciplineContentPageTypes";
 import { axiosBase } from "@shared/api";
 import { useStore } from "@shared/hooks";
 import { showErrorMessage, showSuccessMessage } from "@shared/lib";
 import { useEffect, useState } from "react";
-import EditableCell from "./EditableCell";
 import { EditableNumber } from "./EditableNumber";
 import { ExportFromTemplates } from "./ExportFromTemplates";
 
@@ -229,11 +229,21 @@ export function DisciplineContentTable({ readOnly = false, tableData }: ContentT
               {data &&
                 Object.keys(data).map((row, index) => (
                   <TableRow key={index}>
-                    <TableCell>
-                      <EditableCell
+                    <TableCell
+                      padding={"none"}
+                      sx={{
+                        "& .MuiTableCell-root": {
+                          padding: "0px 0px",
+                        },
+                      }}
+                    >
+                      <TextField
+                        sx={{ fontSize: "14px !important", "& .MuiInputBase-input": { fontSize: "14px !important" } }}
+                        multiline
                         value={data[row].theme}
-                        onValueChange={(value: string) => handleValueChange(index, "theme", value)}
-                        readOnly={readOnly}
+                        onChange={(e) => handleValueChange(index, "theme", e.target.value)}
+                        disabled={readOnly}
+                        fullWidth
                       />
                     </TableCell>
                     <TableCell
@@ -244,14 +254,28 @@ export function DisciplineContentTable({ readOnly = false, tableData }: ContentT
                     >
                       {data[row].lectures + data[row].seminars + data[row].independent_work}
                     </TableCell>
-                    <TableCell>
+                    <TableCell
+                      padding={"none"}
+                      sx={{
+                        "& .MuiTableCell-root .table td": {
+                          padding: 0,
+                        },
+                      }}
+                    >
                       <EditableNumber
                         value={data[row].lectures}
                         onValueChange={(value: number) => handleValueChange(index, "lectures", value)}
                         readOnly={readOnly}
                       />
                     </TableCell>
-                    <TableCell>
+                    <TableCell
+                      padding={"none"}
+                      sx={{
+                        "& .MuiTableCell-root": {
+                          padding: "0px 0px",
+                        },
+                      }}
+                    >
                       <EditableNumber
                         value={data[row].seminars}
                         onValueChange={(value: number) => handleValueChange(index, "seminars", value)}
@@ -266,7 +290,14 @@ export function DisciplineContentTable({ readOnly = false, tableData }: ContentT
                     >
                       {data[row].lectures + data[row].seminars}
                     </TableCell>
-                    <TableCell>
+                    <TableCell
+                      padding={"none"}
+                      sx={{
+                        "& .MuiTableCell-root": {
+                          padding: "0px 0px",
+                        },
+                      }}
+                    >
                       <EditableNumber
                         value={data[row].independent_work}
                         onValueChange={(value: number) => handleValueChange(index, "independent_work", value)}
