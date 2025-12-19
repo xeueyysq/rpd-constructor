@@ -11,7 +11,7 @@
     "dotenv": "^16.6.1",
     "express": "^4.18.3",
     "express-fileupload": "^1.4.3",
-    "express-fingerprint": "^1.0.5",
+    "express-fingerprint": "^1.2.2",
     "fs": "^0.0.1-security",
     "jsonwebtoken": "^9.0.2",
     "moment": "^2.30.1",
@@ -43,5 +43,8 @@
     "start": "node server.js",
     "lint": "eslint .",
     "lint:fix": "eslint . --fix"
+  },
+  "overrides": {
+    "tmp": "^0.2.4"
   }
 }

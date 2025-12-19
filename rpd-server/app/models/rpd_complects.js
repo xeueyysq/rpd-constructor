@@ -5,17 +5,20 @@ class RpdComplects {
     this.pool = pool;
   }
 
-  async findRpdComplect(data) {
+  async findRpdComplect(data, userId) {
     try {
       const result = await this.pool.query(
         `
-                SELECT id from rpd_complects
-                WHERE faculty = $1
-                AND year = $2
-                AND education_form = $3
-                AND education_level = $4
-                AND profile = $5
-                AND direction = $6
+                SELECT rc.id 
+                FROM rpd_complects rc
+                INNER JOIN user_complect uc ON uc.complect_id = rc.id
+                WHERE rc.faculty = $1
+                AND rc.year = $2
+                AND rc.education_form = $3
+                AND rc.education_level = $4
+                AND rc.profile = $5
+                AND rc.direction = $6
+                AND uc.user_id = $7
             `,
         [
           data.faculty,
@@ -24,6 +27,7 @@ class RpdComplects {
           data.levelEducation,
           data.profile,
           data.directionOfStudy,
+          userId,
         ]
       );
       const resultId = result.rows[0];

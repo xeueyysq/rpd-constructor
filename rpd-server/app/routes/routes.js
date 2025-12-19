@@ -101,6 +101,7 @@ const rpdComplectsController = new RpdComplectsController(pool);
 
 router.post(
   "/find_rpd_complect",
+  TokenService.checkAccess,
   rpdComplectsController.findRpdComplect.bind(rpdComplectsController)
 );
 router.post(
