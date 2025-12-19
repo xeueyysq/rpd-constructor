@@ -9,7 +9,8 @@ class RpdComplectsController {
   async findRpdComplect(req, res) {
     try {
       const { data } = req.body;
-      const record = await this.model.findRpdComplect(data);
+      const userId = req.user?.id;
+      const record = await this.model.findRpdComplect(data, userId);
       res.json(record);
     } catch (error) {
       res.status(500).json({ message: error.message });

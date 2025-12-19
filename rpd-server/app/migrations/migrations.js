@@ -5,8 +5,21 @@ const process = require("process");
   try {
     console.log("Starting migrations...");
 
-    // Миграции для таблиц планируемых результатов
+    // Миграция для таблицы `rpd_complects`
+    await pool.query(`
+      CREATE TABLE IF NOT EXISTS rpd_complects (
+        id SERIAL PRIMARY KEY,
+        faculty VARCHAR(100),
+        year INTEGER,
+        education_form VARCHAR(100),
+        education_level VARCHAR(100),
+        profile VARCHAR(100),
+        direction VARCHAR(100)
+      )
+    `);
 
+    // Миграции для таблиц планируемых результатов
+    // ВАЖНО: rpd_complects должен существовать до создания planned_results_sets из-за FK
     await pool.query(`
       CREATE TABLE IF NOT EXISTS planned_results_sets (
         id SERIAL PRIMARY KEY,
@@ -38,19 +51,6 @@ const process = require("process");
         indicator_id INT NOT NULL REFERENCES planned_indicators(id) ON DELETE CASCADE,
         discipline TEXT NOT NULL,
         UNIQUE (indicator_id, discipline)
-      )
-    `);
-
-    // Миграция для таблицы `rpd_complects`
-    await pool.query(`
-      CREATE TABLE IF NOT EXISTS rpd_complects (
-        id SERIAL PRIMARY KEY,
-        faculty VARCHAR(100),
-        year INTEGER,
-        education_form VARCHAR(100),
-        education_level VARCHAR(100),
-        profile VARCHAR(100),
-        direction VARCHAR(100)
       )
     `);
 
@@ -223,6 +223,5 @@ const process = require("process");
   } catch (error) {
     console.error("Ошибка загрузки миграций", error.stack);
     process.exit(1); // Выход с ошибкой
-    4;
   }
 })();
