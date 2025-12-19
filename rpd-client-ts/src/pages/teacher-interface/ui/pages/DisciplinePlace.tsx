@@ -1,7 +1,7 @@
 import { useStore } from "@shared/hooks";
 import JsonChangeValue from "../changeable-elements/JsonChangeValue.tsx";
 import { Box } from "@mui/material";
-import { Loader } from "@shared/ui";
+import { Loader, PageTitle } from "@shared/ui";
 import { FC } from "react";
 import CertificationSelector from "../changeable-elements/CertificationSelector.tsx";
 
@@ -14,7 +14,7 @@ const DisciplinePlace: FC = () => {
 
   return (
     <Box>
-      <Box fontSize={"1.5rem"}>Место дисциплины в структуре ОПОП</Box>
+      <PageTitle title="Место дисциплины в структуре ОПОП" />
       {Object.keys(data).length ? (
         <Box sx={{ py: 2 }}>
           Дисциплина

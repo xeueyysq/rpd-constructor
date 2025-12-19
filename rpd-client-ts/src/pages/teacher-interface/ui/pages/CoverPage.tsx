@@ -1,13 +1,14 @@
 import { FC } from "react";
 import { Box } from "@mui/material";
 import { useStore } from "@shared/hooks";
+import { PageTitle } from "@shared/ui";
 
 const CoverPage: FC = () => {
   const jsonData = useStore.getState().jsonData;
 
   return (
     <Box>
-      <Box fontSize={"1.5rem"}>Титульный лист</Box>
+      <PageTitle title="Титульный лист" />
       <Box sx={{ py: 2 }}>
         Федеральное государственное бюджетное образовательное учреждение высшего образования Университет «Дубна»
         (государственный университет «Дубна»)

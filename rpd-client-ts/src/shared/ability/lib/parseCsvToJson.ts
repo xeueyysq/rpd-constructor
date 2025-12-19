@@ -1,5 +1,5 @@
 import Papa from "papaparse";
-import * as XLSX from "xlsx";
+import ExcelJS from "exceljs";
 
 export interface ParsedPlannedResults {
   [id: string]: {
@@ -31,15 +31,19 @@ const parseCsvFile = (file: File): Promise<string[][]> => {
 
 const parseXlsxFile = async (file: File): Promise<string[][]> => {
   const buffer = await file.arrayBuffer();
-  const workbook = XLSX.read(buffer, { type: "array" });
-  const firstSheetName = workbook.SheetNames[0];
-  const worksheet = workbook.Sheets[firstSheetName];
+  const workbook = new ExcelJS.Workbook();
+  await workbook.xlsx.load(buffer);
+  
+  const worksheet = workbook.worksheets[0];
+  const rows: string[][] = [];
 
-  const rows = XLSX.utils.sheet_to_json(worksheet, {
-    header: 1,
-    defval: "",
-    blankrows: false,
-  }) as unknown as string[][];
+  worksheet.eachRow((row, rowNumber) => {
+    const rowData: string[] = [];
+    row.eachCell({ includeEmpty: true }, (cell) => {
+      rowData.push(cell.value?.toString() ?? "");
+    });
+    rows.push(rowData);
+  });
 
   return rows;
 };

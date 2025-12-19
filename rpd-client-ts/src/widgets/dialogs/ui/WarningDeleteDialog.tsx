@@ -13,7 +13,7 @@ export function WarningDeleteDialog({ onAccept, open, setOpen, description }: Wa
       <DialogTitle>Подтверждение</DialogTitle>
       <DialogContent>{description}</DialogContent>
       <DialogActions>
-        <Button variant="contained" onClick={() => setOpen(false)}>
+        <Button variant="outlined" onClick={() => setOpen(false)}>
           Отмена
         </Button>
         <Button variant="contained" color="error" onClick={onAccept}>

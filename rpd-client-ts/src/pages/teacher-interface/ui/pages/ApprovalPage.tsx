@@ -1,9 +1,10 @@
 import { FC } from "react";
+import { PageTitle } from "@shared/ui";
 
 const ApprovalPage: FC = () => {
   return (
     <div>
-      <h2>Лист согалсования</h2>
+      <PageTitle title="Лист согалсования" />
       <div className="template">Автор программы:</div>
       <div className="add-manager">
         Беднякова Т.М. <br />

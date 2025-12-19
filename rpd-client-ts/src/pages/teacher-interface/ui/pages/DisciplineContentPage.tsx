@@ -2,17 +2,16 @@ import { FC } from "react";
 import JsonChangeValue from "../changeable-elements/JsonChangeValue.tsx";
 import { Box } from "@mui/material";
 import { DisciplineContentTable } from "../changeable-elements/DisciplineContentTable.tsx";
+import { PageTitle } from "@shared/ui";
 
 const DisciplineContentPage: FC = () => {
   // if (!data) return <Loader />
 
   return (
     <Box>
-      <Box fontSize={"1.5rem"}>Содержание дисциплины</Box>
+      <PageTitle title="Содержание дисциплины" />
       <DisciplineContentTable />
-      <Box fontSize={"1.5rem"} sx={{ py: 2 }}>
-        Содержание дисциплины{" "}
-      </Box>
+      <PageTitle py={2} pt={3} title="Содержание дисциплины" />
       <Box
         sx={{
           p: 1,

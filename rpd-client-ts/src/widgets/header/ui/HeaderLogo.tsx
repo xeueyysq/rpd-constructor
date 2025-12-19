@@ -8,14 +8,13 @@ const HeaderLogo: FC = () => {
   return (
     <Box sx={{ px: 1 }} alignItems={"center"}>
       <Button
-        // type="overline"
-        // display="block"
         onClick={() => navigate("/")}
         sx={{
           color: "white",
           fontWeight: "600",
           fontSize: "16px",
           userSelect: "none",
+          textTransform: "uppercase",
         }}
       >
         Конструктор РПД

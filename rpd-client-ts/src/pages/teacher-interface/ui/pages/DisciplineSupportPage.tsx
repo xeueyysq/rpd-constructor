@@ -1,13 +1,12 @@
 import { FC } from "react";
 import JsonChangeValue from "../changeable-elements/JsonChangeValue.tsx";
 import { Box } from "@mui/material";
+import { PageTitle } from "@shared/ui";
 
 const DisciplineSupportPage: FC = () => {
   return (
     <Box>
-      <Box fontSize={"1.5rem"} sx={{ pb: 2 }}>
-        Перечень учебно-методического обеспечения по дисциплине{" "}
-      </Box>
+      <PageTitle title="Перечень учебно-методического обеспечения по дисциплине" />
       <JsonChangeValue elementName="methodological_support_template" />
     </Box>
   );

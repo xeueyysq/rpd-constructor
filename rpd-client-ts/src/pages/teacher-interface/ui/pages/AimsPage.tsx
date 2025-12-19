@@ -1,13 +1,12 @@
 import { FC } from "react";
 import JsonChangeValue from "../changeable-elements/JsonChangeValue.tsx";
 import { Box } from "@mui/material";
+import { PageTitle } from "@shared/ui";
 
 const AimsPage: FC = () => {
   return (
     <Box>
-      <Box fontSize={"1.5rem"} sx={{ pb: 2 }}>
-        Цели и задачи освоения дисциплины
-      </Box>
+      <PageTitle title="Цели и задачи освоения дисциплины" />
       <JsonChangeValue elementName="goals" />
     </Box>
   );

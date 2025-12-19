@@ -220,12 +220,17 @@ export function RpdComplectPage() {
       size: "small",
       sx: { px: 2 },
     },
-    muiTableBodyCellProps: ({ column }) => ({
-      sx: column.id === "mrt-row-select" ? { paddingRight: 0, paddingLeft: 0 } : { py: 0.5, px: 0.5 },
+    muiTableBodyCellProps: ({ row }) => ({
+      sx: {
+        py: 0.5,
+        backgroundColor: row.index % 2 === 0 ? undefined : "#fafafa",
+      },
     }),
-    muiTableHeadCellProps: ({ column }) => ({
-      sx: column.id === "mrt-row-select" ? { paddingRight: 0, paddingLeft: 0 } : { py: 0.5, px: 0.5 },
-    }),
+    muiTableHeadCellProps: {
+      sx: {
+        backgroundColor: "#eceff1",
+      },
+    },
     enableRowSelection: true,
     renderToolbarAlertBannerContent: ({ table }) => (
       <Box

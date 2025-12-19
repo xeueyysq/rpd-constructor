@@ -176,24 +176,12 @@ export const PlannedResultsList: FC = () => {
       <Box pt={2} display={"flex"} justifyContent={"space-between"}>
         <Box display={"flex"} gap={2} alignItems={"center"} py={3} flexWrap={"wrap"}>
           <FormControl sx={{ minWidth: 260 }}>
-            <InputLabel
-              size="small"
-              sx={{
-                top: "50%",
-                transform: "translate(14px, -50%)",
-                "&.MuiInputLabel-shrink": {
-                  top: 0,
-                  transform: "translate(14px, -9px) scale(0.75)",
-                },
-              }}
-              id="profile-label"
-            >
+            <InputLabel size="small" id="profile-label">
               Профиль
             </InputLabel>
             <Select
               labelId="profile-label"
               label="Профиль"
-              sx={{ "& .MuiSelect-select": { py: 0.5 } }}
               value={filters.profile}
               onChange={(e) => setFilters((prev) => ({ ...prev, profile: e.target.value }))}
             >
@@ -205,25 +193,13 @@ export const PlannedResultsList: FC = () => {
             </Select>
           </FormControl>
           <FormControl sx={{ minWidth: 180 }}>
-            <InputLabel
-              id="form-label"
-              size="small"
-              sx={{
-                top: "50%",
-                transform: "translate(14px, -50%)",
-                "&.MuiInputLabel-shrink": {
-                  top: 0,
-                  transform: "translate(14px, -9px) scale(0.75)",
-                },
-              }}
-            >
+            <InputLabel id="form-label" size="small">
               Форма обучения
             </InputLabel>
             <Select
               labelId="form-label"
               label="Форма обучения"
               value={filters.formEducation}
-              sx={{ "& .MuiSelect-select": { py: 0.5 } }}
               onChange={(e) => setFilters((prev) => ({ ...prev, formEducation: e.target.value }))}
             >
               {options.forms.map((f) => (
@@ -234,22 +210,10 @@ export const PlannedResultsList: FC = () => {
             </Select>
           </FormControl>
           <FormControl size="small" sx={{ minWidth: 140 }}>
-            <InputLabel
-              size="small"
-              sx={{
-                top: "50%",
-                transform: "translate(14px, -50%)",
-                "&.MuiInputLabel-shrink": {
-                  top: 0,
-                  transform: "translate(14px, -9px) scale(0.75)",
-                },
-              }}
-              id="year-label"
-            >
+            <InputLabel size="small" id="year-label">
               Год набора
             </InputLabel>
             <Select
-              sx={{ "& .MuiSelect-select": { py: 0.5 } }}
               labelId="year-label"
               label="Год набора"
               value={filters.year ?? ""}
@@ -283,8 +247,8 @@ export const PlannedResultsList: FC = () => {
           </Button>
         </Box>
       </Box>
-      <TableContainer component={Paper}>
-        <Table>
+      <TableContainer>
+        <Table className="table" size="small">
           <TableHead>
             <TableRow>
               {headers.map((header) => (
@@ -305,8 +269,10 @@ export const PlannedResultsList: FC = () => {
               ))
             ) : (
               <TableRow>
-                <TableCell colSpan={headers.length} align="center">
-                  <Typography color="textDisabled">Компетенции пока не были загружены</Typography>
+                <TableCell colSpan={3} align="center">
+                  <Typography color="textDisabled" sx={{ textAlign: "center" }}>
+                    Компетенции пока не были загружены
+                  </Typography>
                 </TableCell>
               </TableRow>
             )}

@@ -1,6 +1,7 @@
 import { Box } from "@mui/material";
 import { FC } from "react";
 import { useStore } from "@shared/hooks";
+import { PageTitle } from "@shared/ui";
 
 const ScopeDisciplinePage: FC = () => {
   const jsonData = useStore.getState().jsonData;
@@ -15,7 +16,7 @@ const ScopeDisciplinePage: FC = () => {
 
   return (
     <Box>
-      <Box fontSize={"1.5rem"}>Объем дисциплины</Box>
+      <PageTitle title="Объем дисциплины" />
       <Box sx={{ py: 2 }}>
         Объем дисциплины составляет
         <Box component="span" sx={{ fontWeight: "600" }}>
