@@ -1,7 +1,7 @@
 import { Box } from "@mui/material";
 import { axiosBase } from "@shared/api/index.ts";
 import { useStore } from "@shared/hooks";
-import { showErrorMessage } from "@shared/lib/showMessage.ts";
+import { showErrorMessage, showWarningMessage } from "@shared/lib/showMessage.ts";
 import { useCallback, useEffect } from "react";
 import { useParams } from "react-router-dom";
 import AimsPage from "./pages/AimsPage.tsx";
@@ -17,8 +17,18 @@ import ScopeDisciplinePage from "./pages/ScopeDisciplinePage.tsx";
 import TestPdf from "./pdf-page/TestPdf.tsx";
 
 export function TeacherInterface() {
-  const { templatePage, toggleDrawer, setJsonData } = useStore();
+  const { templatePage, toggleDrawer, setJsonData, updateJsonData } = useStore();
   const { id: templateId } = useParams();
+
+  const deriveCertificationFromStudyLoad = (studyLoad: unknown): string | undefined => {
+    if (!Array.isArray(studyLoad)) return;
+    for (const item of studyLoad as Array<{ name?: unknown }>) {
+      const name = String(item?.name ?? "").toLowerCase();
+      if (name.includes("экзам")) return "Экзамен";
+      if (name.includes("зач") && name.includes("оцен")) return "Зачет с оценкой";
+      if (name.includes("зач")) return "Зачет";
+    }
+  };
 
   const uploadTemplateData = useCallback(async () => {
     try {
@@ -26,11 +36,18 @@ export function TeacherInterface() {
         id: templateId,
       });
       setJsonData(response.data);
+
+      if (!response.data?.certification) {
+        const derived = deriveCertificationFromStudyLoad(response.data?.study_load);
+        if (derived) {
+          updateJsonData("certification", derived);
+        }
+      }
     } catch (error) {
       showErrorMessage("Ошибка при получении данных");
       console.error(error);
     }
-  }, [setJsonData, templateId]);
+  }, [setJsonData, templateId, updateJsonData]);
 
   useEffect(() => {
     uploadTemplateData();

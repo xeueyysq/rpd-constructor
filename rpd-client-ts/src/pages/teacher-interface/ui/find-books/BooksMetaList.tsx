@@ -113,9 +113,15 @@ export function BooksMetaList({ books, addBooksToList, closeDialog }: IBooksMeta
       size: "small",
       sx: { px: 2 },
     },
-    muiTableBodyCellProps: () => ({
+    muiTableHeadCellProps: {
+      sx: {
+        backgroundColor: "#eceff1",
+      },
+    },
+    muiTableBodyCellProps: ({ row }) => ({
       sx: {
         py: 0.5,
+        backgroundColor: row.index % 2 === 0 ? undefined : "#fafafa",
       },
     }),
     initialState: { pagination: { pageSize: 20, pageIndex: 0 } },

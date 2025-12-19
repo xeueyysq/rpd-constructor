@@ -21,8 +21,6 @@ export function ExportFromTemplates({
   const [openFromDirectionDialog, setOpenFromDirectionDialog] = useState<boolean>(false);
   const teacherTemplates = useStore((state) => state.teacherTemplates);
   const jsonData = useStore((state) => state.jsonData);
-  const userRole = useAuth.getState().userRole;
-  const isTeacher = userRole === UserRole.TEACHER;
   const [anchorEl, setAnchorEl] = useState<null | HTMLButtonElement>(null);
   const open = Boolean(anchorEl);
   const updateJsonData = useStore((state) => state.updateJsonData);
@@ -73,8 +71,6 @@ export function ExportFromTemplates({
       console.error(error);
     }
   };
-
-  if (!isTeacher) return null;
 
   return (
     <Box>
