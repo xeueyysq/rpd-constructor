@@ -9,6 +9,48 @@ export interface ParsedPlannedResults {
   };
 }
 
+const excelCellValueToString = (value: unknown): string => {
+  if (value === null || value === undefined) return "";
+  if (typeof value === "string") return value;
+  if (typeof value === "number" || typeof value === "boolean") return String(value);
+  if (value instanceof Date) return value.toISOString();
+
+  // ExcelJS can return rich objects for cells (richText, formula, hyperlink, etc.)
+  if (typeof value === "object") {
+    const v = value as Record<string, unknown>;
+
+    // { text: string }
+    if (typeof v.text === "string") return v.text;
+
+    // { richText: Array<{ text: string }> }
+    if (Array.isArray(v.richText)) {
+      return v.richText.map((p) => (typeof p?.text === "string" ? p.text : "")).join("");
+    }
+
+    // { formula: string, result: CellValue }
+    if ("result" in v) return excelCellValueToString(v.result);
+  }
+
+  return String(value);
+};
+
+const normalizeCode = (value: string): string => value.replace(/[–—]/g, "-").replace(/\s+/g, "").toUpperCase();
+
+// We intentionally keep these regexes *generic*.
+// They are used only to:
+// - detect structure (new vs old) by presence of indicator codes
+// - find competence codes in old XLSX rows where columns may shift
+//
+// Examples we want to support:
+// - УК-1, ОПК-2, ПК-10а
+// - IND-3.1, ПК-2.3, ПК-2.3.1
+//
+// Prefix: 1..16 letters (Cyrillic/Latin), then "-", then number with optional letter suffix.
+const competenceCodeRe = /^[A-ZА-ЯЁ]{1,16}-\d+[A-ZА-ЯЁ]*$/i;
+
+// Indicator is competence code + one or more ".<number><optionalLetters>" segments.
+const indicatorCodeRe = /^[A-ZА-ЯЁ]{1,16}-\d+[A-ZА-ЯЁ]*(\.\d+[A-ZА-ЯЁ]*)+$/i;
+
 const parseCsvFile = (file: File): Promise<string[][]> => {
   return new Promise((resolve, reject) => {
     Papa.parse(file, {
@@ -33,15 +75,24 @@ const parseXlsxFile = async (file: File): Promise<string[][]> => {
   const buffer = await file.arrayBuffer();
   const workbook = new ExcelJS.Workbook();
   await workbook.xlsx.load(buffer);
-  
-  const worksheet = workbook.worksheets[0];
+
+  const worksheet =
+    workbook.worksheets.find((ws) => (ws.name ?? "").toString().trim().toLowerCase() === "компетенции") ?? null;
+  if (!worksheet) {
+    throw new Error('Не найден лист "Компетенции" в XLSX файле');
+  }
   const rows: string[][] = [];
 
-  worksheet.eachRow((row, rowNumber) => {
+  // IMPORTANT:
+  // `row.eachCell` iterates only over *existing* cells. When the first columns are empty (old structure),
+  // it shifts indices and breaks mapping. We must read by absolute column index.
+  worksheet.eachRow({ includeEmpty: true }, (row) => {
     const rowData: string[] = [];
-    row.eachCell({ includeEmpty: true }, (cell) => {
-      rowData.push(cell.value?.toString() ?? "");
-    });
+    const columnCount = Math.max(worksheet.columnCount ?? 0, row.cellCount ?? 0);
+    for (let c = 1; c <= columnCount; c++) {
+      const cell = row.getCell(c);
+      rowData.push(excelCellValueToString(cell.value));
+    }
     rows.push(rowData);
   });
 
@@ -77,8 +128,26 @@ const buildParsedData = (rows: string[][]): ParsedPlannedResults => {
 
 const detectStructureType = (rows: string[][]): "new" | "old" => {
   const dataRows = rows.slice(1);
-  const hasAnyFirstColumnValue = dataRows.some((row) => (row[0] ?? "").toString().trim() !== "");
-  return hasAnyFirstColumnValue ? "new" : "old";
+  // New structure has indicator codes; old structure has NO indicators.
+  const hasAnyIndicator = dataRows.some((row) =>
+    row.some((cell) => {
+      const s = (cell ?? "").toString().trim();
+      if (!s) return false;
+      return indicatorCodeRe.test(normalizeCode(s));
+    })
+  );
+  if (hasAnyIndicator) return "new";
+
+  const hasAnyCompetence = dataRows.some((row) =>
+    row.some((cell) => {
+      const s = (cell ?? "").toString().trim();
+      if (!s) return false;
+      return competenceCodeRe.test(normalizeCode(s));
+    })
+  );
+  if (hasAnyCompetence) return "old";
+
+  throw new Error("Данные не найдены или не удалось определить структуру файла");
 };
 
 const parseNewStructure = (rows: string[][]): ParsedPlannedResults => {
@@ -91,28 +160,45 @@ const parseOldStructure = (rows: string[][]): ParsedPlannedResults => {
   let idx = 0;
 
   dataRows.forEach((row) => {
-    const competenceCode = (row[1] ?? "").toString().trim();
-    const disciplineCode = (row[2] ?? "").toString().trim();
-    const text = (row[3] ?? "").toString().trim();
+    // Old structure (ТРПО):
+    // - competence rows: ;УК-1;;<competence_text>;...
+    // - discipline rows: ;;<discipline_code>;<discipline_name>;...
+    // Indicators are not present.
+    const cells = row.map((c) => (c ?? "").toString().trim());
+    const nonEmpty = cells.filter(Boolean);
+    if (nonEmpty.length === 0) return;
 
-    if (!competenceCode && !disciplineCode && !text) {
-      return;
-    }
+    const competenceIdx = cells.findIndex((c) => competenceCodeRe.test(normalizeCode(c)));
+    const competenceCode = competenceIdx >= 0 ? normalizeCode(cells[competenceIdx]) : "";
 
-    if (competenceCode && !disciplineCode && text) {
+    if (competenceCode) {
+      // Some old-format files may contain a short trailing label (e.g. "УК") in the last column.
+      // Exclude it by using the prefix of the detected competence code (part before "-").
+      const competencePrefix = competenceCode.split("-")[0] ?? "";
+      const competenceText = [...cells].reverse().find((c) => {
+        if (!c) return false;
+        const norm = normalizeCode(c);
+        if (competencePrefix && norm === competencePrefix) return false;
+        if (competenceCodeRe.test(norm)) return false;
+        if (indicatorCodeRe.test(norm)) return false;
+        return true;
+      });
+      if (!competenceText) return;
+
       parsedData[idx++] = {
         competence: competenceCode,
         indicator: "",
-        results: text,
+        results: competenceText,
       };
       return;
     }
 
-    if (!competenceCode && disciplineCode && text) {
+    const disciplineText = nonEmpty[nonEmpty.length - 1];
+    if (disciplineText) {
       parsedData[idx++] = {
         competence: "",
         indicator: "",
-        results: text,
+        results: disciplineText,
       };
     }
   });

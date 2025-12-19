@@ -216,6 +216,13 @@ export function RpdComplectPage() {
     columns,
     data: filteredData,
     localization: MRT_Localization_RU,
+    enableRowSelection: true,
+    initialState: {
+      pagination: {
+        pageIndex: 0,
+        pageSize: 20,
+      },
+    },
     muiTableProps: {
       size: "small",
       sx: { px: 2 },
@@ -231,7 +238,6 @@ export function RpdComplectPage() {
         backgroundColor: "#eceff1",
       },
     },
-    enableRowSelection: true,
     renderToolbarAlertBannerContent: ({ table }) => (
       <Box
         sx={{

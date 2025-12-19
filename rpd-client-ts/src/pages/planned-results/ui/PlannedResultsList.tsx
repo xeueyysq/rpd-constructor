@@ -147,6 +147,9 @@ export const PlannedResultsList: FC = () => {
       const errorMessage = error instanceof Error ? error.message : "Не удалось загрузить файл компетенций";
       showErrorMessage(errorMessage);
       console.error(error);
+    } finally {
+      // Allow selecting the same file again (otherwise onChange may not fire)
+      event.target.value = "";
     }
   };
 

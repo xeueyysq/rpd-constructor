@@ -79,6 +79,9 @@ const PlannedResultsPage: FC = () => {
     } catch (error: unknown) {
       const errorMessage = error instanceof Error ? error.message : "Неизвестная ошибка";
       showErrorMessage(errorMessage);
+    } finally {
+      // Allow selecting the same file again (otherwise onChange may not fire)
+      event.target.value = "";
     }
   };
 

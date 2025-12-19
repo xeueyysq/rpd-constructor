@@ -161,6 +161,12 @@ export const RpdComplectsList: FC = () => {
       size: "small",
       sx: { px: 2 },
     },
+    initialState: {
+      pagination: {
+        pageIndex: 0,
+        pageSize: 20,
+      },
+    },
     muiTableHeadCellProps: {
       sx: {
         backgroundColor: "#eceff1",
