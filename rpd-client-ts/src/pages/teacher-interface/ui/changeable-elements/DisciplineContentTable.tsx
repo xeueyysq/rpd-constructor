@@ -38,7 +38,6 @@ function getRecordValue(record: Record<string, unknown>, key: string): unknown {
 function normalizeStudyLoad(studyLoad: unknown): StudyLoad[] {
   if (!studyLoad) return [];
 
-  // array-like: [{ id, name }], or [{ hours, name }], or similar
   if (Array.isArray(studyLoad)) {
     return studyLoad
       .map((item) => {
@@ -53,7 +52,6 @@ function normalizeStudyLoad(studyLoad: unknown): StudyLoad[] {
       .filter((x) => x.name || x.id);
   }
 
-  // object-like: { "Лекции": 36, "СРС": 54, ... }
   if (typeof studyLoad === "object") {
     return Object.entries(studyLoad as Record<string, unknown>)
       .map(([name, val]) => {
@@ -181,7 +179,6 @@ export function DisciplineContentTable({ readOnly = false, tableData }: ContentT
   const certificationLabel = jsonData.certification ? String(jsonData.certification).toLowerCase() : "не выбрано";
   const attestationTheme = `Промежуточная аттестация: ${certificationLabel}`;
 
-  // Создаём строку аттестации (один раз на шаблон) и дальше НЕ перезатираем вручную отредактированные часы контроля
   useEffect(() => {
     setData((prev) => {
       const existing = prev[ATTESTATION_ROW_ID];

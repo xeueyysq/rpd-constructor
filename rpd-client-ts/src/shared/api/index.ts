@@ -22,7 +22,6 @@ axiosBase.interceptors.request.use((config) => {
   return config;
 });
 
-// Add interceptor for handling errors
 axiosBase.interceptors.response.use(
   (response) => response,
   (error) => {
@@ -31,7 +30,6 @@ axiosBase.interceptors.response.use(
   }
 );
 
-// Создаем отдельный инстанс для аутентификации
 export const axiosAuth = axios.create({
   baseURL: `${config.API_URL}/auth`,
   timeout: 5000,
