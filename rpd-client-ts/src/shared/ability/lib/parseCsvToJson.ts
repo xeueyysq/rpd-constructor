@@ -177,6 +177,7 @@ const parseOldStructure = (rows: string[][]): ParsedPlannedResults => {
       const competencePrefix = competenceCode.split("-")[0] ?? "";
       const competenceText = [...cells].reverse().find((c) => {
         if (!c) return false;
+        if (/^[-–—‑]+$/.test(c.trim())) return false;
         const norm = normalizeCode(c);
         if (competencePrefix && norm === competencePrefix) return false;
         if (competenceCodeRe.test(norm)) return false;
@@ -193,7 +194,7 @@ const parseOldStructure = (rows: string[][]): ParsedPlannedResults => {
       return;
     }
 
-    const disciplineText = nonEmpty[nonEmpty.length - 1];
+    const disciplineText = [...nonEmpty].reverse().find((c) => !/^[-–—‑]+$/.test(c.trim()));
     if (disciplineText) {
       parsedData[idx++] = {
         competence: "",

@@ -37,11 +37,18 @@ interface TeacherTemplate {
   year: number | undefined;
 }
 
+export type PlannedResultsFilters = {
+  profile: string;
+  formEducation: string;
+  year: number | null;
+};
+
 interface StoreState {
   jsonData: JsonData;
   selectedTemplateData: SelectedTemplateData;
   createByCriteria: CreateByCriteria;
   complectId: number | undefined;
+  plannedResultsFilters: PlannedResultsFilters;
   tabs: Record<string, TabState>;
   managerPage: string;
   templatePage: string;
@@ -59,6 +66,7 @@ interface StoreState {
   ) => void;
   setCreateByCriteria: (faculty?: string | undefined, year?: string | undefined) => void;
   setComplectId: (id: number) => void;
+  setPlannedResultsFilters: (filters: PlannedResultsFilters) => void;
   setTabState: (tabId: string, isEnabled: boolean) => void;
   deInitializeTabs: () => void;
   setManagerPage: (page: string) => void;
@@ -91,6 +99,11 @@ export const useStore = create<StoreState>()(
     },
     managerPage: "selectData",
     complectId: undefined,
+    plannedResultsFilters: {
+      profile: "",
+      formEducation: "",
+      year: null,
+    },
     templatePage: "coverPage",
     teacherTemplates: [],
     isDrawerOpen: true,
@@ -131,6 +144,11 @@ export const useStore = create<StoreState>()(
     setComplectId: (id) => {
       set((state) => {
         state.complectId = id;
+      });
+    },
+    setPlannedResultsFilters: (filters) => {
+      set((state) => {
+        state.plannedResultsFilters = filters;
       });
     },
     setTabState: (tabId, isEnabled) => {
