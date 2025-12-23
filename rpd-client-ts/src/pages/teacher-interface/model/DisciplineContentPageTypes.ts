@@ -1,9 +1,9 @@
 interface DisciplineContent {
   theme: string;
-  lectures: number;
-  seminars: number;
-  control?: number;
-  independent_work: number;
+  lectures: number | null;
+  seminars: number | null;
+  control?: number | null;
+  independent_work: number | null;
   competence: string;
   indicator: string;
   results: string;

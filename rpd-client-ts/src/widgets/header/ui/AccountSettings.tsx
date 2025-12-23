@@ -80,43 +80,43 @@ export function AccountSettings() {
           <IconButton color="inherit" aria-label="Открыть меню аккаунта">
             <PersonIcon sx={{ fontSize: "37.5px" }} />
           </IconButton>
-          <Menu
-            id="basic-menu"
-            slotProps={{
-              paper: {
-                style: {
-                  width: "225px",
-                  marginTop: 5,
-                },
-              },
-            }}
-            anchorEl={anchorEl}
-            open={open}
-            onClose={handleClose}
-          >
-            <MenuItem disabled>
-              <ListItemIcon>
-                <SettingsIcon />
-              </ListItemIcon>
-              <ListItemText>
-                <Typography variant="button" display="block" color="grey">
-                  Настройки
-                </Typography>
-              </ListItemText>
-            </MenuItem>
-            <MenuItem onClick={handleLogOut}>
-              <ListItemIcon>
-                <Logout />
-              </ListItemIcon>
-              <ListItemText>
-                <Typography variant="button" display="block" color="grey">
-                  Выйти
-                </Typography>
-              </ListItemText>
-            </MenuItem>
-          </Menu>
         </Box>
       </Box>
+      <Menu
+        id="basic-menu"
+        slotProps={{
+          paper: {
+            style: {
+              width: "225px",
+              marginTop: 5,
+            },
+          },
+        }}
+        anchorEl={anchorEl}
+        open={open}
+        onClose={handleClose}
+      >
+        <MenuItem disabled>
+          <ListItemIcon>
+            <SettingsIcon />
+          </ListItemIcon>
+          <ListItemText>
+            <Typography variant="button" display="block" color="grey">
+              Настройки
+            </Typography>
+          </ListItemText>
+        </MenuItem>
+        <MenuItem onClick={handleLogOut}>
+          <ListItemIcon>
+            <Logout />
+          </ListItemIcon>
+          <ListItemText>
+            <Typography variant="button" display="block" color="grey">
+              Выйти
+            </Typography>
+          </ListItemText>
+        </MenuItem>
+      </Menu>
     </Box>
   );
 }

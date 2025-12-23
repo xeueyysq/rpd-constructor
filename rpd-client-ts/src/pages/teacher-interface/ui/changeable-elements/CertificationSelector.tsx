@@ -38,6 +38,7 @@ const CertificationSelector: FC<SelectorProps> = ({ certification }) => {
 
   return (
     <Select
+      variant="standard"
       labelId="certification-select-label"
       id="certification-select"
       value={valueCertification}
@@ -50,6 +51,7 @@ const CertificationSelector: FC<SelectorProps> = ({ certification }) => {
       <MenuItem value="Зачет">зачет</MenuItem>
       <MenuItem value="Зачет с оценкой">зачет с оценкой</MenuItem>
       <MenuItem value="Экзамен">экзамен</MenuItem>
+      <MenuItem value="Экзамен + курсовая работа">экзамен + курсовая работа</MenuItem>
     </Select>
   );
 };

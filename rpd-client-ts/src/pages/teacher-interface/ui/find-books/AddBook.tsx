@@ -17,6 +17,7 @@ import { useStore } from "@shared/hooks";
 import { showErrorMessage, showSuccessMessage } from "@shared/lib";
 import { axiosBase } from "@shared/api";
 import { BooksMetaList } from "./BooksMetaList.tsx";
+import { motion } from "framer-motion";
 
 interface AddBook {
   elementName: string;
@@ -205,7 +206,18 @@ const AddBook: FC<AddBook> = ({ elementName }) => {
               variant="standard"
               value={bookName}
               onChange={handleBookNameChange}
-              helperText={isLoadingBooks ? "Поиск книг..." : errorMessage}
+              helperText={
+                isLoadingBooks ? (
+                  <motion.div
+                    animate={{ opacity: [1, 0.3, 1] }}
+                    transition={{ duration: 1.5, repeat: Infinity, ease: "easeInOut" }}
+                  >
+                    Поиск книг...
+                  </motion.div>
+                ) : (
+                  errorMessage
+                )
+              }
               slotProps={{
                 input: {
                   endAdornment: (

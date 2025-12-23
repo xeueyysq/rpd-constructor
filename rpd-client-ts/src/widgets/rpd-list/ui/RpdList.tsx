@@ -1,3 +1,5 @@
+import ArrowBackIcon from "@mui/icons-material/ArrowBack";
+import DescriptionIcon from "@mui/icons-material/Description";
 import {
   alpha,
   Box,
@@ -11,15 +13,12 @@ import {
 } from "@mui/material";
 import { SimpleTreeView } from "@mui/x-tree-view/SimpleTreeView";
 import { TreeItem } from "@mui/x-tree-view/TreeItem";
-import RpdListItemComponent from "./RpdListItem.tsx";
-import { FC } from "react";
-import { RpdListItem } from "../model/types.ts";
-import PictureAsPdfIcon from "@mui/icons-material/PictureAsPdf";
-// import ExitToAppIcon from "@mui/icons-material/ExitToApp";
-import { useStore } from "@shared/hooks";
 import { Can } from "@shared/ability";
-import ArrowBackIcon from "@mui/icons-material/ArrowBack";
+import { useStore } from "@shared/hooks";
+import { FC } from "react";
 import { useNavigate } from "react-router-dom";
+import { RpdListItem } from "../model/types.ts";
+import RpdListItemComponent from "./RpdListItem.tsx";
 
 interface RpdListProps {
   RpdListItems: RpdListItem[];
@@ -115,7 +114,7 @@ export const RpdList: FC<RpdListProps> = ({ RpdListItems }) => {
             <ListItem disableGutters sx={{ p: 0 }}>
               <ListItemButton onClick={() => setTemplatePage("testPdf")} sx={{ py: 1 }}>
                 <ListItemIcon sx={{ pl: 2 }}>
-                  <PictureAsPdfIcon />
+                  <DescriptionIcon />
                 </ListItemIcon>
                 <ListItemText
                   primary={

@@ -6,7 +6,7 @@ import { PageTitle } from "@shared/ui";
 const DisciplineSupportPage: FC = () => {
   return (
     <Box>
-      <PageTitle title="Перечень учебно-методического обеспечения по дисциплине" />
+      <PageTitle title="Перечень учебно-методического обеспечения по дисциплине" paddingBottom={2} />
       <JsonChangeValue elementName="methodological_support_template" />
     </Box>
   );

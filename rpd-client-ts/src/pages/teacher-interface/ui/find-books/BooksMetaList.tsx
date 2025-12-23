@@ -111,19 +111,13 @@ export function BooksMetaList({ books, addBooksToList, closeDialog }: IBooksMeta
     state: { rowSelection },
     muiTableProps: {
       size: "small",
-      sx: { px: 2 },
+      className: "table",
     },
-    muiTableHeadCellProps: {
-      sx: {
-        backgroundColor: "#eceff1",
-      },
-    },
-    muiTableBodyCellProps: ({ row }) => ({
+    muiTableBodyCellProps: {
       sx: {
         py: 0.5,
-        backgroundColor: row.index % 2 === 0 ? undefined : "#fafafa",
       },
-    }),
+    },
     initialState: { pagination: { pageSize: 20, pageIndex: 0 } },
     renderTopToolbarCustomActions: ({ table }) => {
       const selectedRowsCount = Object.values(table.getState().rowSelection).length;

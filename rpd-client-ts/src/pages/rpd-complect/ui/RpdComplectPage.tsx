@@ -133,23 +133,22 @@ export function RpdComplectPage() {
       {
         accessorKey: "semester",
         header: "Семестр",
-        size: 10,
+        size: 100,
       },
       {
         accessorKey: "teacher",
         header: "Преподаватель",
         Cell: ({ row }: { row: { original: TemplateData } }) => (
-          <Box>
+          <Box width={"100%"}>
             <FormControl fullWidth variant="standard">
               {row.original.teacher ? (
                 <Select
-                  sx={{ width: 160 }}
                   labelId={`select-label-${row.original.id}`}
                   id={`select-${row.original.id}`}
                   value={row.original.teacher}
                   label="Преподаватель"
                   disabled
-                  autoWidth
+                  fullWidth
                 >
                   <MenuItem key={row.original.teacher} value={row.original.teacher}>
                     {row.original.teacher}
@@ -157,13 +156,12 @@ export function RpdComplectPage() {
                 </Select>
               ) : (
                 <Select
-                  sx={{ width: 160 }}
                   labelId={`select-label-${row.original.id}`}
                   id={`select-${row.original.id}`}
                   value={selectedTeachers[row.original.id] || ""}
                   label="Преподаватель"
                   onChange={handleChange(row.original.id)}
-                  autoWidth
+                  fullWidth
                 >
                   {row.original.teachers.map((name: string) => (
                     <MenuItem key={name} value={name}>
@@ -190,7 +188,7 @@ export function RpdComplectPage() {
       {
         accessorKey: "choise",
         header: "Действие",
-        size: 10,
+        size: 100,
         Cell: ({ row }: { row: { original: TemplateData } }) => (
           <Box>
             {row.original.status.status === TemplateStatusEnum.UNLOADED ? (
@@ -217,6 +215,7 @@ export function RpdComplectPage() {
     data: filteredData,
     localization: MRT_Localization_RU,
     enableRowSelection: true,
+    layoutMode: "grid",
     initialState: {
       pagination: {
         pageIndex: 0,
@@ -225,17 +224,11 @@ export function RpdComplectPage() {
     },
     muiTableProps: {
       size: "small",
-      sx: { px: 2 },
+      className: "table",
     },
-    muiTableBodyCellProps: ({ row }) => ({
+    muiTableBodyCellProps: {
       sx: {
         py: 0.5,
-        backgroundColor: row.index % 2 === 0 ? undefined : "#fafafa",
-      },
-    }),
-    muiTableHeadCellProps: {
-      sx: {
-        backgroundColor: "#eceff1",
       },
     },
     renderToolbarAlertBannerContent: ({ table }) => (

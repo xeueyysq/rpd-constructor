@@ -1,9 +1,9 @@
+import { useRpdComplectsQuery } from "@entities/rpd-complect";
 import {
   Button,
   FormControl,
   InputLabel,
   MenuItem,
-  Paper,
   Select,
   Table,
   TableBody,
@@ -17,12 +17,13 @@ import {
 import { Box } from "@mui/system";
 import { parseCsvToJson, ParsedPlannedResults } from "@shared/ability/lib/parseCsvToJson";
 import { axiosBase } from "@shared/api";
+import { useStore } from "@shared/hooks";
 import { showErrorMessage, showSuccessMessage } from "@shared/lib";
-import { ComplectData } from "@shared/types";
 import { PageTitle } from "@shared/ui";
+import { isAxiosError } from "axios";
+import { keys } from "lodash";
 import { FC, useEffect, useMemo, useState } from "react";
 import { useLocation } from "react-router-dom";
-import { isAxiosError } from "axios";
 
 interface ResultsRow {
   competence: string;
@@ -43,12 +44,13 @@ type FilterState = {
 export const PlannedResultsList: FC = () => {
   const [data, setData] = useState<ResultsData | undefined>();
   const location = useLocation();
+  const filtersState = location.state as FilterState | undefined;
+  const storedFilters = useStore((state) => state.plannedResultsFilters);
+  const setStoredFilters = useStore((state) => state.setPlannedResultsFilters);
 
-  const filtersState = location.state as FilterState;
-
-  const [complects, setComplects] = useState<ComplectData[]>([]);
-  const [filters, setFilters] = useState<FilterState>(filtersState || { profile: "", formEducation: "", year: null });
+  const [filters, setFilters] = useState<FilterState>(() => filtersState || storedFilters);
   const [selectedComplectId, setSelectedComplectId] = useState<number>();
+  const { complects } = useRpdComplectsQuery();
 
   const options = useMemo(() => {
     const profiles = Array.from(new Set(complects.map((i) => i.profile)));
@@ -60,17 +62,14 @@ export const PlannedResultsList: FC = () => {
   const filtersComplete = Boolean(filters.profile && filters.formEducation && filters.year);
 
   useEffect(() => {
-    const fetchComplectsForOptions = async () => {
-      try {
-        const response = await axiosBase.get("get-rpd-complects");
-        const list = response.data as ComplectData[];
-        setComplects(list);
-      } catch (error) {
-        console.error(error);
-      }
-    };
-    fetchComplectsForOptions();
-  }, []);
+    setStoredFilters(filters);
+  }, [filters, setStoredFilters]);
+
+  useEffect(() => {
+    if (!filtersState) return;
+    setFilters(filtersState);
+    setStoredFilters(filtersState);
+  }, [filtersState, setStoredFilters]);
 
   useEffect(() => {
     if (!filtersComplete) return;
@@ -120,16 +119,19 @@ export const PlannedResultsList: FC = () => {
         currentRowIdForCompetence = currentId;
         currentId++;
       } else if (item.results) {
+        const discipline = item.results.trim();
+        if (!discipline) continue;
         if (currentRowIdForCompetence === null) {
+          if (!currentCompetence) continue;
           resultsData[currentId] = {
             competence: currentCompetence,
-            indicator: "",
+            indicator: "—",
             disciplines: [],
           };
           currentRowIdForCompetence = currentId;
           currentId++;
         }
-        resultsData[currentRowIdForCompetence].disciplines.push(item.results);
+        resultsData[currentRowIdForCompetence].disciplines.push(discipline);
       }
     }
     return resultsData;
@@ -148,7 +150,6 @@ export const PlannedResultsList: FC = () => {
       showErrorMessage(errorMessage);
       console.error(error);
     } finally {
-      // Allow selecting the same file again (otherwise onChange may not fire)
       event.target.value = "";
     }
   };
@@ -168,11 +169,13 @@ export const PlannedResultsList: FC = () => {
       console.error(error);
     }
   };
+
   const headers = [
     "Формируемые компетенции (код и наименование)",
     "Индикаторы достижения компетенций (код и формулировка)",
     "Дисциплины",
   ];
+
   return (
     <Box>
       <PageTitle title={"Загрузка компетенций для всех дисциплин"} />
@@ -260,7 +263,7 @@ export const PlannedResultsList: FC = () => {
             </TableRow>
           </TableHead>
           <TableBody>
-            {filtersComplete && data ? (
+            {filtersComplete && data && keys(data).length ? (
               Object.entries(data).map(([key, row]) => (
                 <TableRow key={key}>
                   <TableCell>

@@ -6,7 +6,7 @@ import { PageTitle } from "@shared/ui";
 const DisciplineEvaluationsFunds: FC = () => {
   return (
     <Box>
-      <PageTitle title="Фонды оценочных средств по дисциплине" />
+      <PageTitle title="Фонды оценочных средств по дисциплине" paddingBottom={2} />
       <JsonChangeValue elementName="assessment_tools_template" />
     </Box>
   );

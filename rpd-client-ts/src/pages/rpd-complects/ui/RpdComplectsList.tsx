@@ -1,61 +1,29 @@
 import { useAuth } from "@entities/auth";
+import { useRpdComplectsQuery, useDeleteRpdComplectsMutation } from "@entities/rpd-complect/model/queries";
 import CachedIcon from "@mui/icons-material/Cached";
 import DeleteIcon from "@mui/icons-material/Delete";
 import FiberManualRecordIcon from "@mui/icons-material/FiberManualRecord";
 import { Box, Breadcrumbs, Button, CssBaseline } from "@mui/material";
 import { UserRole } from "@shared/ability";
-import { axiosBase } from "@shared/api";
 import { RedirectPath } from "@shared/enums";
 import { useStore } from "@shared/hooks";
-import { showErrorMessage } from "@shared/lib";
 import type { ComplectData } from "@shared/types";
 import { Loader, PageTitle } from "@shared/ui";
 import { WarningDeleteDialog } from "@widgets/dialogs/ui";
 import { orderBy } from "lodash";
-import {
-  MaterialReactTable,
-  useMaterialReactTable,
-  type MRT_ColumnDef,
-  type MRT_TableOptions,
-} from "material-react-table";
+import { MaterialReactTable, useMaterialReactTable, type MRT_ColumnDef } from "material-react-table";
 import { MRT_Localization_RU } from "material-react-table/locales/ru";
-import { FC, useCallback, useEffect, useMemo, useState } from "react";
+import { FC, useCallback, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 
 export const RpdComplectsList: FC = () => {
   const [openDeleteConfirm, setOpenDeleteConfirm] = useState<boolean>(false);
-  const [complects, setComplects] = useState<ComplectData[]>([]);
-  const [loading, setLoading] = useState(true);
   const { setComplectId } = useStore();
   const navigate = useNavigate();
   const [rowSelection, setRowSelection] = useState<Record<string, boolean>>({});
   const userRole = useAuth.getState().userRole;
-
-  useEffect(() => {
-    fetchComplects();
-  }, []);
-
-  const fetchComplects = async () => {
-    try {
-      const response = await axiosBase.get("get-rpd-complects");
-      setComplects(response.data);
-    } catch (error) {
-      showErrorMessage("Ошибка при получении данных");
-      console.error(error);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const deleteComplect = async (ids: number[]) => {
-    try {
-      await axiosBase.post("delete_rpd_complect", ids);
-      setRowSelection({});
-      await fetchComplects();
-    } catch (error) {
-      console.error(error);
-    }
-  };
+  const { complects, isLoading } = useRpdComplectsQuery();
+  const deleteMutation = useDeleteRpdComplectsMutation();
 
   const handleViewComplect = useCallback(
     (complect: ComplectData) => {
@@ -146,7 +114,7 @@ export const RpdComplectsList: FC = () => {
     [handleViewComplect, navigate]
   );
 
-  const generalTable = useMaterialReactTable<ComplectData>({
+  const table = useMaterialReactTable<ComplectData>({
     columns: generalColumns,
     data: userRole === UserRole.ADMIN ? complects : sortedComplectsByYear,
     localization: MRT_Localization_RU,
@@ -154,30 +122,24 @@ export const RpdComplectsList: FC = () => {
     enableSorting: false,
     enableRowSelection: true,
     positionToolbarAlertBanner: "none",
-    layoutMode: userRole === UserRole.ADMIN ? "grid" : "semantic",
+    layoutMode: "grid",
     onRowSelectionChange: setRowSelection,
     state: { rowSelection },
-    muiTableProps: {
-      size: "small",
-      sx: { px: 2 },
-    },
     initialState: {
       pagination: {
         pageIndex: 0,
         pageSize: 20,
       },
     },
-    muiTableHeadCellProps: {
-      sx: {
-        backgroundColor: "#eceff1",
-      },
+    muiTableProps: {
+      size: "small",
+      className: "table",
     },
-    muiTableBodyCellProps: ({ row }) => ({
+    muiTableBodyCellProps: {
       sx: {
         py: 0.5,
-        backgroundColor: row.index % 2 === 0 ? undefined : "#fafafa",
       },
-    }),
+    },
     renderTopToolbarCustomActions: ({ table }) => {
       const selectedRowsCount = Object.values(table.getState().rowSelection).length;
       return (
@@ -213,12 +175,13 @@ export const RpdComplectsList: FC = () => {
     },
   });
 
-  if (loading) return <Loader />;
+  if (isLoading) return <Loader />;
 
-  const handleConfirm = async () => {
-    const currentSelectedIds = Object.keys(rowSelection).map((id) => sortedComplectsByYear[Number(id)].id);
+  const handleConfirmDeletion = async () => {
+    const ids = table.getSelectedRowModel().rows.map((r) => r.original.id);
     setOpenDeleteConfirm(false);
-    await deleteComplect(currentSelectedIds);
+    setRowSelection({});
+    await deleteMutation.mutateAsync(ids);
   };
 
   return (
@@ -236,12 +199,12 @@ export const RpdComplectsList: FC = () => {
         )}
       </Box>
       <Box pt={2}>
-        <MaterialReactTable table={generalTable} />
+        <MaterialReactTable table={table} />
       </Box>
       <WarningDeleteDialog
         open={openDeleteConfirm}
         setOpen={setOpenDeleteConfirm}
-        onAccept={handleConfirm}
+        onAccept={handleConfirmDeletion}
         description={"Вы уверены, что хотите удалить выбранные комплекты?"}
       />
     </Box>

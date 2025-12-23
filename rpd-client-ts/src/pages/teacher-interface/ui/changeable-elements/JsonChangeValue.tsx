@@ -78,7 +78,7 @@ const JsonChangeValue: FC<JsonChangeValueTypes> = ({ elementName }) => {
               Данные не найдены
             </Box>
           )}
-          <Box sx={{ display: "flex", justifyContent: "space-between" }}>
+          <Box sx={{ display: "flex", justifyContent: "space-between", pl: 1 }}>
             <Button
               variant="outlined"
               endIcon={<EditIcon color="primary" />}

@@ -12,25 +12,132 @@ import {
   TextField,
   Tooltip,
 } from "@mui/material";
-import { PlannedResultsData, Results } from "@pages/teacher-interface/model/DisciplineContentPageTypes.ts";
+import { PlannedResultsData } from "@pages/teacher-interface/model/DisciplineContentPageTypes.ts";
 import { parseCsvToJson, ParsedPlannedResults } from "@shared/ability/lib/parseCsvToJson.ts";
 import { axiosBase } from "@shared/api";
 import { useStore } from "@shared/hooks";
 import { showErrorMessage, showSuccessMessage } from "@shared/lib";
-import { Loader } from "@shared/ui";
+import { Loader, PageTitle } from "@shared/ui";
 import { isAxiosError } from "axios";
-import { FC, useEffect, useState } from "react";
-import { EditableCell } from "../changeable-elements/EditableCell.tsx";
-import { PageTitle } from "@shared/ui";
+import { FC, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
+
+const RESULT_KEYS = ["own", "know", "beAble"] as const;
+type ResultKey = (typeof RESULT_KEYS)[number];
+
+type PlannedRow = PlannedResultsData[string];
+
+const useSyncRowTextareasHeight = (values: string[]) => {
+  const rowRef = useRef<HTMLTableRowElement | null>(null);
+  const textareasRef = useRef<Array<HTMLTextAreaElement | null>>([]);
+
+  const registerTextarea = (idx: number) => (el: HTMLTextAreaElement | null) => {
+    textareasRef.current[idx] = el;
+  };
+
+  const syncHeights = () => {
+    const els = textareasRef.current.filter(Boolean) as HTMLTextAreaElement[];
+    if (!els.length) return;
+
+    for (const el of els) el.style.height = "auto";
+
+    const max = Math.max(...els.map((el) => el.scrollHeight));
+    for (const el of els) el.style.height = `${max}px`;
+  };
+
+  useLayoutEffect(() => {
+    syncHeights();
+  }, values);
+
+  useEffect(() => {
+    const onResize = () => requestAnimationFrame(syncHeights);
+    window.addEventListener("resize", onResize);
+    return () => window.removeEventListener("resize", onResize);
+  }, []);
+
+  return { rowRef, registerTextarea };
+};
+
+const cellTextFieldSx = {
+  flex: 1,
+  fontSize: "14px !important",
+  "& .MuiInputBase-root": { alignItems: "flex-start", borderRadius: 0 },
+  "& .MuiOutlinedInput-root": {
+    borderRadius: 0,
+    "& fieldset": { border: "none" },
+  },
+  "& .MuiInputBase-input": { fontSize: "14px !important" },
+  "& textarea": { boxSizing: "border-box", resize: "none", overflow: "hidden" },
+} as const;
+
+const PlannedResultsTableRow: FC<{
+  rowKeyStr: string;
+  row: PlannedRow;
+  onChangeBase: (id: number, value: string, key: "competence" | "indicator") => void;
+  onChangeResult: (id: number, value: string, key: ResultKey) => void;
+}> = ({ rowKeyStr, row, onChangeBase, onChangeResult }) => {
+  const id = Number(rowKeyStr);
+  const values = useMemo(
+    () => [row.competence, row.indicator, row.results.own, row.results.know, row.results.beAble],
+    [row.competence, row.indicator, row.results.own, row.results.know, row.results.beAble]
+  );
+  const { rowRef, registerTextarea } = useSyncRowTextareasHeight(values);
+
+  return (
+    <TableRow ref={rowRef} key={rowKeyStr}>
+      <TableCell sx={{ p: 0, verticalAlign: "top" }}>
+        <Box sx={{ display: "flex" }}>
+          <TextField
+            fullWidth
+            sx={cellTextFieldSx}
+            multiline
+            minRows={1}
+            value={row.competence}
+            onChange={(e) => onChangeBase(id, e.target.value, "competence")}
+            inputRef={registerTextarea(0)}
+          />
+        </Box>
+      </TableCell>
+      <TableCell sx={{ p: 0, verticalAlign: "top" }}>
+        <Box sx={{ display: "flex" }}>
+          <TextField
+            fullWidth
+            sx={cellTextFieldSx}
+            multiline
+            minRows={1}
+            value={row.indicator}
+            onChange={(e) => onChangeBase(id, e.target.value, "indicator")}
+            inputRef={registerTextarea(1)}
+          />
+        </Box>
+      </TableCell>
+      {RESULT_KEYS.map((resultKey, idx) => (
+        <TableCell key={resultKey} sx={{ p: 0, verticalAlign: "top" }}>
+          <Box sx={{ display: "flex" }}>
+            <TextField
+              fullWidth
+              sx={cellTextFieldSx}
+              multiline
+              minRows={1}
+              value={row.results[resultKey]}
+              onChange={(e) => onChangeResult(id, e.target.value, resultKey)}
+              inputRef={registerTextarea(2 + idx)}
+            />
+          </Box>
+        </TableCell>
+      ))}
+    </TableRow>
+  );
+};
 
 const PlannedResultsPage: FC = () => {
-  const initialData = useStore.getState().jsonData.competencies as PlannedResultsData | undefined;
-  // const initialDataLength = initialData ? Object.keys(initialData).length : 0;
-  const disciplineName = useStore.getState().jsonData.disciplins_name as string;
-
+  const disciplineName = useStore((state) => state.jsonData.disciplins_name) as string;
+  const initialData = useStore((state) => state.jsonData.competencies) as PlannedResultsData | undefined;
   const { updateJsonData } = useStore();
   const [data, setData] = useState<PlannedResultsData | undefined>(initialData);
-  // const [nextId, setNextId] = useState<number>(initialDataLength)
+
+  useEffect(() => {
+    setData(initialData);
+  }, [initialData]);
 
   const filterData = (parsedData: ParsedPlannedResults) => {
     const filteredDataMap: PlannedResultsData = {};
@@ -80,17 +187,9 @@ const PlannedResultsPage: FC = () => {
       const errorMessage = error instanceof Error ? error.message : "Неизвестная ошибка";
       showErrorMessage(errorMessage);
     } finally {
-      // Allow selecting the same file again (otherwise onChange may not fire)
       event.target.value = "";
     }
   };
-
-  // const handleAddRow = () => {
-  //     setNextId(nextId + 1)
-  //     const newData = {...data, [nextId]: {competence: '', indicator: '', results: ''}}
-  //     setData(newData)
-  // }
-  //
 
   const saveData = async () => {
     if (!data) return;
@@ -116,10 +215,9 @@ const PlannedResultsPage: FC = () => {
     }
   };
 
-  const handleValueChange = (id: number, value: string, key: string) => {
+  const handleChangeResult = (id: number, value: string, key: ResultKey) => {
     if (!data) return;
-
-    const newData = {
+    setData({
       ...data,
       [id]: {
         ...data[id],
@@ -128,8 +226,18 @@ const PlannedResultsPage: FC = () => {
           [key]: value,
         },
       },
-    };
-    setData(newData);
+    });
+  };
+
+  const handleChangeBaseCell = (id: number, value: string, key: "competence" | "indicator") => {
+    if (!data) return;
+    setData({
+      ...data,
+      [id]: {
+        ...data[id],
+        [key]: value,
+      },
+    });
   };
 
   const complectId = useStore.getState().complectId;
@@ -189,8 +297,15 @@ const PlannedResultsPage: FC = () => {
           Сохранить
         </Button>
       </Box>
-      <TableContainer component={Paper} sx={{ my: 2 }}>
-        <Table sx={{ minWidth: 650 }} aria-label="simple table" size="small" className="table">
+      <TableContainer component={Paper} sx={{ my: 2, borderRadius: 0 }}>
+        <Table
+          sx={{
+            "& tbody td": { padding: "0 !important" },
+          }}
+          aria-label="simple table"
+          size="small"
+          className="table"
+        >
           <TableHead>
             <TableRow>
               <TableCell align="center" rowSpan={2}>
@@ -216,31 +331,18 @@ const PlannedResultsPage: FC = () => {
             </TableRow>
           </TableHead>
           <TableBody>
-            {Object.keys(data).map((key) => {
-              return (
-                <TableRow key={key}>
-                  <TableCell>{data[key].competence}</TableCell>
-                  <TableCell>{data[key].indicator}</TableCell>
-                  {Object.keys(data[key].results).map((resultKey) => (
-                    <TableCell>
-                      <TextField
-                        fullWidth
-                        sx={{ fontSize: "14px !important", "& .MuiInputBase-input": { fontSize: "14px !important" } }}
-                        multiline
-                        value={data[key].results[resultKey]}
-                        onChange={(e) => handleValueChange(Number(key), e.target.value, resultKey)}
-                      />
-                    </TableCell>
-                  ))}
-                </TableRow>
-              );
-            })}
+            {Object.keys(data).map((key) => (
+              <PlannedResultsTableRow
+                key={key}
+                rowKeyStr={key}
+                row={data[key]}
+                onChangeBase={handleChangeBaseCell}
+                onChangeResult={handleChangeResult}
+              />
+            ))}
           </TableBody>
         </Table>
       </TableContainer>
-      <ButtonGroup variant="outlined" aria-label="Basic button group">
-        {/* <Button onClick={handleAddRow}>Добавить строку</Button> */}
-      </ButtonGroup>
     </Box>
   );
 };

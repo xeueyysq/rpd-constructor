@@ -16,7 +16,7 @@ export function PageTitle(props: PageTitleProps) {
   };
 
   return (
-    <Box {...props} display={"flex"} gap={1} alignItems={"center"}>
+    <Box {...props} display={"flex"} gap={1} alignItems={"center"} textTransform={"uppercase"}>
       {backButton && (
         <IconButton onClick={handleClickBack}>
           <ArrowBackRoundedIcon />

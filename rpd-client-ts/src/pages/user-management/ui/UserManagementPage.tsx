@@ -132,13 +132,13 @@ export const UserManagementPage: FC = () => {
     getRowId: (row) => String(row.id),
     muiTableProps: {
       size: "small",
-      sx: { px: 2 },
+      className: "table",
     },
-    muiTableBodyCellProps: () => ({
+    muiTableBodyCellProps: {
       sx: {
         py: 0.5,
       },
-    }),
+    },
     positionToolbarAlertBanner: "none",
     renderTopToolbarCustomActions: () => {
       const selectedRowsCount = Object.values(table.getState().rowSelection).length;
