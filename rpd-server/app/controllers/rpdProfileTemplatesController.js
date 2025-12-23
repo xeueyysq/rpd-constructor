@@ -93,6 +93,34 @@ class RpdProfileTemplatesController {
     }
   }
 
+  async copyTemplateContent(req, res) {
+    try {
+      const { sourceTemplateId, targetTemplateId } = req.body;
+
+      if (!sourceTemplateId || !targetTemplateId) {
+        return res.status(400).json({
+          message: "Нет необходимых параметров",
+        });
+      }
+
+      if (Number(sourceTemplateId) === Number(targetTemplateId)) {
+        return res.status(400).json({
+          message: "Нельзя импортировать шаблон сам в себя",
+        });
+      }
+
+      const result = await this.model.copyTemplateContent(
+        Number(sourceTemplateId),
+        Number(targetTemplateId)
+      );
+
+      res.json(result);
+    } catch (err) {
+      console.error("Ошибка контроллера:", err);
+      res.status(500).json({ message: err.message });
+    }
+  }
+
   async getChangeableValues(req, res) {
     try {
       const { ids, rowName } = req.query;

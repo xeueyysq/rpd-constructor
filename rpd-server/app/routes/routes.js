@@ -49,6 +49,12 @@ router.post(
     rpdProfileTemplatesController
   )
 );
+router.post(
+  "/copy-template-content",
+  rpdProfileTemplatesController.copyTemplateContent.bind(
+    rpdProfileTemplatesController
+  )
+);
 router.get(
   "/get-changeable-values",
   rpdProfileTemplatesController.getChangeableValues.bind(

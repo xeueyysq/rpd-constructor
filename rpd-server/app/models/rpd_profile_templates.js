@@ -6,6 +6,23 @@ class RpdProfileTemplates {
   }
 
   static JSONB_FIELDS = new Set(["competencies", "content", "study_load"]);
+  static CONTENT_COPY_FIELDS = [
+    "protocol",
+    "goals",
+    "place_more_text",
+    "certification",
+    "competencies",
+    "content",
+    "content_more_text",
+    "content_template_more_text",
+    "methodological_support_template",
+    "assessment_tools_template",
+    "textbook",
+    "additional_textbook",
+    "professional_information_resources",
+    "software",
+    "logistics_template",
+  ];
 
   async getJsonProfile(id) {
     const queryResult = await this.pool.query(
@@ -213,6 +230,59 @@ class RpdProfileTemplates {
       };
     } catch (error) {
       console.error("Ошибка копирования:", error);
+      throw error;
+    }
+  }
+
+  async copyTemplateContent(sourceTemplateId, targetTemplateId) {
+    try {
+      const { rows: columnRows } = await this.pool.query(
+        `
+          SELECT column_name
+          FROM information_schema.columns
+          WHERE table_schema = 'public' AND table_name = 'rpd_profile_templates';
+        `
+      );
+
+      const existingColumns = new Set(columnRows.map((r) => r.column_name));
+      const fields = RpdProfileTemplates.CONTENT_COPY_FIELDS.filter((f) =>
+        existingColumns.has(f)
+      );
+
+      if (fields.length === 0) {
+        return {
+          success: false,
+          message: "Нет доступных полей для импорта (проверьте схему БД)",
+        };
+      }
+
+      const setClause = fields.map((f) => `${f} = source.${f}`).join(", ");
+
+      const queryResult = await this.pool.query(
+        `
+          UPDATE rpd_profile_templates AS target
+          SET ${setClause}
+          FROM rpd_profile_templates AS source
+          WHERE source.id = $1 AND target.id = $2
+          RETURNING target.*;
+        `,
+        [sourceTemplateId, targetTemplateId]
+      );
+
+      if (queryResult.rowCount === 0) {
+        return {
+          success: false,
+          message: "Не удалось импортировать данные: шаблон не найден",
+        };
+      }
+
+      return {
+        success: true,
+        message: "Контентные поля успешно импортированы",
+        targetTemplate: queryResult.rows[0],
+      };
+    } catch (error) {
+      console.error("Ошибка импорта контента:", error);
       throw error;
     }
   }
