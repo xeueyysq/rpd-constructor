@@ -60,7 +60,11 @@ const useSyncRowTextareasHeight = (values: string[]) => {
 const cellTextFieldSx = {
   flex: 1,
   fontSize: "14px !important",
-  "& .MuiInputBase-root": { alignItems: "flex-start" },
+  "& .MuiInputBase-root": { alignItems: "flex-start", borderRadius: 0 },
+  "& .MuiOutlinedInput-root": {
+    borderRadius: 0,
+    "& fieldset": { border: "none" },
+  },
   "& .MuiInputBase-input": { fontSize: "14px !important" },
   "& textarea": { boxSizing: "border-box", resize: "none", overflow: "hidden" },
 } as const;
@@ -293,10 +297,9 @@ const PlannedResultsPage: FC = () => {
           Сохранить
         </Button>
       </Box>
-      <TableContainer component={Paper} sx={{ my: 2 }}>
+      <TableContainer component={Paper} sx={{ my: 2, borderRadius: 0 }}>
         <Table
           sx={{
-            minWidth: 650,
             "& tbody td": { padding: "0 !important" },
           }}
           aria-label="simple table"

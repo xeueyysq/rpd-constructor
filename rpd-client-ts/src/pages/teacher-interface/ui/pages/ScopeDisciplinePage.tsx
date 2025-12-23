@@ -1,5 +1,5 @@
 import { Box, Button, TextField } from "@mui/material";
-import { FC, useEffect, useMemo, useState } from "react";
+import { FC, useMemo, useState } from "react";
 import { useStore } from "@shared/hooks";
 import { PageTitle } from "@shared/ui";
 import { axiosBase } from "@shared/api";
@@ -59,18 +59,8 @@ const ScopeDisciplinePage: FC = () => {
     return summ;
   }, [studyLoadItems]);
 
-  const [manualHours, setManualHours] = useState<string>("");
-  const [isDirty, setIsDirty] = useState(false);
-
-  useEffect(() => {
-    // при смене шаблона подставляем то, что пришло (если пришло), но не мешаем ручному редактированию
-    setManualHours(summHours !== null ? String(summHours) : "");
-    setIsDirty(false);
-  }, [templateId]);
-
-  useEffect(() => {
-    if (!isDirty) setManualHours(summHours !== null ? String(summHours) : "");
-  }, [summHours, isDirty]);
+  const [manualHours, setManualHours] = useState<string | number | null>(summHours);
+  const [creditUnits, setCreditUtins] = useState<string | null>(jsonData.zet);
 
   const saveManualHours = async () => {
     const parsed = Number(manualHours);
@@ -78,19 +68,32 @@ const ScopeDisciplinePage: FC = () => {
       showErrorMessage("Введите корректное число часов");
       return;
     }
+    const parsedZet = Number(creditUnits);
+    if (!Number.isFinite(parsedZet) || parsedZet < 0) {
+      showErrorMessage("Введите корректное число зачетных единиц");
+      return;
+    }
     if (!templateId) return;
 
     const nextStudyLoad: StudyLoadItem[] = [{ name: "Всего", id: String(parsed) }];
+    const nextZet = String(parsedZet);
 
     try {
-      await axiosBase.put(`update-json-value/${templateId}`, {
-        fieldToUpdate: "study_load",
-        value: nextStudyLoad,
-      });
+      await Promise.all([
+        axiosBase.put(`update-json-value/${templateId}`, {
+          fieldToUpdate: "study_load",
+          value: nextStudyLoad,
+        }),
+        axiosBase.put(`update-json-value/${templateId}`, {
+          fieldToUpdate: "zet",
+          value: nextZet,
+        }),
+      ]);
       updateJsonData("study_load", nextStudyLoad);
-      showSuccessMessage("Часы сохранены");
+      updateJsonData("zet", nextZet);
+      showSuccessMessage("Данные сохранены");
     } catch (error) {
-      showErrorMessage("Ошибка сохранения часов");
+      showErrorMessage("Ошибка сохранения данных");
       console.error(error);
     }
   };
@@ -100,9 +103,20 @@ const ScopeDisciplinePage: FC = () => {
       <PageTitle title="Объем дисциплины" />
       <Box sx={{ py: 2 }}>
         Объем дисциплины составляет
-        <Box component="span" sx={{ fontWeight: "600" }}>
-          {" "}
-          {jsonData.zet || ""}{" "}
+        <Box component="span" sx={{ fontWeight: "600", display: "inline-flex", mx: 1, alignItems: "baseline" }}>
+          <TextField
+            variant="standard"
+            type="number"
+            value={creditUnits}
+            placeholder="?"
+            onChange={(e) => setCreditUtins(e.target.value)}
+            sx={{
+              width: 80,
+              "& .MuiInputBase-input": {
+                textAlign: "center",
+              },
+            }}
+          />
         </Box>
         зачетных единиц, всего
         <Box component="span" sx={{ fontWeight: "600", display: "inline-flex", mx: 1, alignItems: "baseline" }}>
@@ -111,10 +125,7 @@ const ScopeDisciplinePage: FC = () => {
             type="number"
             value={manualHours}
             placeholder="?"
-            onChange={(e) => {
-              setManualHours(e.target.value);
-              setIsDirty(true);
-            }}
+            onChange={(e) => setManualHours(e.target.value)}
             sx={{
               width: 80,
               "& .MuiInputBase-input": {

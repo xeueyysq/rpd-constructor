@@ -12,6 +12,8 @@ import { FC, MouseEvent, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import HistoryModal from "./HistoryModal.tsx";
 import { RedirectPath } from "@shared/enums.ts";
+import FileDownloadOutlinedIcon from "@mui/icons-material/FileDownloadOutlined";
+import { ImportFromComplectsDialog } from "./ImportFromComplectsDialog";
 
 interface TemplateMenu {
   id: number;
@@ -25,6 +27,7 @@ const TemplateMenu: FC<TemplateMenu> = ({ id, teacher, status, fetchData }) => {
   const userName = useAuth.getState().userName;
   const [anchorEl, setAnchorEl] = useState<null | HTMLButtonElement>(null);
   const [openDialog, setOpenDialog] = useState<boolean>(false);
+  const [openImportDialog, setOpenImportDialog] = useState<boolean>(false);
   const [history, setHistory] = useState(undefined);
   const open = Boolean(anchorEl);
   const navigate = useNavigate();
@@ -130,22 +133,21 @@ const TemplateMenu: FC<TemplateMenu> = ({ id, teacher, status, fetchData }) => {
             </ListItemText>
           </MenuItem>
         )}
-        {/* <MenuItem>
+        <MenuItem
+          onClick={() => {
+            handleClose();
+            setOpenImportDialog(true);
+          }}
+        >
           <ListItemIcon>
-            <DeleteForeverIcon />
+            <FileDownloadOutlinedIcon />
           </ListItemIcon>
           <ListItemText>
-            <Typography
-              variant="button"
-              display="block"
-              gutterBottom
-              color="grey"
-              m="0"
-            >
-              Удалить
+            <Typography variant="button" display="block" gutterBottom color="grey" m="0">
+              Импортировать
             </Typography>
           </ListItemText>
-        </MenuItem> */}
+        </MenuItem>
         <MenuItem onClick={() => getTemplateHistory()}>
           <ListItemIcon>
             <HistoryIcon />
@@ -158,6 +160,14 @@ const TemplateMenu: FC<TemplateMenu> = ({ id, teacher, status, fetchData }) => {
         </MenuItem>
       </Menu>
       {history && <HistoryModal history={history} openDialog={openDialog} setOpenDialog={setOpenDialog} />}
+      {openImportDialog ? (
+        <ImportFromComplectsDialog
+          open={openImportDialog}
+          targetTemplateId={id}
+          onClose={() => setOpenImportDialog(false)}
+          onImported={fetchData}
+        />
+      ) : null}
     </>
   );
 };

@@ -95,12 +95,13 @@ export const TeacherInterfaceTemplates: FC = () => {
         header: "",
         enableSorting: false,
         enableColumnFilter: false,
+        enableColumnActions: false,
         Cell: ({ row }) => (
-          <Box pl={1.5}>
+          <Box>
             <StatusCell status={row.original.status.status} />
           </Box>
         ),
-        size: 50,
+        size: 40,
       },
       {
         accessorKey: "disciplins_name",
@@ -210,19 +211,13 @@ export const TeacherInterfaceTemplates: FC = () => {
     layoutMode: "grid",
     muiTableProps: {
       size: "small",
-      sx: { px: 2 },
+      className: "table",
     },
-    muiTableHeadCellProps: {
-      sx: {
-        backgroundColor: "#eceff1",
-      },
-    },
-    muiTableBodyCellProps: ({ row }) => ({
+    muiTableBodyCellProps: {
       sx: {
         py: 0.5,
-        backgroundColor: row.index % 2 === 0 ? undefined : "#fafafa",
       },
-    }),
+    },
   });
 
   if (!templatesData) return <Loader />;

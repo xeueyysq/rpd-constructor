@@ -2,9 +2,8 @@ import DownloadIcon from "@mui/icons-material/Download";
 import MoreHorizIcon from "@mui/icons-material/MoreHoriz";
 import { Box, IconButton, ListItemIcon, ListItemText, Menu, MenuItem, Typography } from "@mui/material";
 import { DataDialogBox } from "../DataDialogBox";
-import React, { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useAuth } from "@entities/auth";
-import { UserRole } from "@shared/ability";
 import { useStore } from "@shared/hooks";
 import { showErrorMessage, showSuccessMessage } from "@shared/lib";
 import { axiosBase } from "@shared/api";
@@ -19,11 +18,40 @@ export function ExportFromTemplates({
 }) {
   const [openFromYearDialog, setOpenFromYearDialog] = useState<boolean>(false);
   const [openFromDirectionDialog, setOpenFromDirectionDialog] = useState<boolean>(false);
+  const userName = useAuth((state) => state.userName);
   const teacherTemplates = useStore((state) => state.teacherTemplates);
   const jsonData = useStore((state) => state.jsonData);
   const [anchorEl, setAnchorEl] = useState<null | HTMLButtonElement>(null);
   const open = Boolean(anchorEl);
   const updateJsonData = useStore((state) => state.updateJsonData);
+  const setTeacherTemplates = useStore((state) => state.setTeacherTemplates);
+  const isFetchingTemplatesRef = useRef(false);
+
+  useEffect(() => {
+    if (teacherTemplates.length) return;
+    if (!userName) return;
+    if (isFetchingTemplatesRef.current) return;
+
+    isFetchingTemplatesRef.current = true;
+    (async () => {
+      try {
+        const response = await axiosBase.post("find-teacher-templates", { userName });
+        type TemplateRow = { id?: number; disciplins_name?: string; year?: number };
+        const rows = (response.data ?? []) as TemplateRow[];
+        const templates = rows.map((row) => ({
+          id: row.id,
+          text: row.disciplins_name,
+          year: row.year,
+        }));
+        setTeacherTemplates(templates);
+      } catch (error) {
+        showErrorMessage("Ошибка при получении списка шаблонов");
+        console.error(error);
+      } finally {
+        isFetchingTemplatesRef.current = false;
+      }
+    })();
+  }, [setTeacherTemplates, teacherTemplates.length, userName]);
 
   const handleClick = (event: React.MouseEvent<HTMLButtonElement>) => {
     setAnchorEl(event.currentTarget);

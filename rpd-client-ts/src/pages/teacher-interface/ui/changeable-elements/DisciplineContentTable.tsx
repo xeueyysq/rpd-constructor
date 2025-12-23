@@ -16,7 +16,7 @@ import { axiosBase } from "@shared/api";
 import { useStore } from "@shared/hooks";
 import { showErrorMessage, showSuccessMessage } from "@shared/lib";
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { EditableNumber } from "./EditableNumber";
+import { EditableTableCell } from "./EditableTableCell";
 import { ExportFromTemplates } from "./ExportFromTemplates";
 
 type ContentTableType = {
@@ -304,10 +304,10 @@ export function DisciplineContentTable({ readOnly = false, tableData }: ContentT
       ...data,
       [String(newId)]: {
         theme: "",
-        lectures: 0,
-        seminars: 0,
-        control: 0,
-        independent_work: 0,
+        lectures: null,
+        seminars: null,
+        control: null,
+        independent_work: null,
         competence: "",
         indicator: "",
         results: "",
@@ -375,11 +375,18 @@ export function DisciplineContentTable({ readOnly = false, tableData }: ContentT
                       >
                         {rowId === ATTESTATION_ROW_ID ? (
                           <Box sx={{ fontSize: 14, p: 1, fontWeight: 600 }}>{attestationTheme}</Box>
+                        ) : readOnly ? (
+                          data[rowId].theme
                         ) : (
                           <TextField
                             sx={{
                               fontSize: "14px !important",
                               "& .MuiInputBase-input": { fontSize: "14px !important" },
+                              "& .MuiOutlinedInput-root": {
+                                borderRadius: 0,
+                                "& fieldset": { border: "none" },
+                                padding: 0,
+                              },
                             }}
                             multiline
                             value={data[rowId].theme}
@@ -400,41 +407,21 @@ export function DisciplineContentTable({ readOnly = false, tableData }: ContentT
                           Number(data[rowId].control || 0) +
                           Number(data[rowId].independent_work)}
                       </TableCell>
-                      <TableCell
-                        padding={"none"}
-                        sx={{
-                          "& .MuiTableCell-root .table td": {
-                            padding: 0,
-                          },
-                        }}
-                      >
-                        <EditableNumber
-                          value={data[rowId].lectures}
-                          onValueChange={(value: number) => handleValueChange(rowId, "lectures", value)}
-                          readOnly={readOnly || rowId === ATTESTATION_ROW_ID}
-                        />
-                      </TableCell>
-                      <TableCell
-                        padding={"none"}
-                        sx={{
-                          "& .MuiTableCell-root": {
-                            padding: "0px 0px",
-                          },
-                        }}
-                      >
-                        <EditableNumber
-                          value={data[rowId].seminars}
-                          onValueChange={(value: number) => handleValueChange(rowId, "seminars", value)}
-                          readOnly={readOnly || rowId === ATTESTATION_ROW_ID}
-                        />
-                      </TableCell>
-                      <TableCell padding={"none"}>
-                        <EditableNumber
-                          value={Number(data[rowId].control || 0)}
-                          onValueChange={(value: number) => handleValueChange(rowId, "control", value)}
-                          readOnly={readOnly}
-                        />
-                      </TableCell>
+                      <EditableTableCell
+                        value={data[rowId].lectures}
+                        onValueChange={(value: number) => handleValueChange(rowId, "lectures", value)}
+                        readOnly={readOnly}
+                      />
+                      <EditableTableCell
+                        value={data[rowId].seminars}
+                        onValueChange={(value: number) => handleValueChange(rowId, "seminars", value)}
+                        readOnly={readOnly}
+                      />
+                      <EditableTableCell
+                        value={data[rowId].control || null}
+                        onValueChange={(value: number) => handleValueChange(rowId, "control", value)}
+                        readOnly={readOnly}
+                      />
                       <TableCell
                         style={{
                           alignContent: "center",
@@ -443,20 +430,11 @@ export function DisciplineContentTable({ readOnly = false, tableData }: ContentT
                       >
                         {Number(data[rowId].lectures) + Number(data[rowId].seminars) + Number(data[rowId].control || 0)}
                       </TableCell>
-                      <TableCell
-                        padding={"none"}
-                        sx={{
-                          "& .MuiTableCell-root": {
-                            padding: "0px 0px",
-                          },
-                        }}
-                      >
-                        <EditableNumber
-                          value={data[rowId].independent_work}
-                          onValueChange={(value: number) => handleValueChange(rowId, "independent_work", value)}
-                          readOnly={readOnly || rowId === ATTESTATION_ROW_ID}
-                        />
-                      </TableCell>
+                      <EditableTableCell
+                        value={data[rowId].independent_work}
+                        onValueChange={(value: number) => handleValueChange(rowId, "independent_work", value)}
+                        readOnly={readOnly}
+                      />
                     </TableRow>
                   ))}
               <TableRow>

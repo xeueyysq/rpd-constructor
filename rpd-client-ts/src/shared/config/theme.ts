@@ -61,8 +61,8 @@ export const themeOptions: ThemeOptions = {
       },
       styleOverrides: {
         select: {
-          paddingTop: 4,
-          paddingBottom: 4,
+          paddingTop: 6,
+          paddingBottom: 6,
         },
       },
     },

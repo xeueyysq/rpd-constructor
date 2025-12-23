@@ -122,30 +122,24 @@ export const RpdComplectsList: FC = () => {
     enableSorting: false,
     enableRowSelection: true,
     positionToolbarAlertBanner: "none",
-    layoutMode: userRole === UserRole.ADMIN ? "grid" : "semantic",
+    layoutMode: "grid",
     onRowSelectionChange: setRowSelection,
     state: { rowSelection },
-    muiTableProps: {
-      size: "small",
-      sx: { px: 2 },
-    },
     initialState: {
       pagination: {
         pageIndex: 0,
         pageSize: 20,
       },
     },
-    muiTableHeadCellProps: {
-      sx: {
-        backgroundColor: "#eceff1",
-      },
+    muiTableProps: {
+      size: "small",
+      className: "table",
     },
-    muiTableBodyCellProps: ({ row }) => ({
+    muiTableBodyCellProps: {
       sx: {
         py: 0.5,
-        backgroundColor: row.index % 2 === 0 ? undefined : "#fafafa",
       },
-    }),
+    },
     renderTopToolbarCustomActions: ({ table }) => {
       const selectedRowsCount = Object.values(table.getState().rowSelection).length;
       return (
