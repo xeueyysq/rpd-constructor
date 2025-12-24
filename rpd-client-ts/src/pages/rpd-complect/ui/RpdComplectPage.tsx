@@ -12,6 +12,7 @@ import TemplateMenu from "./TemplateMenu.tsx";
 import { PageTitle } from "@shared/ui";
 import { useParams } from "react-router-dom";
 import { ComplectData } from "@shared/types/complect.ts";
+import { RedirectPath } from "@shared/enums.ts";
 
 interface TemplateStatusObject {
   date: string;
@@ -215,6 +216,7 @@ export function RpdComplectPage() {
     data: filteredData,
     localization: MRT_Localization_RU,
     enableRowSelection: true,
+    enableColumnResizing: true,
     layoutMode: "grid",
     initialState: {
       pagination: {
@@ -248,7 +250,7 @@ export function RpdComplectPage() {
 
   return (
     <Box>
-      <PageTitle title={`${complectMeta.profile} ${complectMeta.year}`} backButton />
+      <PageTitle title={`${complectMeta.profile} ${complectMeta.year}`} backNavPath={RedirectPath.COMPLECTS} />
       <Box pt={2}>
         <MaterialReactTable table={table} />
       </Box>

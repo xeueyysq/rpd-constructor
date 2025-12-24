@@ -24,7 +24,28 @@ axiosBase.interceptors.request.use((config) => {
 
 axiosBase.interceptors.response.use(
   (response) => response,
-  (error) => {
+  async (error) => {
+    const status: number | undefined = error?.response?.status;
+    const originalRequest = error?.config as
+      | (import("axios").InternalAxiosRequestConfig & { _retry?: boolean })
+      | undefined;
+
+    if ((status === 401 || status === 403) && originalRequest && !originalRequest._retry) {
+      originalRequest._retry = true;
+      try {
+        const res = await axiosAuth.post("/refresh");
+        const newAccessToken: string | undefined = res?.data?.accessToken;
+        if (newAccessToken) {
+          setAccessToken(newAccessToken);
+          originalRequest.headers = originalRequest.headers ?? {};
+          originalRequest.headers.Authorization = `Bearer ${newAccessToken}`;
+          return axiosBase(originalRequest);
+        }
+      } catch (refreshError) {
+        console.error("Auth refresh failed:", refreshError);
+      }
+    }
+
     console.error("API Error:", error);
     return Promise.reject(error);
   }
@@ -33,6 +54,7 @@ axiosBase.interceptors.response.use(
 export const axiosAuth = axios.create({
   baseURL: `${config.API_URL}/auth`,
   timeout: 5000,
+  withCredentials: true,
   headers: {
     "Content-Type": "application/json",
   },

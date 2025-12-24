@@ -121,6 +121,7 @@ export const RpdComplectsList: FC = () => {
     enableFilters: false,
     enableSorting: false,
     enableRowSelection: true,
+    enableColumnResizing: true,
     positionToolbarAlertBanner: "none",
     layoutMode: "grid",
     onRowSelectionChange: setRowSelection,

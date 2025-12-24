@@ -13,22 +13,23 @@ import {
 } from "@mui/material";
 import { SimpleTreeView } from "@mui/x-tree-view/SimpleTreeView";
 import { TreeItem } from "@mui/x-tree-view/TreeItem";
+import { TemplatePagesPath } from "@pages/teacher-interface/model/pathes.ts";
 import { Can } from "@shared/ability";
+import { RedirectPath } from "@shared/enums.ts";
 import { useStore } from "@shared/hooks";
 import { FC } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useParams } from "react-router-dom";
 import { RpdListItem } from "../model/types.ts";
 import RpdListItemComponent from "./RpdListItem.tsx";
 
 interface RpdListProps {
   RpdListItems: RpdListItem[];
-  setChoise: (choise: string) => void;
 }
 
 export const RpdList: FC<RpdListProps> = ({ RpdListItems }) => {
-  const jsonData = useStore.getState().jsonData;
+  const { jsonData, complectId } = useStore((state) => state);
   const navigate = useNavigate();
-  const { setTemplatePage, templatePage } = useStore();
+  const { id: templateId, page } = useParams();
   return (
     <Box
       sx={{
@@ -89,13 +90,7 @@ export const RpdList: FC<RpdListProps> = ({ RpdListItems }) => {
           {RpdListItems.map((item) => (
             <>
               <Divider sx={{ bgcolor: "#ffffff", height: 0 }} />
-              <RpdListItemComponent
-                setChoise={setTemplatePage}
-                key={item.id}
-                id={item.id}
-                text={item.text}
-                activePage={templatePage}
-              />
+              <RpdListItemComponent item={item} templateId={templateId} templatePage={page} />
             </>
           ))}
           <Divider sx={{ bgcolor: "#ffffff", height: 0 }} />
@@ -112,7 +107,10 @@ export const RpdList: FC<RpdListProps> = ({ RpdListItems }) => {
         <List dense>
           <Can I="get" a="rop_interface">
             <ListItem disableGutters sx={{ p: 0 }}>
-              <ListItemButton onClick={() => setTemplatePage("testPdf")} sx={{ py: 1 }}>
+              <ListItemButton
+                onClick={() => navigate(`${RedirectPath.TEMPLATES}/${templateId}/${TemplatePagesPath.TEST_PDF}`)}
+                sx={{ py: 1 }}
+              >
                 <ListItemIcon sx={{ pl: 2 }}>
                   <DescriptionIcon />
                 </ListItemIcon>
@@ -133,7 +131,7 @@ export const RpdList: FC<RpdListProps> = ({ RpdListItems }) => {
             </ListItem>
           </Can>
           <ListItem disableGutters sx={{ p: 0 }}>
-            <ListItemButton onClick={() => navigate(-1)} sx={{ py: 1 }}>
+            <ListItemButton onClick={() => navigate(`${RedirectPath.COMPLECTS}/${complectId}`)} sx={{ py: 1 }}>
               <ListItemIcon sx={{ pl: 2 }}>
                 <ArrowBackIcon />
               </ListItemIcon>

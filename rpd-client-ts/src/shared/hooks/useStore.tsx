@@ -1,6 +1,7 @@
 import { create } from "zustand";
 import { immer } from "zustand/middleware/immer";
 
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
 type JsonValue = any;
 
 interface JsonData {
@@ -56,6 +57,7 @@ interface StoreState {
   isDrawerOpen: boolean;
   setJsonData: (data: JsonData) => void;
   updateJsonData: (key: string, value: JsonValue) => void;
+  updateJsonComment: (field: string, value: JsonValue) => void;
   setSelectedTemplateData: (
     faculty: string | undefined,
     levelEducation: string | undefined,
@@ -118,6 +120,37 @@ export const useStore = create<StoreState>()(
           state.jsonData[key] = value;
         } else {
           delete state.jsonData[key];
+        }
+      });
+    },
+    updateJsonComment: (key, value) => {
+      set((state) => {
+        if (!state.jsonData.comments) {
+          state.jsonData.comments = {};
+        }
+        if (value === undefined || value === null) {
+          delete state.jsonData.comments[key];
+          return;
+        }
+
+        // Backward-compat: sometimes comment html came back quoted as a JSON string.
+        // Treat this value as invalid/empty (it used to appear when comment_text was JSON.stringify'ed).
+        if (value === '"<p>undefined</p>"') {
+          delete state.jsonData.comments[key];
+          return;
+        }
+
+        if (typeof value === "object") {
+          state.jsonData.comments[key] = value;
+          return;
+        }
+
+        // value is string/primitive -> store as comment_text
+        const existing = state.jsonData.comments[key];
+        if (existing && typeof existing === "object") {
+          existing.comment_text = value;
+        } else {
+          state.jsonData.comments[key] = { comment_text: value };
         }
       });
     },

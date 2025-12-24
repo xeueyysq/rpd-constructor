@@ -16,7 +16,6 @@ export function ClippedDrawer() {
   const userRole = useAuth((state) => state.userRole);
   const location = useLocation();
   const path = location.pathname;
-  const [setChoise] = useState<string>("coverPage");
   const [drawerWidth, setDrawerWidth] = useState<number>(290);
   const { isDrawerOpen } = useStore();
 
@@ -43,7 +42,7 @@ export function ClippedDrawer() {
   const switchMap = {
     main: <MainTabsList />,
     teacher: <TeacherTabsList />,
-    template: <RpdList setChoise={() => setChoise} RpdListItems={TeacherRpdListItems} />,
+    template: <RpdList RpdListItems={TeacherRpdListItems} />,
   };
 
   useEffect(() => {

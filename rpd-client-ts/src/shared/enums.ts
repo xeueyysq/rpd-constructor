@@ -8,4 +8,5 @@ export enum RedirectPath {
   COMPLECT = "/complects/:id",
   TEMPLATES = "/templates",
   TEMPLATE = "/templates/:id",
+  TEMPLATE_SUBPAGE = "/templates/:id/:page?",
 }

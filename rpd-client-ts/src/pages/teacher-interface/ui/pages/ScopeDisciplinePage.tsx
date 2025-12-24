@@ -4,6 +4,8 @@ import { useStore } from "@shared/hooks";
 import { PageTitle } from "@shared/ui";
 import { axiosBase } from "@shared/api";
 import { showErrorMessage, showSuccessMessage } from "@shared/lib";
+import { CommentChangeValue } from "../changeable-elements/CommentChangeValue";
+import { TemplatePagesPath } from "@pages/teacher-interface/model/pathes";
 
 interface StudyLoadItem {
   id: string;
@@ -100,7 +102,8 @@ const ScopeDisciplinePage: FC = () => {
 
   return (
     <Box>
-      <PageTitle title="Объем дисциплины" />
+      <PageTitle title="Объем дисциплины" paddingBottom={2} />
+      <CommentChangeValue templateField={TemplatePagesPath.DISCIPLINE_SCOPE} />
       <Box sx={{ py: 2 }}>
         Объем дисциплины составляет
         <Box component="span" sx={{ fontWeight: "600", display: "inline-flex", mx: 1, alignItems: "baseline" }}>

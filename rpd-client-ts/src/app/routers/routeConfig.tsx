@@ -18,11 +18,17 @@ export const mainPages = [
   RedirectPath.PLANNED_RESULTS,
   RedirectPath.COMPLECT,
   RedirectPath.TEMPLATE,
+  RedirectPath.TEMPLATE_SUBPAGE,
 ];
 
 export const roleToAvailablePath: Record<UserRole, RedirectPath[]> = {
   [UserRole.ROP]: mainPages,
-  [UserRole.TEACHER]: [RedirectPath.TEMPLATES, RedirectPath.RPD_TEMPLATE, RedirectPath.TEMPLATE],
+  [UserRole.TEACHER]: [
+    RedirectPath.TEMPLATES,
+    RedirectPath.RPD_TEMPLATE,
+    RedirectPath.TEMPLATE,
+    RedirectPath.TEMPLATE_SUBPAGE,
+  ],
   [UserRole.ADMIN]: [...mainPages, RedirectPath.USER_MANAGEMENT],
   [UserRole.ANONYMOUS]: [RedirectPath.SIGN_IN],
 };
@@ -37,4 +43,5 @@ export const routes = {
   [RedirectPath.USER_MANAGEMENT]: <UserManagement />,
   [RedirectPath.COMPLECT]: <RpdComplectPage />,
   [RedirectPath.TEMPLATE]: <TeacherInterface />,
+  [RedirectPath.TEMPLATE_SUBPAGE]: <TeacherInterface />,
 };

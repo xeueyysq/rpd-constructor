@@ -2,14 +2,19 @@ import { ListItem, ListItemButton, ListItemText, Typography, ListItemIcon } from
 import { FC } from "react";
 import type { RpdListItem } from "../model/types.ts";
 import MoreVertIcon from "@mui/icons-material/MoreVert";
+import { useNavigate } from "react-router-dom";
+import { RedirectPath } from "@shared/enums.ts";
 
-type RpdListItemProps = RpdListItem & {
-  setChoise: (choise: string) => void;
-  activePage?: string;
+type RpdListItemProps = {
+  item: RpdListItem;
+  templateId: string | undefined;
+  templatePage: string | undefined;
 };
 
-const RpdListItem: FC<RpdListItemProps> = ({ id, text, setChoise, activePage }) => {
-  const isActive = activePage === id;
+const RpdListItem: FC<RpdListItemProps> = ({ item, templateId, templatePage }) => {
+  const { id, text, path } = item;
+  const navigate = useNavigate();
+  const isActive = templatePage === path;
 
   return (
     <ListItem
@@ -20,7 +25,7 @@ const RpdListItem: FC<RpdListItemProps> = ({ id, text, setChoise, activePage }) 
       }}
     >
       <ListItemButton
-        onClick={() => setChoise(id)}
+        onClick={() => navigate(`${RedirectPath.TEMPLATES}/${templateId}/${path}`)}
         sx={{
           px: 3,
           py: 0.15,
