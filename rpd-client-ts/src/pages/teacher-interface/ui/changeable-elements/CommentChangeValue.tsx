@@ -151,7 +151,7 @@ export function CommentChangeValue({ templateField }: ICommentChangeValue) {
                 Комментарий
               </Typography>
               <Typography variant="caption" display="block" color="text.secondary" m="0">
-                {isEdited ? "Изменен" : "Создан"}: {formatDateTime(createdAt)}
+                {isEdited ? `Изменен: ${formatDateTime(updatedAt)}` : `Создан: ${formatDateTime(createdAt)}`}
               </Typography>
             </Box>
             <Typography color="text.secondary" display="block" gutterBottom m="0">
