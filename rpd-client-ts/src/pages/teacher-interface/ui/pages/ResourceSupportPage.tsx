@@ -3,11 +3,14 @@ import JsonChangeValue from "../changeable-elements/JsonChangeValue.tsx";
 import { Box } from "@mui/material";
 import AddBook from "../find-books/AddBook.tsx";
 import { PageTitle } from "@shared/ui";
+import { CommentChangeValue } from "../changeable-elements/CommentChangeValue.tsx";
+import { TemplatePagesPath } from "@pages/teacher-interface/model/pathes.ts";
 
 const ResourceSupportPage: FC = () => {
   return (
     <Box>
-      <PageTitle title="Ресурсное обеспечение" />
+      <PageTitle title="Ресурсное обеспечение" paddingBottom={2} />
+      <CommentChangeValue templateField={TemplatePagesPath.RESOURCE_SUPPORT} />
       <Box component="h4" sx={{ pt: 2, pb: 1 }}>
         Перечень литературы
       </Box>

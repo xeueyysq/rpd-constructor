@@ -4,6 +4,8 @@ import { Box } from "@mui/material";
 import { Loader, PageTitle } from "@shared/ui";
 import { FC } from "react";
 import CertificationSelector from "../changeable-elements/CertificationSelector.tsx";
+import { CommentChangeValue } from "../changeable-elements/CommentChangeValue.tsx";
+import { TemplatePagesPath } from "@pages/teacher-interface/model/pathes.ts";
 
 const DisciplinePlace: FC = () => {
   const data = useStore((state) => state.jsonData);
@@ -16,7 +18,8 @@ const DisciplinePlace: FC = () => {
 
   return (
     <Box>
-      <PageTitle title="Место дисциплины в структуре ОПОП" />
+      <PageTitle title="Место дисциплины в структуре ОПОП" paddingBottom={2} />
+      <CommentChangeValue templateField={TemplatePagesPath.DISCIPLINE_PLACE} />
       {Object.keys(data).length ? (
         <Box sx={{ py: 2 }}>
           Дисциплина

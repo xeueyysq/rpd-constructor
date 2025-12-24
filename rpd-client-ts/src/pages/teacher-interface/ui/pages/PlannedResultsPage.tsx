@@ -20,6 +20,8 @@ import { showErrorMessage, showSuccessMessage } from "@shared/lib";
 import { Loader, PageTitle } from "@shared/ui";
 import { isAxiosError } from "axios";
 import { FC, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
+import { CommentChangeValue } from "../changeable-elements/CommentChangeValue";
+import { TemplatePagesPath } from "@pages/teacher-interface/model/pathes";
 
 const RESULT_KEYS = ["own", "know", "beAble"] as const;
 type ResultKey = (typeof RESULT_KEYS)[number];
@@ -277,7 +279,8 @@ const PlannedResultsPage: FC = () => {
 
   return (
     <Box>
-      <PageTitle title="Планируемые результаты обучения по дисциплине (модулю)" />
+      <PageTitle title="Планируемые результаты обучения по дисциплине (модулю)" paddingBottom={2} />
+      <CommentChangeValue templateField={TemplatePagesPath.DISCIPLINE_PLANNED_RESULTS} />
       <Box pt={2} display={"flex"} justifyContent="flex-end" gap={1}>
         <Tooltip title="Загрузить файл компетенций (.csv, .xlsx)" arrow>
           <Box component="label" htmlFor="csv-upload">

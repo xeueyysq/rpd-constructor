@@ -4,21 +4,17 @@ import { useNavigate } from "react-router-dom";
 
 type PageTitleProps = BoxProps & {
   title: string;
-  backButton?: boolean;
+  backNavPath?: string;
 };
 
 export function PageTitle(props: PageTitleProps) {
-  const { title, backButton } = props;
+  const { title, backNavPath } = props;
   const navigate = useNavigate();
-
-  const handleClickBack = () => {
-    navigate(-1);
-  };
 
   return (
     <Box {...props} display={"flex"} gap={1} alignItems={"center"} textTransform={"uppercase"}>
-      {backButton && (
-        <IconButton onClick={handleClickBack}>
+      {backNavPath && (
+        <IconButton onClick={() => navigate(backNavPath)}>
           <ArrowBackRoundedIcon />
         </IconButton>
       )}

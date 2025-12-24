@@ -14,6 +14,7 @@ import HistoryModal from "./HistoryModal.tsx";
 import { RedirectPath } from "@shared/enums.ts";
 import FileDownloadOutlinedIcon from "@mui/icons-material/FileDownloadOutlined";
 import { ImportFromComplectsDialog } from "./ImportFromComplectsDialog";
+import { TemplatePagesPath } from "@pages/teacher-interface/model/pathes.ts";
 
 interface TemplateMenu {
   id: number;
@@ -94,7 +95,7 @@ const TemplateMenu: FC<TemplateMenu> = ({ id, teacher, status, fetchData }) => {
           "aria-labelledby": "basic-button",
         }}
       >
-        <MenuItem onClick={() => navigate(`${RedirectPath.TEMPLATES}/${id}`)}>
+        <MenuItem onClick={() => navigate(`${RedirectPath.TEMPLATES}/${id}/${TemplatePagesPath.COVER_PAGE}`)}>
           <ListItemIcon>
             <OpenInBrowserIcon />
           </ListItemIcon>

@@ -208,6 +208,7 @@ export const TeacherInterfaceTemplates: FC = () => {
     columns,
     data: templatesData || [],
     localization: MRT_Localization_RU,
+    enableColumnResizing: true,
     layoutMode: "grid",
     muiTableProps: {
       size: "small",
