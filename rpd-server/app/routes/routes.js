@@ -33,6 +33,20 @@ router.put(
   "/update-json-value/:id",
   rpdProfileTemplatesController.updateById.bind(rpdProfileTemplatesController)
 );
+router.put(
+  "/upset-template-comment/:id",
+  TokenService.checkAccess,
+  rpdProfileTemplatesController.upsetTemplateComment.bind(
+    rpdProfileTemplatesController
+  )
+);
+router.delete(
+  "/delete-template-comment/:id",
+  TokenService.checkAccess,
+  rpdProfileTemplatesController.deleteTemplateComment.bind(
+    rpdProfileTemplatesController
+  )
+);
 router.get(
   "/find-by-criteria",
   rpdProfileTemplatesController.findByCriteria.bind(

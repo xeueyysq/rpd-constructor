@@ -31,6 +31,55 @@ class RpdProfileTemplatesController {
     }
   }
 
+  async upsetTemplateComment(req, res) {
+    try {
+      const commentatorId = req.user?.id;
+      if (!commentatorId) {
+        return res.status(401).json({ message: "Пользователь не авторизован" });
+      }
+
+      const { field, value } = req.body;
+      if (!field) {
+        return res.status(400).json({ message: "Не указано поле" });
+      }
+
+      const updatedItem = await this.model.upsetTemplateComment(
+        req.params.id,
+        commentatorId,
+        field,
+        value
+      );
+
+      if (!updatedItem) {
+        return res.status(404).json({ message: "Item not found" });
+      }
+
+      res.json(updatedItem);
+    } catch (error) {
+      res.status(500).json({ message: error.message });
+      console.error(error);
+    }
+  }
+
+  async deleteTemplateComment(req, res) {
+    try {
+      const deleteResult = await this.model.deleteTemplateComment(
+        req.params.id
+      );
+
+      if (!deleteResult) {
+        return res.status(404).json({
+          message: "Комментарий не найден",
+        });
+      }
+
+      res.status(204).send();
+    } catch (error) {
+      res.status(500).json({ message: error.message });
+      console.error(error);
+    }
+  }
+
   async findByCriteria(req, res) {
     try {
       const {
