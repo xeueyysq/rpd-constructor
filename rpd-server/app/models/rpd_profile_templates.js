@@ -27,10 +27,25 @@ class RpdProfileTemplates {
   async getJsonProfile(id) {
     const queryResult = await this.pool.query(
       `
-      SELECT rpt.*, rc.faculty, rc.direction,
-      rc.profile, rc.education_level, rc.education_form, rc.year
+      SELECT
+        rpt.*,
+        rc.faculty,
+        rc.direction,
+        rc.profile,
+        rc.education_level,
+        rc.education_form,
+        rc.year,
+        COALESCE(c.comments, '{}'::jsonb) AS comments
       FROM rpd_profile_templates rpt
       JOIN rpd_complects rc ON rc.id = rpt.id_rpd_complect
+      LEFT JOIN LATERAL (
+        SELECT jsonb_object_agg(
+                tfc.template_field,
+                to_jsonb(tfc) - 'template_field' - 'id_1c_template'
+              ) AS comments
+        FROM template_field_comment tfc
+        WHERE tfc.id_1c_template = rpt.id
+      ) c ON true
       WHERE rpt.id = $1;
     `,
       [id]
@@ -39,7 +54,6 @@ class RpdProfileTemplates {
   }
 
   async updateById(id, fieldToUpdate, value) {
-    // node-postgres treats JS arrays as PG arrays, not JSON. For jsonb columns we must stringify explicitly.
     const preparedValue =
       RpdProfileTemplates.JSONB_FIELDS.has(fieldToUpdate) &&
       value !== null &&
@@ -52,6 +66,42 @@ class RpdProfileTemplates {
       [preparedValue, id]
     );
     return queryResult.rows[0];
+  }
+
+  async upsetTemplateComment(templateId, commentatorId, field, value) {
+    const preparedValue =
+      value === null || value === undefined
+        ? null
+        : typeof value === "string"
+        ? value
+        : JSON.stringify(value);
+
+    const queryResult = await this.pool.query(
+      `INSERT INTO template_field_comment (
+        id_1c_template,
+        commentator_id,
+        template_field,
+        comment_text
+      ) VALUES ($1, $2, $3, $4)
+       ON CONFLICT (id_1c_template, template_field)
+       DO UPDATE SET 
+        comment_text = EXCLUDED.comment_text,
+        commentator_id = EXCLUDED.commentator_id,
+        updated_at = CURRENT_TIMESTAMP
+      RETURNING *
+      `,
+      [templateId, commentatorId, field, preparedValue]
+    );
+
+    return queryResult.rows[0];
+  }
+
+  async deleteTemplateComment(commentId) {
+    const queryResult = await this.pool.query(
+      `DELETE FROM template_field_comment WHERE id = $1 RETURNING *`,
+      [commentId]
+    );
+    return queryResult.rowCount;
   }
 
   async findByCriteria(

@@ -148,6 +148,46 @@ const process = require("process");
       )
     `);
 
+    // Миграция для таблицы `template_field_comment`
+    //TODO убрать у комментатара ключ
+    await pool.query(`
+      CREATE TABLE IF NOT EXISTS template_field_comment (
+        id SERIAL PRIMARY KEY,
+        id_1c_template INT REFERENCES rpd_1c_exchange(id) ON DELETE CASCADE,
+        commentator_id INT REFERENCES users(id) ON DELETE SET NULL,
+        template_field TEXT,
+        comment_text TEXT,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+      )
+    `);
+
+    // Уникальный индекс для UPSERT операции
+    await pool.query(`
+      CREATE UNIQUE INDEX IF NOT EXISTS idx_template_field_comment_unique 
+      ON template_field_comment(id_1c_template, template_field)
+    `);
+
+    // Функция для автоматического обновления updated_at
+    await pool.query(`
+      CREATE OR REPLACE FUNCTION update_updated_at_column()
+      RETURNS TRIGGER AS $$
+      BEGIN
+        NEW.updated_at = CURRENT_TIMESTAMP;
+        RETURN NEW;
+      END;
+      $$ language 'plpgsql';
+    `);
+
+    // Триггер для автоматического обновления updated_at при изменении записи
+    await pool.query(`
+      DROP TRIGGER IF EXISTS update_template_field_comment_updated_at ON template_field_comment;
+      CREATE TRIGGER update_template_field_comment_updated_at
+        BEFORE UPDATE ON template_field_comment
+        FOR EACH ROW
+        EXECUTE FUNCTION update_updated_at_column();
+    `);
+
     // Добавить роли пользователя (идемпотентно)
     await pool.query(`
       INSERT INTO users (name, password, role, fullname)
