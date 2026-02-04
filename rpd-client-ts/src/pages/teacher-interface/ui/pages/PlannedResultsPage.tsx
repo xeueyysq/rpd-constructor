@@ -1,7 +1,6 @@
 import {
   Box,
   Button,
-  ButtonGroup,
   Paper,
   Table,
   TableBody,
@@ -13,15 +12,14 @@ import {
   Tooltip,
 } from "@mui/material";
 import { PlannedResultsData } from "@pages/teacher-interface/model/DisciplineContentPageTypes.ts";
+import { TemplatePagesPath } from "@pages/teacher-interface/model/pathes";
 import { parseCsvToJson, ParsedPlannedResults } from "@shared/ability/lib/parseCsvToJson.ts";
 import { axiosBase } from "@shared/api";
 import { useStore } from "@shared/hooks";
 import { showErrorMessage, showSuccessMessage } from "@shared/lib";
-import { Loader, PageTitle } from "@shared/ui";
+import { Loader, PageTitleComment } from "@shared/ui";
 import { isAxiosError } from "axios";
 import { FC, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
-import { CommentChangeValue } from "../changeable-elements/CommentChangeValue";
-import { TemplatePagesPath } from "@pages/teacher-interface/model/pathes";
 
 const RESULT_KEYS = ["own", "know", "beAble"] as const;
 type ResultKey = (typeof RESULT_KEYS)[number];
@@ -279,8 +277,11 @@ const PlannedResultsPage: FC = () => {
 
   return (
     <Box>
-      <PageTitle title="Планируемые результаты обучения по дисциплине (модулю)" paddingBottom={2} />
-      <CommentChangeValue templateField={TemplatePagesPath.DISCIPLINE_PLANNED_RESULTS} />
+      <PageTitleComment
+        title="Планируемые результаты обучения по дисциплине (модулю)"
+        paddingBottom={2}
+        templateField={TemplatePagesPath.DISCIPLINE_PLANNED_RESULTS}
+      />
       <Box pt={2} display={"flex"} justifyContent="flex-end" gap={1}>
         <Tooltip title="Загрузить файл компетенций (.csv, .xlsx)" arrow>
           <Box component="label" htmlFor="csv-upload">

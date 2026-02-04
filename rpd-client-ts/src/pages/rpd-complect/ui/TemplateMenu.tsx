@@ -6,7 +6,6 @@ import MoreHorizIcon from "@mui/icons-material/MoreHoriz";
 import OpenInBrowserIcon from "@mui/icons-material/OpenInBrowser";
 import { IconButton, ListItemIcon, ListItemText, Menu, MenuItem, Typography } from "@mui/material";
 import { axiosBase } from "@shared/api";
-import { useStore } from "@shared/hooks";
 import { showErrorMessage, showSuccessMessage } from "@shared/lib";
 import { FC, MouseEvent, useState } from "react";
 import { useNavigate } from "react-router-dom";
@@ -24,7 +23,6 @@ interface TemplateMenu {
 }
 
 const TemplateMenu: FC<TemplateMenu> = ({ id, teacher, status, fetchData }) => {
-  const { setJsonData } = useStore();
   const userName = useAuth.getState().userName;
   const [anchorEl, setAnchorEl] = useState<null | HTMLButtonElement>(null);
   const [openDialog, setOpenDialog] = useState<boolean>(false);
@@ -32,7 +30,6 @@ const TemplateMenu: FC<TemplateMenu> = ({ id, teacher, status, fetchData }) => {
   const [history, setHistory] = useState(undefined);
   const open = Boolean(anchorEl);
   const navigate = useNavigate();
-  const { setTabState } = useStore();
 
   const handleClick = (event: MouseEvent<HTMLButtonElement>) => {
     setAnchorEl(event.currentTarget);

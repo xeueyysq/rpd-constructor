@@ -1,10 +1,10 @@
 import { TemplateConstructorType } from "@entities/template";
-import { Box, Button, CircularProgress } from "@mui/material";
+import { Box, Button, CircularProgress, Typography } from "@mui/material";
 import { axiosBase } from "@shared/api";
 import { useStore } from "@shared/hooks";
 import { showErrorMessage, showSuccessMessage } from "@shared/lib";
 import { Loader } from "@shared/ui";
-import { isAxiosError } from "axios";
+import { AxiosError, isAxiosError } from "axios";
 import { FC, useCallback, useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { templateDataTitles } from "../model/templateDataTitles.ts";
@@ -27,12 +27,16 @@ export const TemplateConstructor: FC<TemplateConstructorType> = ({ setChoise }) 
       setCreateComplectStatus("success");
       showSuccessMessage("Комплект РПД создан успешно");
     } catch (error) {
-      setCreateComplectStatus("error");
       if (isAxiosError(error)) {
+        if ((error as AxiosError).status === 422) {
+          setCreateComplectStatus("warning");
+          return;
+        }
         showErrorMessage("Ошибка при создании комплекта РПД");
       } else {
         showErrorMessage("Неизвестная ошибка");
       }
+      setCreateComplectStatus("error");
       console.error(error);
     }
   };
@@ -69,12 +73,12 @@ export const TemplateConstructor: FC<TemplateConstructorType> = ({ setChoise }) 
 
   return (
     <>
-      <Box sx={{ py: 2, fontSize: "18px", fontWeight: "600" }}>Выбранные данные:</Box>
+      <Typography sx={{ py: 2, fontSize: "18px", fontWeight: "600" }}>Выбранные данные:</Typography>
       {Object.entries(selectedTemplateData).map(([key, value]) => (
         <Box sx={{ pl: "40px" }} key={key}>
-          <Box component="span" sx={{ fontWeight: "600" }}>
+          <Typography component="span" sx={{ fontWeight: "600" }}>
             {templateDataTitles[key]}:{" "}
-          </Box>
+          </Typography>
           {value ? value : "Данные не найдены"}
         </Box>
       ))}
@@ -86,11 +90,11 @@ export const TemplateConstructor: FC<TemplateConstructorType> = ({ setChoise }) 
             <Box sx={{ py: 2 }}>
               {createComplectStatus === "pending" && (
                 <Box>
-                  <Box color={"orange"} fontWeight={"bold"} pb={2}>
+                  <Typography color={"warning"} pb={2}>
                     Пожалуйста, проверьте данные комплекта РПД
-                  </Box>
+                  </Typography>
                   <BackButton text="Назад" />
-                  <Button variant="contained" onClick={() => createRpdComplect()}>
+                  <Button variant="contained" onClick={createRpdComplect}>
                     Создать комплект
                   </Button>
                 </Box>
@@ -98,13 +102,18 @@ export const TemplateConstructor: FC<TemplateConstructorType> = ({ setChoise }) 
               {createComplectStatus === "loading" && (
                 <Box sx={{ p: 1, display: "flex" }}>
                   <CircularProgress color="inherit" size="1rem" />
-                  <Box sx={{ px: 1 }}>Идет поиск комплекта РПД. Это может занять какое-то время</Box>
+                  <Typography sx={{ px: 1 }}>Идет поиск комплекта РПД. Это может занять какое-то время</Typography>
                 </Box>
               )}
-              {createComplectStatus === "error" && <Box color={"red"}>Сервис 1С временно недоступен</Box>}
+              {createComplectStatus === "warning" && (
+                <Typography color={"warning"}>По заданному комплекту нет данных</Typography>
+              )}
+              {createComplectStatus === "error" && (
+                <Typography color={"error"}>Сервис 1С временно недоступен</Typography>
+              )}
               {createComplectStatus === "success" && (
                 <Box>
-                  <Box pb={2}>Комплект РПД создан успешно. Перейти к редактированию?</Box>
+                  <Typography pb={2}>Комплект РПД создан успешно. Перейти к редактированию?</Typography>
                   <BackButton text="Назад" />
                   <Button variant="contained" onClick={() => navigate(`${RedirectPath.COMPLECTS}/${complectId}`)}>
                     Перейти
@@ -113,9 +122,9 @@ export const TemplateConstructor: FC<TemplateConstructorType> = ({ setChoise }) 
               )}
             </Box>
           ) : (
-            <Box sx={{ py: 2 }} fontWeight={"bold"} color={"green"}>
+            <Typography sx={{ py: 2 }} fontWeight={"bold"} color={"success"}>
               Комплект РПД успешно найден
-            </Box>
+            </Typography>
           )}
         </>
       )}

@@ -7,17 +7,21 @@ import {
   DialogContent,
   DialogTitle,
   Divider,
+  IconButton,
   InputAdornment,
   List,
   ListItem,
   ListItemText,
   TextField,
+  Typography,
 } from "@mui/material";
 import { useStore } from "@shared/hooks";
 import { showErrorMessage, showSuccessMessage } from "@shared/lib";
 import { axiosBase } from "@shared/api";
 import { BooksMetaList } from "./BooksMetaList.tsx";
 import { motion } from "framer-motion";
+import ClearIcon from "@mui/icons-material/Clear";
+import SearchIcon from "@mui/icons-material/Search";
 
 interface AddBook {
   elementName: string;
@@ -129,12 +133,8 @@ const AddBook: FC<AddBook> = ({ elementName }) => {
   return (
     <>
       <Box pt={3}>
-        <Button
-          variant="contained"
-          onClick={handleOpenDialog}
-          // endIcon={<AddIcon />}
-        >
-          Найти книги
+        <Button variant="outlined" onClick={handleOpenDialog} endIcon={<SearchIcon />}>
+          Найти книги в библиотечной системе
         </Button>
       </Box>
       <List>
@@ -143,20 +143,18 @@ const AddBook: FC<AddBook> = ({ elementName }) => {
             <>
               <ListItem key={index}>
                 <ListItemText>
-                  <Box
+                  <Typography
                     sx={{
                       display: "flex",
                       justifyContent: "space-between",
                       alignItems: "center",
-                      fontFamily: "Times New Roman",
                     }}
                   >
-                    <Box width={"90%"}>{biblio}</Box>
-
-                    <Button color="error" onClick={() => handleRemoveBook(biblio)}>
-                      Удалить
-                    </Button>
-                  </Box>
+                    <Typography fontSize={"14px"}>{biblio}</Typography>
+                    <IconButton color="error" onClick={() => handleRemoveBook(biblio)}>
+                      <ClearIcon />
+                    </IconButton>
+                  </Typography>
                 </ListItemText>
               </ListItem>
               <Divider />
@@ -173,8 +171,7 @@ const AddBook: FC<AddBook> = ({ elementName }) => {
           onChange={(e) => setManualInput(e.target.value)}
           placeholder="Введите библиографическое описание вручную"
           multiline
-          minRows={2}
-          maxRows={6}
+          minRows={3}
           sx={{
             "& .MuiInputBase-root": {
               alignItems: "flex-start",
@@ -183,7 +180,11 @@ const AddBook: FC<AddBook> = ({ elementName }) => {
             },
           }}
         />
-        <Button onClick={handleAddManualBook}>Добавить</Button>
+        <Box pt={1} display={"flex"} justifyContent={"flex-end"}>
+          <Button variant="contained" onClick={handleAddManualBook}>
+            Добавить книгу
+          </Button>
+        </Box>
       </Box>
 
       <Dialog
@@ -223,9 +224,9 @@ const AddBook: FC<AddBook> = ({ elementName }) => {
                   endAdornment: (
                     <InputAdornment position="end">
                       <Box pb={1}>
-                        <Button variant="contained" onClick={handleFindBooks}>
-                          Найти
-                        </Button>
+                        <IconButton onClick={handleFindBooks}>
+                          <SearchIcon color="primary" />
+                        </IconButton>
                       </Box>
                     </InputAdornment>
                   ),

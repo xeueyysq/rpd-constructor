@@ -1,7 +1,7 @@
 import { ListItem, ListItemButton, ListItemText, Typography, ListItemIcon } from "@mui/material";
 import { FC } from "react";
 import type { RpdListItem } from "../model/types.ts";
-import MoreVertIcon from "@mui/icons-material/MoreVert";
+import FiberManualRecordIcon from "@mui/icons-material/FiberManualRecord";
 import { useNavigate } from "react-router-dom";
 import { RedirectPath } from "@shared/enums.ts";
 
@@ -17,18 +17,12 @@ const RpdListItem: FC<RpdListItemProps> = ({ item, templateId, templatePage }) =
   const isActive = templatePage === path;
 
   return (
-    <ListItem
-      disableGutters
-      sx={{
-        p: 0,
-        py: 0,
-      }}
-    >
+    <ListItem disableGutters disablePadding>
       <ListItemButton
         onClick={() => navigate(`${RedirectPath.TEMPLATES}/${templateId}/${path}`)}
         sx={{
-          px: 3,
           py: 0.15,
+          pl: 0.5,
           width: "100%",
           bgcolor: isActive ? "#f1f1f1" : "#ffffff",
           "&:hover": {
@@ -38,10 +32,10 @@ const RpdListItem: FC<RpdListItemProps> = ({ item, templateId, templatePage }) =
         }}
         disabled={id === "approvalPage"}
       >
-        <ListItemIcon sx={{ pl: 2 }}>
-          <MoreVertIcon />
+        <ListItemIcon sx={{ pl: 4 }}>
+          <FiberManualRecordIcon sx={{ fontSize: "5px" }} />
         </ListItemIcon>
-        <ListItemText primary={<Typography sx={{ pl: 0 }}>{text}</Typography>} />
+        <ListItemText primary={<Typography fontSize={"14px"}>{text}</Typography>} />
       </ListItemButton>
     </ListItem>
   );

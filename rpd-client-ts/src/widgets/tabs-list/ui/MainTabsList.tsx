@@ -1,5 +1,5 @@
 import { FC, useState, useEffect } from "react";
-import { List, Box, ListItem, ListItemButton, ListItemText, Divider, ListItemIcon } from "@mui/material";
+import { List, Box, ListItem, ListItemButton, ListItemText, Divider, ListItemIcon, Typography } from "@mui/material";
 import { useNavigate, useLocation } from "react-router-dom";
 import { useContext } from "react";
 import { AuthContext } from "@entities/auth";
@@ -18,7 +18,7 @@ export const MainTabsList: FC = () => {
 
   return (
     <Box sx={{ overflow: "auto" }}>
-      <List>
+      <List disablePadding>
         {mainTabs.map((value) => {
           const isAdminOnly = value.name === "Пользователи";
 
@@ -46,18 +46,22 @@ export const MainTabsList: FC = () => {
                     <ListItemButton
                       sx={{
                         width: "100%",
-                        py: 1.5,
+                        py: 1.25,
                         bgcolor: activeTab === value.path ? "#f1f1f1" : "inherit",
+                        pl: 1.5,
                       }}
                     >
                       <ListItemIcon
                         sx={{
-                          marginLeft: 2,
+                          pl: 2,
+                          "& .MuiSvgIcon-root": {
+                            fontSize: "20px",
+                          },
                         }}
                       >
                         {value.icon}
                       </ListItemIcon>
-                      <ListItemText primary={value.name} />
+                      <ListItemText primary={<Typography fontSize={"14px"}>{value.name}</Typography>} />
                     </ListItemButton>
                   </ListItem>
                 </>
@@ -86,16 +90,19 @@ export const MainTabsList: FC = () => {
                 }}
               >
                 <ListItemButton
-                  sx={{ width: "100%", py: 1.5, bgcolor: activeTab === value.path ? "#f1f1f1" : "inherit" }}
+                  sx={{ width: "100%", py: 1.25, pl: 1.5, bgcolor: activeTab === value.path ? "#f1f1f1" : "inherit" }}
                 >
                   <ListItemIcon
                     sx={{
-                      marginLeft: 2,
+                      pl: 2,
+                      "& .MuiSvgIcon-root": {
+                        fontSize: "20px",
+                      },
                     }}
                   >
                     {value.icon}
                   </ListItemIcon>
-                  <ListItemText primary={value.name} />
+                  <ListItemText primary={<Typography fontSize={"14px"}>{value.name}</Typography>} />
                 </ListItemButton>
               </ListItem>
             </>

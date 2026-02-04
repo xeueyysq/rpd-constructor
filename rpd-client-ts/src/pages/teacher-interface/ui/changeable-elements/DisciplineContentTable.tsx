@@ -318,6 +318,7 @@ export function DisciplineContentTable({ readOnly = false, tableData }: ContentT
 
   const handleValueChange = (rowId: string, key: string, value: string | number) => {
     if (!data || !setData) return;
+    // const formattedValue = value === 0 ? value
 
     const newData = {
       ...data,

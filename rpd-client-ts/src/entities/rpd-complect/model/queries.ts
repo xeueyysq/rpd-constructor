@@ -9,7 +9,6 @@ export const useRpdComplectsQuery = () => {
   const { data, isError, isLoading } = useQuery({
     queryKey: rpdComplectsQueryKey,
     queryFn: getRpdComplects,
-    staleTime: 60 * 1000,
   });
   const complects = data || [];
 

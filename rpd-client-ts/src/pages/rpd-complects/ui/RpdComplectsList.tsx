@@ -3,7 +3,7 @@ import { useRpdComplectsQuery, useDeleteRpdComplectsMutation } from "@entities/r
 import CachedIcon from "@mui/icons-material/Cached";
 import DeleteIcon from "@mui/icons-material/Delete";
 import FiberManualRecordIcon from "@mui/icons-material/FiberManualRecord";
-import { Box, Breadcrumbs, Button, CssBaseline } from "@mui/material";
+import { Box, Breadcrumbs, Button, CssBaseline, Typography } from "@mui/material";
 import { UserRole } from "@shared/ability";
 import { RedirectPath } from "@shared/enums";
 import { useStore } from "@shared/hooks";
@@ -191,10 +191,14 @@ export const RpdComplectsList: FC = () => {
       <PageTitle title={"Список загруженных комплектов РПД"} />
       <Box py={0.5}>
         {sortedComplectsByYear.length > 0 && userRole !== UserRole.ADMIN && (
-          <Breadcrumbs sx={{ color: "gray" }} separator={<FiberManualRecordIcon sx={{ fontSize: 5 }} />}>
+          <Breadcrumbs separator={<FiberManualRecordIcon color="secondary" sx={{ fontSize: 5 }} />}>
             {[
-              <span>{sortedComplectsByYear[0].directionOfStudy}</span>,
-              <span>{sortedComplectsByYear[0].levelEducation}</span>,
+              <Typography component={"span"} color="textSecondary">
+                {sortedComplectsByYear[0].directionOfStudy}
+              </Typography>,
+              <Typography component={"span"} color="textSecondary">
+                {sortedComplectsByYear[0].levelEducation}
+              </Typography>,
             ]}
           </Breadcrumbs>
         )}

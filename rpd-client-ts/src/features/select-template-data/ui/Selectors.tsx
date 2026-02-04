@@ -167,7 +167,7 @@ export const Selectors: FC<Selectors> = ({ setChoise }) => {
   if (!data) return <Loader />;
 
   return (
-    <Box sx={{ maxWidth: "700px", py: 2 }}>
+    <Box sx={{ maxWidth: "700px", py: 1 }}>
       <Box sx={{ fontSize: "15px", fontWeight: "600", py: 1 }}>Институт</Box>
       <Autocomplete
         // placeholder="Выберите институт"

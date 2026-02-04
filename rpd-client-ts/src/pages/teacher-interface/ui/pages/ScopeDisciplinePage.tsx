@@ -1,11 +1,10 @@
-import { Box, Button, TextField } from "@mui/material";
-import { FC, useMemo, useState } from "react";
-import { useStore } from "@shared/hooks";
-import { PageTitle } from "@shared/ui";
-import { axiosBase } from "@shared/api";
-import { showErrorMessage, showSuccessMessage } from "@shared/lib";
-import { CommentChangeValue } from "../changeable-elements/CommentChangeValue";
+import { Box, Button, TextField, Typography as Tg } from "@mui/material";
 import { TemplatePagesPath } from "@pages/teacher-interface/model/pathes";
+import { axiosBase } from "@shared/api";
+import { useStore } from "@shared/hooks";
+import { showErrorMessage, showSuccessMessage } from "@shared/lib";
+import { PageTitleComment } from "@shared/ui";
+import { FC, useMemo, useState } from "react";
 
 interface StudyLoadItem {
   id: string;
@@ -102,11 +101,10 @@ const ScopeDisciplinePage: FC = () => {
 
   return (
     <Box>
-      <PageTitle title="Объем дисциплины" paddingBottom={2} />
-      <CommentChangeValue templateField={TemplatePagesPath.DISCIPLINE_SCOPE} />
-      <Box sx={{ py: 2 }}>
+      <PageTitleComment title="Объем дисциплины" paddingBottom={2} templateField={TemplatePagesPath.DISCIPLINE_SCOPE} />
+      <Tg sx={{ py: 2 }}>
         Объем дисциплины составляет
-        <Box component="span" sx={{ fontWeight: "600", display: "inline-flex", mx: 1, alignItems: "baseline" }}>
+        <Tg component="span" sx={{ fontWeight: "600", display: "inline-flex", mx: 1, alignItems: "baseline" }}>
           <TextField
             variant="standard"
             type="number"
@@ -120,9 +118,9 @@ const ScopeDisciplinePage: FC = () => {
               },
             }}
           />
-        </Box>
+        </Tg>
         зачетных единиц, всего
-        <Box component="span" sx={{ fontWeight: "600", display: "inline-flex", mx: 1, alignItems: "baseline" }}>
+        <Tg component="span" sx={{ fontWeight: "600", display: "inline-flex", mx: 1, alignItems: "baseline" }}>
           <TextField
             variant="standard"
             type="number"
@@ -136,9 +134,9 @@ const ScopeDisciplinePage: FC = () => {
               },
             }}
           />
-        </Box>
+        </Tg>
         академических часа(ов)
-      </Box>
+      </Tg>
 
       <Box sx={{ pt: 1 }}>
         <Button variant="contained" onClick={saveManualHours}>

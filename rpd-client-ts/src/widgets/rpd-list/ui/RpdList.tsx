@@ -1,6 +1,10 @@
 import ArrowBackIcon from "@mui/icons-material/ArrowBack";
 import DescriptionIcon from "@mui/icons-material/Description";
+import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
 import {
+  Accordion,
+  AccordionDetails,
+  AccordionSummary,
   alpha,
   Box,
   Divider,
@@ -11,8 +15,7 @@ import {
   ListItemText,
   Typography,
 } from "@mui/material";
-import { SimpleTreeView } from "@mui/x-tree-view/SimpleTreeView";
-import { TreeItem } from "@mui/x-tree-view/TreeItem";
+// import { TreeItem } from "@mui/x-tree-view/TreeItem";
 import { TemplatePagesPath } from "@pages/teacher-interface/model/pathes.ts";
 import { Can } from "@shared/ability";
 import { RedirectPath } from "@shared/enums.ts";
@@ -41,28 +44,44 @@ export const RpdList: FC<RpdListProps> = ({ RpdListItems }) => {
       }}
     >
       {jsonData?.disciplins_name && (
-        <Box pt={1}>
-          <SimpleTreeView>
-            <TreeItem itemId="disciplins_name" label={String(jsonData.disciplins_name)}>
-              <TreeItem
-                itemId="direction"
-                label={`${jsonData.direction}, ${jsonData.profile}`}
-                sx={{ color: alpha("#000000", 0.5) }}
-              />
-              <TreeItem
-                itemId="education_level"
-                label={`Уровень образования - ${jsonData.education_level}`}
-                sx={{ color: alpha("#000000", 0.5) }}
-              />
-              <TreeItem
-                itemId="education_form"
-                label={`Форма обучения - ${jsonData.education_form}`}
-                sx={{ color: alpha("#000000", 0.5) }}
-              />
-              <TreeItem itemId="year" label={`Год набора - ${jsonData.year}`} sx={{ color: alpha("#000000", 0.5) }} />
-            </TreeItem>
-          </SimpleTreeView>
-        </Box>
+        <Accordion disableGutters>
+          <AccordionSummary expandIcon={<ExpandMoreIcon />} aria-controls="panel1-content">
+            <Typography fontSize={"14px"} fontWeight={"bold"} color={"primary"}>
+              {String(jsonData.disciplins_name)}
+            </Typography>
+          </AccordionSummary>
+          <AccordionDetails sx={{ pt: 0 }}>
+            <ListItem disablePadding>
+              <ListItemText>
+                <Typography
+                  fontSize={"14px"}
+                  color="textSecondary"
+                >{`${jsonData.direction}, ${jsonData.profile}`}</Typography>
+              </ListItemText>
+            </ListItem>
+            <ListItem disablePadding>
+              <ListItemText>
+                <Typography
+                  fontSize={"14px"}
+                  color="textSecondary"
+                >{`Уровень образования - ${jsonData.education_level}`}</Typography>
+              </ListItemText>
+            </ListItem>
+            <ListItem disablePadding>
+              <ListItemText>
+                <Typography
+                  fontSize={"14px"}
+                  color="textSecondary"
+                >{`Форма обучения - ${jsonData.education_form}`}</Typography>
+              </ListItemText>
+            </ListItem>
+            <ListItem disablePadding>
+              <ListItemText>
+                <Typography fontSize={"14px"} color="textSecondary">{`Год набора - ${jsonData.year}`}</Typography>
+              </ListItemText>
+            </ListItem>
+          </AccordionDetails>
+        </Accordion>
       )}
       <Box
         sx={{
@@ -70,9 +89,9 @@ export const RpdList: FC<RpdListProps> = ({ RpdListItems }) => {
           overflowY: "scroll",
           overflowX: "hidden",
           minHeight: 0,
-          scrollbarColor: "#bdbdbd #f5f5f5",
-          scrollbarWidth: "thin",
-          scrollbarGutter: "stable",
+          // scrollbarColor: "#bdbdbd #f5f5f5",
+          // scrollbarWidth: "thin",
+          // scrollbarGutter: "stable",
           "&::-webkit-scrollbar": {
             width: "8px",
             backgroundColor: "#f5f5f5",
@@ -86,19 +105,18 @@ export const RpdList: FC<RpdListProps> = ({ RpdListItems }) => {
           },
         }}
       >
-        <List dense>
+        <List dense disablePadding>
           {RpdListItems.map((item) => (
             <>
-              <Divider sx={{ bgcolor: "#ffffff", height: 0 }} />
+              {/* <Divider sx={{ bgcolor: "#ffffff", height: 0 }} /> */}
               <RpdListItemComponent item={item} templateId={templateId} templatePage={page} />
             </>
           ))}
-          <Divider sx={{ bgcolor: "#ffffff", height: 0 }} />
+          {/* <Divider sx={{ bgcolor: "#ffffff", height: 0 }} /> */}
         </List>
       </Box>
       <Box
         sx={{
-          backgroundColor: "background.paper",
           flexShrink: 0,
           width: "100%",
         }}
@@ -106,36 +124,24 @@ export const RpdList: FC<RpdListProps> = ({ RpdListItems }) => {
         <Divider sx={{ bgcolor: "#ffffff", height: 0 }} />
         <List dense>
           <Can I="get" a="rop_interface">
-            <ListItem disableGutters sx={{ p: 0 }}>
+            <ListItem disableGutters disablePadding>
               <ListItemButton
                 onClick={() => navigate(`${RedirectPath.TEMPLATES}/${templateId}/${TemplatePagesPath.TEST_PDF}`)}
                 sx={{ py: 1 }}
               >
                 <ListItemIcon sx={{ pl: 2 }}>
-                  <DescriptionIcon />
+                  <DescriptionIcon sx={{ fontSize: "20px" }} />
                 </ListItemIcon>
-                <ListItemText
-                  primary={
-                    <Typography
-                      style={{
-                        color: "black",
-                        fontFamily: "Arial",
-                        fontSize: "16px",
-                      }}
-                    >
-                      Сформировать документ
-                    </Typography>
-                  }
-                />
+                <ListItemText primary={<Typography fontSize={"14px"}>Сформировать документ</Typography>} />
               </ListItemButton>
             </ListItem>
           </Can>
-          <ListItem disableGutters sx={{ p: 0 }}>
+          <ListItem disableGutters disablePadding>
             <ListItemButton onClick={() => navigate(`${RedirectPath.COMPLECTS}/${complectId}`)} sx={{ py: 1 }}>
               <ListItemIcon sx={{ pl: 2 }}>
-                <ArrowBackIcon />
+                <ArrowBackIcon sx={{ fontSize: "20px" }} />
               </ListItemIcon>
-              <ListItemText primary={<Typography>Список РПД</Typography>} />
+              <ListItemText primary={<Typography fontSize={"14px"}>Список РПД</Typography>} />
             </ListItemButton>
           </ListItem>
         </List>
