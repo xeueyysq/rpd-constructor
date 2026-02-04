@@ -86,8 +86,8 @@ class RpdComplects {
       const RpdComplectId = await exchange1C(apiData, { userId });
       return RpdComplectId;
     } catch (error) {
-      console.log(error);
-      throw new Error(error);
+      console.error(error);
+      throw error;
     }
   }
 

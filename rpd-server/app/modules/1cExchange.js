@@ -20,7 +20,7 @@ async function exchange1C(apiData, { userId } = {}) {
     await processDisciplines(discs, RpdComplectId);
     return RpdComplectId;
   } catch (error) {
-    console.error("ошибка загрузки комплекта:", error);
+    console.error("Ошибка загрузки комплекта:", error);
     throw error;
   }
 }
@@ -40,11 +40,12 @@ const fetchUpLink = async (apiData) => {
       },
     });
 
-    if (!response.data) {
-      const error = new Error("Нет данных от 1С");
-      error.statusCode = 503;
+    if (!response.data?.length) {
+      const error = new Error("По данному комплекту нет данных от 1С");
+      error.statusCode = 422;
       throw error;
     }
+
     return response.data;
   } catch (error) {
     throw handle1cError(error);
@@ -227,7 +228,9 @@ const insertUserComplectId = async (userId, complectId) => {
 };
 
 const handle1cError = (error) => {
-  console.error("Ошибка в handle1cError:", error);
+  if (error.statusCode) {
+    return error;
+  }
   if (error.code === "ECONNABORTED" || error.response?.status === 504) {
     const serviceError = new Error("Сервис 1С временно недоступен");
     serviceError.statusCode = 503;
