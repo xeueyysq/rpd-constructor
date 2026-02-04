@@ -18,7 +18,7 @@ export const PdfReader: FC<PdfReaderProps> = ({ file }) => {
   const [numPages, setNumPages] = useState<number>(0);
   const [pageNumber, setPageNumber] = useState<number>(1);
   const [fileUrl, setFileUrl] = useState("");
-  const [scale, setScale] = useState<number>(1.25);
+  const [scale, setScale] = useState<number>(1);
   const [error, setError] = useState<string | null>(null);
   const jsonData = useStore.getState().jsonData;
 

@@ -128,6 +128,7 @@ export const UserManagementPage: FC = () => {
     localization: MRT_Localization_RU,
     enableRowSelection: true,
     onRowSelectionChange: setRowSelection,
+    layoutMode: "grid",
     state: { rowSelection },
     getRowId: (row) => String(row.id),
     muiTableProps: {

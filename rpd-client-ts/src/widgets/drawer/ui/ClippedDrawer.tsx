@@ -16,7 +16,8 @@ export function ClippedDrawer() {
   const userRole = useAuth((state) => state.userRole);
   const location = useLocation();
   const path = location.pathname;
-  const [drawerWidth, setDrawerWidth] = useState<number>(290);
+  const TEMPLATE_DRAWER_WIDTH = 320;
+  const [drawerWidth, setDrawerWidth] = useState<number>(240);
   const { isDrawerOpen } = useStore();
 
   //@TODO Костыль на определение страницы
@@ -46,8 +47,8 @@ export function ClippedDrawer() {
   };
 
   useEffect(() => {
-    if (isTemplatePage) setDrawerWidth(430);
-    else setDrawerWidth(290);
+    if (isTemplatePage) setDrawerWidth(TEMPLATE_DRAWER_WIDTH);
+    else setDrawerWidth(240);
   }, [isTemplatePage]);
 
   if (path === RedirectPath.SIGN_IN) return <Outlet />;
@@ -104,9 +105,13 @@ export function ClippedDrawer() {
         sx={{
           width: isDrawerOpen ? `calc(100% - ${drawerWidth}px)` : "100%",
           p: 3,
+          px: isTemplatePage ? 9 : undefined,
           marginLeft: isDrawerOpen ? `${drawerWidth}px` : 0,
           transition: "margin-left 0.3s cubic-bezier(0.4, 0, 0.2, 1), width 0.3s cubic-bezier(0.4, 0, 0.2, 1)",
           overflowX: "hidden",
+          overflowY: "hidden",
+          backgroundColor: "#F2F3F7",
+          minHeight: "100vh",
         }}
       >
         <Toolbar />

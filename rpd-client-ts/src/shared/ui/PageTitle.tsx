@@ -1,4 +1,4 @@
-import { Box, IconButton, BoxProps } from "@mui/material";
+import { Box, IconButton, BoxProps, Typography } from "@mui/material";
 import ArrowBackRoundedIcon from "@mui/icons-material/ArrowBackRounded";
 import { useNavigate } from "react-router-dom";
 
@@ -12,13 +12,15 @@ export function PageTitle(props: PageTitleProps) {
   const navigate = useNavigate();
 
   return (
-    <Box {...props} display={"flex"} gap={1} alignItems={"center"} textTransform={"uppercase"}>
+    <Box {...props} display={"flex"} gap={1} alignItems={"center"}>
       {backNavPath && (
         <IconButton onClick={() => navigate(backNavPath)}>
           <ArrowBackRoundedIcon />
         </IconButton>
       )}
-      <Box fontSize={"1.25rem"}>{title}</Box>
+      <Typography color={"primary"} fontSize={"1.25rem"} fontWeight={"bold"}>
+        {title}
+      </Typography>
     </Box>
   );
 }

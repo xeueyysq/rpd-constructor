@@ -1,5 +1,4 @@
 import { useAuth } from "@entities/auth";
-import AddCommentIcon from "@mui/icons-material/AddComment";
 import { Box, Button, IconButton, ListItemIcon, ListItemText, Menu, MenuItem, Typography } from "@mui/material";
 import { UserRole } from "@shared/ability";
 import { axiosBase } from "@shared/api";
@@ -13,12 +12,13 @@ import RemoveCircleOutlineIcon from "@mui/icons-material/RemoveCircleOutline";
 
 interface ICommentChangeValue {
   templateField: string;
+  isEdittedComment: boolean;
+  setIsEdittedComment: (value: boolean) => void;
 }
 
-export function CommentChangeValue({ templateField }: ICommentChangeValue) {
+export function CommentChangeValue({ templateField, isEdittedComment, setIsEdittedComment }: ICommentChangeValue) {
   const { userRole } = useAuth((state) => state);
   const { jsonData, updateJsonComment } = useStore((state) => state);
-  const [isEdittedComment, setIsEdittedComment] = useState<boolean>(false);
   const [anchorEl, setAnchorEl] = useState<null | HTMLButtonElement>(null);
   const open = Boolean(anchorEl);
   const templateId = useStore((state) => state.jsonData.id);
@@ -109,23 +109,6 @@ export function CommentChangeValue({ templateField }: ICommentChangeValue) {
 
   if (userRole === UserRole.TEACHER && !hasComment && !isEdittedComment) return null;
 
-  if (userRole !== UserRole.TEACHER && !hasComment && !isEdittedComment)
-    return (
-      <Box pb={2}>
-        <Button
-          variant="contained"
-          endIcon={<AddCommentIcon />}
-          onClick={() => {
-            setIsEdittedComment(true);
-          }}
-          sx={{ alignSelf: "flex-start" }}
-          color="warning"
-        >
-          Добавить комментарий
-        </Button>
-      </Box>
-    );
-
   return (
     <Box
       sx={{
@@ -151,7 +134,7 @@ export function CommentChangeValue({ templateField }: ICommentChangeValue) {
                 Комментарий
               </Typography>
               <Typography variant="caption" display="block" color="text.secondary" m="0">
-                {isEdited ? "Изменен" : "Создан"}: {formatDateTime(createdAt)}
+                {isEdited ? `Изменен: ${formatDateTime(updatedAt)}` : `Создан: ${formatDateTime(createdAt)}`}
               </Typography>
             </Box>
             <Typography color="text.secondary" display="block" gutterBottom m="0">

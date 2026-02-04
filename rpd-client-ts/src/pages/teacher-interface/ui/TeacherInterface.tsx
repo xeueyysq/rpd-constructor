@@ -74,8 +74,8 @@ export function TeacherInterface() {
   if (!jsonData?.id) return <Loader />;
 
   return (
-    <Box pl={2}>
-      <Box sx={{ backgroundColor: "#fefefe" }}>{pageMap[page]}</Box>
+    <Box>
+      <Box sx={{ backgroundColor: "#ffffff", p: 3, minHeight: "100vh" }}>{pageMap[page]}</Box>
     </Box>
   );
 }

@@ -6,7 +6,7 @@ interface IEditableTableCell {
   readOnly: boolean;
 }
 
-export function EditableTableCell({ value, onValueChange, readOnly }: IEditableTableCell) {
+export function EditableTableCell({ value: fieldValue, onValueChange, readOnly }: IEditableTableCell) {
   if (readOnly)
     return (
       <TableCell
@@ -16,7 +16,7 @@ export function EditableTableCell({ value, onValueChange, readOnly }: IEditableT
           padding: 0,
         }}
       >
-        {value}
+        {fieldValue}
       </TableCell>
     );
 
@@ -37,6 +37,7 @@ export function EditableTableCell({ value, onValueChange, readOnly }: IEditableT
             },
           },
         }}
+        onFocus={(e) => e.target.select()}
         fullWidth
         autoFocus
         sx={{
@@ -51,7 +52,7 @@ export function EditableTableCell({ value, onValueChange, readOnly }: IEditableT
           },
           "& textarea": { boxSizing: "border-box", resize: "none", overflow: "hidden" },
         }}
-        value={value}
+        value={fieldValue}
         onChange={(e) => onValueChange(Number(e.target.value))}
       />
     </TableCell>

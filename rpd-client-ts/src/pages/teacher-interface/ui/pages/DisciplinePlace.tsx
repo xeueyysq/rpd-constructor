@@ -1,11 +1,10 @@
+import { Box, Typography as Tg } from "@mui/material";
+import { TemplatePagesPath } from "@pages/teacher-interface/model/pathes.ts";
 import { useStore } from "@shared/hooks";
-import JsonChangeValue from "../changeable-elements/JsonChangeValue.tsx";
-import { Box } from "@mui/material";
-import { Loader, PageTitle } from "@shared/ui";
+import { Loader, PageTitleComment } from "@shared/ui";
 import { FC } from "react";
 import CertificationSelector from "../changeable-elements/CertificationSelector.tsx";
-import { CommentChangeValue } from "../changeable-elements/CommentChangeValue.tsx";
-import { TemplatePagesPath } from "@pages/teacher-interface/model/pathes.ts";
+import JsonChangeValue from "../changeable-elements/JsonChangeValue.tsx";
 
 const DisciplinePlace: FC = () => {
   const data = useStore((state) => state.jsonData);
@@ -18,45 +17,48 @@ const DisciplinePlace: FC = () => {
 
   return (
     <Box>
-      <PageTitle title="Место дисциплины в структуре ОПОП" paddingBottom={2} />
-      <CommentChangeValue templateField={TemplatePagesPath.DISCIPLINE_PLACE} />
+      <PageTitleComment
+        title="Место дисциплины в структуре ОПОП"
+        paddingBottom={2}
+        templateField={TemplatePagesPath.DISCIPLINE_PLACE}
+      />
       {Object.keys(data).length ? (
-        <Box sx={{ py: 2 }}>
+        <Tg sx={{ py: 2 }}>
           Дисциплина
-          <Box component="span" sx={{ fontWeight: "600" }}>
+          <Tg component="span" sx={{ fontWeight: "600" }}>
             {" "}
             «{data.disciplins_name}»{" "}
-          </Box>
+          </Tg>
           относится к
-          <Box component="span" sx={{ fontWeight: "600" }}>
+          <Tg component="span" sx={{ fontWeight: "600" }}>
             {" "}
             {placeWrapper()}{" "}
-          </Box>
+          </Tg>
           учебного плана направления
-          <Box component="span" sx={{ fontWeight: "600" }}>
+          <Tg component="span" sx={{ fontWeight: "600" }}>
             {" "}
             «{data.direction}»{" "}
-          </Box>
+          </Tg>
           . Дисциплина преподается в
-          <Box component="span" sx={{ fontWeight: "600" }}>
+          <Tg component="span" sx={{ fontWeight: "600" }}>
             {" "}
             {data.semester}{" "}
-          </Box>
+          </Tg>
           семестре, на
-          <Box component="span" sx={{ fontWeight: "600" }}>
+          <Tg component="span" sx={{ fontWeight: "600" }}>
             {" "}
             {Math.ceil(Number(data.semester) / 2)}{" "}
-          </Box>
+          </Tg>
           курсе
-          <Box sx={{ pt: 2 }}>
-            {!data.certification && (
-              <Box sx={{ color: "warning.main", fontWeight: 600, mb: 1 }}>
-                Форма промежуточной аттестации не подгрузилась из 1С — выберите вручную.
-              </Box>
-            )}
+          <Tg sx={{ pt: 2 }}>
             форма промежуточной аттестации – <CertificationSelector certification={data.certification || ""} />
-          </Box>
-        </Box>
+            {!data.certification && (
+              <Tg sx={{ color: "warning.main", fontWeight: 600, mt: 1 }}>
+                Форма промежуточной аттестации не подгрузилась из 1С — выберите вручную
+              </Tg>
+            )}
+          </Tg>
+        </Tg>
       ) : (
         <Loader />
       )}
