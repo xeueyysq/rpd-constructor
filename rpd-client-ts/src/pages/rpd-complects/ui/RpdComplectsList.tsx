@@ -1,8 +1,9 @@
 import { useAuth } from "@entities/auth";
-import { useRpdComplectsQuery, useDeleteRpdComplectsMutation } from "@entities/rpd-complect/model/queries";
+import { useDeleteRpdComplectsMutation, useRpdComplectsQuery } from "@entities/rpd-complect/model/queries";
 import CachedIcon from "@mui/icons-material/Cached";
 import DeleteIcon from "@mui/icons-material/Delete";
 import FiberManualRecordIcon from "@mui/icons-material/FiberManualRecord";
+import SaveAsIcon from "@mui/icons-material/SaveAs";
 import { Box, Breadcrumbs, Button, CssBaseline, Typography } from "@mui/material";
 import { UserRole } from "@shared/ability";
 import { RedirectPath } from "@shared/enums";
@@ -15,7 +16,6 @@ import { MaterialReactTable, useMaterialReactTable, type MRT_ColumnDef } from "m
 import { MRT_Localization_RU } from "material-react-table/locales/ru";
 import { FC, useCallback, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import SaveAsIcon from "@mui/icons-material/SaveAs";
 
 export const RpdComplectsList: FC = () => {
   const [openDeleteConfirm, setOpenDeleteConfirm] = useState<boolean>(false);
