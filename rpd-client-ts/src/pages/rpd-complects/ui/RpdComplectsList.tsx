@@ -15,6 +15,7 @@ import { MaterialReactTable, useMaterialReactTable, type MRT_ColumnDef } from "m
 import { MRT_Localization_RU } from "material-react-table/locales/ru";
 import { FC, useCallback, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
+import SaveAsIcon from "@mui/icons-material/SaveAs";
 
 export const RpdComplectsList: FC = () => {
   const [openDeleteConfirm, setOpenDeleteConfirm] = useState<boolean>(false);
@@ -160,17 +161,18 @@ export const RpdComplectsList: FC = () => {
           >
             Обновить комплект
           </Button>
-          {
-            <Button
-              variant="outlined"
-              startIcon={<DeleteIcon />}
-              disabled={!selectedRowsCount}
-              color="error"
-              onClick={() => setOpenDeleteConfirm(true)}
-            >
-              Удалить
-            </Button>
-          }
+          <Button
+            variant="outlined"
+            startIcon={<DeleteIcon />}
+            disabled={!selectedRowsCount}
+            color="error"
+            onClick={() => setOpenDeleteConfirm(true)}
+          >
+            Удалить
+          </Button>
+          <Button variant="outlined" startIcon={<SaveAsIcon />} disabled={!selectedRowsCount}>
+            Добавить содержание рпд
+          </Button>
         </Box>
       );
     },
