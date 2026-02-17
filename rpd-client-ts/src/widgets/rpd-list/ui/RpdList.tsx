@@ -45,7 +45,10 @@ export const RpdList: FC<RpdListProps> = ({ RpdListItems }) => {
     >
       {jsonData?.disciplins_name && (
         <Accordion disableGutters>
-          <AccordionSummary expandIcon={<ExpandMoreIcon />} aria-controls="panel1-content">
+          <AccordionSummary
+            expandIcon={<ExpandMoreIcon />}
+            aria-controls="panel1-content"
+          >
             <Typography fontSize={"14px"} fontWeight={"bold"} color={"primary"}>
               {String(jsonData.disciplins_name)}
             </Typography>
@@ -77,7 +80,10 @@ export const RpdList: FC<RpdListProps> = ({ RpdListItems }) => {
             </ListItem>
             <ListItem disablePadding>
               <ListItemText>
-                <Typography fontSize={"14px"} color="textSecondary">{`Год набора - ${jsonData.year}`}</Typography>
+                <Typography
+                  fontSize={"14px"}
+                  color="textSecondary"
+                >{`Год набора - ${jsonData.year}`}</Typography>
               </ListItemText>
             </ListItem>
           </AccordionDetails>
@@ -109,7 +115,11 @@ export const RpdList: FC<RpdListProps> = ({ RpdListItems }) => {
           {RpdListItems.map((item) => (
             <>
               {/* <Divider sx={{ bgcolor: "#ffffff", height: 0 }} /> */}
-              <RpdListItemComponent item={item} templateId={templateId} templatePage={page} />
+              <RpdListItemComponent
+                item={item}
+                templateId={templateId}
+                templatePage={page}
+              />
             </>
           ))}
           {/* <Divider sx={{ bgcolor: "#ffffff", height: 0 }} /> */}
@@ -126,22 +136,39 @@ export const RpdList: FC<RpdListProps> = ({ RpdListItems }) => {
           <Can I="get" a="rop_interface">
             <ListItem disableGutters disablePadding>
               <ListItemButton
-                onClick={() => navigate(`${RedirectPath.TEMPLATES}/${templateId}/${TemplatePagesPath.TEST_PDF}`)}
+                onClick={() =>
+                  navigate(
+                    `${RedirectPath.TEMPLATES}/${templateId}/${TemplatePagesPath.TEST_PDF}`
+                  )
+                }
                 sx={{ py: 1 }}
               >
                 <ListItemIcon sx={{ pl: 2 }}>
                   <DescriptionIcon sx={{ fontSize: "20px" }} />
                 </ListItemIcon>
-                <ListItemText primary={<Typography fontSize={"14px"}>Сформировать документ</Typography>} />
+                <ListItemText
+                  primary={
+                    <Typography fontSize={"14px"}>
+                      Сформировать документ
+                    </Typography>
+                  }
+                />
               </ListItemButton>
             </ListItem>
           </Can>
           <ListItem disableGutters disablePadding>
-            <ListItemButton onClick={() => navigate(`${RedirectPath.COMPLECTS}/${complectId}`)} sx={{ py: 1 }}>
+            <ListItemButton
+              onClick={() =>
+                navigate(`${RedirectPath.COMPLECTS}/${complectId}`)
+              }
+              sx={{ py: 1 }}
+            >
               <ListItemIcon sx={{ pl: 2 }}>
                 <ArrowBackIcon sx={{ fontSize: "20px" }} />
               </ListItemIcon>
-              <ListItemText primary={<Typography fontSize={"14px"}>Список РПД</Typography>} />
+              <ListItemText
+                primary={<Typography fontSize={"14px"}>Список РПД</Typography>}
+              />
             </ListItemButton>
           </ListItem>
         </List>

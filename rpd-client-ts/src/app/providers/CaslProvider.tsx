@@ -9,7 +9,9 @@ type Props = {
 const CaslProvider: FC<Props> = ({ children }) => {
   const { ability } = useAuth();
 
-  return <CaslContext.Provider value={ability}>{children}</CaslContext.Provider>;
+  return (
+    <CaslContext.Provider value={ability}>{children}</CaslContext.Provider>
+  );
 };
 
 export default CaslProvider;

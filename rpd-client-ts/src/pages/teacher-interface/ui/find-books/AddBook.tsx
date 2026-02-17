@@ -46,7 +46,8 @@ const AddBook: FC<AddBook> = ({ elementName }) => {
   const jsonData = useStore.getState().jsonData[elementName];
   const [booksData, setBooksData] = useState<BookData[] | null>(jsonData);
 
-  const elementValue: string[] = useStore.getState().jsonData[elementName] || [];
+  const elementValue: string[] =
+    useStore.getState().jsonData[elementName] || [];
   const [addedBooks, setAddedBooks] = useState<string[]>(elementValue);
 
   const { updateJsonData } = useStore();
@@ -133,7 +134,11 @@ const AddBook: FC<AddBook> = ({ elementName }) => {
   return (
     <>
       <Box pt={3}>
-        <Button variant="outlined" onClick={handleOpenDialog} endIcon={<SearchIcon />}>
+        <Button
+          variant="outlined"
+          onClick={handleOpenDialog}
+          endIcon={<SearchIcon />}
+        >
           Найти книги в библиотечной системе
         </Button>
       </Box>
@@ -151,7 +156,10 @@ const AddBook: FC<AddBook> = ({ elementName }) => {
                     }}
                   >
                     <Typography fontSize={"14px"}>{biblio}</Typography>
-                    <IconButton color="error" onClick={() => handleRemoveBook(biblio)}>
+                    <IconButton
+                      color="error"
+                      onClick={() => handleRemoveBook(biblio)}
+                    >
                       <ClearIcon />
                     </IconButton>
                   </Typography>
@@ -211,7 +219,11 @@ const AddBook: FC<AddBook> = ({ elementName }) => {
                 isLoadingBooks ? (
                   <motion.div
                     animate={{ opacity: [1, 0.3, 1] }}
-                    transition={{ duration: 1.5, repeat: Infinity, ease: "easeInOut" }}
+                    transition={{
+                      duration: 1.5,
+                      repeat: Infinity,
+                      ease: "easeInOut",
+                    }}
                   >
                     Поиск книг...
                   </motion.div>
@@ -235,7 +247,11 @@ const AddBook: FC<AddBook> = ({ elementName }) => {
             />
           </Box>
           {booksData && booksData?.length > 0 && (
-            <BooksMetaList books={booksData} addBooksToList={handleAddBooksToList} closeDialog={handleCloseDialog} />
+            <BooksMetaList
+              books={booksData}
+              addBooksToList={handleAddBooksToList}
+              closeDialog={handleCloseDialog}
+            />
           )}
         </DialogContent>
         <DialogActions>

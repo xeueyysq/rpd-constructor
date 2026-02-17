@@ -1,15 +1,31 @@
 import { useAuth } from "@entities/auth";
-import { setTemplateStatus, TemplateStatus, TemplateStatusEnum } from "@entities/template";
+import {
+  setTemplateStatus,
+  TemplateStatus,
+  TemplateStatusEnum,
+} from "@entities/template";
 import CheckCircle from "@mui/icons-material/CheckCircle";
 import FolderOpen from "@mui/icons-material/FolderOpen";
 import MoreHorizIcon from "@mui/icons-material/MoreHoriz";
-import { Box, Button, CssBaseline, IconButton, ListItemIcon, Menu, MenuItem } from "@mui/material";
+import {
+  Box,
+  Button,
+  CssBaseline,
+  IconButton,
+  ListItemIcon,
+  Menu,
+  MenuItem,
+} from "@mui/material";
 import { axiosBase } from "@shared/api";
 import { RedirectPath } from "@shared/enums";
 import { useStore } from "@shared/hooks";
 import { showErrorMessage } from "@shared/lib";
 import { Loader, PageTitle } from "@shared/ui";
-import { MaterialReactTable, MRT_ColumnDef, useMaterialReactTable } from "material-react-table";
+import {
+  MaterialReactTable,
+  MRT_ColumnDef,
+  useMaterialReactTable,
+} from "material-react-table";
 import { MRT_Localization_RU } from "material-react-table/locales/ru";
 import { FC, useCallback, useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
@@ -39,7 +55,9 @@ export const TeacherInterfaceTemplates: FC = () => {
   const [templatesData, setTemplatesData] = useState<TemplateData[]>();
   const navigate = useNavigate();
   const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null);
-  const [selectedTemplateId, setSelectedTemplateId] = useState<number | null>(null);
+  const [selectedTemplateId, setSelectedTemplateId] = useState<number | null>(
+    null
+  );
 
   const fetchData = useCallback(async () => {
     try {
@@ -146,14 +164,17 @@ export const TeacherInterfaceTemplates: FC = () => {
         enableSorting: false,
         enableColumnFilter: false,
         Cell: ({ row }) => {
-          return row.original.status.status === TemplateStatusEnum.IN_PROGRESS ? (
+          return row.original.status.status ===
+            TemplateStatusEnum.IN_PROGRESS ? (
             <>
               <IconButton onClick={(e) => handleMenuOpen(e, row.original.id)}>
                 <MoreHorizIcon />
               </IconButton>
               <Menu
                 anchorEl={anchorEl}
-                open={Boolean(anchorEl) && selectedTemplateId === row.original.id}
+                open={
+                  Boolean(anchorEl) && selectedTemplateId === row.original.id
+                }
                 onClose={handleMenuClose}
               >
                 <MenuItem onClick={() => handleOpenTemplate(row.original.id)}>

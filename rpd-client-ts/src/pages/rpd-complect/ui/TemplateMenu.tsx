@@ -1,10 +1,20 @@
 import { useAuth } from "@entities/auth";
-import { setTemplateStatus, TemplateStatusEnum } from "@entities/template/index.ts";
+import {
+  setTemplateStatus,
+  TemplateStatusEnum,
+} from "@entities/template/index.ts";
 import ForwardToInboxSharpIcon from "@mui/icons-material/ForwardToInboxSharp";
 import HistoryIcon from "@mui/icons-material/History";
 import MoreHorizIcon from "@mui/icons-material/MoreHoriz";
 import OpenInBrowserIcon from "@mui/icons-material/OpenInBrowser";
-import { IconButton, ListItemIcon, ListItemText, Menu, MenuItem, Typography } from "@mui/material";
+import {
+  IconButton,
+  ListItemIcon,
+  ListItemText,
+  Menu,
+  MenuItem,
+  Typography,
+} from "@mui/material";
 import { axiosBase } from "@shared/api";
 import { showErrorMessage, showSuccessMessage } from "@shared/lib";
 import { FC, MouseEvent, useState } from "react";
@@ -46,7 +56,8 @@ const TemplateMenu: FC<TemplateMenu> = ({ id, teacher, status, fetchData }) => {
         userName,
       });
 
-      if (response.data === "UserNotFound") showErrorMessage("Ошибка. Пользователь не найден");
+      if (response.data === "UserNotFound")
+        showErrorMessage("Ошибка. Пользователь не найден");
       if (response.data === "TemplateAlreadyBinned")
         showErrorMessage("Ошибка. Данный шаблон уже отправлен преподавателю");
       if (response.data === "binnedSuccess") {
@@ -92,12 +103,24 @@ const TemplateMenu: FC<TemplateMenu> = ({ id, teacher, status, fetchData }) => {
           "aria-labelledby": "basic-button",
         }}
       >
-        <MenuItem onClick={() => navigate(`${RedirectPath.TEMPLATES}/${id}/${TemplatePagesPath.COVER_PAGE}`)}>
+        <MenuItem
+          onClick={() =>
+            navigate(
+              `${RedirectPath.TEMPLATES}/${id}/${TemplatePagesPath.COVER_PAGE}`
+            )
+          }
+        >
           <ListItemIcon>
             <OpenInBrowserIcon />
           </ListItemIcon>
           <ListItemText>
-            <Typography variant="button" display="block" gutterBottom color="grey" m="0">
+            <Typography
+              variant="button"
+              display="block"
+              gutterBottom
+              color="grey"
+              m="0"
+            >
               Открыть
             </Typography>
           </ListItemText>
@@ -125,8 +148,16 @@ const TemplateMenu: FC<TemplateMenu> = ({ id, teacher, status, fetchData }) => {
               <ForwardToInboxSharpIcon />
             </ListItemIcon>
             <ListItemText>
-              <Typography variant="button" display="block" gutterBottom color="grey" m="0">
-                {status === TemplateStatusEnum.READY ? "Отправить на доработку" : "Отправить преподавателю"}
+              <Typography
+                variant="button"
+                display="block"
+                gutterBottom
+                color="grey"
+                m="0"
+              >
+                {status === TemplateStatusEnum.READY
+                  ? "Отправить на доработку"
+                  : "Отправить преподавателю"}
               </Typography>
             </ListItemText>
           </MenuItem>
@@ -141,7 +172,13 @@ const TemplateMenu: FC<TemplateMenu> = ({ id, teacher, status, fetchData }) => {
             <FileDownloadOutlinedIcon />
           </ListItemIcon>
           <ListItemText>
-            <Typography variant="button" display="block" gutterBottom color="grey" m="0">
+            <Typography
+              variant="button"
+              display="block"
+              gutterBottom
+              color="grey"
+              m="0"
+            >
               Импортировать
             </Typography>
           </ListItemText>
@@ -151,13 +188,25 @@ const TemplateMenu: FC<TemplateMenu> = ({ id, teacher, status, fetchData }) => {
             <HistoryIcon />
           </ListItemIcon>
           <ListItemText>
-            <Typography variant="button" display="block" gutterBottom color="grey" m="0">
+            <Typography
+              variant="button"
+              display="block"
+              gutterBottom
+              color="grey"
+              m="0"
+            >
               История шаблона
             </Typography>
           </ListItemText>
         </MenuItem>
       </Menu>
-      {history && <HistoryModal history={history} openDialog={openDialog} setOpenDialog={setOpenDialog} />}
+      {history && (
+        <HistoryModal
+          history={history}
+          openDialog={openDialog}
+          setOpenDialog={setOpenDialog}
+        />
+      )}
       {openImportDialog ? (
         <ImportFromComplectsDialog
           open={openImportDialog}

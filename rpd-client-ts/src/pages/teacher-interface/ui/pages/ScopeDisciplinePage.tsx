@@ -17,7 +17,10 @@ function normalizeStudyLoad(studyLoad: unknown): StudyLoadItem[] {
   if (Array.isArray(studyLoad)) {
     return studyLoad
       .map((item) => {
-        const rec = item && typeof item === "object" ? (item as Record<string, unknown>) : {};
+        const rec =
+          item && typeof item === "object"
+            ? (item as Record<string, unknown>)
+            : {};
         const name = rec.name ?? rec.type ?? rec.title;
         const id = rec.id ?? rec.hours ?? rec.value;
         return {
@@ -34,7 +37,10 @@ function normalizeStudyLoad(studyLoad: unknown): StudyLoadItem[] {
         if (val && typeof val === "object") {
           const v = val as Record<string, unknown>;
           const hours = v.id ?? v.hours ?? v.value;
-          return { name: String(name), id: hours !== undefined ? String(hours) : "" };
+          return {
+            name: String(name),
+            id: hours !== undefined ? String(hours) : "",
+          };
         }
         return { name: String(name), id: val !== undefined ? String(val) : "" };
       })
@@ -49,7 +55,10 @@ const ScopeDisciplinePage: FC = () => {
   const templateId = useStore((state) => state.jsonData.id);
   const updateJsonData = useStore((state) => state.updateJsonData);
 
-  const studyLoadItems = useMemo(() => normalizeStudyLoad(jsonData.study_load), [jsonData.study_load]);
+  const studyLoadItems = useMemo(
+    () => normalizeStudyLoad(jsonData.study_load),
+    [jsonData.study_load]
+  );
   const summHours = useMemo(() => {
     if (!studyLoadItems.length) return null;
     let summ = 0;
@@ -60,7 +69,9 @@ const ScopeDisciplinePage: FC = () => {
     return summ;
   }, [studyLoadItems]);
 
-  const [manualHours, setManualHours] = useState<string | number | null>(summHours);
+  const [manualHours, setManualHours] = useState<string | number | null>(
+    summHours
+  );
   const [creditUnits, setCreditUtins] = useState<string | null>(jsonData.zet);
 
   const saveManualHours = async () => {
@@ -76,7 +87,9 @@ const ScopeDisciplinePage: FC = () => {
     }
     if (!templateId) return;
 
-    const nextStudyLoad: StudyLoadItem[] = [{ name: "Всего", id: String(parsed) }];
+    const nextStudyLoad: StudyLoadItem[] = [
+      { name: "Всего", id: String(parsed) },
+    ];
     const nextZet = String(parsedZet);
 
     try {
@@ -101,10 +114,22 @@ const ScopeDisciplinePage: FC = () => {
 
   return (
     <Box>
-      <PageTitleComment title="Объем дисциплины" paddingBottom={2} templateField={TemplatePagesPath.DISCIPLINE_SCOPE} />
+      <PageTitleComment
+        title="Объем дисциплины"
+        paddingBottom={2}
+        templateField={TemplatePagesPath.DISCIPLINE_SCOPE}
+      />
       <Tg sx={{ py: 2 }}>
         Объем дисциплины составляет
-        <Tg component="span" sx={{ fontWeight: "600", display: "inline-flex", mx: 1, alignItems: "baseline" }}>
+        <Tg
+          component="span"
+          sx={{
+            fontWeight: "600",
+            display: "inline-flex",
+            mx: 1,
+            alignItems: "baseline",
+          }}
+        >
           <TextField
             variant="standard"
             type="number"
@@ -120,7 +145,15 @@ const ScopeDisciplinePage: FC = () => {
           />
         </Tg>
         зачетных единиц, всего
-        <Tg component="span" sx={{ fontWeight: "600", display: "inline-flex", mx: 1, alignItems: "baseline" }}>
+        <Tg
+          component="span"
+          sx={{
+            fontWeight: "600",
+            display: "inline-flex",
+            mx: 1,
+            alignItems: "baseline",
+          }}
+        >
           <TextField
             variant="standard"
             type="number"

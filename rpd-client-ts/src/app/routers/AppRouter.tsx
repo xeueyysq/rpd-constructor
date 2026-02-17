@@ -19,7 +19,10 @@ export const AppRouter = () => {
                 path={path}
                 element={
                   <Suspense fallback={<Loader />}>
-                    <ProtectedRoute key={`pro_${path}`} path={path as RedirectPath} />
+                    <ProtectedRoute
+                      key={`pro_${path}`}
+                      path={path as RedirectPath}
+                    />
                   </Suspense>
                 }
               />

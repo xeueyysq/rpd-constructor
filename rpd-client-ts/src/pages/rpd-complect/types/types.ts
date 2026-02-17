@@ -29,4 +29,6 @@ export interface CreateTemplateDataParams {
   userName: string | undefined;
 }
 
-export type CreateTemplateResponse = string | { result: string; missingTeachers?: string[] };
+export type CreateTemplateResponse =
+  | string
+  | { result: string; missingTeachers?: string[] };

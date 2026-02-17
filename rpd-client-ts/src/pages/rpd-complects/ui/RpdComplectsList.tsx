@@ -1,10 +1,19 @@
 import { useAuth } from "@entities/auth";
-import { useDeleteRpdComplectsMutation, useRpdComplectsQuery } from "@entities/rpd-complect/model/queries";
+import {
+  useDeleteRpdComplectsMutation,
+  useRpdComplectsQuery,
+} from "@entities/rpd-complect/model/queries";
 import CachedIcon from "@mui/icons-material/Cached";
 import DeleteIcon from "@mui/icons-material/Delete";
 import FiberManualRecordIcon from "@mui/icons-material/FiberManualRecord";
 import SaveAsIcon from "@mui/icons-material/SaveAs";
-import { Box, Breadcrumbs, Button, CssBaseline, Typography } from "@mui/material";
+import {
+  Box,
+  Breadcrumbs,
+  Button,
+  CssBaseline,
+  Typography,
+} from "@mui/material";
 import { UserRole } from "@shared/ability";
 import { RedirectPath } from "@shared/enums";
 import { useStore } from "@shared/hooks";
@@ -12,7 +21,11 @@ import type { ComplectData } from "@shared/types";
 import { Loader, PageTitle } from "@shared/ui";
 import { WarningDeleteDialog } from "@widgets/dialogs/ui";
 import { orderBy } from "lodash";
-import { MaterialReactTable, useMaterialReactTable, type MRT_ColumnDef } from "material-react-table";
+import {
+  MaterialReactTable,
+  useMaterialReactTable,
+  type MRT_ColumnDef,
+} from "material-react-table";
 import { MRT_Localization_RU } from "material-react-table/locales/ru";
 import { FC, useCallback, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
@@ -34,7 +47,10 @@ export const RpdComplectsList: FC = () => {
     [setComplectId, navigate]
   );
 
-  const sortedComplectsByYear = useMemo(() => orderBy(complects, ["profile", "year"], ["asc", "asc"]), [complects]);
+  const sortedComplectsByYear = useMemo(
+    () => orderBy(complects, ["profile", "year"], ["asc", "asc"]),
+    [complects]
+  );
 
   const adminColumns = [
     {
@@ -61,7 +77,9 @@ export const RpdComplectsList: FC = () => {
         Cell: ({ table, row }) => {
           const rows = table.getRowModel().rows;
           const prev = rows[row.index - 1];
-          return prev && prev.original.profile === row.original.profile ? null : row.original.profile;
+          return prev && prev.original.profile === row.original.profile
+            ? null
+            : row.original.profile;
         },
       },
       {
@@ -143,7 +161,9 @@ export const RpdComplectsList: FC = () => {
       },
     },
     renderTopToolbarCustomActions: ({ table }) => {
-      const selectedRowsCount = Object.values(table.getState().rowSelection).length;
+      const selectedRowsCount = Object.values(
+        table.getState().rowSelection
+      ).length;
       return (
         <Box
           sx={{
@@ -170,7 +190,11 @@ export const RpdComplectsList: FC = () => {
           >
             Удалить
           </Button>
-          <Button variant="outlined" startIcon={<SaveAsIcon />} disabled={!selectedRowsCount}>
+          <Button
+            variant="outlined"
+            startIcon={<SaveAsIcon />}
+            disabled={!selectedRowsCount}
+          >
             Добавить содержание рпд
           </Button>
         </Box>
@@ -193,7 +217,11 @@ export const RpdComplectsList: FC = () => {
       <PageTitle title={"Список загруженных комплектов РПД"} />
       <Box py={0.5}>
         {sortedComplectsByYear.length > 0 && userRole !== UserRole.ADMIN && (
-          <Breadcrumbs separator={<FiberManualRecordIcon color="secondary" sx={{ fontSize: 5 }} />}>
+          <Breadcrumbs
+            separator={
+              <FiberManualRecordIcon color="secondary" sx={{ fontSize: 5 }} />
+            }
+          >
             {[
               <Typography component={"span"} color="textSecondary">
                 {sortedComplectsByYear[0].directionOfStudy}

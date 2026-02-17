@@ -1,8 +1,16 @@
 import { axiosBase } from "@shared/api";
-import type { ComplectMeta, CreateTemplateDataParams, CreateTemplateResponse } from "../types";
+import type {
+  ComplectMeta,
+  CreateTemplateDataParams,
+  CreateTemplateResponse,
+} from "../types";
 
-export async function fetchComplectRpd(complectId: number): Promise<ComplectMeta> {
-  const { data } = await axiosBase.post<ComplectMeta>("find-rpd", { complectId });
+export async function fetchComplectRpd(
+  complectId: number
+): Promise<ComplectMeta> {
+  const { data } = await axiosBase.post<ComplectMeta>("find-rpd", {
+    complectId,
+  });
   return data;
 }
 

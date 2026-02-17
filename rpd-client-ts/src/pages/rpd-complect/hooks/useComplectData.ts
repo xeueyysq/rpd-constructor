@@ -1,10 +1,17 @@
 import { useAuth } from "@entities/auth";
 import { TemplateStatusEnum } from "@entities/template";
 import { useStore } from "@shared/hooks";
-import { showErrorMessage, showSuccessMessage, showWarningMessage } from "@shared/lib";
+import {
+  showErrorMessage,
+  showSuccessMessage,
+  showWarningMessage,
+} from "@shared/lib";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { fetchComplectRpd, createProfileTemplateFrom1c } from "../api";
-import { parseCreateTemplateResponse, parseCreateTemplateError } from "../utils/parseCreateTemplateResponse";
+import {
+  parseCreateTemplateResponse,
+  parseCreateTemplateError,
+} from "../utils/parseCreateTemplateResponse";
 import { sortTemplatesByStatus } from "../utils/sortTemplates";
 import type { ComplectMeta, TemplateData } from "../types";
 
@@ -14,7 +21,9 @@ export function useComplectData(complectId: number) {
   const selectedTemplateData = useStore.getState().selectedTemplateData;
   const userName = useAuth.getState().userName;
   const [complectMeta, setComplectMeta] = useState<ComplectMeta | undefined>();
-  const [selectedTeachers, setSelectedTeachers] = useState<SelectedTeachersMap>({});
+  const [selectedTeachers, setSelectedTeachers] = useState<SelectedTeachersMap>(
+    {}
+  );
 
   const fetchComplectData = useCallback(async () => {
     try {
@@ -30,9 +39,12 @@ export function useComplectData(complectId: number) {
     fetchComplectData();
   }, [fetchComplectData]);
 
-  const handleTeachersChange = useCallback((templateId: number, value: string[]) => {
-    setSelectedTeachers((prev) => ({ ...prev, [templateId]: value }));
-  }, []);
+  const handleTeachersChange = useCallback(
+    (templateId: number, value: string[]) => {
+      setSelectedTeachers((prev) => ({ ...prev, [templateId]: value }));
+    },
+    []
+  );
 
   const createTemplateData = useCallback(
     async (id: number, discipline: string) => {
@@ -62,10 +74,19 @@ export function useComplectData(complectId: number) {
         console.error(error);
       }
     },
-    [selectedTeachers, complectId, selectedTemplateData.year, userName, fetchComplectData]
+    [
+      selectedTeachers,
+      complectId,
+      selectedTemplateData.year,
+      userName,
+      fetchComplectData,
+    ]
   );
 
-  const statusPriority: Record<string, number> = useMemo(() => ({ [TemplateStatusEnum.UNLOADED]: 1 }), []);
+  const statusPriority: Record<string, number> = useMemo(
+    () => ({ [TemplateStatusEnum.UNLOADED]: 1 }),
+    []
+  );
 
   const filteredData: TemplateData[] = useMemo(() => {
     if (!complectMeta?.templates) return [];

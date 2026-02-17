@@ -1,4 +1,10 @@
-import { ListItem, ListItemButton, ListItemText, Typography, ListItemIcon } from "@mui/material";
+import {
+  ListItem,
+  ListItemButton,
+  ListItemText,
+  Typography,
+  ListItemIcon,
+} from "@mui/material";
 import { FC } from "react";
 import type { RpdListItem } from "../model/types.ts";
 import FiberManualRecordIcon from "@mui/icons-material/FiberManualRecord";
@@ -11,7 +17,11 @@ type RpdListItemProps = {
   templatePage: string | undefined;
 };
 
-const RpdListItem: FC<RpdListItemProps> = ({ item, templateId, templatePage }) => {
+const RpdListItem: FC<RpdListItemProps> = ({
+  item,
+  templateId,
+  templatePage,
+}) => {
   const { id, text, path } = item;
   const navigate = useNavigate();
   const isActive = templatePage === path;
@@ -19,7 +29,9 @@ const RpdListItem: FC<RpdListItemProps> = ({ item, templateId, templatePage }) =
   return (
     <ListItem disableGutters disablePadding>
       <ListItemButton
-        onClick={() => navigate(`${RedirectPath.TEMPLATES}/${templateId}/${path}`)}
+        onClick={() =>
+          navigate(`${RedirectPath.TEMPLATES}/${templateId}/${path}`)
+        }
         sx={{
           py: 0.15,
           pl: 0.5,
@@ -35,7 +47,9 @@ const RpdListItem: FC<RpdListItemProps> = ({ item, templateId, templatePage }) =
         <ListItemIcon sx={{ pl: 4 }}>
           <FiberManualRecordIcon sx={{ fontSize: "5px" }} />
         </ListItemIcon>
-        <ListItemText primary={<Typography fontSize={"14px"}>{text}</Typography>} />
+        <ListItemText
+          primary={<Typography fontSize={"14px"}>{text}</Typography>}
+        />
       </ListItemButton>
     </ListItem>
   );

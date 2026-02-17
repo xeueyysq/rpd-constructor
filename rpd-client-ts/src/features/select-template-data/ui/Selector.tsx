@@ -1,4 +1,10 @@
-import { Box, AutocompleteChangeReason, AutocompleteChangeDetails, Autocomplete, TextField } from "@mui/material";
+import {
+  Box,
+  AutocompleteChangeReason,
+  AutocompleteChangeDetails,
+  Autocomplete,
+  TextField,
+} from "@mui/material";
 import React, { useState, useEffect } from "react";
 import { OptionType } from "../model/SelectorTypes.ts";
 
@@ -16,7 +22,13 @@ interface CustomSelector {
   "data-cy"?: string;
 }
 
-export const CustomSelector: React.FC<CustomSelector> = ({ title, placeholder, value, onChange, options }) => {
+export const CustomSelector: React.FC<CustomSelector> = ({
+  title,
+  placeholder,
+  value,
+  onChange,
+  options,
+}) => {
   const [isOpen, setIsOpen] = useState(!value);
 
   useEffect(() => {
@@ -46,7 +58,9 @@ export const CustomSelector: React.FC<CustomSelector> = ({ title, placeholder, v
         open={isOpen}
         onOpen={() => setIsOpen(true)}
         onClose={() => setIsOpen(false)}
-        renderInput={(params) => <TextField {...params} label={placeholder} size="small" />}
+        renderInput={(params) => (
+          <TextField {...params} label={placeholder} size="small" />
+        )}
       />
     </Box>
   );

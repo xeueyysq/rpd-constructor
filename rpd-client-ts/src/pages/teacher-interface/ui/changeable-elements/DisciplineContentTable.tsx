@@ -11,7 +11,10 @@ import {
   TableRow,
   TextField,
 } from "@mui/material";
-import { DisciplineContentData, ObjectHours } from "@pages/teacher-interface/model/DisciplineContentPageTypes";
+import {
+  DisciplineContentData,
+  ObjectHours,
+} from "@pages/teacher-interface/model/DisciplineContentPageTypes";
 import { axiosBase } from "@shared/api";
 import { useStore } from "@shared/hooks";
 import { showErrorMessage, showSuccessMessage } from "@shared/lib";
@@ -36,11 +39,19 @@ const SEMINARS_LABELS = ["практич", "семинар", "лаб"];
 const INDEPENDENT_LABELS = ["срс", "самостоят"];
 const CONTROL_LABELS = ["контрол", "экзам", "зач", "аттест"];
 
-type StudyLoadCategory = "total" | "lectures" | "seminars" | "independent" | "control" | "unknown";
+type StudyLoadCategory =
+  | "total"
+  | "lectures"
+  | "seminars"
+  | "independent"
+  | "control"
+  | "unknown";
 type DisciplineContentRow = DisciplineContentData[string];
 
 function getRecordValue(record: Record<string, unknown>, key: string): unknown {
-  return Object.prototype.hasOwnProperty.call(record, key) ? record[key] : undefined;
+  return Object.prototype.hasOwnProperty.call(record, key)
+    ? record[key]
+    : undefined;
 }
 
 function toNumberSafe(value: unknown): number {
@@ -93,9 +104,18 @@ function normalizeStudyLoad(studyLoad: unknown): StudyLoad[] {
   if (Array.isArray(studyLoad)) {
     return studyLoad
       .map((item) => {
-        const rec = item && typeof item === "object" ? (item as Record<string, unknown>) : {};
-        const name = getRecordValue(rec, "name") ?? getRecordValue(rec, "type") ?? getRecordValue(rec, "title");
-        const id = getRecordValue(rec, "id") ?? getRecordValue(rec, "hours") ?? getRecordValue(rec, "value");
+        const rec =
+          item && typeof item === "object"
+            ? (item as Record<string, unknown>)
+            : {};
+        const name =
+          getRecordValue(rec, "name") ??
+          getRecordValue(rec, "type") ??
+          getRecordValue(rec, "title");
+        const id =
+          getRecordValue(rec, "id") ??
+          getRecordValue(rec, "hours") ??
+          getRecordValue(rec, "value");
         return {
           name: name !== undefined ? String(name) : "",
           id: id !== undefined ? String(id) : "",
@@ -109,8 +129,14 @@ function normalizeStudyLoad(studyLoad: unknown): StudyLoad[] {
       .map(([name, val]) => {
         if (val && typeof val === "object") {
           const v = val as Record<string, unknown>;
-          const hours = getRecordValue(v, "id") ?? getRecordValue(v, "hours") ?? getRecordValue(v, "value");
-          return { name: String(name), id: hours !== undefined ? String(hours) : "" };
+          const hours =
+            getRecordValue(v, "id") ??
+            getRecordValue(v, "hours") ??
+            getRecordValue(v, "value");
+          return {
+            name: String(name),
+            id: hours !== undefined ? String(hours) : "",
+          };
         }
         return { name: String(name), id: val !== undefined ? String(val) : "" };
       })
@@ -120,9 +146,15 @@ function normalizeStudyLoad(studyLoad: unknown): StudyLoad[] {
   return [];
 }
 
-export function DisciplineContentTable({ readOnly = false, tableData }: ContentTableType) {
+export function DisciplineContentTable({
+  readOnly = false,
+  tableData,
+}: ContentTableType) {
   const jsonData = useStore((state) => state.jsonData);
-  const dataHours = useMemo(() => normalizeStudyLoad(jsonData?.study_load), [jsonData?.study_load]);
+  const dataHours = useMemo(
+    () => normalizeStudyLoad(jsonData?.study_load),
+    [jsonData?.study_load]
+  );
   const hasMaxHours = dataHours.length > 0;
   const { maxHoursBase, hasBreakdownHours } = useMemo(() => {
     const empty: ObjectHours = {
@@ -134,7 +166,8 @@ export function DisciplineContentTable({ readOnly = false, tableData }: ContentT
       independent_work: 0,
     };
 
-    if (!dataHours.length) return { maxHoursBase: empty, hasBreakdownHours: false };
+    if (!dataHours.length)
+      return { maxHoursBase: empty, hasBreakdownHours: false };
 
     let sumAll = 0;
     let explicitTotal: number | null = null;
@@ -177,7 +210,10 @@ export function DisciplineContentTable({ readOnly = false, tableData }: ContentT
     base.all = explicitTotal ?? sumAll;
 
     if (!hasControl && hasBreakdown) {
-      base.control = Math.max(0, base.all - (base.lectures + base.seminars + base.independent_work));
+      base.control = Math.max(
+        0,
+        base.all - (base.lectures + base.seminars + base.independent_work)
+      );
     }
 
     base.lect_and_sems = base.lectures + base.seminars + base.control;
@@ -188,14 +224,17 @@ export function DisciplineContentTable({ readOnly = false, tableData }: ContentT
 
   const storeData = jsonData?.content as DisciplineContentData | undefined;
 
-  const getNextIdFromData = useCallback((content: DisciplineContentData | undefined) => {
-    if (!content) return 0;
-    const numericKeys = Object.keys(content)
-      .map((k) => Number(k))
-      .filter((n) => Number.isFinite(n));
-    const maxKey = numericKeys.length ? Math.max(...numericKeys) : -1;
-    return maxKey + 1;
-  }, []);
+  const getNextIdFromData = useCallback(
+    (content: DisciplineContentData | undefined) => {
+      if (!content) return 0;
+      const numericKeys = Object.keys(content)
+        .map((k) => Number(k))
+        .filter((n) => Number.isFinite(n));
+      const maxKey = numericKeys.length ? Math.max(...numericKeys) : -1;
+      return maxKey + 1;
+    },
+    []
+  );
 
   const getInitialData = useCallback((): DisciplineContentData => {
     return (
@@ -214,9 +253,13 @@ export function DisciplineContentTable({ readOnly = false, tableData }: ContentT
     );
   }, [storeData, tableData]);
 
-  const [nextId, setNextId] = useState<number>(() => getNextIdFromData(getInitialData()));
+  const [nextId, setNextId] = useState<number>(() =>
+    getNextIdFromData(getInitialData())
+  );
 
-  const [data, setData] = useState<DisciplineContentData>(() => getInitialData());
+  const [data, setData] = useState<DisciplineContentData>(() =>
+    getInitialData()
+  );
 
   useEffect(() => {
     const nextData = getInitialData();
@@ -239,14 +282,18 @@ export function DisciplineContentTable({ readOnly = false, tableData }: ContentT
     return {
       ...maxHoursBase,
       control: Number(maxHoursBase.control),
-      lect_and_sems: Number(maxHoursBase.lectures) + Number(maxHoursBase.seminars) + Number(maxHoursBase.control),
+      lect_and_sems:
+        Number(maxHoursBase.lectures) +
+        Number(maxHoursBase.seminars) +
+        Number(maxHoursBase.control),
     };
   }, [hasBreakdownHours, maxHoursBase]);
 
   const manualPlanEnabled = !readOnly;
   const [manualPlan, setManualPlan] = useState<ObjectHours>(() => maxHours);
   const [manualPlanTouchedTotal, setManualPlanTouchedTotal] = useState(false);
-  const [manualPlanTouchedBreakdown, setManualPlanTouchedBreakdown] = useState(false);
+  const [manualPlanTouchedBreakdown, setManualPlanTouchedBreakdown] =
+    useState(false);
 
   useEffect(() => {
     if (!manualPlanEnabled) {
@@ -258,7 +305,12 @@ export function DisciplineContentTable({ readOnly = false, tableData }: ContentT
     if (!manualPlanTouchedTotal && !manualPlanTouchedBreakdown) {
       setManualPlan(maxHours);
     }
-  }, [manualPlanEnabled, maxHours, manualPlanTouchedTotal, manualPlanTouchedBreakdown]);
+  }, [
+    manualPlanEnabled,
+    maxHours,
+    manualPlanTouchedTotal,
+    manualPlanTouchedBreakdown,
+  ]);
 
   useEffect(() => {
     setManualPlanTouchedTotal(false);
@@ -283,10 +335,13 @@ export function DisciplineContentTable({ readOnly = false, tableData }: ContentT
   }, [manualPlan]);
 
   const displayMaxHours = manualPlanEnabled ? manualPlanNumeric : maxHours;
-  const canCompareTotal = hasBreakdownHours || manualPlanTouchedTotal || manualPlanTouchedBreakdown;
+  const canCompareTotal =
+    hasBreakdownHours || manualPlanTouchedTotal || manualPlanTouchedBreakdown;
   const canCompareBreakdown = hasBreakdownHours || manualPlanTouchedBreakdown;
 
-  const certificationLabel = jsonData.certification ? String(jsonData.certification).toLowerCase() : "не выбрано";
+  const certificationLabel = jsonData.certification
+    ? String(jsonData.certification).toLowerCase()
+    : "не выбрано";
   const attestationTheme = `Промежуточная аттестация: ${certificationLabel}`;
 
   useEffect(() => {
@@ -314,7 +369,8 @@ export function DisciplineContentTable({ readOnly = false, tableData }: ContentT
     if (keys.length !== Object.keys(object2).length) return false;
 
     for (const key of keys) {
-      if (toNumberSafe(object1[key]) !== toNumberSafe(object2[key])) return false;
+      if (toNumberSafe(object1[key]) !== toNumberSafe(object2[key]))
+        return false;
     }
 
     return true;
@@ -364,7 +420,12 @@ export function DisciplineContentTable({ readOnly = false, tableData }: ContentT
     summHours();
   }, [data]);
 
-  const validateHours = (hours: number, maxHours: number, isComparable: boolean, hasComparableMax: boolean) => {
+  const validateHours = (
+    hours: number,
+    maxHours: number,
+    isComparable: boolean,
+    hasComparableMax: boolean
+  ) => {
     if (!hasComparableMax) return "grey";
     if (!isComparable) return "grey";
     if (toNumberSafe(hours) !== toNumberSafe(maxHours)) return "red";
@@ -376,24 +437,37 @@ export function DisciplineContentTable({ readOnly = false, tableData }: ContentT
     if (hasMaxHours || manualPlanTouchedTotal || manualPlanTouchedBreakdown) {
       if (hasBreakdownHours || manualPlanTouchedBreakdown) {
         if (!compareObjects(summ, displayMaxHours)) {
-          showErrorMessage("Ошибка заполнения данных. Данные по часам не совпадают");
+          showErrorMessage(
+            "Ошибка заполнения данных. Данные по часам не совпадают"
+          );
           return;
         }
       } else if (manualPlanTouchedTotal || hasMaxHours) {
         if (toNumberSafe(summ.all) !== toNumberSafe(displayMaxHours.all)) {
-          showErrorMessage("Ошибка заполнения данных. Общее количество часов не совпадает");
+          showErrorMessage(
+            "Ошибка заполнения данных. Общее количество часов не совпадает"
+          );
           return;
         }
       }
     }
     const id = jsonData.id;
 
-    const filteredData = Object.entries(data).reduce((acc: DisciplineContentData, [key, value]) => {
-      if (value.theme || value.lectures || value.seminars || value.control || value.independent_work) {
-        acc[key] = value;
-      }
-      return acc;
-    }, {});
+    const filteredData = Object.entries(data).reduce(
+      (acc: DisciplineContentData, [key, value]) => {
+        if (
+          value.theme ||
+          value.lectures ||
+          value.seminars ||
+          value.control ||
+          value.independent_work
+        ) {
+          acc[key] = value;
+        }
+        return acc;
+      },
+      {}
+    );
 
     try {
       let nextStudyLoad: Array<{ name: string; id: string }> | null = null;
@@ -404,13 +478,22 @@ export function DisciplineContentTable({ readOnly = false, tableData }: ContentT
         }),
       ];
 
-      if (manualPlanEnabled && (manualPlanTouchedTotal || manualPlanTouchedBreakdown)) {
+      if (
+        manualPlanEnabled &&
+        (manualPlanTouchedTotal || manualPlanTouchedBreakdown)
+      ) {
         const plannedLectures = manualPlanNumeric.lectures;
         const plannedSeminars = manualPlanNumeric.seminars;
         const plannedControl = manualPlanNumeric.control;
         const plannedIndependent = manualPlanNumeric.independent_work;
-        const computedTotal = plannedLectures + plannedSeminars + plannedControl + plannedIndependent;
-        const plannedTotal = manualPlanTouchedTotal ? manualPlanNumeric.all : computedTotal;
+        const computedTotal =
+          plannedLectures +
+          plannedSeminars +
+          plannedControl +
+          plannedIndependent;
+        const plannedTotal = manualPlanTouchedTotal
+          ? manualPlanNumeric.all
+          : computedTotal;
 
         nextStudyLoad = manualPlanTouchedBreakdown
           ? [
@@ -465,7 +548,11 @@ export function DisciplineContentTable({ readOnly = false, tableData }: ContentT
     setData(newData);
   };
 
-  const handleValueChange = (rowId: string, key: string, value: string | number) => {
+  const handleValueChange = (
+    rowId: string,
+    key: string,
+    value: string | number
+  ) => {
     if (!data || !setData) return;
     // const formattedValue = value === 0 ? value
 
@@ -531,7 +618,12 @@ export function DisciplineContentTable({ readOnly = false, tableData }: ContentT
     <Box>
       <Box sx={{ position: "relative", my: 3 }}>
         <TableContainer component={Paper}>
-          <Table sx={{ minWidth: 650, mb: 6 }} aria-label="simple table" size="small" className="table">
+          <Table
+            sx={{ minWidth: 650, mb: 6 }}
+            aria-label="simple table"
+            size="small"
+            className="table"
+          >
             <TableHead>
               <TableRow>
                 <TableCell align="center" width="180px">
@@ -559,7 +651,12 @@ export function DisciplineContentTable({ readOnly = false, tableData }: ContentT
             </TableHead>
             <TableBody>
               {data &&
-                [...Object.keys(data).filter((id) => id !== ATTESTATION_ROW_ID), ATTESTATION_ROW_ID]
+                [
+                  ...Object.keys(data).filter(
+                    (id) => id !== ATTESTATION_ROW_ID
+                  ),
+                  ATTESTATION_ROW_ID,
+                ]
                   .filter((id) => Boolean(data[id]))
                   .map((rowId) => {
                     const rowHours = getRowHours(data[rowId]);
@@ -574,14 +671,18 @@ export function DisciplineContentTable({ readOnly = false, tableData }: ContentT
                           }}
                         >
                           {rowId === ATTESTATION_ROW_ID ? (
-                            <Box sx={{ fontSize: 14, p: 1, fontWeight: 600 }}>{attestationTheme}</Box>
+                            <Box sx={{ fontSize: 14, p: 1, fontWeight: 600 }}>
+                              {attestationTheme}
+                            </Box>
                           ) : readOnly ? (
                             data[rowId].theme
                           ) : (
                             <TextField
                               sx={{
                                 fontSize: "14px !important",
-                                "& .MuiInputBase-input": { fontSize: "14px !important" },
+                                "& .MuiInputBase-input": {
+                                  fontSize: "14px !important",
+                                },
                                 "& .MuiOutlinedInput-root": {
                                   borderRadius: 0,
                                   "& fieldset": { border: "none" },
@@ -590,7 +691,13 @@ export function DisciplineContentTable({ readOnly = false, tableData }: ContentT
                               }}
                               multiline
                               value={data[rowId].theme}
-                              onChange={(e) => handleValueChange(rowId, "theme", e.target.value)}
+                              onChange={(e) =>
+                                handleValueChange(
+                                  rowId,
+                                  "theme",
+                                  e.target.value
+                                )
+                              }
                               disabled={readOnly}
                               fullWidth
                             />
@@ -606,17 +713,23 @@ export function DisciplineContentTable({ readOnly = false, tableData }: ContentT
                         </TableCell>
                         <EditableTableCell
                           value={data[rowId].lectures}
-                          onValueChange={(value: number) => handleValueChange(rowId, "lectures", value)}
+                          onValueChange={(value: number) =>
+                            handleValueChange(rowId, "lectures", value)
+                          }
                           readOnly={readOnly}
                         />
                         <EditableTableCell
                           value={data[rowId].seminars}
-                          onValueChange={(value: number) => handleValueChange(rowId, "seminars", value)}
+                          onValueChange={(value: number) =>
+                            handleValueChange(rowId, "seminars", value)
+                          }
                           readOnly={readOnly}
                         />
                         <EditableTableCell
                           value={data[rowId].control || null}
-                          onValueChange={(value: number) => handleValueChange(rowId, "control", value)}
+                          onValueChange={(value: number) =>
+                            handleValueChange(rowId, "control", value)
+                          }
                           readOnly={readOnly}
                         />
                         <TableCell
@@ -629,7 +742,9 @@ export function DisciplineContentTable({ readOnly = false, tableData }: ContentT
                         </TableCell>
                         <EditableTableCell
                           value={data[rowId].independent_work}
-                          onValueChange={(value: number) => handleValueChange(rowId, "independent_work", value)}
+                          onValueChange={(value: number) =>
+                            handleValueChange(rowId, "independent_work", value)
+                          }
                           readOnly={readOnly}
                         />
                       </TableRow>
@@ -639,10 +754,21 @@ export function DisciplineContentTable({ readOnly = false, tableData }: ContentT
                 <TableCell>Итого за семестр / курс</TableCell>
                 <TableCell
                   sx={{
-                    color: validateHours(summ.all, displayMaxHours.all, true, canCompareTotal),
+                    color: validateHours(
+                      summ.all,
+                      displayMaxHours.all,
+                      true,
+                      canCompareTotal
+                    ),
                   }}
                 >
-                  <Box sx={{ display: "inline-flex", alignItems: "center", gap: 0.5 }}>
+                  <Box
+                    sx={{
+                      display: "inline-flex",
+                      alignItems: "center",
+                      gap: 0.5,
+                    }}
+                  >
                     <span>{summ.all}</span>
                     <span>/</span>
                     {manualPlanEnabled
@@ -656,77 +782,119 @@ export function DisciplineContentTable({ readOnly = false, tableData }: ContentT
                           !readOnly
                         )
                       : hasMaxHours
-                      ? maxHours.all
-                      : "—"}
+                        ? maxHours.all
+                        : "—"}
                   </Box>
                 </TableCell>
                 <TableCell
                   sx={{
-                    color: validateHours(summ.lectures, displayMaxHours.lectures, canCompareBreakdown, canCompareBreakdown),
+                    color: validateHours(
+                      summ.lectures,
+                      displayMaxHours.lectures,
+                      canCompareBreakdown,
+                      canCompareBreakdown
+                    ),
                   }}
                 >
-                  <Box sx={{ display: "inline-flex", alignItems: "center", gap: 0.5 }}>
+                  <Box
+                    sx={{
+                      display: "inline-flex",
+                      alignItems: "center",
+                      gap: 0.5,
+                    }}
+                  >
                     <span>{summ.lectures}</span>
                     <span>/</span>
                     {manualPlanEnabled
                       ? renderPlanInput(
                           manualPlanNumeric.lectures,
                           (next) => {
-                            setManualPlan((prev) => ({ ...prev, lectures: next }));
+                            setManualPlan((prev) => ({
+                              ...prev,
+                              lectures: next,
+                            }));
                             setManualPlanTouchedBreakdown(true);
                           },
                           manualPlanTouchedBreakdown,
                           !readOnly
                         )
                       : hasMaxHours && hasBreakdownHours
-                      ? maxHours.lectures
-                      : "—"}
+                        ? maxHours.lectures
+                        : "—"}
                   </Box>
                 </TableCell>
                 <TableCell
                   sx={{
-                    color: validateHours(summ.seminars, displayMaxHours.seminars, canCompareBreakdown, canCompareBreakdown),
+                    color: validateHours(
+                      summ.seminars,
+                      displayMaxHours.seminars,
+                      canCompareBreakdown,
+                      canCompareBreakdown
+                    ),
                   }}
                 >
-                  <Box sx={{ display: "inline-flex", alignItems: "center", gap: 0.5 }}>
+                  <Box
+                    sx={{
+                      display: "inline-flex",
+                      alignItems: "center",
+                      gap: 0.5,
+                    }}
+                  >
                     <span>{summ.seminars}</span>
                     <span>/</span>
                     {manualPlanEnabled
                       ? renderPlanInput(
                           manualPlanNumeric.seminars,
                           (next) => {
-                            setManualPlan((prev) => ({ ...prev, seminars: next }));
+                            setManualPlan((prev) => ({
+                              ...prev,
+                              seminars: next,
+                            }));
                             setManualPlanTouchedBreakdown(true);
                           },
                           manualPlanTouchedBreakdown,
                           !readOnly
                         )
                       : hasMaxHours && hasBreakdownHours
-                      ? maxHours.seminars
-                      : "—"}
+                        ? maxHours.seminars
+                        : "—"}
                   </Box>
                 </TableCell>
                 <TableCell
                   sx={{
-                    color: validateHours(summ.control, displayMaxHours.control, canCompareBreakdown, canCompareBreakdown),
+                    color: validateHours(
+                      summ.control,
+                      displayMaxHours.control,
+                      canCompareBreakdown,
+                      canCompareBreakdown
+                    ),
                   }}
                 >
-                  <Box sx={{ display: "inline-flex", alignItems: "center", gap: 0.5 }}>
+                  <Box
+                    sx={{
+                      display: "inline-flex",
+                      alignItems: "center",
+                      gap: 0.5,
+                    }}
+                  >
                     <span>{summ.control}</span>
                     <span>/</span>
                     {manualPlanEnabled
                       ? renderPlanInput(
                           manualPlanNumeric.control,
                           (next) => {
-                            setManualPlan((prev) => ({ ...prev, control: next }));
+                            setManualPlan((prev) => ({
+                              ...prev,
+                              control: next,
+                            }));
                             setManualPlanTouchedBreakdown(true);
                           },
                           manualPlanTouchedBreakdown,
                           !readOnly
                         )
                       : hasMaxHours && hasBreakdownHours
-                      ? maxHours.control
-                      : "—"}
+                        ? maxHours.control
+                        : "—"}
                   </Box>
                 </TableCell>
                 <TableCell
@@ -743,8 +911,8 @@ export function DisciplineContentTable({ readOnly = false, tableData }: ContentT
                   {manualPlanEnabled
                     ? displayMaxHours.lect_and_sems
                     : hasMaxHours && hasBreakdownHours
-                    ? maxHours.lect_and_sems
-                    : "—"}
+                      ? maxHours.lect_and_sems
+                      : "—"}
                 </TableCell>
                 <TableCell
                   sx={{
@@ -756,22 +924,31 @@ export function DisciplineContentTable({ readOnly = false, tableData }: ContentT
                     ),
                   }}
                 >
-                  <Box sx={{ display: "inline-flex", alignItems: "center", gap: 0.5 }}>
+                  <Box
+                    sx={{
+                      display: "inline-flex",
+                      alignItems: "center",
+                      gap: 0.5,
+                    }}
+                  >
                     <span>{summ.independent_work}</span>
                     <span>/</span>
                     {manualPlanEnabled
                       ? renderPlanInput(
                           manualPlanNumeric.independent_work,
                           (next) => {
-                            setManualPlan((prev) => ({ ...prev, independent_work: next }));
+                            setManualPlan((prev) => ({
+                              ...prev,
+                              independent_work: next,
+                            }));
                             setManualPlanTouchedBreakdown(true);
                           },
                           manualPlanTouchedBreakdown,
                           !readOnly
                         )
                       : hasMaxHours && hasBreakdownHours
-                      ? maxHours.independent_work
-                      : "—"}
+                        ? maxHours.independent_work
+                        : "—"}
                   </Box>
                 </TableCell>
               </TableRow>
@@ -788,7 +965,9 @@ export function DisciplineContentTable({ readOnly = false, tableData }: ContentT
           >
             <ExportFromTemplates
               elementName={"content"}
-              setChangeableValue={(value) => setData(value as DisciplineContentData)}
+              setChangeableValue={(value) =>
+                setData(value as DisciplineContentData)
+              }
             />
           </Box>
         )}

@@ -26,7 +26,11 @@ type DialogAddUserType = {
   fetchUsers: () => Promise<void>;
 };
 
-export function DialogAddUser({ open, setOpen, fetchUsers }: DialogAddUserType) {
+export function DialogAddUser({
+  open,
+  setOpen,
+  fetchUsers,
+}: DialogAddUserType) {
   const [newUser, setNewUser] = useState<NewUser>({
     username: "",
     password: "",
@@ -38,7 +42,11 @@ export function DialogAddUser({ open, setOpen, fetchUsers }: DialogAddUserType) 
 
   const handleChange =
     (prop: keyof NewUser) =>
-    (event: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | { value: unknown }>) => {
+    (
+      event: React.ChangeEvent<
+        HTMLInputElement | HTMLTextAreaElement | { value: unknown }
+      >
+    ) => {
       setNewUser({ ...newUser, [prop]: event.target.value });
     };
 
@@ -90,7 +98,14 @@ export function DialogAddUser({ open, setOpen, fetchUsers }: DialogAddUserType) 
 
   return (
     <FormControl>
-      <Dialog fullWidth maxWidth={"xs"} open={open} onClose={handleClose} component={"form"} onSubmit={handleSubmit}>
+      <Dialog
+        fullWidth
+        maxWidth={"xs"}
+        open={open}
+        onClose={handleClose}
+        component={"form"}
+        onSubmit={handleSubmit}
+      >
         <DialogTitle>Новый пользователь</DialogTitle>
         <DialogContent>
           <Box sx={{ display: "flex", flexDirection: "column", gap: 2, mt: 2 }}>

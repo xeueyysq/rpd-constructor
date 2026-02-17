@@ -1,4 +1,8 @@
-import { MaterialReactTable, MRT_ColumnDef, useMaterialReactTable } from "material-react-table";
+import {
+  MaterialReactTable,
+  MRT_ColumnDef,
+  useMaterialReactTable,
+} from "material-react-table";
 import { useMemo, useState } from "react";
 import { Box, Button } from "@mui/material";
 import { MRT_Localization_RU } from "material-react-table/locales/ru";
@@ -20,15 +24,22 @@ interface IBooksMetaList {
   closeDialog: () => void;
 }
 
-export function BooksMetaList({ books, addBooksToList, closeDialog }: IBooksMetaList) {
+export function BooksMetaList({
+  books,
+  addBooksToList,
+  closeDialog,
+}: IBooksMetaList) {
   const [rowSelection, setRowSelection] = useState<Record<string, boolean>>({});
-  const [zoomThumbSrc, setZoomThumbSrc] = useState<string | undefined>(undefined);
+  const [zoomThumbSrc, setZoomThumbSrc] = useState<string | undefined>(
+    undefined
+  );
 
   const handleAddBooks = () => {
     //TODO костыль на поиск выделенных книг
     const selectedBooks = books
       ?.map((book, index) => {
-        if (rowSelection[index]) return book.biblio.replace(/<b>.*?<\/b>|<br>/g, "");
+        if (rowSelection[index])
+          return book.biblio.replace(/<b>.*?<\/b>|<br>/g, "");
       })
       .filter(Boolean);
     addBooksToList(selectedBooks);
@@ -68,7 +79,10 @@ export function BooksMetaList({ books, addBooksToList, closeDialog }: IBooksMeta
         header: "Год",
         Cell: ({ row }) => {
           const published = row.original.published;
-          const year = published && isNaN(Number(published)) ? published.split(",")[1] : published;
+          const year =
+            published && isNaN(Number(published))
+              ? published.split(",")[1]
+              : published;
           return <Box>{year}</Box>;
         },
         size: 0,
@@ -120,7 +134,9 @@ export function BooksMetaList({ books, addBooksToList, closeDialog }: IBooksMeta
     },
     initialState: { pagination: { pageSize: 20, pageIndex: 0 } },
     renderTopToolbarCustomActions: ({ table }) => {
-      const selectedRowsCount = Object.values(table.getState().rowSelection).length;
+      const selectedRowsCount = Object.values(
+        table.getState().rowSelection
+      ).length;
       //TODO добавить удаление книг из списка
       return (
         <Box
@@ -148,7 +164,10 @@ export function BooksMetaList({ books, addBooksToList, closeDialog }: IBooksMeta
   return (
     <Box pt={2}>
       <MaterialReactTable table={table} />
-      <BookThumbZoom thumb={zoomThumbSrc} zoomOut={() => setZoomThumbSrc(undefined)} />
+      <BookThumbZoom
+        thumb={zoomThumbSrc}
+        zoomOut={() => setZoomThumbSrc(undefined)}
+      />
     </Box>
   );
 }

@@ -1,5 +1,14 @@
 import { FC, useEffect, useState } from "react";
-import { List, Box, ListItem, ListItemButton, ListItemText, Divider, ListItemIcon, Typography } from "@mui/material";
+import {
+  List,
+  Box,
+  ListItem,
+  ListItemButton,
+  ListItemText,
+  Divider,
+  ListItemIcon,
+  Typography,
+} from "@mui/material";
 import { useLocation, useNavigate } from "react-router-dom";
 import { useContext } from "react";
 import { AuthContext } from "@entities/auth";
@@ -23,7 +32,11 @@ export const TeacherTabsList: FC = () => {
             {value.name === "Выйти" && <Divider />}
             <ListItem
               key={value.name}
-              onClick={value.name === "Выйти" ? handleLogOut : () => value.path && navigate(value.path)}
+              onClick={
+                value.name === "Выйти"
+                  ? handleLogOut
+                  : () => value.path && navigate(value.path)
+              }
               disablePadding
               sx={{ width: "100%" }}
             >
@@ -46,7 +59,11 @@ export const TeacherTabsList: FC = () => {
                 >
                   {value.icon}
                 </ListItemIcon>
-                <ListItemText primary={<Typography fontSize={"14px"}>{value.name}</Typography>} />
+                <ListItemText
+                  primary={
+                    <Typography fontSize={"14px"}>{value.name}</Typography>
+                  }
+                />
               </ListItemButton>
             </ListItem>
           </>

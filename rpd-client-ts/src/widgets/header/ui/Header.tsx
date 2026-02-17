@@ -20,9 +20,20 @@ export const Header: FC = () => {
       }}
     >
       <Toolbar>
-        <Box width={"100%"} display={"flex"} justifyContent={"space-between"} alignItems={"center"}>
+        <Box
+          width={"100%"}
+          display={"flex"}
+          justifyContent={"space-between"}
+          alignItems={"center"}
+        >
           <Box display={"flex"} alignItems={"center"}>
-            <IconButton color="inherit" aria-label="toggle drawer" onClick={toggleDrawer} edge="start" sx={{ mr: 2 }}>
+            <IconButton
+              color="inherit"
+              aria-label="toggle drawer"
+              onClick={toggleDrawer}
+              edge="start"
+              sx={{ mr: 2 }}
+            >
               <MenuIcon />
             </IconButton>
             <HeaderLogo />

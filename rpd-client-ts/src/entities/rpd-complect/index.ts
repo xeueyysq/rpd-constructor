@@ -1,1 +1,4 @@
-export { useRpdComplectsQuery, useDeleteRpdComplectsMutation } from "./model/queries";
+export {
+  useRpdComplectsQuery,
+  useDeleteRpdComplectsMutation,
+} from "./model/queries";

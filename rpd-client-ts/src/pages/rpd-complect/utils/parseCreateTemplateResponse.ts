@@ -5,10 +5,17 @@ export type CreateTemplateOutcome =
   | { kind: "error"; message: string; refetch: false }
   | { kind: "warning"; message: string; refetch: false };
 
-export function parseCreateTemplateResponse(response: CreateTemplateResponse): CreateTemplateOutcome {
-  const result = typeof response === "string" ? response : (response?.result as string | undefined);
+export function parseCreateTemplateResponse(
+  response: CreateTemplateResponse
+): CreateTemplateOutcome {
+  const result =
+    typeof response === "string"
+      ? response
+      : (response?.result as string | undefined);
   const missingTeachers =
-    typeof response === "object" && response?.missingTeachers?.length ? response.missingTeachers : [];
+    typeof response === "object" && response?.missingTeachers?.length
+      ? response.missingTeachers
+      : [];
 
   if (result === "record exists") {
     return {
@@ -43,10 +50,16 @@ export function parseCreateTemplateResponse(response: CreateTemplateResponse): C
 
 export type CreateTemplateErrorOutcome = { kind: "error"; message: string };
 
-export function parseCreateTemplateError(error: unknown): CreateTemplateErrorOutcome {
+export function parseCreateTemplateError(
+  error: unknown
+): CreateTemplateErrorOutcome {
   const data =
     error && typeof error === "object" && "response" in error
-      ? (error as { response?: { data?: { message?: string; result?: string } } }).response?.data
+      ? (
+          error as {
+            response?: { data?: { message?: string; result?: string } };
+          }
+        ).response?.data
       : undefined;
   const message = data?.message ?? "Ошибка. Не удалось создать шаблон";
   return { kind: "error", message };

@@ -10,11 +10,16 @@ import { useNavigate } from "react-router-dom";
 import { templateDataTitles } from "../model/templateDataTitles.ts";
 import { RedirectPath } from "@shared/enums.ts";
 
-export const TemplateConstructor: FC<TemplateConstructorType> = ({ setChoise }) => {
+export const TemplateConstructor: FC<TemplateConstructorType> = ({
+  setChoise,
+}) => {
   const selectedTemplateData = useStore.getState().selectedTemplateData;
   const { setComplectId, complectId } = useStore();
-  const [createComplectStatus, setCreateComplectStatus] = useState<string>("pending");
-  const [isFindComplect, setIsFindComplect] = useState<boolean | undefined>(undefined);
+  const [createComplectStatus, setCreateComplectStatus] =
+    useState<string>("pending");
+  const [isFindComplect, setIsFindComplect] = useState<boolean | undefined>(
+    undefined
+  );
   const navigate = useNavigate();
 
   const createRpdComplect = async () => {
@@ -65,7 +70,11 @@ export const TemplateConstructor: FC<TemplateConstructorType> = ({ setChoise }) 
 
   function BackButton({ text }: { text: string }) {
     return (
-      <Button sx={{ mr: 1 }} variant="outlined" onClick={() => setChoise("selectData")}>
+      <Button
+        sx={{ mr: 1 }}
+        variant="outlined"
+        onClick={() => setChoise("selectData")}
+      >
         {text}
       </Button>
     );
@@ -73,7 +82,9 @@ export const TemplateConstructor: FC<TemplateConstructorType> = ({ setChoise }) 
 
   return (
     <>
-      <Typography sx={{ py: 2, fontSize: "18px", fontWeight: "600" }}>Выбранные данные:</Typography>
+      <Typography sx={{ py: 2, fontSize: "18px", fontWeight: "600" }}>
+        Выбранные данные:
+      </Typography>
       {Object.entries(selectedTemplateData).map(([key, value]) => (
         <Box sx={{ pl: "40px" }} key={key}>
           <Typography component="span" sx={{ fontWeight: "600" }}>
@@ -102,20 +113,33 @@ export const TemplateConstructor: FC<TemplateConstructorType> = ({ setChoise }) 
               {createComplectStatus === "loading" && (
                 <Box sx={{ p: 1, display: "flex" }}>
                   <CircularProgress color="inherit" size="1rem" />
-                  <Typography sx={{ px: 1 }}>Идет поиск комплекта РПД. Это может занять какое-то время</Typography>
+                  <Typography sx={{ px: 1 }}>
+                    Идет поиск комплекта РПД. Это может занять какое-то время
+                  </Typography>
                 </Box>
               )}
               {createComplectStatus === "warning" && (
-                <Typography color={"warning"}>По заданному комплекту нет данных</Typography>
+                <Typography color={"warning"}>
+                  По заданному комплекту нет данных
+                </Typography>
               )}
               {createComplectStatus === "error" && (
-                <Typography color={"error"}>Сервис 1С временно недоступен</Typography>
+                <Typography color={"error"}>
+                  Сервис 1С временно недоступен
+                </Typography>
               )}
               {createComplectStatus === "success" && (
                 <Box>
-                  <Typography pb={2}>Комплект РПД создан успешно. Перейти к редактированию?</Typography>
+                  <Typography pb={2}>
+                    Комплект РПД создан успешно. Перейти к редактированию?
+                  </Typography>
                   <BackButton text="Назад" />
-                  <Button variant="contained" onClick={() => navigate(`${RedirectPath.COMPLECTS}/${complectId}`)}>
+                  <Button
+                    variant="contained"
+                    onClick={() =>
+                      navigate(`${RedirectPath.COMPLECTS}/${complectId}`)
+                    }
+                  >
                     Перейти
                   </Button>
                 </Box>
@@ -132,7 +156,12 @@ export const TemplateConstructor: FC<TemplateConstructorType> = ({ setChoise }) 
         {isFindComplect && (
           <Box>
             <BackButton text="Назад" />
-            <Button variant="contained" onClick={() => navigate(`${RedirectPath.COMPLECTS}/${complectId}`)}>
+            <Button
+              variant="contained"
+              onClick={() =>
+                navigate(`${RedirectPath.COMPLECTS}/${complectId}`)
+              }
+            >
               Перейти к редактированию
             </Button>
           </Box>

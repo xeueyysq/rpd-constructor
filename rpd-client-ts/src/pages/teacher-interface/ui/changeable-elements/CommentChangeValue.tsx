@@ -1,5 +1,14 @@
 import { useAuth } from "@entities/auth";
-import { Box, Button, IconButton, ListItemIcon, ListItemText, Menu, MenuItem, Typography } from "@mui/material";
+import {
+  Box,
+  Button,
+  IconButton,
+  ListItemIcon,
+  ListItemText,
+  Menu,
+  MenuItem,
+  Typography,
+} from "@mui/material";
 import { UserRole } from "@shared/ability";
 import { axiosBase } from "@shared/api";
 import { useStore } from "@shared/hooks";
@@ -16,7 +25,11 @@ interface ICommentChangeValue {
   setIsEdittedComment: (value: boolean) => void;
 }
 
-export function CommentChangeValue({ templateField, isEdittedComment, setIsEdittedComment }: ICommentChangeValue) {
+export function CommentChangeValue({
+  templateField,
+  isEdittedComment,
+  setIsEdittedComment,
+}: ICommentChangeValue) {
   const { userRole } = useAuth((state) => state);
   const { jsonData, updateJsonComment } = useStore((state) => state);
   const [anchorEl, setAnchorEl] = useState<null | HTMLButtonElement>(null);
@@ -44,8 +57,14 @@ export function CommentChangeValue({ templateField, isEdittedComment, setIsEditt
   const createdAtRaw = comment?.created_at as string | undefined;
   const updatedAtRaw = comment?.updated_at as string | undefined;
 
-  const createdAt = useMemo(() => (createdAtRaw ? new Date(createdAtRaw) : undefined), [createdAtRaw]);
-  const updatedAt = useMemo(() => (updatedAtRaw ? new Date(updatedAtRaw) : undefined), [updatedAtRaw]);
+  const createdAt = useMemo(
+    () => (createdAtRaw ? new Date(createdAtRaw) : undefined),
+    [createdAtRaw]
+  );
+  const updatedAt = useMemo(
+    () => (updatedAtRaw ? new Date(updatedAtRaw) : undefined),
+    [updatedAtRaw]
+  );
   const isEdited =
     Boolean(createdAt && updatedAt) &&
     Number.isFinite(createdAt!.getTime()) &&
@@ -69,10 +88,13 @@ export function CommentChangeValue({ templateField, isEdittedComment, setIsEditt
       return;
     }
     try {
-      const { data } = await axiosBase.put(`upset-template-comment/${templateId}`, {
-        field: templateField,
-        value: htmlValue,
-      });
+      const { data } = await axiosBase.put(
+        `upset-template-comment/${templateId}`,
+        {
+          field: templateField,
+          value: htmlValue,
+        }
+      );
 
       showSuccessMessage("Данные успешно сохранены");
       updateJsonComment(templateField, data ?? htmlValue);
@@ -107,7 +129,8 @@ export function CommentChangeValue({ templateField, isEdittedComment, setIsEditt
     setAnchorEl(null);
   };
 
-  if (userRole === UserRole.TEACHER && !hasComment && !isEdittedComment) return null;
+  if (userRole === UserRole.TEACHER && !hasComment && !isEdittedComment)
+    return null;
 
   return (
     <Box
@@ -133,11 +156,23 @@ export function CommentChangeValue({ templateField, isEdittedComment, setIsEditt
               <Typography display="block" gutterBottom m="0">
                 Комментарий
               </Typography>
-              <Typography variant="caption" display="block" color="text.secondary" m="0">
-                {isEdited ? `Изменен: ${formatDateTime(updatedAt)}` : `Создан: ${formatDateTime(createdAt)}`}
+              <Typography
+                variant="caption"
+                display="block"
+                color="text.secondary"
+                m="0"
+              >
+                {isEdited
+                  ? `Изменен: ${formatDateTime(updatedAt)}`
+                  : `Создан: ${formatDateTime(createdAt)}`}
               </Typography>
             </Box>
-            <Typography color="text.secondary" display="block" gutterBottom m="0">
+            <Typography
+              color="text.secondary"
+              display="block"
+              gutterBottom
+              m="0"
+            >
               Автор: {comment.commentator_id}
             </Typography>
           </Box>
@@ -182,7 +217,13 @@ export function CommentChangeValue({ templateField, isEdittedComment, setIsEditt
                     <RemoveCircleOutlineIcon color="error" />
                   </ListItemIcon>
                   <ListItemText>
-                    <Typography variant="button" display="block" gutterBottom color="error" m="0">
+                    <Typography
+                      variant="button"
+                      display="block"
+                      gutterBottom
+                      color="error"
+                      m="0"
+                    >
                       Удалить комментарий
                     </Typography>
                   </ListItemText>

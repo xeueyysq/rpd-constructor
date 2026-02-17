@@ -28,7 +28,12 @@ export const RPDTemplate: FC = () => {
           <RpdList RpdListItems={RpdListItems} setChoise={setChoise} />
         </Box>
       </Box>
-      <Box my={4} p={2} ml={2} sx={{ backgroundColor: "#fefefe", width: "100%" }}>
+      <Box
+        my={4}
+        p={2}
+        ml={2}
+        sx={{ backgroundColor: "#fefefe", width: "100%" }}
+      >
         {choise === "coverPage" && <RpdCoverPage />}
       </Box>
     </Container>

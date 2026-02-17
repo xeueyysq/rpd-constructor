@@ -14,7 +14,9 @@ const JsonChangeValue: FC<JsonChangeValueTypes> = ({ elementName }) => {
   const elementValue = useStore((state) => state.jsonData[elementName]);
 
   const [isEditing, setIsEditing] = useState<boolean>(false);
-  const [changeableValue, setChangeableValue] = useState<string>(elementValue || "");
+  const [changeableValue, setChangeableValue] = useState<string>(
+    elementValue || ""
+  );
 
   useEffect(() => {
     if (!isEditing) setChangeableValue(elementValue || "");
@@ -64,12 +66,19 @@ const JsonChangeValue: FC<JsonChangeValueTypes> = ({ elementName }) => {
       >
         {isEditing ? (
           <Box p={1}>
-            <TextEditor value={changeableValue} saveContent={saveContent} setIsEditing={setIsEditing} />
+            <TextEditor
+              value={changeableValue}
+              saveContent={saveContent}
+              setIsEditing={setIsEditing}
+            />
           </Box>
         ) : (
           <Box>
             {changeableValue ? (
-              <Box dangerouslySetInnerHTML={{ __html: changeableValue }} sx={{ py: 1 }}></Box>
+              <Box
+                dangerouslySetInnerHTML={{ __html: changeableValue }}
+                sx={{ py: 1 }}
+              ></Box>
             ) : (
               <Box
                 sx={{
@@ -82,7 +91,9 @@ const JsonChangeValue: FC<JsonChangeValueTypes> = ({ elementName }) => {
                 Данные не найдены
               </Box>
             )}
-            <Box sx={{ display: "flex", justifyContent: "space-between", pl: 1 }}>
+            <Box
+              sx={{ display: "flex", justifyContent: "space-between", pl: 1 }}
+            >
               <Button
                 variant="outlined"
                 endIcon={<EditIcon color="primary" />}
@@ -93,7 +104,9 @@ const JsonChangeValue: FC<JsonChangeValueTypes> = ({ elementName }) => {
               </Button>
               <ExportFromTemplates
                 elementName={elementName}
-                setChangeableValue={(value) => setChangeableValue(value as string)}
+                setChangeableValue={(value) =>
+                  setChangeableValue(value as string)
+                }
               />
             </Box>
           </Box>

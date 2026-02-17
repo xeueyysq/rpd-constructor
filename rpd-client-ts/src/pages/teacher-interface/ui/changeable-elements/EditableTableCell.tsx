@@ -6,7 +6,11 @@ interface IEditableTableCell {
   readOnly: boolean;
 }
 
-export function EditableTableCell({ value: fieldValue, onValueChange, readOnly }: IEditableTableCell) {
+export function EditableTableCell({
+  value: fieldValue,
+  onValueChange,
+  readOnly,
+}: IEditableTableCell) {
   if (readOnly)
     return (
       <TableCell
@@ -42,7 +46,10 @@ export function EditableTableCell({ value: fieldValue, onValueChange, readOnly }
         autoFocus
         sx={{
           fontSize: "14px !important",
-          "& .MuiInputBase-input": { fontSize: "14px !important", textAlign: "center" },
+          "& .MuiInputBase-input": {
+            fontSize: "14px !important",
+            textAlign: "center",
+          },
           flex: 1,
           "& .MuiInputBase-root": { alignItems: "flex-start", borderRadius: 0 },
           "& .MuiOutlinedInput-root": {
@@ -50,7 +57,11 @@ export function EditableTableCell({ value: fieldValue, onValueChange, readOnly }
             "& fieldset": { border: "none" },
             padding: 0,
           },
-          "& textarea": { boxSizing: "border-box", resize: "none", overflow: "hidden" },
+          "& textarea": {
+            boxSizing: "border-box",
+            resize: "none",
+            overflow: "hidden",
+          },
         }}
         value={fieldValue}
         onChange={(e) => onValueChange(Number(e.target.value))}

@@ -12,7 +12,8 @@ export interface ParsedPlannedResults {
 const excelCellValueToString = (value: unknown): string => {
   if (value === null || value === undefined) return "";
   if (typeof value === "string") return value;
-  if (typeof value === "number" || typeof value === "boolean") return String(value);
+  if (typeof value === "number" || typeof value === "boolean")
+    return String(value);
   if (value instanceof Date) return value.toISOString();
 
   // ExcelJS can return rich objects for cells (richText, formula, hyperlink, etc.)
@@ -24,7 +25,9 @@ const excelCellValueToString = (value: unknown): string => {
 
     // { richText: Array<{ text: string }> }
     if (Array.isArray(v.richText)) {
-      return v.richText.map((p) => (typeof p?.text === "string" ? p.text : "")).join("");
+      return v.richText
+        .map((p) => (typeof p?.text === "string" ? p.text : ""))
+        .join("");
     }
 
     // { formula: string, result: CellValue }
@@ -34,7 +37,8 @@ const excelCellValueToString = (value: unknown): string => {
   return String(value);
 };
 
-const normalizeCode = (value: string): string => value.replace(/[–—]/g, "-").replace(/\s+/g, "").toUpperCase();
+const normalizeCode = (value: string): string =>
+  value.replace(/[–—]/g, "-").replace(/\s+/g, "").toUpperCase();
 
 // We intentionally keep these regexes *generic*.
 // They are used only to:
@@ -77,7 +81,9 @@ const parseXlsxFile = async (file: File): Promise<string[][]> => {
   await workbook.xlsx.load(buffer);
 
   const worksheet =
-    workbook.worksheets.find((ws) => (ws.name ?? "").toString().trim().toLowerCase() === "компетенции") ?? null;
+    workbook.worksheets.find(
+      (ws) => (ws.name ?? "").toString().trim().toLowerCase() === "компетенции"
+    ) ?? null;
   if (!worksheet) {
     throw new Error('Не найден лист "Компетенции" в XLSX файле');
   }
@@ -88,7 +94,10 @@ const parseXlsxFile = async (file: File): Promise<string[][]> => {
   // it shifts indices and breaks mapping. We must read by absolute column index.
   worksheet.eachRow({ includeEmpty: true }, (row) => {
     const rowData: string[] = [];
-    const columnCount = Math.max(worksheet.columnCount ?? 0, row.cellCount ?? 0);
+    const columnCount = Math.max(
+      worksheet.columnCount ?? 0,
+      row.cellCount ?? 0
+    );
     for (let c = 1; c <= columnCount; c++) {
       const cell = row.getCell(c);
       rowData.push(excelCellValueToString(cell.value));
@@ -147,7 +156,9 @@ const detectStructureType = (rows: string[][]): "new" | "old" => {
   );
   if (hasAnyCompetence) return "old";
 
-  throw new Error("Данные не найдены или не удалось определить структуру файла");
+  throw new Error(
+    "Данные не найдены или не удалось определить структуру файла"
+  );
 };
 
 const parseNewStructure = (rows: string[][]): ParsedPlannedResults => {
@@ -168,8 +179,11 @@ const parseOldStructure = (rows: string[][]): ParsedPlannedResults => {
     const nonEmpty = cells.filter(Boolean);
     if (nonEmpty.length === 0) return;
 
-    const competenceIdx = cells.findIndex((c) => competenceCodeRe.test(normalizeCode(c)));
-    const competenceCode = competenceIdx >= 0 ? normalizeCode(cells[competenceIdx]) : "";
+    const competenceIdx = cells.findIndex((c) =>
+      competenceCodeRe.test(normalizeCode(c))
+    );
+    const competenceCode =
+      competenceIdx >= 0 ? normalizeCode(cells[competenceIdx]) : "";
 
     if (competenceCode) {
       // Some old-format files may contain a short trailing label (e.g. "УК") in the last column.
@@ -194,7 +208,9 @@ const parseOldStructure = (rows: string[][]): ParsedPlannedResults => {
       return;
     }
 
-    const disciplineText = [...nonEmpty].reverse().find((c) => !/^[-–—‑]+$/.test(c.trim()));
+    const disciplineText = [...nonEmpty]
+      .reverse()
+      .find((c) => !/^[-–—‑]+$/.test(c.trim()));
     if (disciplineText) {
       parsedData[idx++] = {
         competence: "",
@@ -211,7 +227,9 @@ const parseOldStructure = (rows: string[][]): ParsedPlannedResults => {
   return parsedData;
 };
 
-export const parseCsvToJson = async (file: File): Promise<ParsedPlannedResults> => {
+export const parseCsvToJson = async (
+  file: File
+): Promise<ParsedPlannedResults> => {
   const extension = file.name.split(".").pop()?.toLowerCase();
 
   if (!extension) {
@@ -221,13 +239,17 @@ export const parseCsvToJson = async (file: File): Promise<ParsedPlannedResults> 
   if (extension === "csv") {
     const rows = await parseCsvFile(file);
     const structureType = detectStructureType(rows);
-    return structureType === "new" ? parseNewStructure(rows) : parseOldStructure(rows);
+    return structureType === "new"
+      ? parseNewStructure(rows)
+      : parseOldStructure(rows);
   }
 
   if (extension === "xlsx" || extension === "xls") {
     const rows = await parseXlsxFile(file);
     const structureType = detectStructureType(rows);
-    return structureType === "new" ? parseNewStructure(rows) : parseOldStructure(rows);
+    return structureType === "new"
+      ? parseNewStructure(rows)
+      : parseOldStructure(rows);
   }
 
   throw new Error("Поддерживаются только файлы форматов .csv и .xlsx");

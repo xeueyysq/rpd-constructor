@@ -51,10 +51,12 @@ const DisciplinePlace: FC = () => {
           </Tg>
           курсе
           <Tg sx={{ pt: 2 }}>
-            форма промежуточной аттестации – <CertificationSelector certification={data.certification || ""} />
+            форма промежуточной аттестации –{" "}
+            <CertificationSelector certification={data.certification || ""} />
             {!data.certification && (
               <Tg sx={{ color: "warning.main", fontWeight: 600, mt: 1 }}>
-                Форма промежуточной аттестации не подгрузилась из 1С — выберите вручную
+                Форма промежуточной аттестации не подгрузилась из 1С — выберите
+                вручную
               </Tg>
             )}
           </Tg>

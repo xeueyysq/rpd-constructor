@@ -20,7 +20,10 @@ export const TemplateStatus: FC<TemplateStatus> = ({ status }) => {
   });
   return (
     <Box>
-      <Box>{statusConfig[status.status as keyof typeof statusConfig]?.label || status.status}</Box>
+      <Box>
+        {statusConfig[status.status as keyof typeof statusConfig]?.label ||
+          status.status}
+      </Box>
       <Typography
         sx={{
           color: "grey",

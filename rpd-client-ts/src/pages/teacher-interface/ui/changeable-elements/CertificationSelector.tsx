@@ -12,7 +12,9 @@ const CertificationSelector: FC<SelectorProps> = ({ certification }) => {
   const templateId = useStore((state) => state.jsonData.id);
   const storeCertification = useStore((state) => state.jsonData.certification);
   const updateJsonData = useStore((state) => state.updateJsonData);
-  const [valueCertification, setValueCertification] = useState<string>(certification || storeCertification || "");
+  const [valueCertification, setValueCertification] = useState<string>(
+    certification || storeCertification || ""
+  );
 
   useEffect(() => {
     setValueCertification(certification || storeCertification || "");
@@ -51,7 +53,9 @@ const CertificationSelector: FC<SelectorProps> = ({ certification }) => {
       <MenuItem value="Зачет">зачет</MenuItem>
       <MenuItem value="Зачет с оценкой">зачет с оценкой</MenuItem>
       <MenuItem value="Экзамен">экзамен</MenuItem>
-      <MenuItem value="Экзамен + курсовая работа">экзамен + курсовая работа</MenuItem>
+      <MenuItem value="Экзамен + курсовая работа">
+        экзамен + курсовая работа
+      </MenuItem>
     </Select>
   );
 };

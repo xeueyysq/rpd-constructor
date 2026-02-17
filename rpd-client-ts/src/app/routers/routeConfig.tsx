@@ -10,7 +10,9 @@ const UserManagement = lazy(() => import("@pages/user-management"));
 const RpdComplectsList = lazy(() => import("@pages/rpd-complects"));
 const PlannedResultsList = lazy(() => import("@pages/planned-results"));
 const RpdComplectPage = lazy(() => import("@pages/rpd-complect"));
-const TeacherInterfaceTemplates = lazy(() => import("@pages/teacher-interface-templates"));
+const TeacherInterfaceTemplates = lazy(
+  () => import("@pages/teacher-interface-templates")
+);
 
 export const mainPages = [
   RedirectPath.COMPLECTS,

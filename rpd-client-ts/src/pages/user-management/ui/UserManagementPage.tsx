@@ -1,11 +1,23 @@
-import { Box, Button, FormControl, InputLabel, MenuItem, OutlinedInput, Select } from "@mui/material";
+import {
+  Box,
+  Button,
+  FormControl,
+  InputLabel,
+  MenuItem,
+  OutlinedInput,
+  Select,
+} from "@mui/material";
 import { UserRole } from "@shared/ability";
 import { axiosBase } from "@shared/api";
 import { showErrorMessage, showSuccessMessage } from "@shared/lib";
 import { Loader, PageTitle } from "@shared/ui";
 import { WarningDeleteDialog } from "@widgets/dialogs/ui";
 import axios from "axios";
-import { MaterialReactTable, MRT_ColumnDef, useMaterialReactTable } from "material-react-table";
+import {
+  MaterialReactTable,
+  MRT_ColumnDef,
+  useMaterialReactTable,
+} from "material-react-table";
 import { MRT_Localization_RU } from "material-react-table/locales/ru";
 import { FC, useEffect, useMemo, useState } from "react";
 import type { User } from "../model/types";
@@ -142,10 +154,16 @@ export const UserManagementPage: FC = () => {
     },
     positionToolbarAlertBanner: "none",
     renderTopToolbarCustomActions: () => {
-      const selectedRowsCount = Object.values(table.getState().rowSelection).length;
+      const selectedRowsCount = Object.values(
+        table.getState().rowSelection
+      ).length;
       return (
         <Box display={"flex"} gap={2} pl={2} alignItems={"center"}>
-          <FormControl disabled={!selectedRowsCount} size="small" sx={{ minWidth: 175 }}>
+          <FormControl
+            disabled={!selectedRowsCount}
+            size="small"
+            sx={{ minWidth: 175 }}
+          >
             <InputLabel size="small">Изменить роль</InputLabel>
             <Select
               label="Изменить роль"

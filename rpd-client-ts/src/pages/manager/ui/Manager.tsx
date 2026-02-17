@@ -22,10 +22,18 @@ export const Manager: FC = () => {
         }}
       >
         <PageTitle title={"Создание комплекта РПД на основе учебного плана"} />
-        {managerPage === "selectData" && <Selectors setChoise={setManagerPage} />}
-        {managerPage === "workingType" && <TemplateConstructor setChoise={setManagerPage} />}
-        {managerPage === "changeTemplate" && <ChangeRpdTemplate setChoise={setManagerPage} />}
-        {managerPage === "createTemplateFromCurrentYear" && <CreateRpdTemplateFromYear setChoise={setManagerPage} />}
+        {managerPage === "selectData" && (
+          <Selectors setChoise={setManagerPage} />
+        )}
+        {managerPage === "workingType" && (
+          <TemplateConstructor setChoise={setManagerPage} />
+        )}
+        {managerPage === "changeTemplate" && (
+          <ChangeRpdTemplate setChoise={setManagerPage} />
+        )}
+        {managerPage === "createTemplateFromCurrentYear" && (
+          <CreateRpdTemplateFromYear setChoise={setManagerPage} />
+        )}
         {managerPage === "createTemplateFromExchange" && <RpdComplectPage />}
       </Box>
     </Box>

@@ -23,7 +23,8 @@ export function ClippedDrawer() {
   //@TODO Костыль на определение страницы
   const isTemplatePage = useMemo(
     () =>
-      path.includes(RedirectPath.TEMPLATES) && path.split("/").filter((part) => part && !isNaN(Number(part))).length,
+      path.includes(RedirectPath.TEMPLATES) &&
+      path.split("/").filter((part) => part && !isNaN(Number(part))).length,
     [path]
   );
 
@@ -74,7 +75,9 @@ export function ClippedDrawer() {
             display: "flex",
             flexDirection: "column",
             transition: "transform 0.3s cubic-bezier(0.4, 0, 0.2, 1)",
-            transform: isDrawerOpen ? "translateX(0)" : `translateX(-${drawerWidth}px)`,
+            transform: isDrawerOpen
+              ? "translateX(0)"
+              : `translateX(-${drawerWidth}px)`,
             borderRight: "1px solid rgba(0, 0, 0, 0.12)",
             boxShadow: isDrawerOpen ? "4px 0 16px rgba(0, 0, 0, 0.12)" : "none",
             "& .MuiListItemIcon-root, & svg": {
@@ -107,7 +110,8 @@ export function ClippedDrawer() {
           p: 3,
           px: isTemplatePage ? 9 : undefined,
           marginLeft: isDrawerOpen ? `${drawerWidth}px` : 0,
-          transition: "margin-left 0.3s cubic-bezier(0.4, 0, 0.2, 1), width 0.3s cubic-bezier(0.4, 0, 0.2, 1)",
+          transition:
+            "margin-left 0.3s cubic-bezier(0.4, 0, 0.2, 1), width 0.3s cubic-bezier(0.4, 0, 0.2, 1)",
           overflowX: "hidden",
           overflowY: "hidden",
           backgroundColor: "#F2F3F7",

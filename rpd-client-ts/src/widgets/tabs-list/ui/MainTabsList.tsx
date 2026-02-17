@@ -1,5 +1,14 @@
 import { FC, useState, useEffect } from "react";
-import { List, Box, ListItem, ListItemButton, ListItemText, Divider, ListItemIcon, Typography } from "@mui/material";
+import {
+  List,
+  Box,
+  ListItem,
+  ListItemButton,
+  ListItemText,
+  Divider,
+  ListItemIcon,
+  Typography,
+} from "@mui/material";
 import { useNavigate, useLocation } from "react-router-dom";
 import { useContext } from "react";
 import { AuthContext } from "@entities/auth";
@@ -47,7 +56,8 @@ export const MainTabsList: FC = () => {
                       sx={{
                         width: "100%",
                         py: 1.25,
-                        bgcolor: activeTab === value.path ? "#f1f1f1" : "inherit",
+                        bgcolor:
+                          activeTab === value.path ? "#f1f1f1" : "inherit",
                         pl: 1.5,
                       }}
                     >
@@ -61,7 +71,13 @@ export const MainTabsList: FC = () => {
                       >
                         {value.icon}
                       </ListItemIcon>
-                      <ListItemText primary={<Typography fontSize={"14px"}>{value.name}</Typography>} />
+                      <ListItemText
+                        primary={
+                          <Typography fontSize={"14px"}>
+                            {value.name}
+                          </Typography>
+                        }
+                      />
                     </ListItemButton>
                   </ListItem>
                 </>
@@ -90,7 +106,12 @@ export const MainTabsList: FC = () => {
                 }}
               >
                 <ListItemButton
-                  sx={{ width: "100%", py: 1.25, pl: 1.5, bgcolor: activeTab === value.path ? "#f1f1f1" : "inherit" }}
+                  sx={{
+                    width: "100%",
+                    py: 1.25,
+                    pl: 1.5,
+                    bgcolor: activeTab === value.path ? "#f1f1f1" : "inherit",
+                  }}
                 >
                   <ListItemIcon
                     sx={{
@@ -102,7 +123,11 @@ export const MainTabsList: FC = () => {
                   >
                     {value.icon}
                   </ListItemIcon>
-                  <ListItemText primary={<Typography fontSize={"14px"}>{value.name}</Typography>} />
+                  <ListItemText
+                    primary={
+                      <Typography fontSize={"14px"}>{value.name}</Typography>
+                    }
+                  />
                 </ListItemButton>
               </ListItem>
             </>

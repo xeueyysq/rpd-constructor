@@ -1,4 +1,10 @@
-import { Button, Dialog, DialogActions, DialogTitle, DialogContent } from "@mui/material";
+import {
+  Button,
+  Dialog,
+  DialogActions,
+  DialogTitle,
+  DialogContent,
+} from "@mui/material";
 
 type WarningDeleteDialogProps = {
   onAccept: () => void;
@@ -7,7 +13,12 @@ type WarningDeleteDialogProps = {
   description: string;
 };
 
-export function WarningDeleteDialog({ onAccept, open, setOpen, description }: WarningDeleteDialogProps) {
+export function WarningDeleteDialog({
+  onAccept,
+  open,
+  setOpen,
+  description,
+}: WarningDeleteDialogProps) {
   return (
     <Dialog open={open} onClose={() => setOpen(false)}>
       <DialogTitle>Подтверждение</DialogTitle>

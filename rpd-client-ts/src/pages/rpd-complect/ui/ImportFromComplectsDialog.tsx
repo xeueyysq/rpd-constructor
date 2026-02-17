@@ -49,14 +49,23 @@ export function ImportFromComplectsDialog({
   onImported,
 }: ImportFromComplectsDialogProps) {
   const { complects, isLoading, isError } = useRpdComplectsQuery();
-  const [expandedComplectId, setExpandedComplectId] = useState<number | null>(null);
+  const [expandedComplectId, setExpandedComplectId] = useState<number | null>(
+    null
+  );
   const [templatesByComplectId, setTemplatesByComplectId] = useState<
     Record<number, ComplectTemplatesResponse["templates"]>
   >({});
-  const [templatesLoading, setTemplatesLoading] = useState<Record<number, boolean>>({});
-  const [templatesError, setTemplatesError] = useState<Record<number, string | null>>({});
-  const [searchByComplectId, setSearchByComplectId] = useState<Record<number, string>>({});
-  const [selectedSourceProfileTemplateId, setSelectedSourceProfileTemplateId] = useState<number | null>(null);
+  const [templatesLoading, setTemplatesLoading] = useState<
+    Record<number, boolean>
+  >({});
+  const [templatesError, setTemplatesError] = useState<
+    Record<number, string | null>
+  >({});
+  const [searchByComplectId, setSearchByComplectId] = useState<
+    Record<number, string>
+  >({});
+  const [selectedSourceProfileTemplateId, setSelectedSourceProfileTemplateId] =
+    useState<number | null>(null);
   const [isImporting, setIsImporting] = useState(false);
 
   useEffect(() => {
@@ -71,7 +80,10 @@ export function ImportFromComplectsDialog({
     }
   }, [open]);
 
-  const complectLabel = useCallback((c: ComplectData) => `${c.profile} ${c.year}`, []);
+  const complectLabel = useCallback(
+    (c: ComplectData) => `${c.profile} ${c.year}`,
+    []
+  );
 
   const fetchComplectTemplates = useCallback(
     async (complectId: number) => {
@@ -82,11 +94,20 @@ export function ImportFromComplectsDialog({
       setTemplatesError((p) => ({ ...p, [complectId]: null }));
 
       try {
-        const { data } = await axiosBase.post<ComplectTemplatesResponse>("find-rpd", { complectId });
-        setTemplatesByComplectId((p) => ({ ...p, [complectId]: data.templates ?? [] }));
+        const { data } = await axiosBase.post<ComplectTemplatesResponse>(
+          "find-rpd",
+          { complectId }
+        );
+        setTemplatesByComplectId((p) => ({
+          ...p,
+          [complectId]: data.templates ?? [],
+        }));
       } catch (e) {
         console.error(e);
-        setTemplatesError((p) => ({ ...p, [complectId]: "Не удалось загрузить шаблоны комплекта" }));
+        setTemplatesError((p) => ({
+          ...p,
+          [complectId]: "Не удалось загрузить шаблоны комплекта",
+        }));
       } finally {
         setTemplatesLoading((p) => ({ ...p, [complectId]: false }));
       }
@@ -114,7 +135,10 @@ export function ImportFromComplectsDialog({
 
     setIsImporting(true);
     try {
-      const { data } = await axiosBase.post<{ success?: boolean; message?: string }>("copy-template-content", {
+      const { data } = await axiosBase.post<{
+        success?: boolean;
+        message?: string;
+      }>("copy-template-content", {
         sourceTemplateId: selectedSourceProfileTemplateId,
         targetTemplateId,
       });
@@ -140,7 +164,9 @@ export function ImportFromComplectsDialog({
       const q = (searchByComplectId[complectId] ?? "").trim().toLowerCase();
 
       const created = (templates ?? []).filter((t) => !!t.id_profile_template);
-      const withoutSelf = created.filter((t) => t.id_profile_template !== targetTemplateId);
+      const withoutSelf = created.filter(
+        (t) => t.id_profile_template !== targetTemplateId
+      );
 
       if (!q) {
         result[complectId] = withoutSelf;
@@ -148,7 +174,8 @@ export function ImportFromComplectsDialog({
       }
 
       result[complectId] = withoutSelf.filter((t) => {
-        const hay = `${t.discipline} ${t.teacher ?? ""} ${t.semester ?? ""}`.toLowerCase();
+        const hay =
+          `${t.discipline} ${t.teacher ?? ""} ${t.semester ?? ""}`.toLowerCase();
         return hay.includes(q);
       });
     }
@@ -160,8 +187,8 @@ export function ImportFromComplectsDialog({
       <DialogTitle>Импортировать данные из шаблона</DialogTitle>
       <DialogContent dividers>
         <Typography variant="body2" color="text.secondary" sx={{ mb: 1 }}>
-          Выберите комплект, затем шаблон. Будут импортированы только контентные поля (без дисциплины, семестра,
-          нагрузки и т.п.)
+          Выберите комплект, затем шаблон. Будут импортированы только контентные
+          поля (без дисциплины, семестра, нагрузки и т.п.)
         </Typography>
         <Divider sx={{ mb: 2 }} />
 
@@ -170,7 +197,9 @@ export function ImportFromComplectsDialog({
         ) : isError ? (
           <Alert severity="error">Не удалось загрузить список комплектов</Alert>
         ) : complects.length === 0 ? (
-          <Typography color="text.secondary">Нет доступных комплектов</Typography>
+          <Typography color="text.secondary">
+            Нет доступных комплектов
+          </Typography>
         ) : (
           <Box>
             {complects.map((c) => {
@@ -191,14 +220,20 @@ export function ImportFromComplectsDialog({
                     <Box>
                       <Typography>{complectLabel(c)}</Typography>
                       <Typography variant="caption" color="text.secondary">
-                        {c.directionOfStudy} • {c.levelEducation} • {c.formEducation}
+                        {c.directionOfStudy} • {c.levelEducation} •{" "}
+                        {c.formEducation}
                       </Typography>
                     </Box>
                   </AccordionSummary>
                   <AccordionDetails>
                     <TextField
                       value={searchByComplectId[c.id] ?? ""}
-                      onChange={(e) => setSearchByComplectId((p) => ({ ...p, [c.id]: e.target.value }))}
+                      onChange={(e) =>
+                        setSearchByComplectId((p) => ({
+                          ...p,
+                          [c.id]: e.target.value,
+                        }))
+                      }
                       size="small"
                       fullWidth
                       label="Поиск по шаблонам (дисциплина/преподаватель/семестр)"
@@ -212,7 +247,9 @@ export function ImportFromComplectsDialog({
                     ) : null}
 
                     {isTplLoading ? (
-                      <Typography color="text.secondary">Загрузка шаблонов…</Typography>
+                      <Typography color="text.secondary">
+                        Загрузка шаблонов…
+                      </Typography>
                     ) : templates.length === 0 ? (
                       <Typography color="text.secondary">
                         В этом комплекте нет созданных шаблонов для импорта
@@ -221,15 +258,20 @@ export function ImportFromComplectsDialog({
                       <List dense disablePadding>
                         {templates.map((t) => {
                           const sourceId = t.id_profile_template!;
-                          const selected = selectedSourceProfileTemplateId === sourceId;
+                          const selected =
+                            selectedSourceProfileTemplateId === sourceId;
                           return (
                             <ListItemButton
                               key={sourceId}
                               selected={selected}
-                              onClick={() => setSelectedSourceProfileTemplateId(sourceId)}
+                              onClick={() =>
+                                setSelectedSourceProfileTemplateId(sourceId)
+                              }
                               sx={{
                                 border: "1px solid",
-                                borderColor: selected ? "primary.main" : "divider",
+                                borderColor: selected
+                                  ? "primary.main"
+                                  : "divider",
                                 borderRadius: 1,
                                 mb: 1,
                               }}
@@ -237,16 +279,31 @@ export function ImportFromComplectsDialog({
                               <Radio checked={selected} value={sourceId} />
                               <ListItemText
                                 primary={
-                                  <Box display="flex" justifyContent="space-between" gap={2}>
+                                  <Box
+                                    display="flex"
+                                    justifyContent="space-between"
+                                    gap={2}
+                                  >
                                     <Box sx={{ minWidth: 0 }}>
-                                      <Typography sx={{ fontWeight: 600 }} noWrap>
+                                      <Typography
+                                        sx={{ fontWeight: 600 }}
+                                        noWrap
+                                      >
                                         {t.discipline}
                                       </Typography>
-                                      <Typography variant="body2" color="text.secondary" noWrap>
-                                        {t.teacher || "—"} • семестр {t.semester}
+                                      <Typography
+                                        variant="body2"
+                                        color="text.secondary"
+                                        noWrap
+                                      >
+                                        {t.teacher || "—"} • семестр{" "}
+                                        {t.semester}
                                       </Typography>
                                     </Box>
-                                    <Typography variant="caption" color="text.secondary">
+                                    <Typography
+                                      variant="caption"
+                                      color="text.secondary"
+                                    >
                                       ID {sourceId}
                                     </Typography>
                                   </Box>
@@ -268,7 +325,11 @@ export function ImportFromComplectsDialog({
         <Button onClick={onClose} disabled={isImporting}>
           Отмена
         </Button>
-        <Button variant="contained" onClick={handleImport} disabled={!selectedSourceProfileTemplateId || isImporting}>
+        <Button
+          variant="contained"
+          onClick={handleImport}
+          disabled={!selectedSourceProfileTemplateId || isImporting}
+        >
           Импортировать
         </Button>
       </DialogActions>

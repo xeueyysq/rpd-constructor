@@ -10,7 +10,8 @@ interface IProtectedRoute {
 
 export function RoleBasedRedirect() {
   const userRole = useAuth((state) => state.userRole);
-  const redirectPath = roleToAvailablePath[userRole]?.[0] || RedirectPath.SIGN_IN;
+  const redirectPath =
+    roleToAvailablePath[userRole]?.[0] || RedirectPath.SIGN_IN;
   return <Navigate to={redirectPath} replace />;
 }
 

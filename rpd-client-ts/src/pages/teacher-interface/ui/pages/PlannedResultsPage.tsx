@@ -13,13 +13,23 @@ import {
 } from "@mui/material";
 import { PlannedResultsData } from "@pages/teacher-interface/model/DisciplineContentPageTypes.ts";
 import { TemplatePagesPath } from "@pages/teacher-interface/model/pathes";
-import { parseCsvToJson, ParsedPlannedResults } from "@shared/ability/lib/parseCsvToJson.ts";
+import {
+  parseCsvToJson,
+  ParsedPlannedResults,
+} from "@shared/ability/lib/parseCsvToJson.ts";
 import { axiosBase } from "@shared/api";
 import { useStore } from "@shared/hooks";
 import { showErrorMessage, showSuccessMessage } from "@shared/lib";
 import { Loader, PageTitleComment } from "@shared/ui";
 import { isAxiosError } from "axios";
-import { FC, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
+import {
+  FC,
+  useEffect,
+  useLayoutEffect,
+  useMemo,
+  useRef,
+  useState,
+} from "react";
 
 const RESULT_KEYS = ["own", "know", "beAble"] as const;
 type ResultKey = (typeof RESULT_KEYS)[number];
@@ -30,9 +40,10 @@ const useSyncRowTextareasHeight = (values: string[]) => {
   const rowRef = useRef<HTMLTableRowElement | null>(null);
   const textareasRef = useRef<Array<HTMLTextAreaElement | null>>([]);
 
-  const registerTextarea = (idx: number) => (el: HTMLTextAreaElement | null) => {
-    textareasRef.current[idx] = el;
-  };
+  const registerTextarea =
+    (idx: number) => (el: HTMLTextAreaElement | null) => {
+      textareasRef.current[idx] = el;
+    };
 
   const syncHeights = () => {
     const els = textareasRef.current.filter(Boolean) as HTMLTextAreaElement[];
@@ -72,13 +83,29 @@ const cellTextFieldSx = {
 const PlannedResultsTableRow: FC<{
   rowKeyStr: string;
   row: PlannedRow;
-  onChangeBase: (id: number, value: string, key: "competence" | "indicator") => void;
+  onChangeBase: (
+    id: number,
+    value: string,
+    key: "competence" | "indicator"
+  ) => void;
   onChangeResult: (id: number, value: string, key: ResultKey) => void;
 }> = ({ rowKeyStr, row, onChangeBase, onChangeResult }) => {
   const id = Number(rowKeyStr);
   const values = useMemo(
-    () => [row.competence, row.indicator, row.results.own, row.results.know, row.results.beAble],
-    [row.competence, row.indicator, row.results.own, row.results.know, row.results.beAble]
+    () => [
+      row.competence,
+      row.indicator,
+      row.results.own,
+      row.results.know,
+      row.results.beAble,
+    ],
+    [
+      row.competence,
+      row.indicator,
+      row.results.own,
+      row.results.know,
+      row.results.beAble,
+    ]
   );
   const { rowRef, registerTextarea } = useSyncRowTextareasHeight(values);
 
@@ -130,8 +157,12 @@ const PlannedResultsTableRow: FC<{
 };
 
 const PlannedResultsPage: FC = () => {
-  const disciplineName = useStore((state) => state.jsonData.disciplins_name) as string;
-  const initialData = useStore((state) => state.jsonData.competencies) as PlannedResultsData | undefined;
+  const disciplineName = useStore(
+    (state) => state.jsonData.disciplins_name
+  ) as string;
+  const initialData = useStore((state) => state.jsonData.competencies) as
+    | PlannedResultsData
+    | undefined;
   const { updateJsonData } = useStore();
   const [data, setData] = useState<PlannedResultsData | undefined>(initialData);
 
@@ -155,7 +186,9 @@ const PlannedResultsPage: FC = () => {
           indicator = `${row.indicator}. ${row.results}`;
         } else if (row.results === disciplineName) {
           const hasSameEntry = Object.values(filteredDataMap).some(
-            (existingRow) => existingRow.competence === competence && existingRow.indicator === indicator
+            (existingRow) =>
+              existingRow.competence === competence &&
+              existingRow.indicator === indicator
           );
 
           const competenceValue = hasSameEntry ? "" : competence;
@@ -174,7 +207,9 @@ const PlannedResultsPage: FC = () => {
     return filteredDataMap;
   };
 
-  const handleFileUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
+  const handleFileUpload = async (
+    event: React.ChangeEvent<HTMLInputElement>
+  ) => {
     const file = event.target.files?.[0];
     if (!file) return;
 
@@ -184,7 +219,8 @@ const PlannedResultsPage: FC = () => {
       setData(filteredData);
       showSuccessMessage("Данные успешные загружены");
     } catch (error: unknown) {
-      const errorMessage = error instanceof Error ? error.message : "Неизвестная ошибка";
+      const errorMessage =
+        error instanceof Error ? error.message : "Неизвестная ошибка";
       showErrorMessage(errorMessage);
     } finally {
       event.target.value = "";
@@ -229,7 +265,11 @@ const PlannedResultsPage: FC = () => {
     });
   };
 
-  const handleChangeBaseCell = (id: number, value: string, key: "competence" | "indicator") => {
+  const handleChangeBaseCell = (
+    id: number,
+    value: string,
+    key: "competence" | "indicator"
+  ) => {
     if (!data) return;
     setData({
       ...data,
@@ -248,16 +288,25 @@ const PlannedResultsPage: FC = () => {
 
     (async () => {
       try {
-        const response = await axiosBase.get("get-results-data", { params: { complectId } });
-        type Row = { competence: string; indicator: string; disciplines: string[] };
+        const response = await axiosBase.get("get-results-data", {
+          params: { complectId },
+        });
+        type Row = {
+          competence: string;
+          indicator: string;
+          disciplines: string[];
+        };
         const rows = response.data as Row[];
-        const filtered = rows.filter((r) => r.disciplines.includes(disciplineName));
+        const filtered = rows.filter((r) =>
+          r.disciplines.includes(disciplineName)
+        );
 
         const mapped: PlannedResultsData = {};
         let idx = 0;
         let lastCompetence = "";
         filtered.forEach((r) => {
-          const competenceToSet = r.competence === lastCompetence ? "" : r.competence;
+          const competenceToSet =
+            r.competence === lastCompetence ? "" : r.competence;
           lastCompetence = r.competence;
           mapped[idx++] = {
             competence: competenceToSet,

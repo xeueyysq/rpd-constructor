@@ -19,15 +19,19 @@ import TestPdf from "./pdf-page/TestPdf.tsx";
 import { Loader } from "@shared/ui/Loader.tsx";
 
 export function TeacherInterface() {
-  const { toggleDrawer, setJsonData, updateJsonData, setComplectId, jsonData } = useStore((state) => state);
+  const { toggleDrawer, setJsonData, updateJsonData, setComplectId, jsonData } =
+    useStore((state) => state);
   const { id: templateId, page = TemplatePagesPath.COVER_PAGE } = useParams();
 
-  const deriveCertificationFromStudyLoad = (studyLoad: unknown): string | undefined => {
+  const deriveCertificationFromStudyLoad = (
+    studyLoad: unknown
+  ): string | undefined => {
     if (!Array.isArray(studyLoad)) return;
     for (const item of studyLoad as Array<{ name?: unknown }>) {
       const name = String(item?.name ?? "").toLowerCase();
       if (name.includes("экзам")) return "Экзамен";
-      if (name.includes("зач") && name.includes("оцен")) return "Зачет с оценкой";
+      if (name.includes("зач") && name.includes("оцен"))
+        return "Зачет с оценкой";
       if (name.includes("зач")) return "Зачет";
     }
   };
@@ -41,7 +45,9 @@ export function TeacherInterface() {
       setComplectId(response.data.id_rpd_complect);
 
       if (!response.data?.certification) {
-        const derived = deriveCertificationFromStudyLoad(response.data?.study_load);
+        const derived = deriveCertificationFromStudyLoad(
+          response.data?.study_load
+        );
         if (derived) {
           updateJsonData("certification", derived);
         }
@@ -66,7 +72,9 @@ export function TeacherInterface() {
     [TemplatePagesPath.DISCIPLINE_SCOPE]: <ScopeDisciplinePage />,
     [TemplatePagesPath.DISCIPLINE_CONTENT]: <DisciplineContentPage />,
     [TemplatePagesPath.DISCIPLINE_SUPPORT]: <DisciplineSupportPage />,
-    [TemplatePagesPath.DISCIPLINE_EVALUATIONS_FUNDS]: <DisciplineEvaluationsFunds />,
+    [TemplatePagesPath.DISCIPLINE_EVALUATIONS_FUNDS]: (
+      <DisciplineEvaluationsFunds />
+    ),
     [TemplatePagesPath.RESOURCE_SUPPORT]: <ResourceSupportPage />,
     [TemplatePagesPath.TEST_PDF]: <TestPdf />,
   };
@@ -75,7 +83,9 @@ export function TeacherInterface() {
 
   return (
     <Box>
-      <Box sx={{ backgroundColor: "#ffffff", p: 3, minHeight: "100vh" }}>{pageMap[page]}</Box>
+      <Box sx={{ backgroundColor: "#ffffff", p: 3, minHeight: "100vh" }}>
+        {pageMap[page]}
+      </Box>
     </Box>
   );
 }

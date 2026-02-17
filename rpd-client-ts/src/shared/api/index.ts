@@ -30,7 +30,11 @@ axiosBase.interceptors.response.use(
       | (import("axios").InternalAxiosRequestConfig & { _retry?: boolean })
       | undefined;
 
-    if ((status === 401 || status === 403) && originalRequest && !originalRequest._retry) {
+    if (
+      (status === 401 || status === 403) &&
+      originalRequest &&
+      !originalRequest._retry
+    ) {
       originalRequest._retry = true;
       try {
         const res = await axiosAuth.post("/refresh");

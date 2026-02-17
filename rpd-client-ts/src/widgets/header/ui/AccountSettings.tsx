@@ -2,7 +2,15 @@ import { AuthContext, useAuth } from "@entities/auth";
 import { Logout } from "@mui/icons-material";
 import PersonIcon from "@mui/icons-material/Person";
 import SettingsIcon from "@mui/icons-material/Settings";
-import { Box, IconButton, ListItemIcon, ListItemText, Menu, MenuItem, Typography } from "@mui/material";
+import {
+  Box,
+  IconButton,
+  ListItemIcon,
+  ListItemText,
+  Menu,
+  MenuItem,
+  Typography,
+} from "@mui/material";
 import { MouseEvent, useContext, useMemo, useState } from "react";
 import { UserRole } from "@shared/ability";
 
@@ -44,7 +52,8 @@ export function AccountSettings() {
       aria-expanded={open ? "true" : undefined}
       onClick={handleClick}
       onKeyDown={(e) => {
-        if (e.key === "Enter" || e.key === " ") handleClick(e as unknown as MouseEvent<HTMLElement>);
+        if (e.key === "Enter" || e.key === " ")
+          handleClick(e as unknown as MouseEvent<HTMLElement>);
       }}
       sx={{
         display: "flex",
@@ -57,7 +66,14 @@ export function AccountSettings() {
         }),
       }}
     >
-      <Box sx={{ display: "flex", flexDirection: "column", lineHeight: 1.5, pb: 0.5 }}>
+      <Box
+        sx={{
+          display: "flex",
+          flexDirection: "column",
+          lineHeight: 1.5,
+          pb: 0.5,
+        }}
+      >
         <Box
           sx={{
             fontSize: "15px",

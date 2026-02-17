@@ -27,7 +27,7 @@ module.exports = {
       {
         endOfLine: "auto",
         tabWidth: 2,
-        printWidth: 120,
+        printWidth: 80,
       },
     ],
     quotes: ["error", "double", { avoidEscape: true }],

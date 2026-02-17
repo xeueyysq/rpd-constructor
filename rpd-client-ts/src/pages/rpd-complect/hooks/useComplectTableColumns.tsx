@@ -1,5 +1,13 @@
 import { TemplateStatus, TemplateStatusEnum } from "@entities/template";
-import { Autocomplete, Box, Button, FormControl, MenuItem, Select, TextField } from "@mui/material";
+import {
+  Autocomplete,
+  Box,
+  Button,
+  FormControl,
+  MenuItem,
+  Select,
+  TextField,
+} from "@mui/material";
 import type { MRT_ColumnDef } from "material-react-table";
 import { useMemo } from "react";
 import TemplateMenu from "../ui/TemplateMenu";
@@ -45,7 +53,10 @@ export function useComplectTableColumns({
                   disabled
                   fullWidth
                 >
-                  <MenuItem key={row.original.teacher} value={row.original.teacher}>
+                  <MenuItem
+                    key={row.original.teacher}
+                    value={row.original.teacher}
+                  >
                     {row.original.teacher}
                   </MenuItem>
                 </Select>
@@ -54,9 +65,17 @@ export function useComplectTableColumns({
                   id={`select-${row.original.id}`}
                   multiple
                   value={selectedTeachers[row.original.id] ?? []}
-                  onChange={(_, value) => onTeachersChange(row.original.id, value)}
+                  onChange={(_, value) =>
+                    onTeachersChange(row.original.id, value)
+                  }
                   fullWidth
-                  renderInput={(params) => <TextField label="Преподаватель" variant="standard" {...params} />}
+                  renderInput={(params) => (
+                    <TextField
+                      label="Преподаватель"
+                      variant="standard"
+                      {...params}
+                    />
+                  )}
                   options={row.original.teachers}
                 />
               )}
@@ -80,7 +99,12 @@ export function useComplectTableColumns({
         Cell: ({ row }) => (
           <Box>
             {row.original.status.status === TemplateStatusEnum.UNLOADED ? (
-              <Button variant="contained" onClick={() => onCreateTemplate(row.original.id, row.original.discipline)}>
+              <Button
+                variant="contained"
+                onClick={() =>
+                  onCreateTemplate(row.original.id, row.original.discipline)
+                }
+              >
                 Создать
               </Button>
             ) : (

@@ -33,9 +33,16 @@ interface TestEditor {
   isComment?: boolean;
 }
 
-const TextEditor: FC<TestEditor> = ({ value, saveContent, setIsEditing, isComment }) => {
+const TextEditor: FC<TestEditor> = ({
+  value,
+  saveContent,
+  setIsEditing,
+  isComment,
+}) => {
   const content = stateFromHTML(value);
-  const [editorState, setEditorState] = useState(EditorState.createWithContent(content));
+  const [editorState, setEditorState] = useState(
+    EditorState.createWithContent(content)
+  );
   const editorRef = useRef(null);
 
   useEffect(() => focusOnEditor(editorRef), [editorRef]);
@@ -137,7 +144,11 @@ const TextEditor: FC<TestEditor> = ({ value, saveContent, setIsEditing, isCommen
           editorRef={editorRef}
         />
       </Box>
-      <ButtonGroup color={isComment ? "warning" : undefined} variant="outlined" aria-label="Basic button group">
+      <ButtonGroup
+        color={isComment ? "warning" : undefined}
+        variant="outlined"
+        aria-label="Basic button group"
+      >
         <Button variant="contained" onClick={handleSaveClick}>
           {isComment ? "Сохранить комментарий" : "Сохранить изменения"}
         </Button>

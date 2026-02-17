@@ -1,6 +1,14 @@
 import DownloadIcon from "@mui/icons-material/Download";
 import MoreHorizIcon from "@mui/icons-material/MoreHoriz";
-import { Box, IconButton, ListItemIcon, ListItemText, Menu, MenuItem, Typography } from "@mui/material";
+import {
+  Box,
+  IconButton,
+  ListItemIcon,
+  ListItemText,
+  Menu,
+  MenuItem,
+  Typography,
+} from "@mui/material";
 import { DataDialogBox } from "../DataDialogBox";
 import { useEffect, useRef, useState } from "react";
 import { useAuth } from "@entities/auth";
@@ -17,7 +25,8 @@ export function ExportFromTemplates({
   setChangeableValue: (value: string | DisciplineContentData) => void;
 }) {
   const [openFromYearDialog, setOpenFromYearDialog] = useState<boolean>(false);
-  const [openFromDirectionDialog, setOpenFromDirectionDialog] = useState<boolean>(false);
+  const [openFromDirectionDialog, setOpenFromDirectionDialog] =
+    useState<boolean>(false);
   const userName = useAuth((state) => state.userName);
   const teacherTemplates = useStore((state) => state.teacherTemplates);
   const jsonData = useStore((state) => state.jsonData);
@@ -35,8 +44,14 @@ export function ExportFromTemplates({
     isFetchingTemplatesRef.current = true;
     (async () => {
       try {
-        const response = await axiosBase.post("find-teacher-templates", { userName });
-        type TemplateRow = { id?: number; disciplins_name?: string; year?: number };
+        const response = await axiosBase.post("find-teacher-templates", {
+          userName,
+        });
+        type TemplateRow = {
+          id?: number;
+          disciplins_name?: string;
+          year?: number;
+        };
         const rows = (response.data ?? []) as TemplateRow[];
         const templates = rows.map((row) => ({
           id: row.id,
@@ -79,7 +94,10 @@ export function ExportFromTemplates({
     }
   };
 
-  const copyTemplateData = async (sourceTemplateId: number, fieldToCopy: string) => {
+  const copyTemplateData = async (
+    sourceTemplateId: number,
+    fieldToCopy: string
+  ) => {
     const currentTemplateId = jsonData.id;
 
     try {
@@ -130,7 +148,13 @@ export function ExportFromTemplates({
             <DownloadIcon />
           </ListItemIcon>
           <ListItemText>
-            <Typography variant="button" display="block" color="grey" gutterBottom m="0">
+            <Typography
+              variant="button"
+              display="block"
+              color="grey"
+              gutterBottom
+              m="0"
+            >
               Загрузить данные из шаблона
               <br /> другого года
             </Typography>
@@ -146,7 +170,13 @@ export function ExportFromTemplates({
             <DownloadIcon />
           </ListItemIcon>
           <ListItemText>
-            <Typography variant="button" display="block" gutterBottom color="grey" m="0">
+            <Typography
+              variant="button"
+              display="block"
+              gutterBottom
+              color="grey"
+              m="0"
+            >
               Загрузить данные из шаблона
               <br /> другого направления
             </Typography>
@@ -159,7 +189,9 @@ export function ExportFromTemplates({
         title={"Выгрузить из другого года"}
         onClose={handleCloseDialog}
         options={teacherTemplates.filter(
-          (option) => option.year !== jsonData.year && option.text === jsonData.disciplins_name
+          (option) =>
+            option.year !== jsonData.year &&
+            option.text === jsonData.disciplins_name
         )}
         fieldName={elementName}
       />
@@ -169,7 +201,9 @@ export function ExportFromTemplates({
         title={"Выгрузить из другого направления"}
         onClose={handleCloseDialog}
         options={teacherTemplates.filter(
-          (option) => option.id !== jsonData.id && option.text !== jsonData.disciplins_name
+          (option) =>
+            option.id !== jsonData.id &&
+            option.text !== jsonData.disciplins_name
         )}
         fieldName={elementName}
       />

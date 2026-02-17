@@ -50,7 +50,9 @@ export const useAuth = create<UseAuthState>()(
     },
     updateUserName: (name?: UserName) => {
       set((state) => {
-        state.userName = name ? `${name.surname} ${name.name} ${name.patronymic}` : "Неизвестно";
+        state.userName = name
+          ? `${name.surname} ${name.name} ${name.patronymic}`
+          : "Неизвестно";
       });
     },
   }))
