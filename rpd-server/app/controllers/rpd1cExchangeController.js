@@ -55,18 +55,28 @@ class Rpd1cExchangeController {
 
   async createTemplate(req, res) {
     try {
-      const { id_1c, complectId, teacher, year, discipline, userName } =
-        req.body;
+      const { id_1c, complectId, teachers, teacher, year, discipline, userName } = req.body;
       const record = await this.model.createTemplate(
         id_1c,
         complectId,
-        teacher,
+        Array.isArray(teachers) ? teachers : teacher,
         year,
         discipline,
         userName
       );
       res.json(record);
     } catch (err) {
+      const validationErrors = [
+        "Не выбраны преподаватели",
+        "Не указан id_1c",
+        "Не указан complectId",
+        "Не указана дисциплина",
+        "Шаблон 1С не найден",
+      ];
+      const isValidation = validationErrors.some((msg) => err.message === msg);
+      if (isValidation) {
+        return res.status(400).json({ result: "validation_error", message: err.message });
+      }
       res.status(500).json({ message: err.message });
     }
   }
