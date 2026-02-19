@@ -59,9 +59,9 @@ const process = require("process");
       CREATE TABLE IF NOT EXISTS rpd_profile_templates (
         id SERIAL PRIMARY KEY,
         id_rpd_complect INT NOT NULL REFERENCES rpd_complects(id) ON DELETE CASCADE,
-        disciplins_name VARCHAR(100),
-        department VARCHAR(100),
-        teacher VARCHAR(100),
+        disciplins_name TEXT,
+        department TEXT,
+        teacher TEXT,
         goals TEXT,
         place TEXT,
         semester INTEGER,
@@ -88,15 +88,30 @@ const process = require("process");
       CREATE TABLE IF NOT EXISTS rpd_1c_exchange (
         id SERIAL PRIMARY KEY,
         id_rpd_complect INT NOT NULL REFERENCES rpd_complects(id) ON DELETE CASCADE,
-        department VARCHAR(100),
-        discipline VARCHAR(100),
+        department TEXT,
+        discipline TEXT,
         teachers TEXT[],
-        teacher VARCHAR(100),
+        teacher TEXT,
         zet INTEGER,
-        place VARCHAR(100),
+        place TEXT,
         study_load JSONB,
         semester INTEGER
       );
+    `);
+
+    await pool.query(`
+      ALTER TABLE rpd_1c_exchange
+        ALTER COLUMN department TYPE TEXT,
+        ALTER COLUMN discipline TYPE TEXT,
+        ALTER COLUMN teacher TYPE TEXT,
+        ALTER COLUMN place TYPE TEXT;
+    `);
+
+    await pool.query(`
+      ALTER TABLE rpd_profile_templates
+        ALTER COLUMN disciplins_name TYPE TEXT,
+        ALTER COLUMN department TYPE TEXT,
+        ALTER COLUMN teacher TYPE TEXT;
     `);
 
     // Миграция для таблицы `rpd_changeable_values`

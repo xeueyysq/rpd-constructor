@@ -94,8 +94,11 @@ class TeacherTemplates {
                     SELECT template_id
                     FROM teacher_templates
                     WHERE user_id = $1
-                );`,
-        [userId]
+                )
+                OR rpt.teacher = $2
+                OR rpt.teacher LIKE '%' || $2 || '%'
+                ;`,
+        [userId, userName]
       );
 
       return result.rows;

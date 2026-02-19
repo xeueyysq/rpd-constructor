@@ -37,6 +37,14 @@ module.exports = {
         "newlines-between": "always",
       },
     ],
+    "prettier/prettier": [
+      "error",
+      {
+        endOfLine: "auto",
+        tabWidth: 2,
+        printWidth: 80,
+      },
+    ],
   },
   settings: {
     "import/resolver": {

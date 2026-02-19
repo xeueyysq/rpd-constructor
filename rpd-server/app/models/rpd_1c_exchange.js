@@ -5,6 +5,20 @@ class Rpd1cExchange {
     this.pool = pool;
   }
 
+  normalizeTeachers(teachers) {
+    const list = Array.isArray(teachers) ? teachers : teachers ? [teachers] : [];
+    return [...new Set(list.map((t) => (typeof t === "string" ? t.trim() : "")).filter(Boolean))];
+  }
+
+  teacherNameToFullnameJson(teacher) {
+    const parts = typeof teacher === "string" ? teacher.trim().split(/\s+/) : [];
+    return {
+      surname: parts[0],
+      name: parts[1],
+      patronymic: parts[2],
+    };
+  }
+
   async setResultsData(data, complectId) {
     if (!complectId) {
       throw new Error("Не указан идентификатор комплекта");
@@ -223,43 +237,99 @@ class Rpd1cExchange {
   }
 
   async createTemplate(id_1c, complectId, teacher, year, discipline, userName) {
-    try {
-      //   const searchResult = await this.pool.query(`
-      //   SELECT * FROM rpd_profile_templates
-      //   WHERE disciplins_name = $1 AND year = $2
-      // `, [discipline, year]);
+    const teachers = this.normalizeTeachers(teacher);
+    if (!id_1c) throw new Error("Не указан id_1c");
+    if (!complectId) throw new Error("Не указан complectId");
+    if (!discipline) throw new Error("Не указана дисциплина");
+    if (!teachers.length) throw new Error("Не выбраны преподаватели");
 
-      //   if (searchResult.rowCount > 0) return "record exists";
-      const templateData = await this.pool.query(
+    const client = await this.pool.connect();
+    try {
+      await client.query("BEGIN");
+
+      const { rows: statusRows } = await client.query(
         `
-        SELECT * FROM rpd_1c_exchange
-        WHERE id = $1`,
+          SELECT id_profile_template
+          FROM template_status
+          WHERE id_1c_template = $1
+          LIMIT 1
+        `,
+        [id_1c]
+      );
+
+      if (statusRows[0]?.id_profile_template) {
+        await client.query("ROLLBACK");
+        return { result: "record exists" };
+      }
+
+      const templateData = await client.query(
+        `
+          SELECT * FROM rpd_1c_exchange
+          WHERE id = $1
+        `,
         [id_1c]
       );
 
       const resultData = templateData.rows[0];
-      const competencies = {};
+      if (!resultData) throw new Error("Шаблон 1С не найден");
 
-      const queryResult = await this.pool.query(
+      const missingTeachers = [];
+      const teacherUserIds = [];
+
+      for (const t of teachers) {
+        const fullnameJson = this.teacherNameToFullnameJson(t);
+        if (!fullnameJson?.surname || !fullnameJson?.name || !fullnameJson?.patronymic) {
+          missingTeachers.push(t);
+          continue;
+        }
+
+        const { rows: userRows } = await client.query(
+          `
+            SELECT id
+            FROM users
+            WHERE fullname = $1
+            LIMIT 1
+          `,
+          [fullnameJson]
+        );
+
+        const userId = userRows[0]?.id;
+        if (!userId) {
+          missingTeachers.push(t);
+          continue;
+        }
+        teacherUserIds.push(userId);
+      }
+
+      if (missingTeachers.length) {
+        await client.query("ROLLBACK");
+        return { result: "missing_teachers", missingTeachers };
+      }
+
+      const competencies = {};
+      const teacherString = teachers.join(", ");
+
+      const queryResult = await client.query(
         `
-        INSERT INTO rpd_profile_templates (
-          id_rpd_complect,
-          disciplins_name, 
-          department, 
-          teacher,
-          place,
-          semester,
-          competencies, 
-          zet,
-          study_load
-        ) VALUES (
-          $1, $2, $3, $4, $5, $6, $7, $8, $9
-        ) RETURNING id`,
+          INSERT INTO rpd_profile_templates (
+            id_rpd_complect,
+            disciplins_name,
+            department,
+            teacher,
+            place,
+            semester,
+            competencies,
+            zet,
+            study_load
+          ) VALUES (
+            $1, $2, $3, $4, $5, $6, $7, $8, $9
+          ) RETURNING id
+        `,
         [
           complectId,
           discipline,
           resultData.department,
-          teacher,
+          teacherString,
           resultData.place,
           resultData.semester,
           competencies,
@@ -268,34 +338,55 @@ class Rpd1cExchange {
         ]
       );
 
-      await this.pool.query(
+      const idProfileTemplate = queryResult.rows[0]?.id;
+      if (!idProfileTemplate) throw new Error("Не удалось создать шаблон профиля");
+
+      await client.query(
         `
           UPDATE rpd_1c_exchange
           SET teacher = $1
-          WHERE id = $2`,
-        [teacher, id_1c]
+          WHERE id = $2
+        `,
+        [teacherString, id_1c]
       );
 
-      const idProfileTemplate = queryResult.rows[0].id;
       const status = {
         date: moment().format(),
         status: "created",
         user: userName,
       };
 
-      await this.pool.query(
+      await client.query(
         `
           UPDATE template_status
-          SET history = history || $1::jsonb,
-          id_profile_template = $2
-          WHERE id_1c_template = $3`,
-        [status, idProfileTemplate, id_1c]
+          SET history = COALESCE(history, '[]'::jsonb) || $1::jsonb,
+              id_profile_template = $2
+          WHERE id_1c_template = $3
+        `,
+        [JSON.stringify([status]), idProfileTemplate, id_1c]
       );
 
-      return "template created";
+      for (const userId of teacherUserIds) {
+        await client.query(
+          `
+            INSERT INTO teacher_templates (user_id, template_id)
+            SELECT $1, $2
+            WHERE NOT EXISTS (
+              SELECT 1 FROM teacher_templates WHERE user_id = $1 AND template_id = $2
+            )
+          `,
+          [userId, idProfileTemplate]
+        );
+      }
+
+      await client.query("COMMIT");
+      return { result: "template created" };
     } catch (error) {
+      await client.query("ROLLBACK");
       console.log(error);
       throw error;
+    } finally {
+      client.release();
     }
   }
 }

@@ -4,20 +4,40 @@ const moment = require("moment");
 
 const apiUrl = "https://1c-api.uni-dubna.ru/v1/api/persons/reports";
 
+const isRetryable1cError = (error) => {
+  if (!error || error.statusCode) {
+    return false;
+  }
+
+  const status = error.response?.status;
+  if (typeof status === "number") {
+    return status >= 500 || status === 429;
+  }
+
+  return true;
+};
+
+const requestWithSingleRetry = async (requestFn, requestName) => {
+  try {
+    return await requestFn();
+  } catch (error) {
+    if (!isRetryable1cError(error)) {
+      throw error;
+    }
+
+    console.warn(`${requestName} failed, retrying once...`, error.message);
+    return await requestFn();
+  }
+};
+
 async function exchange1C(apiData, { userId } = {}) {
   try {
-    const disc = await fetchUpLink(apiData);
-    const upLinks = disc[0].upLink;
-    const discs = await Promise.all(
-      upLinks.map(async (upLink) => {
-        return await fetchDiscs(upLink);
-      })
-    );
+    const disciplines = await fetchUpLink(apiData);
     const RpdComplectId = await createRpdComplect(apiData);
     if (userId) {
       await insertUserComplectId(userId, RpdComplectId);
     }
-    await processDisciplines(discs, RpdComplectId);
+    await processDisciplines(disciplines, RpdComplectId);
     return RpdComplectId;
   } catch (error) {
     console.error("Ошибка загрузки комплекта:", error);
@@ -27,18 +47,25 @@ async function exchange1C(apiData, { userId } = {}) {
 
 const fetchUpLink = async (apiData) => {
   try {
-    const url = `${apiUrl}/SearchUP`;
+    const url = `${apiUrl}/GetDisciplinesByPlan`;
+    const normalizedYear = Number(apiData.year);
 
-    const response = await axios.get(url, {
-      timeout: 30000,
-      params: {
-        Year: apiData.year,
-        Education_Level: apiData.educationLevel,
-        Education_Form: apiData.educationForm,
-        Profile: apiData.profile,
-        Direction: apiData.direction,
-      },
-    });
+    const response = await requestWithSingleRetry(
+      () =>
+        axios.post(
+          url,
+          {
+            year: Number.isFinite(normalizedYear) ? normalizedYear : apiData.year,
+            education_level: apiData.educationLevel,
+            education_form: apiData.educationForm,
+            direction: apiData.direction,
+          },
+          {
+            timeout: 30000,
+          }
+        ),
+      "GetDisciplinesByPlan"
+    );
 
     if (!response.data?.length) {
       const error = new Error("По данному комплекту нет данных от 1С");
@@ -84,83 +111,50 @@ const createRpdComplect = async (apiData) => {
   return RpdComplectId;
 };
 
-const fetchDiscs = async (upLink) => {
-  try {
-    const url = `${apiUrl}/SearchInfoWithDiscs`;
-    const response = await axios.get(url, {
-      timeout: 30000,
-      params: {
-        UPLink: upLink,
-      },
-    });
-    if (!response.data) {
-      const error = new Error("Нет данных от 1С");
-      error.statusCode = 503;
-      throw error;
-    }
-    return response.data;
-  } catch (error) {
-    throw handle1cError(error);
-  }
-};
-
-const fetchDiscInfo = async (upLink, discLink) => {
-  try {
-    const url = `${apiUrl}/SearchDiscsDetails`;
-    const response = await axios.get(url, {
-      timeout: 30000,
-      params: {
-        UPLink: upLink,
-        DiscLink: discLink,
-      },
-    });
-    if (!response.data) {
-      const error = new Error("Нет данных от 1С");
-      error.statusCode = 503;
-      throw error;
-    }
-    return response.data;
-  } catch (error) {
-    throw handle1cError(error);
-  }
-};
-
 const processDisciplines = async (disciplines, RpdComplectId) => {
   const recordsLength = disciplines.length;
   console.log(`Всего дисциплин из запроса - ${recordsLength}`);
 
-  const promises = disciplines.map(async (record, index) => {
-    record[0].discInfo.map(async (disc) => {
-      console.log(`Дисциплина ${index + 1} из ${recordsLength} обрабатывается`);
-      const discInfo = await fetchDiscInfo(record[0].upLink, disc.discLink);
+  const promises = disciplines.map(async (disc, index) => {
+    console.log(`Дисциплина ${index + 1} из ${recordsLength} обрабатывается`);
+    const {
+      discipline = "",
+      semester = null,
+      division = "",
+      teachers = [],
+      zets = null,
+      place = "",
+      study_load = {},
+    } = disc || {};
 
-      if (!discInfo || !discInfo[0]) {
-        console.error(
-          `Нет данных для ${disc.discipline} с discLink: ${disc.discLink} и upLink ${record[0].upLink}`
-        );
-      }
+    const normalizedSemester = Number(semester);
+    const normalizedZets = Number(zets);
+    const normalizedTeachers = Array.isArray(teachers)
+      ? teachers.filter(
+          (teacher) => typeof teacher === "string" && teacher.trim()
+        )
+      : typeof teachers === "string" && teachers.trim()
+        ? [teachers.trim()]
+        : [];
+    const normalizedStudyLoad =
+      study_load && typeof study_load === "object" && !Array.isArray(study_load)
+        ? study_load
+        : {};
 
-      const { place = "", study_load = {} } = discInfo?.[0] || {};
-      const {
-        discipline = "",
-        semester = null,
-        division = "",
-        teachers = "",
-        zets = null,
-      } = disc;
-      const insertedId = await insertDiscipline({
-        RpdComplectId,
-        division,
-        discipline,
-        teachers,
-        zets,
-        place,
-        study_load,
-        semester,
-      });
-
-      await insertStatusHistory(insertedId);
+    const insertedId = await insertDiscipline({
+      RpdComplectId,
+      division,
+      discipline,
+      teachers: normalizedTeachers,
+      zets: Number.isFinite(normalizedZets) ? normalizedZets : null,
+      place,
+      study_load: normalizedStudyLoad,
+      semester: Number.isFinite(normalizedSemester) ? normalizedSemester : null,
     });
+
+    if (insertedId) {
+      await insertStatusHistory(insertedId);
+    }
   });
 
   await Promise.all(promises);
@@ -196,7 +190,7 @@ const insertDiscipline = async (data) => {
     ]
   );
 
-  return rows[0].id;
+  return rows[0]?.id ?? null;
 };
 
 const insertStatusHistory = async (templateId) => {
@@ -239,4 +233,4 @@ const handle1cError = (error) => {
   return error;
 };
 
-module.exports = { exchange1C, fetchUpLink, fetchDiscInfo: fetchDiscs };
+module.exports = { exchange1C, fetchUpLink };
