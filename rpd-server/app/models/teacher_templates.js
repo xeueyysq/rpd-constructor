@@ -5,91 +5,49 @@ class TeacherTemplates {
     this.pool = pool;
   }
 
-  normalizeTeachers(teacher, teachers) {
-    if (Array.isArray(teachers)) {
-      return [...new Set(teachers.map((t) => (typeof t === "string" ? t.trim() : "")).filter(Boolean))];
-    }
-    if (typeof teacher !== "string") return [];
-    return [
-      ...new Set(
-        teacher
-          .split(",")
-          .map((t) => t.trim())
-          .filter(Boolean)
-      ),
-    ];
-  }
-
-  async bindTemplateWithTeacher(id, teacher, userName, teachers) {
+  async bindTemplateWithTeacher(id, teacher, userName) {
     try {
-      const selectedTeachers = this.normalizeTeachers(teacher, teachers);
-      if (!selectedTeachers.length) return "UserNotFound";
+      const fullname = teacher.split(" ");
+      const nameParam = {
+        name: fullname[1],
+        surname: fullname[0],
+        patronymic: fullname[2],
+      };
 
-      const userNotFound = [];
-      const alreadyBinned = [];
-      let addedCount = 0;
-
-      for (const currentTeacher of selectedTeachers) {
-        const fullname = currentTeacher.split(" ");
-        const nameParam = {
-          name: fullname[1],
-          surname: fullname[0],
-          patronymic: fullname[2],
-        };
-
-        const userIdResult = await this.pool.query(
-          `
+      const userIdResult = await this.pool.query(
+        `
                 SELECT id FROM users WHERE fullname = $1
             `,
-          [nameParam]
-        );
+        [nameParam]
+      );
 
-        if (!userIdResult.rows[0]) {
-          userNotFound.push(currentTeacher);
-          continue;
-        }
-        const userId = userIdResult.rows[0].id;
+      if (!userIdResult.rows[0]) return "UserNotFound";
+      const userId = userIdResult.rows[0].id;
 
-        const teacherTemplateRowResult = await this.pool.query(
-          `
+      const teacherTemplateRowResult = await this.pool.query(
+        `
                 SELECT id from teacher_templates 
                 WHERE user_id = $1 and template_id = $2
             `,
-          [userId, id]
-        );
+        [userId, id]
+      );
 
-        if (teacherTemplateRowResult.rows[0]) {
-          alreadyBinned.push(currentTeacher);
-          continue;
-        }
+      if (teacherTemplateRowResult.rows[0]) return "TemplateAlreadyBinned";
 
-        await this.pool.query(
-          `
+      await this.pool.query(
+        `
                 INSERT INTO teacher_templates (
                     user_id, template_id
                 ) VALUES (
                     $1, $2
                 )
             `,
-          [userId, id]
-        );
-        addedCount += 1;
-      }
+        [userId, id]
+      );
 
-      if (addedCount > 0) {
-        await this.setTemplateStatus(id, userName, "on_teacher");
-      }
+      await this.setTemplateStatus(id, userName, "on_teacher");
 
-      if (addedCount === 0 && userNotFound.length > 0 && alreadyBinned.length === 0) return "UserNotFound";
-      if (addedCount === 0 && alreadyBinned.length > 0 && userNotFound.length === 0)
-        return "TemplateAlreadyBinned";
-
-      return {
-        result: "binnedSuccess",
-        addedCount,
-        userNotFound,
-        alreadyBinned,
-      };
+      return "binnedSuccess";
     } catch (error) {
       console.error(error);
       throw error;
@@ -136,8 +94,11 @@ class TeacherTemplates {
                     SELECT template_id
                     FROM teacher_templates
                     WHERE user_id = $1
-                );`,
-        [userId]
+                )
+                OR rpt.teacher = $2
+                OR rpt.teacher LIKE '%' || $2 || '%'
+                ;`,
+        [userId, userName]
       );
 
       return result.rows;

@@ -7,13 +7,11 @@ class TeacherTemplatesController {
 
   async bindTemplateWithTeacher(req, res) {
     try {
-      const payload = req.body?.params || req.body;
-      const { id, teacher, teachers, userName } = payload;
+      const { id, teacher, userName } = req.body;
       const record = await this.model.bindTemplateWithTeacher(
         id,
         teacher,
-        userName,
-        teachers
+        userName
       );
       res.json(record);
     } catch (error) {
