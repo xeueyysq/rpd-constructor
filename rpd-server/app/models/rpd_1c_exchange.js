@@ -274,12 +274,10 @@ class Rpd1cExchange {
       if (!resultData) throw new Error("Шаблон 1С не найден");
 
       const missingTeachers = [];
-      const teacherUserIds = [];
-
-      for (const t of teachers) {
-        const fullnameJson = this.teacherNameToFullnameJson(t);
+      for (const currentTeacher of teachers) {
+        const fullnameJson = this.teacherNameToFullnameJson(currentTeacher);
         if (!fullnameJson?.surname || !fullnameJson?.name || !fullnameJson?.patronymic) {
-          missingTeachers.push(t);
+          missingTeachers.push(currentTeacher);
           continue;
         }
 
@@ -293,12 +291,9 @@ class Rpd1cExchange {
           [fullnameJson]
         );
 
-        const userId = userRows[0]?.id;
-        if (!userId) {
-          missingTeachers.push(t);
-          continue;
+        if (!userRows[0]?.id) {
+          missingTeachers.push(currentTeacher);
         }
-        teacherUserIds.push(userId);
       }
 
       if (missingTeachers.length) {
@@ -365,19 +360,6 @@ class Rpd1cExchange {
         `,
         [JSON.stringify([status]), idProfileTemplate, id_1c]
       );
-
-      for (const userId of teacherUserIds) {
-        await client.query(
-          `
-            INSERT INTO teacher_templates (user_id, template_id)
-            SELECT $1, $2
-            WHERE NOT EXISTS (
-              SELECT 1 FROM teacher_templates WHERE user_id = $1 AND template_id = $2
-            )
-          `,
-          [userId, idProfileTemplate]
-        );
-      }
 
       await client.query("COMMIT");
       return { result: "template created" };
