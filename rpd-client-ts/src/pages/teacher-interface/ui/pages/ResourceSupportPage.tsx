@@ -1,42 +1,47 @@
-import { FC } from "react";
+import { Box, Typography as Tg } from "@mui/material";
+import { TemplatePagesPath } from "@pages/teacher-interface/model/pathes.ts";
+import { PageTitleComment } from "@shared/ui";
 import JsonChangeValue from "../changeable-elements/JsonChangeValue.tsx";
-import { Box } from "@mui/material";
 import AddBook from "../find-books/AddBook.tsx";
 
-const ResourceSupportPage: FC = () => {
+function ResourceSupportPage() {
   return (
     <Box>
-      <Box fontSize={"1.5rem"}>Ресурсное обеспечение</Box>
-      <Box component="h4" sx={{ pt: 2, pb: 1 }}>
+      <PageTitleComment
+        title="Ресурсное обеспечение"
+        paddingBottom={2}
+        templateField={TemplatePagesPath.RESOURCE_SUPPORT}
+      />
+      <Tg fontWeight={"bold"} sx={{ pt: 2, pb: 1 }}>
         Перечень литературы
-      </Box>
+      </Tg>
 
-      <Box component="h4" sx={{ pt: 1 }}>
+      <Tg fontWeight={"bold"} sx={{ pt: 1 }}>
         Основная литература
-      </Box>
+      </Tg>
       <AddBook elementName="textbook" />
 
-      <Box component="h4" sx={{ pt: 1 }}>
+      <Tg fontWeight={"bold"} sx={{ pt: 1 }}>
         Дополнительная литература
-      </Box>
+      </Tg>
       <AddBook elementName="additional_textbook" />
 
-      <Box component="h4" sx={{ py: 1 }}>
+      <Tg fontWeight={"bold"} sx={{ py: 1 }}>
         Профессиональные базы данных и информационные справочные системы
-      </Box>
+      </Tg>
       <JsonChangeValue elementName="professional_information_resources" />
 
-      <Box component="h4" sx={{ py: 1 }}>
+      <Tg fontWeight={"bold"} sx={{ py: 1 }}>
         Необходимое программное обеспечение
-      </Box>
+      </Tg>
       <JsonChangeValue elementName="software" />
 
-      <Box component="h4" sx={{ py: 1 }}>
+      <Tg fontWeight={"bold"} sx={{ py: 1 }}>
         Необходимое материально-техническое обеспечение
-      </Box>
+      </Tg>
       <JsonChangeValue elementName="logistics_template" />
     </Box>
   );
-};
+}
 
 export default ResourceSupportPage;

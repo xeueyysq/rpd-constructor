@@ -1,8 +1,14 @@
 import { FC, useEffect, useState } from "react";
 import { pdfjs } from "react-pdf";
-pdfjs.GlobalWorkerOptions.workerSrc = "https://cdnjs.cloudflare.com/ajax/libs/pdf.js/4.8.69/pdf.worker.min.mjs";
+pdfjs.GlobalWorkerOptions.workerSrc =
+  "https://cdnjs.cloudflare.com/ajax/libs/pdf.js/4.8.69/pdf.worker.min.mjs";
 
-import { ChevronLeft, ChevronRight, ZoomIn, ZoomOut } from "@mui/icons-material";
+import {
+  ChevronLeft,
+  ChevronRight,
+  ZoomIn,
+  ZoomOut,
+} from "@mui/icons-material";
 import FileDownloadOutlinedIcon from "@mui/icons-material/FileDownloadOutlined";
 import { Box, Button, IconButton, Stack, Typography } from "@mui/material";
 import { useStore } from "@shared/hooks";
@@ -18,7 +24,7 @@ export const PdfReader: FC<PdfReaderProps> = ({ file }) => {
   const [numPages, setNumPages] = useState<number>(0);
   const [pageNumber, setPageNumber] = useState<number>(1);
   const [fileUrl, setFileUrl] = useState("");
-  const [scale, setScale] = useState<number>(1.25);
+  const [scale, setScale] = useState<number>(1);
   const [error, setError] = useState<string | null>(null);
   const jsonData = useStore.getState().jsonData;
 
@@ -78,7 +84,12 @@ export const PdfReader: FC<PdfReaderProps> = ({ file }) => {
         alignItems: "center",
       }}
     >
-      <Stack width={"100%"} direction="row" alignItems="center" justifyContent={"space-between"}>
+      <Stack
+        width={"100%"}
+        direction="row"
+        alignItems="center"
+        justifyContent={"space-between"}
+      >
         <Box minWidth={"175px"} />
         <Box
           sx={{
@@ -90,7 +101,9 @@ export const PdfReader: FC<PdfReaderProps> = ({ file }) => {
           <IconButton onClick={() => handleZoom(-0.1)}>
             <ZoomOut />
           </IconButton>
-          <Typography sx={{ minWidth: 100 }}>Увеличить: {Math.round(scale * 100)}%</Typography>
+          <Typography sx={{ minWidth: 100 }}>
+            Увеличить: {Math.round(scale * 100)}%
+          </Typography>
           <IconButton onClick={() => handleZoom(0.1)}>
             <ZoomIn />
           </IconButton>
@@ -123,7 +136,11 @@ export const PdfReader: FC<PdfReaderProps> = ({ file }) => {
             pageNumber={pageNumber}
             scale={scale}
             loading={<Typography>Загрузка страницы...</Typography>}
-            error={<Typography color="error">Ошибка при загрузке страницы</Typography>}
+            error={
+              <Typography color="error">
+                Ошибка при загрузке страницы
+              </Typography>
+            }
           />
         </Document>
       </Box>
@@ -138,7 +155,10 @@ export const PdfReader: FC<PdfReaderProps> = ({ file }) => {
             Страница {pageNumber} из {numPages}
           </Typography>
 
-          <IconButton onClick={() => changePage(1)} disabled={pageNumber >= numPages}>
+          <IconButton
+            onClick={() => changePage(1)}
+            disabled={pageNumber >= numPages}
+          >
             <ChevronRight />
           </IconButton>
         </Stack>

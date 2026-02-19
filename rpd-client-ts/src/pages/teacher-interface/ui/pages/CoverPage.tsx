@@ -1,56 +1,57 @@
-import { FC } from "react";
-import { Box } from "@mui/material";
+import { Box, Typography as Tg } from "@mui/material";
 import { useStore } from "@shared/hooks";
+import { PageTitle } from "@shared/ui";
+import { FC } from "react";
 
 const CoverPage: FC = () => {
   const jsonData = useStore.getState().jsonData;
 
   return (
     <Box>
-      <Box fontSize={"1.5rem"}>Титульный лист</Box>
-      <Box sx={{ py: 2 }}>
-        Федеральное государственное бюджетное образовательное учреждение высшего образования Университет «Дубна»
-        (государственный университет «Дубна»)
-      </Box>
-      <Box sx={{ py: 2 }}>
+      <PageTitle title="Титульный лист" />
+      <Tg sx={{ py: 2 }}>
+        Федеральное государственное бюджетное образовательное учреждение высшего
+        образования Университет «Дубна» (государственный университет «Дубна»)
+      </Tg>
+      <Tg sx={{ py: 2 }}>
         Институт системного анализа и управления
         <br />
-      </Box>
-      <Box sx={{ py: 2 }}>
+      </Tg>
+      <Tg sx={{ py: 2 }}>
         Кафедра распределенных информационно-вычислительных систем
         <br />
-      </Box>
-      <Box sx={{ py: 2 }}>
+      </Tg>
+      <Tg sx={{ py: 2 }}>
         Утверждаю <br />
         и.о. проректора по учебно-методической работе <br />
         __________________/ Анисимова О.В. <br />
         __________________202_ год <br />
-      </Box>
-      <Box sx={{ fontWeight: "600", py: 2 }}>Рабочая программа дисциплины</Box>
-      <Box sx={{ p: 1, border: "1px dashed grey", my: 1 }}>
-        <Box sx={{ fontWeight: "600" }}>Название дисциплины</Box>
-        <Box>{jsonData.disciplins_name}</Box>
-      </Box>
-      <Box sx={{ p: 1, border: "1px dashed grey", my: 1 }}>
-        <Box sx={{ fontWeight: "600" }}>Направление подготовки</Box>
-        <Box>{jsonData.direction}</Box>
-      </Box>
-      <Box sx={{ p: 1, border: "1px dashed grey", my: 1 }}>
-        <Box sx={{ fontWeight: "600" }}>Профиль</Box>
-        <Box>{jsonData.profile}</Box>
-      </Box>
-      <Box sx={{ p: 1, border: "1px dashed grey", my: 1 }}>
-        <Box sx={{ fontWeight: "600" }}>Уровень высшего образования</Box>
-        <Box>{jsonData.education_level}</Box>
-      </Box>
-      <Box sx={{ p: 1, border: "1px dashed grey", my: 1 }}>
-        <Box sx={{ fontWeight: "600" }}>Форма обучения</Box>
-        <Box>{jsonData.education_form}</Box>
-      </Box>
-      <Box sx={{ p: 1, border: "1px dashed grey", my: 1 }}>
-        <Box sx={{ fontWeight: "600" }}>Год обучения</Box>
-        <Box>{jsonData.year}</Box>
-      </Box>
+      </Tg>
+      <Tg sx={{ fontWeight: "600", py: 2 }}>Рабочая программа дисциплины</Tg>
+      <Tg sx={{ p: 1, border: "1px dashed grey", my: 1 }}>
+        <Tg sx={{ fontWeight: "600" }}>Название дисциплины</Tg>
+        <Tg>{jsonData.disciplins_name}</Tg>
+      </Tg>
+      <Tg sx={{ p: 1, border: "1px dashed grey", my: 1 }}>
+        <Tg sx={{ fontWeight: "600" }}>Направление подготовки</Tg>
+        <Tg>{jsonData.direction}</Tg>
+      </Tg>
+      <Tg sx={{ p: 1, border: "1px dashed grey", my: 1 }}>
+        <Tg sx={{ fontWeight: "600" }}>Профиль</Tg>
+        <Tg>{jsonData.profile}</Tg>
+      </Tg>
+      <Tg sx={{ p: 1, border: "1px dashed grey", my: 1 }}>
+        <Tg sx={{ fontWeight: "600" }}>Уровень высшего образования</Tg>
+        <Tg>{jsonData.education_level}</Tg>
+      </Tg>
+      <Tg sx={{ p: 1, border: "1px dashed grey", my: 1 }}>
+        <Tg sx={{ fontWeight: "600" }}>Форма обучения</Tg>
+        <Tg>{jsonData.education_form}</Tg>
+      </Tg>
+      <Tg sx={{ p: 1, border: "1px dashed grey", my: 1 }}>
+        <Tg sx={{ fontWeight: "600" }}>Год обучения</Tg>
+        <Tg>{jsonData.year}</Tg>
+      </Tg>
     </Box>
   );
 };

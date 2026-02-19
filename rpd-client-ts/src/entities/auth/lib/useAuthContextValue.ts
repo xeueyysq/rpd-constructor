@@ -28,7 +28,8 @@ export const useAuthContextValue = (): AuthContextProps => {
       refreshTimeoutRef.current = setTimeout(() => {
         AuthClient.post("/refresh")
           .then((res) => {
-            const { role, fullname, accessToken, accessTokenExpiration } = res.data;
+            const { role, fullname, accessToken, accessTokenExpiration } =
+              res.data;
             updateAbility(role);
             updateUserName(fullname);
             setIsUserLogged(true);
@@ -60,7 +61,8 @@ export const useAuthContextValue = (): AuthContextProps => {
     (credentials: UserCredentials) => {
       AuthClient.post("/sign-in", credentials)
         .then((res) => {
-          const { fullname, role, accessToken, accessTokenExpiration } = res.data;
+          const { fullname, role, accessToken, accessTokenExpiration } =
+            res.data;
           updateAbility(role);
           updateUserName(fullname);
           setIsUserLogged(true);

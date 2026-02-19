@@ -7,7 +7,9 @@ import { useEffect, useState } from "react";
 import { PdfReader } from "./PdfReader.tsx";
 
 export default function TestPdf() {
-  const [fileName, setFileName] = useState<Blob | MediaSource | undefined>(undefined);
+  const [fileName, setFileName] = useState<Blob | MediaSource | undefined>(
+    undefined
+  );
   const [isLoading, setIsLoading] = useState(false);
 
   useEffect(() => {

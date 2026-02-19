@@ -30,6 +30,8 @@ const defineRulesFor = (role: UserRole) => {
   return rules;
 };
 
-export const buildAbilityFor = (role: UserRole = UserRole.ANONYMOUS): AppAbility => {
+export const buildAbilityFor = (
+  role: UserRole = UserRole.ANONYMOUS
+): AppAbility => {
   return new AppAbilityClass(defineRulesFor(role), {});
 };

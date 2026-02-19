@@ -10,9 +10,28 @@ export function StatusCell({ status }: { status: string }) {
   }
 
   return (
-    <Box sx={{ display: "flex", justifyContent: "center", alignItems: "center", width: "24px", height: "24px" }}>
+    <Box
+      sx={{
+        display: "flex",
+        justifyContent: "center",
+        alignItems: "center",
+        width: "24px",
+        height: "24px",
+      }}
+    >
       <Tooltip title={cfg?.label} arrow>
-        <Icon color={cfg?.color as "primary" | "secondary" | "success" | "error" | "warning" | "info" | undefined} />
+        <Icon
+          color={
+            cfg?.color as
+              | "primary"
+              | "secondary"
+              | "success"
+              | "error"
+              | "warning"
+              | "info"
+              | undefined
+          }
+        />
       </Tooltip>
     </Box>
   );

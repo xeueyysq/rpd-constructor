@@ -1,8 +1,9 @@
 interface DisciplineContent {
   theme: string;
-  lectures: number;
-  seminars: number;
-  independent_work: number;
+  lectures: number | null;
+  seminars: number | null;
+  control?: number | null;
+  independent_work: number | null;
   competence: string;
   indicator: string;
   results: string;
@@ -28,6 +29,7 @@ export interface ObjectHours {
   all: number;
   lectures: number;
   seminars: number;
+  control: number;
   lect_and_sems: number;
   independent_work: number;
 }

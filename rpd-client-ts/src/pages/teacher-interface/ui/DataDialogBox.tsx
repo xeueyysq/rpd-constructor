@@ -40,7 +40,9 @@ interface DataDialogBoxProps {
 export function DataDialogBox(props: DataDialogBoxProps) {
   const { onClose, open, options, title, fieldName, ...other } = props;
   const [value, setValue] = useState<string | number | null>();
-  const [expandedItems, setExpandedItems] = useState<Set<number> | null>(new Set());
+  const [expandedItems, setExpandedItems] = useState<Set<number> | null>(
+    new Set()
+  );
   const radioGroupRef = useRef<HTMLElement>(null);
 
   const ids = options.map((option) => option.id!).filter(Boolean);
@@ -102,7 +104,9 @@ export function DataDialogBox(props: DataDialogBoxProps) {
 
   const getCurrentFieldData = useCallback(
     (option: TemplateObject) =>
-      fieldData?.find((row) => row.id === option.id)?.[fieldName as keyof (typeof fieldData)[0]],
+      fieldData?.find((row) => row.id === option.id)?.[
+        fieldName as keyof (typeof fieldData)[0]
+      ],
     [fieldData, fieldName]
   );
 
@@ -142,8 +146,15 @@ export function DataDialogBox(props: DataDialogBoxProps) {
                     label={`${option.text} (${option.year})`}
                     sx={{ flex: 1 }}
                   />
-                  <IconButton onClick={() => handleToggleExpand(option.id!)} sx={{ ml: 1 }}>
-                    {expandedItems?.has(option.id!) ? <ExpandLess /> : <ExpandMore />}
+                  <IconButton
+                    onClick={() => handleToggleExpand(option.id!)}
+                    sx={{ ml: 1 }}
+                  >
+                    {expandedItems?.has(option.id!) ? (
+                      <ExpandLess />
+                    ) : (
+                      <ExpandMore />
+                    )}
                   </IconButton>
                 </Box>
                 <Collapse in={expandedItems?.has(option.id!)}>
@@ -164,17 +175,22 @@ export function DataDialogBox(props: DataDialogBoxProps) {
                       <Alert severity="error" sx={{ mb: 1 }}>
                         Ошибка загрузки данных: {error.message}
                       </Alert>
-                    ) : typeof getCurrentFieldData(option) === "object" && getCurrentFieldData(option) !== null ? (
+                    ) : typeof getCurrentFieldData(option) === "object" &&
+                      getCurrentFieldData(option) !== null ? (
                       <Box>
                         <DisciplineContentTable
                           readOnly
-                          tableData={getCurrentFieldData(option) as DisciplineContentData}
+                          tableData={
+                            getCurrentFieldData(option) as DisciplineContentData
+                          }
                         />
                       </Box>
                     ) : (
                       <Box
                         dangerouslySetInnerHTML={{
-                          __html: getCurrentFieldData(option) || "Нет данных для отображения",
+                          __html:
+                            getCurrentFieldData(option) ||
+                            "Нет данных для отображения",
                         }}
                         color="text.secondary"
                       />

@@ -1,23 +1,174 @@
-import { Box, Button, ButtonGroup, Paper, Table, TableBody, TableCell, TableContainer, TableHead, TableRow } from "@mui/material";
-import { PlannedResultsData, Results } from "@pages/teacher-interface/model/DisciplineContentPageTypes.ts";
-import { parseCsvToJson, ParsedPlannedResults } from "@shared/ability/lib/parseCsvToJson.ts";
+import {
+  Box,
+  Button,
+  Paper,
+  Table,
+  TableBody,
+  TableCell,
+  TableContainer,
+  TableHead,
+  TableRow,
+  TextField,
+  Tooltip,
+} from "@mui/material";
+import { PlannedResultsData } from "@pages/teacher-interface/model/DisciplineContentPageTypes.ts";
+import { TemplatePagesPath } from "@pages/teacher-interface/model/pathes";
+import {
+  parseCsvToJson,
+  ParsedPlannedResults,
+} from "@shared/ability/lib/parseCsvToJson.ts";
 import { axiosBase } from "@shared/api";
 import { useStore } from "@shared/hooks";
 import { showErrorMessage, showSuccessMessage } from "@shared/lib";
-import { Loader } from "@shared/ui";
-import { FC, useState, useEffect } from "react";
-import EditableCell from "../changeable-elements/EditableCell.tsx";
-import PlannedResultsCell from "../changeable-elements/PlannedResultsCell.tsx";
+import { Loader, PageTitleComment } from "@shared/ui";
 import { isAxiosError } from "axios";
+import {
+  FC,
+  useEffect,
+  useLayoutEffect,
+  useMemo,
+  useRef,
+  useState,
+} from "react";
+
+const RESULT_KEYS = ["own", "know", "beAble"] as const;
+type ResultKey = (typeof RESULT_KEYS)[number];
+
+type PlannedRow = PlannedResultsData[string];
+
+const useSyncRowTextareasHeight = (values: string[]) => {
+  const rowRef = useRef<HTMLTableRowElement | null>(null);
+  const textareasRef = useRef<Array<HTMLTextAreaElement | null>>([]);
+
+  const registerTextarea =
+    (idx: number) => (el: HTMLTextAreaElement | null) => {
+      textareasRef.current[idx] = el;
+    };
+
+  const syncHeights = () => {
+    const els = textareasRef.current.filter(Boolean) as HTMLTextAreaElement[];
+    if (!els.length) return;
+
+    for (const el of els) el.style.height = "auto";
+
+    const max = Math.max(...els.map((el) => el.scrollHeight));
+    for (const el of els) el.style.height = `${max}px`;
+  };
+
+  useLayoutEffect(() => {
+    syncHeights();
+  }, values);
+
+  useEffect(() => {
+    const onResize = () => requestAnimationFrame(syncHeights);
+    window.addEventListener("resize", onResize);
+    return () => window.removeEventListener("resize", onResize);
+  }, []);
+
+  return { rowRef, registerTextarea };
+};
+
+const cellTextFieldSx = {
+  flex: 1,
+  fontSize: "14px !important",
+  "& .MuiInputBase-root": { alignItems: "flex-start", borderRadius: 0 },
+  "& .MuiOutlinedInput-root": {
+    borderRadius: 0,
+    "& fieldset": { border: "none" },
+  },
+  "& .MuiInputBase-input": { fontSize: "14px !important" },
+  "& textarea": { boxSizing: "border-box", resize: "none", overflow: "hidden" },
+} as const;
+
+const PlannedResultsTableRow: FC<{
+  rowKeyStr: string;
+  row: PlannedRow;
+  onChangeBase: (
+    id: number,
+    value: string,
+    key: "competence" | "indicator"
+  ) => void;
+  onChangeResult: (id: number, value: string, key: ResultKey) => void;
+}> = ({ rowKeyStr, row, onChangeBase, onChangeResult }) => {
+  const id = Number(rowKeyStr);
+  const values = useMemo(
+    () => [
+      row.competence,
+      row.indicator,
+      row.results.own,
+      row.results.know,
+      row.results.beAble,
+    ],
+    [
+      row.competence,
+      row.indicator,
+      row.results.own,
+      row.results.know,
+      row.results.beAble,
+    ]
+  );
+  const { rowRef, registerTextarea } = useSyncRowTextareasHeight(values);
+
+  return (
+    <TableRow ref={rowRef} key={rowKeyStr}>
+      <TableCell sx={{ p: 0, verticalAlign: "top" }}>
+        <Box sx={{ display: "flex" }}>
+          <TextField
+            fullWidth
+            sx={cellTextFieldSx}
+            multiline
+            minRows={1}
+            value={row.competence}
+            onChange={(e) => onChangeBase(id, e.target.value, "competence")}
+            inputRef={registerTextarea(0)}
+          />
+        </Box>
+      </TableCell>
+      <TableCell sx={{ p: 0, verticalAlign: "top" }}>
+        <Box sx={{ display: "flex" }}>
+          <TextField
+            fullWidth
+            sx={cellTextFieldSx}
+            multiline
+            minRows={1}
+            value={row.indicator}
+            onChange={(e) => onChangeBase(id, e.target.value, "indicator")}
+            inputRef={registerTextarea(1)}
+          />
+        </Box>
+      </TableCell>
+      {RESULT_KEYS.map((resultKey, idx) => (
+        <TableCell key={resultKey} sx={{ p: 0, verticalAlign: "top" }}>
+          <Box sx={{ display: "flex" }}>
+            <TextField
+              fullWidth
+              sx={cellTextFieldSx}
+              multiline
+              minRows={1}
+              value={row.results[resultKey]}
+              onChange={(e) => onChangeResult(id, e.target.value, resultKey)}
+              inputRef={registerTextarea(2 + idx)}
+            />
+          </Box>
+        </TableCell>
+      ))}
+    </TableRow>
+  );
+};
 
 const PlannedResultsPage: FC = () => {
-  const initialData = useStore.getState().jsonData.competencies as PlannedResultsData | undefined;
-  // const initialDataLength = initialData ? Object.keys(initialData).length : 0;
-  const disciplineName = useStore.getState().jsonData.disciplins_name as string;
-
+  const disciplineName = useStore(
+    (state) => state.jsonData.disciplins_name
+  ) as string;
+  const initialData = useStore((state) => state.jsonData.competencies) as
+    | PlannedResultsData
+    | undefined;
   const { updateJsonData } = useStore();
   const [data, setData] = useState<PlannedResultsData | undefined>(initialData);
-  // const [nextId, setNextId] = useState<number>(initialDataLength)
+
+  useEffect(() => {
+    setData(initialData);
+  }, [initialData]);
 
   const filterData = (parsedData: ParsedPlannedResults) => {
     const filteredDataMap: PlannedResultsData = {};
@@ -36,7 +187,8 @@ const PlannedResultsPage: FC = () => {
         } else if (row.results === disciplineName) {
           const hasSameEntry = Object.values(filteredDataMap).some(
             (existingRow) =>
-              existingRow.competence === competence && existingRow.indicator === indicator
+              existingRow.competence === competence &&
+              existingRow.indicator === indicator
           );
 
           const competenceValue = hasSameEntry ? "" : competence;
@@ -55,7 +207,9 @@ const PlannedResultsPage: FC = () => {
     return filteredDataMap;
   };
 
-  const handleFileUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
+  const handleFileUpload = async (
+    event: React.ChangeEvent<HTMLInputElement>
+  ) => {
     const file = event.target.files?.[0];
     if (!file) return;
 
@@ -65,17 +219,13 @@ const PlannedResultsPage: FC = () => {
       setData(filteredData);
       showSuccessMessage("Данные успешные загружены");
     } catch (error: unknown) {
-      const errorMessage = error instanceof Error ? error.message : "Неизвестная ошибка";
+      const errorMessage =
+        error instanceof Error ? error.message : "Неизвестная ошибка";
       showErrorMessage(errorMessage);
+    } finally {
+      event.target.value = "";
     }
   };
-
-  // const handleAddRow = () => {
-  //     setNextId(nextId + 1)
-  //     const newData = {...data, [nextId]: {competence: '', indicator: '', results: ''}}
-  //     setData(newData)
-  // }
-  //
 
   const saveData = async () => {
     if (!data) return;
@@ -101,17 +251,33 @@ const PlannedResultsPage: FC = () => {
     }
   };
 
-  const handleValueChange = (id: number, value: Results) => {
+  const handleChangeResult = (id: number, value: string, key: ResultKey) => {
     if (!data) return;
-
-    const newData = {
+    setData({
       ...data,
       [id]: {
         ...data[id],
-        results: value,
+        results: {
+          ...data[id].results,
+          [key]: value,
+        },
       },
-    };
-    setData(newData);
+    });
+  };
+
+  const handleChangeBaseCell = (
+    id: number,
+    value: string,
+    key: "competence" | "indicator"
+  ) => {
+    if (!data) return;
+    setData({
+      ...data,
+      [id]: {
+        ...data[id],
+        [key]: value,
+      },
+    });
   };
 
   const complectId = useStore.getState().complectId;
@@ -122,16 +288,25 @@ const PlannedResultsPage: FC = () => {
 
     (async () => {
       try {
-        const response = await axiosBase.get("get-results-data", { params: { complectId } });
-        type Row = { competence: string; indicator: string; disciplines: string[] };
+        const response = await axiosBase.get("get-results-data", {
+          params: { complectId },
+        });
+        type Row = {
+          competence: string;
+          indicator: string;
+          disciplines: string[];
+        };
         const rows = response.data as Row[];
-        const filtered = rows.filter((r) => r.disciplines.includes(disciplineName));
+        const filtered = rows.filter((r) =>
+          r.disciplines.includes(disciplineName)
+        );
 
         const mapped: PlannedResultsData = {};
         let idx = 0;
         let lastCompetence = "";
         filtered.forEach((r) => {
-          const competenceToSet = r.competence === lastCompetence ? "" : r.competence;
+          const competenceToSet =
+            r.competence === lastCompetence ? "" : r.competence;
           lastCompetence = r.competence;
           mapped[idx++] = {
             competence: competenceToSet,
@@ -151,66 +326,76 @@ const PlannedResultsPage: FC = () => {
 
   return (
     <Box>
-      <Box fontSize={"1.5rem"}>Планируемые результаты обучения по дисциплине (модулю)</Box>
-      <Box pt={3} display={"flex"} justifyContent={"space-between"} alignItems={"center"}>
-        <input type="file" accept=".csv,.xlsx" onChange={handleFileUpload} />
+      <PageTitleComment
+        title="Планируемые результаты обучения по дисциплине (модулю)"
+        paddingBottom={2}
+        templateField={TemplatePagesPath.DISCIPLINE_PLANNED_RESULTS}
+      />
+      <Box pt={2} display={"flex"} justifyContent="flex-end" gap={1}>
+        <Tooltip title="Загрузить файл компетенций (.csv, .xlsx)" arrow>
+          <Box component="label" htmlFor="csv-upload">
+            <Button variant="outlined" component="span">
+              Загрузить файл
+            </Button>
+            <input
+              id="csv-upload"
+              type="file"
+              accept=".csv,.xlsx"
+              onChange={handleFileUpload}
+              style={{ display: "none" }}
+            />
+          </Box>
+        </Tooltip>
         <Button variant="contained" onClick={saveData}>
           Сохранить
         </Button>
       </Box>
-      <TableContainer component={Paper} sx={{ my: 2 }}>
-        <Table sx={{ minWidth: 650 }} aria-label="simple table" size="small" className="table">
+      <TableContainer component={Paper} sx={{ my: 2, borderRadius: 0 }}>
+        <Table
+          sx={{
+            "& tbody td": { padding: "0 !important" },
+          }}
+          aria-label="simple table"
+          size="small"
+          className="table"
+        >
           <TableHead>
             <TableRow>
-              <TableCell
-                align="center"
-                sx={{
-                  fontFamily: "Times New Roman",
-                  fontSize: 16,
-                }}
-              >
+              <TableCell align="center" rowSpan={2}>
                 Формируемые компетенции (код и наименование)
               </TableCell>
-              <TableCell
-                align="center"
-                sx={{
-                  fontFamily: "Times New Roman",
-                  fontSize: 16,
-                }}
-              >
+              <TableCell align="center" rowSpan={2}>
                 Индикаторы достижения компетенций (код и формулировка)
               </TableCell>
               <TableCell
+                colSpan={3}
                 align="center"
                 sx={{
-                  fontFamily: "Times New Roman",
-                  fontSize: 16,
+                  textAlign: "center",
                 }}
               >
                 Планируемые результаты обучения по дисциплине (модулю)
               </TableCell>
             </TableRow>
+            <TableRow>
+              <TableCell align="center">Владеть</TableCell>
+              <TableCell align="center">Знать</TableCell>
+              <TableCell align="center">Уметь</TableCell>
+            </TableRow>
           </TableHead>
           <TableBody>
-            {Object.keys(data).map((key) => {
-              return (
-                <TableRow key={key}>
-                  <TableCell>
-                    <EditableCell value={data[key].competence} onValueChange={() => {}} readOnly />
-                  </TableCell>
-                  <TableCell>
-                    <EditableCell value={data[key].indicator} onValueChange={() => {}} readOnly />
-                  </TableCell>
-                  <PlannedResultsCell value={data[key].results} onValueChange={(value: Results) => handleValueChange(Number(key), value)} />
-                </TableRow>
-              );
-            })}
+            {Object.keys(data).map((key) => (
+              <PlannedResultsTableRow
+                key={key}
+                rowKeyStr={key}
+                row={data[key]}
+                onChangeBase={handleChangeBaseCell}
+                onChangeResult={handleChangeResult}
+              />
+            ))}
           </TableBody>
         </Table>
       </TableContainer>
-      <ButtonGroup variant="outlined" aria-label="Basic button group">
-        {/* <Button onClick={handleAddRow}>Добавить строку</Button> */}
-      </ButtonGroup>
     </Box>
   );
 };

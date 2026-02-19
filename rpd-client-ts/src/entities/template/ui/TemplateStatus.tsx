@@ -1,4 +1,4 @@
-import { Box } from "@mui/material";
+import { Box, Typography } from "@mui/material";
 import { FC } from "react";
 import { format, parseISO } from "date-fns";
 import { ru } from "date-fns/locale";
@@ -20,15 +20,18 @@ export const TemplateStatus: FC<TemplateStatus> = ({ status }) => {
   });
   return (
     <Box>
-      <Box>{statusConfig[status.status as keyof typeof statusConfig]?.label || status.status}</Box>
-      <Box
+      <Box>
+        {statusConfig[status.status as keyof typeof statusConfig]?.label ||
+          status.status}
+      </Box>
+      <Typography
         sx={{
           color: "grey",
           fontSize: "12px",
         }}
       >
         {formattedDate}
-      </Box>
+      </Typography>
     </Box>
   );
 };

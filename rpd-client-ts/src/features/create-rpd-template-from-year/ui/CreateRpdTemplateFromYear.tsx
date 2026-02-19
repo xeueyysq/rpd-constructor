@@ -1,4 +1,14 @@
-import { Box, Button, Paper, Table, TableBody, TableCell, TableContainer, TableHead, TableRow } from "@mui/material";
+import {
+  Box,
+  Button,
+  Paper,
+  Table,
+  TableBody,
+  TableCell,
+  TableContainer,
+  TableHead,
+  TableRow,
+} from "@mui/material";
 import { FC, useCallback, useEffect, useState } from "react";
 import { useStore } from "@shared/hooks";
 import { TemplateConstructorType, TemplateStatus } from "@entities/template";
@@ -27,7 +37,9 @@ export interface uploadTemplateDataParams {
   userName: string | undefined;
 }
 
-export const CreateRpdTemplateFromYear: FC<TemplateConstructorType> = ({ setChoise }) => {
+export const CreateRpdTemplateFromYear: FC<TemplateConstructorType> = ({
+  setChoise,
+}) => {
   const selectedTemplateData = useStore.getState().selectedTemplateData;
   const createByCriteria = useStore.getState().createByCriteria;
   const userName = useAuth.getState().userName;
@@ -81,23 +93,31 @@ export const CreateRpdTemplateFromYear: FC<TemplateConstructorType> = ({ setChoi
   return (
     <>
       <Box>
-        Шаг 3. Создание шаблона на {createByCriteria.year} на основе {selectedTemplateData.year}
+        Шаг 3. Создание шаблона на {createByCriteria.year} на основе{" "}
+        {selectedTemplateData.year}
       </Box>
       <Box sx={{ py: 2, fontSize: "18px", fontWeight: "600" }}>Шаблоны:</Box>
       <TableContainer component={Paper}>
         <Table sx={{ minWidth: 650 }} aria-label="simple table">
           <TableHead>
             <TableRow>
-              <TableCell sx={{ fontWeight: "600" }}>Название дисциплины</TableCell>
+              <TableCell sx={{ fontWeight: "600" }}>
+                Название дисциплины
+              </TableCell>
               <TableCell sx={{ fontWeight: "600" }}>Год шаблона</TableCell>
-              <TableCell sx={{ fontWeight: "600" }}>Преподаватель, ответственный за РПД</TableCell>
+              <TableCell sx={{ fontWeight: "600" }}>
+                Преподаватель, ответственный за РПД
+              </TableCell>
               <TableCell sx={{ fontWeight: "600" }}>Статус</TableCell>
               <TableCell sx={{ fontWeight: "600" }}>Выбрать</TableCell>
             </TableRow>
           </TableHead>
           <TableBody>
             {data.map((row) => (
-              <TableRow key={row.id} sx={{ "&:last-child td, &:last-child th": { border: 0 } }}>
+              <TableRow
+                key={row.id}
+                sx={{ "&:last-child td, &:last-child th": { border: 0 } }}
+              >
                 <TableCell>{row.disciplins_name}</TableCell>
                 <TableCell>{selectedTemplateData.year}</TableCell>
                 <TableCell>{row.teacher}</TableCell>
@@ -105,7 +125,12 @@ export const CreateRpdTemplateFromYear: FC<TemplateConstructorType> = ({ setChoi
                   <TemplateStatus status={row.status} />
                 </TableCell>
                 <TableCell>
-                  <Button variant="outlined" onClick={() => uploadTempllateData(row.disciplins_name, row.id)}>
+                  <Button
+                    variant="outlined"
+                    onClick={() =>
+                      uploadTempllateData(row.disciplins_name, row.id)
+                    }
+                  >
                     Создать шаблон
                   </Button>
                 </TableCell>
@@ -115,7 +140,11 @@ export const CreateRpdTemplateFromYear: FC<TemplateConstructorType> = ({ setChoi
         </Table>
       </TableContainer>
 
-      <Button variant="outlined" sx={{ mt: 2 }} onClick={() => setChoise("workingType")}>
+      <Button
+        variant="outlined"
+        sx={{ mt: 2 }}
+        onClick={() => setChoise("workingType")}
+      >
         Назад
       </Button>
     </>

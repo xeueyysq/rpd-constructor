@@ -24,7 +24,9 @@ const ChangeableCoverPage = ({ title }: ChangeableCoverPageProps) => {
 
   const fetchData = useCallback(async () => {
     try {
-      const response = await axiosBase.get(`rpd-changeable-values?title=${title}`);
+      const response = await axiosBase.get(
+        `rpd-changeable-values?title=${title}`
+      );
       setValue(response.data);
     } catch (error) {
       console.error(error);
@@ -44,7 +46,10 @@ const ChangeableCoverPage = ({ title }: ChangeableCoverPageProps) => {
 
     try {
       const textareaValue = textAreaRef.current.value;
-      const response = await axiosBase.put(`rpd-changeable-values/${value.id}`, { value: textareaValue });
+      const response = await axiosBase.put(
+        `rpd-changeable-values/${value.id}`,
+        { value: textareaValue }
+      );
       setValue(response.data);
       setIsEditing(false);
     } catch (error) {
@@ -68,18 +73,29 @@ const ChangeableCoverPage = ({ title }: ChangeableCoverPageProps) => {
             defaultValue={value.value}
             sx={{ my: 1 }}
           />
-          <Button variant="contained" endIcon={<SaveAltIcon color="primary" />} onClick={handleSaveClick}>
+          <Button
+            variant="contained"
+            endIcon={<SaveAltIcon color="primary" />}
+            onClick={handleSaveClick}
+          >
             сохранить изменения
           </Button>
         </Box>
       ) : (
         <Box>
           {value.value ? (
-            <Box dangerouslySetInnerHTML={{ __html: value.value }} sx={{ py: 1 }} />
+            <Box
+              dangerouslySetInnerHTML={{ __html: value.value }}
+              sx={{ py: 1 }}
+            />
           ) : (
             <p>Нет доступного контента</p>
           )}
-          <Button variant="outlined" endIcon={<EditIcon color="primary" />} onClick={handleEditClick}>
+          <Button
+            variant="outlined"
+            endIcon={<EditIcon color="primary" />}
+            onClick={handleEditClick}
+          >
             редактировать
           </Button>
         </Box>

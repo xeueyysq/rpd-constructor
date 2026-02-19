@@ -1,15 +1,31 @@
 import { useAuth } from "@entities/auth";
-import { setTemplateStatus, TemplateStatus, TemplateStatusEnum } from "@entities/template";
+import {
+  setTemplateStatus,
+  TemplateStatus,
+  TemplateStatusEnum,
+} from "@entities/template";
 import CheckCircle from "@mui/icons-material/CheckCircle";
 import FolderOpen from "@mui/icons-material/FolderOpen";
 import MoreHorizIcon from "@mui/icons-material/MoreHoriz";
-import { Box, Button, CssBaseline, IconButton, ListItemIcon, Menu, MenuItem } from "@mui/material";
+import {
+  Box,
+  Button,
+  CssBaseline,
+  IconButton,
+  ListItemIcon,
+  Menu,
+  MenuItem,
+} from "@mui/material";
 import { axiosBase } from "@shared/api";
 import { RedirectPath } from "@shared/enums";
 import { useStore } from "@shared/hooks";
 import { showErrorMessage } from "@shared/lib";
 import { Loader, PageTitle } from "@shared/ui";
-import { MaterialReactTable, MRT_ColumnDef, useMaterialReactTable } from "material-react-table";
+import {
+  MaterialReactTable,
+  MRT_ColumnDef,
+  useMaterialReactTable,
+} from "material-react-table";
 import { MRT_Localization_RU } from "material-react-table/locales/ru";
 import { FC, useCallback, useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
@@ -39,7 +55,9 @@ export const TeacherInterfaceTemplates: FC = () => {
   const [templatesData, setTemplatesData] = useState<TemplateData[]>();
   const navigate = useNavigate();
   const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null);
-  const [selectedTemplateId, setSelectedTemplateId] = useState<number | null>(null);
+  const [selectedTemplateId, setSelectedTemplateId] = useState<number | null>(
+    null
+  );
 
   const fetchData = useCallback(async () => {
     try {
@@ -93,18 +111,20 @@ export const TeacherInterfaceTemplates: FC = () => {
       {
         accessorKey: "statusIcon",
         header: "",
+        enableSorting: false,
+        enableColumnFilter: false,
+        enableColumnActions: false,
         Cell: ({ row }) => (
-          <Box pl={1.5}>
+          <Box>
             <StatusCell status={row.original.status.status} />
           </Box>
         ),
-        enableColumnFilter: false,
-        size: 10,
+        size: 40,
       },
       {
         accessorKey: "disciplins_name",
         header: "Название \nдисциплины",
-        size: 10,
+        size: 200,
       },
       {
         accessorKey: "faculty",
@@ -113,7 +133,7 @@ export const TeacherInterfaceTemplates: FC = () => {
       {
         accessorKey: "education_level",
         header: "Уровень \nобразования",
-        size: 10,
+        size: 150,
       },
       {
         accessorKey: "direction",
@@ -126,12 +146,12 @@ export const TeacherInterfaceTemplates: FC = () => {
       {
         accessorKey: "education_form",
         header: "Форма \n\n\n\n\n\nобучения",
-        size: 10,
+        size: 120,
       },
       {
         accessorKey: "year",
         header: "Год набора",
-        size: 10,
+        size: 150,
       },
       {
         accessorKey: "status",
@@ -141,15 +161,20 @@ export const TeacherInterfaceTemplates: FC = () => {
       {
         accessorKey: "action",
         header: "Действие",
+        enableSorting: false,
+        enableColumnFilter: false,
         Cell: ({ row }) => {
-          return row.original.status.status === TemplateStatusEnum.IN_PROGRESS ? (
+          return row.original.status.status ===
+            TemplateStatusEnum.IN_PROGRESS ? (
             <>
               <IconButton onClick={(e) => handleMenuOpen(e, row.original.id)}>
                 <MoreHorizIcon />
               </IconButton>
               <Menu
                 anchorEl={anchorEl}
-                open={Boolean(anchorEl) && selectedTemplateId === row.original.id}
+                open={
+                  Boolean(anchorEl) && selectedTemplateId === row.original.id
+                }
                 onClose={handleMenuClose}
               >
                 <MenuItem onClick={() => handleOpenTemplate(row.original.id)}>
@@ -204,12 +229,17 @@ export const TeacherInterfaceTemplates: FC = () => {
     columns,
     data: templatesData || [],
     localization: MRT_Localization_RU,
-    muiTableBodyCellProps: ({ column }) => ({
-      sx: column.id === "mrt-row-select" ? { paddingRight: 0, paddingLeft: 0 } : { py: 0.5, px: 0.5 },
-    }),
-    muiTableHeadCellProps: ({ column }) => ({
-      sx: column.id === "mrt-row-select" ? { paddingRight: 0, paddingLeft: 0 } : { py: 0.5, px: 0.5 },
-    }),
+    enableColumnResizing: true,
+    layoutMode: "grid",
+    muiTableProps: {
+      size: "small",
+      className: "table",
+    },
+    muiTableBodyCellProps: {
+      sx: {
+        py: 0.5,
+      },
+    },
   });
 
   if (!templatesData) return <Loader />;

@@ -1,6 +1,7 @@
 import { create } from "zustand";
 import { immer } from "zustand/middleware/immer";
 
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
 type JsonValue = any;
 
 interface JsonData {
@@ -37,11 +38,18 @@ interface TeacherTemplate {
   year: number | undefined;
 }
 
+export type PlannedResultsFilters = {
+  profile: string;
+  formEducation: string;
+  year: number | null;
+};
+
 interface StoreState {
   jsonData: JsonData;
   selectedTemplateData: SelectedTemplateData;
   createByCriteria: CreateByCriteria;
   complectId: number | undefined;
+  plannedResultsFilters: PlannedResultsFilters;
   tabs: Record<string, TabState>;
   managerPage: string;
   templatePage: string;
@@ -49,6 +57,7 @@ interface StoreState {
   isDrawerOpen: boolean;
   setJsonData: (data: JsonData) => void;
   updateJsonData: (key: string, value: JsonValue) => void;
+  updateJsonComment: (field: string, value: JsonValue) => void;
   setSelectedTemplateData: (
     faculty: string | undefined,
     levelEducation: string | undefined,
@@ -57,8 +66,12 @@ interface StoreState {
     formEducation: string | undefined,
     year: string | undefined
   ) => void;
-  setCreateByCriteria: (faculty?: string | undefined, year?: string | undefined) => void;
+  setCreateByCriteria: (
+    faculty?: string | undefined,
+    year?: string | undefined
+  ) => void;
   setComplectId: (id: number) => void;
+  setPlannedResultsFilters: (filters: PlannedResultsFilters) => void;
   setTabState: (tabId: string, isEnabled: boolean) => void;
   deInitializeTabs: () => void;
   setManagerPage: (page: string) => void;
@@ -91,6 +104,11 @@ export const useStore = create<StoreState>()(
     },
     managerPage: "selectData",
     complectId: undefined,
+    plannedResultsFilters: {
+      profile: "",
+      formEducation: "",
+      year: null,
+    },
     templatePage: "coverPage",
     teacherTemplates: [],
     isDrawerOpen: true,
@@ -108,9 +126,54 @@ export const useStore = create<StoreState>()(
         }
       });
     },
-    setSelectedTemplateData: (faculty, levelEducation, directionOfStudy, profile, formEducation, year) => {
+    updateJsonComment: (key, value) => {
       set((state) => {
-        if (faculty && levelEducation && directionOfStudy && profile && formEducation && year) {
+        if (!state.jsonData.comments) {
+          state.jsonData.comments = {};
+        }
+        if (value === undefined || value === null) {
+          delete state.jsonData.comments[key];
+          return;
+        }
+
+        // Backward-compat: sometimes comment html came back quoted as a JSON string.
+        // Treat this value as invalid/empty (it used to appear when comment_text was JSON.stringify'ed).
+        if (value === '"<p>undefined</p>"') {
+          delete state.jsonData.comments[key];
+          return;
+        }
+
+        if (typeof value === "object") {
+          state.jsonData.comments[key] = value;
+          return;
+        }
+
+        // value is string/primitive -> store as comment_text
+        const existing = state.jsonData.comments[key];
+        if (existing && typeof existing === "object") {
+          existing.comment_text = value;
+        } else {
+          state.jsonData.comments[key] = { comment_text: value };
+        }
+      });
+    },
+    setSelectedTemplateData: (
+      faculty,
+      levelEducation,
+      directionOfStudy,
+      profile,
+      formEducation,
+      year
+    ) => {
+      set((state) => {
+        if (
+          faculty &&
+          levelEducation &&
+          directionOfStudy &&
+          profile &&
+          formEducation &&
+          year
+        ) {
           state.selectedTemplateData = {
             faculty: faculty,
             levelEducation: levelEducation,
@@ -131,6 +194,11 @@ export const useStore = create<StoreState>()(
     setComplectId: (id) => {
       set((state) => {
         state.complectId = id;
+      });
+    },
+    setPlannedResultsFilters: (filters) => {
+      set((state) => {
+        state.plannedResultsFilters = filters;
       });
     },
     setTabState: (tabId, isEnabled) => {

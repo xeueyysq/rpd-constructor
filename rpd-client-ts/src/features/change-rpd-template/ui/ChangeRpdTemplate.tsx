@@ -1,6 +1,20 @@
-import { Box, Button, Paper, Table, TableBody, TableCell, TableContainer, TableHead, TableRow } from "@mui/material";
+import {
+  Box,
+  Button,
+  Paper,
+  Table,
+  TableBody,
+  TableCell,
+  TableContainer,
+  TableHead,
+  TableRow,
+} from "@mui/material";
 import { FC, useCallback, useEffect, useState } from "react";
-import { SelectedTemplateData, SelectTeacherParams, useStore } from "@shared/hooks";
+import {
+  SelectedTemplateData,
+  SelectTeacherParams,
+  useStore,
+} from "@shared/hooks";
 import { TemplateConstructorType, TemplateStatus } from "@entities/template";
 import { showErrorMessage, showSuccessMessage } from "@shared/lib";
 import { useAuth } from "@entities/auth";
@@ -21,7 +35,9 @@ interface TemplateData {
   status: TemplateStatusObject;
 }
 
-export const ChangeRpdTemplate: FC<TemplateConstructorType> = ({ setChoise }) => {
+export const ChangeRpdTemplate: FC<TemplateConstructorType> = ({
+  setChoise,
+}) => {
   const selectedTemplateData = useStore.getState().selectedTemplateData;
   const userName = useAuth.getState().userName;
   const [data, setData] = useState<TemplateData[]>();
@@ -57,7 +73,8 @@ export const ChangeRpdTemplate: FC<TemplateConstructorType> = ({ setChoise }) =>
         params,
       });
 
-      if (response.data === "UserNotFound") showErrorMessage("Ошибка. Пользователь не найден");
+      if (response.data === "UserNotFound")
+        showErrorMessage("Ошибка. Пользователь не найден");
       if (response.data === "TemplateAlreadyBinned")
         showErrorMessage("Ошибка. Данный шаблон уже отправлен преподавателю");
       if (response.data === "binnedSuccess") {
@@ -80,8 +97,12 @@ export const ChangeRpdTemplate: FC<TemplateConstructorType> = ({ setChoise }) =>
         <Table sx={{ minWidth: 650 }} aria-label="simple table">
           <TableHead>
             <TableRow>
-              <TableCell sx={{ fontWeight: "600" }}>Название дисциплины</TableCell>
-              <TableCell sx={{ fontWeight: "600" }}>Преподаватель, ответственный за РПД</TableCell>
+              <TableCell sx={{ fontWeight: "600" }}>
+                Название дисциплины
+              </TableCell>
+              <TableCell sx={{ fontWeight: "600" }}>
+                Преподаватель, ответственный за РПД
+              </TableCell>
               <TableCell sx={{ fontWeight: "600" }}>Статус</TableCell>
               <TableCell sx={{ fontWeight: "600" }}>Выбрать</TableCell>
             </TableRow>
@@ -103,7 +124,10 @@ export const ChangeRpdTemplate: FC<TemplateConstructorType> = ({ setChoise }) =>
                 </TableCell>
                 <TableCell>
                   {row.status.status !== TemplateStatusEnum.ON_TEACHER && (
-                    <Button variant="outlined" onClick={() => sendTemplateToTeacher(row.id, row.teacher)}>
+                    <Button
+                      variant="outlined"
+                      onClick={() => sendTemplateToTeacher(row.id, row.teacher)}
+                    >
                       Отправить преподавателю
                     </Button>
                   )}
@@ -114,7 +138,11 @@ export const ChangeRpdTemplate: FC<TemplateConstructorType> = ({ setChoise }) =>
         </Table>
       </TableContainer>
 
-      <Button variant="outlined" sx={{ mt: 2 }} onClick={() => setChoise("workingType")}>
+      <Button
+        variant="outlined"
+        sx={{ mt: 2 }}
+        onClick={() => setChoise("workingType")}
+      >
         Назад
       </Button>
     </>

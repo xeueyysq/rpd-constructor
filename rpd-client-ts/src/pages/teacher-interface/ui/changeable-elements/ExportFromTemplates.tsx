@@ -1,10 +1,17 @@
 import DownloadIcon from "@mui/icons-material/Download";
 import MoreHorizIcon from "@mui/icons-material/MoreHoriz";
-import { Box, IconButton, ListItemIcon, ListItemText, Menu, MenuItem, Typography } from "@mui/material";
+import {
+  Box,
+  IconButton,
+  ListItemIcon,
+  ListItemText,
+  Menu,
+  MenuItem,
+  Typography,
+} from "@mui/material";
 import { DataDialogBox } from "../DataDialogBox";
-import React, { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useAuth } from "@entities/auth";
-import { UserRole } from "@shared/ability";
 import { useStore } from "@shared/hooks";
 import { showErrorMessage, showSuccessMessage } from "@shared/lib";
 import { axiosBase } from "@shared/api";
@@ -18,14 +25,48 @@ export function ExportFromTemplates({
   setChangeableValue: (value: string | DisciplineContentData) => void;
 }) {
   const [openFromYearDialog, setOpenFromYearDialog] = useState<boolean>(false);
-  const [openFromDirectionDialog, setOpenFromDirectionDialog] = useState<boolean>(false);
-  const teacherTemplates = useStore.getState().teacherTemplates;
-  const JsonData = useStore.getState().jsonData;
-  const userRole = useAuth.getState().userRole;
-  const isTeacher = userRole === UserRole.TEACHER;
+  const [openFromDirectionDialog, setOpenFromDirectionDialog] =
+    useState<boolean>(false);
+  const userName = useAuth((state) => state.userName);
+  const teacherTemplates = useStore((state) => state.teacherTemplates);
+  const jsonData = useStore((state) => state.jsonData);
   const [anchorEl, setAnchorEl] = useState<null | HTMLButtonElement>(null);
   const open = Boolean(anchorEl);
-  const { updateJsonData } = useStore();
+  const updateJsonData = useStore((state) => state.updateJsonData);
+  const setTeacherTemplates = useStore((state) => state.setTeacherTemplates);
+  const isFetchingTemplatesRef = useRef(false);
+
+  useEffect(() => {
+    if (teacherTemplates.length) return;
+    if (!userName) return;
+    if (isFetchingTemplatesRef.current) return;
+
+    isFetchingTemplatesRef.current = true;
+    (async () => {
+      try {
+        const response = await axiosBase.post("find-teacher-templates", {
+          userName,
+        });
+        type TemplateRow = {
+          id?: number;
+          disciplins_name?: string;
+          year?: number;
+        };
+        const rows = (response.data ?? []) as TemplateRow[];
+        const templates = rows.map((row) => ({
+          id: row.id,
+          text: row.disciplins_name,
+          year: row.year,
+        }));
+        setTeacherTemplates(templates);
+      } catch (error) {
+        showErrorMessage("Ошибка при получении списка шаблонов");
+        console.error(error);
+      } finally {
+        isFetchingTemplatesRef.current = false;
+      }
+    })();
+  }, [setTeacherTemplates, teacherTemplates.length, userName]);
 
   const handleClick = (event: React.MouseEvent<HTMLButtonElement>) => {
     setAnchorEl(event.currentTarget);
@@ -53,8 +94,11 @@ export function ExportFromTemplates({
     }
   };
 
-  const copyTemplateData = async (sourceTemplateId: number, fieldToCopy: string) => {
-    const currentTemplateId = useStore.getState().jsonData.id;
+  const copyTemplateData = async (
+    sourceTemplateId: number,
+    fieldToCopy: string
+  ) => {
+    const currentTemplateId = jsonData.id;
 
     try {
       const response = await axiosBase.post("/copy-template-data", {
@@ -73,8 +117,6 @@ export function ExportFromTemplates({
       console.error(error);
     }
   };
-
-  if (!isTeacher) return null;
 
   return (
     <Box>
@@ -106,7 +148,13 @@ export function ExportFromTemplates({
             <DownloadIcon />
           </ListItemIcon>
           <ListItemText>
-            <Typography variant="button" display="block" color="grey" gutterBottom m="0">
+            <Typography
+              variant="button"
+              display="block"
+              color="grey"
+              gutterBottom
+              m="0"
+            >
               Загрузить данные из шаблона
               <br /> другого года
             </Typography>
@@ -122,7 +170,13 @@ export function ExportFromTemplates({
             <DownloadIcon />
           </ListItemIcon>
           <ListItemText>
-            <Typography variant="button" display="block" gutterBottom color="grey" m="0">
+            <Typography
+              variant="button"
+              display="block"
+              gutterBottom
+              color="grey"
+              m="0"
+            >
               Загрузить данные из шаблона
               <br /> другого направления
             </Typography>
@@ -135,7 +189,9 @@ export function ExportFromTemplates({
         title={"Выгрузить из другого года"}
         onClose={handleCloseDialog}
         options={teacherTemplates.filter(
-          (option) => option.year !== JsonData.year && option.text === JsonData.disciplins_name
+          (option) =>
+            option.year !== jsonData.year &&
+            option.text === jsonData.disciplins_name
         )}
         fieldName={elementName}
       />
@@ -145,7 +201,9 @@ export function ExportFromTemplates({
         title={"Выгрузить из другого направления"}
         onClose={handleCloseDialog}
         options={teacherTemplates.filter(
-          (option) => option.id !== JsonData.id && option.text !== JsonData.disciplins_name
+          (option) =>
+            option.id !== jsonData.id &&
+            option.text !== jsonData.disciplins_name
         )}
         fieldName={elementName}
       />

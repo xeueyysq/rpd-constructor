@@ -16,14 +16,15 @@ export function ClippedDrawer() {
   const userRole = useAuth((state) => state.userRole);
   const location = useLocation();
   const path = location.pathname;
-  const [setChoise] = useState<string>("coverPage");
-  const [drawerWidth, setDrawerWidth] = useState<number>(290);
+  const TEMPLATE_DRAWER_WIDTH = 320;
+  const [drawerWidth, setDrawerWidth] = useState<number>(240);
   const { isDrawerOpen } = useStore();
 
   //@TODO Костыль на определение страницы
   const isTemplatePage = useMemo(
     () =>
-      path.includes(RedirectPath.TEMPLATES) && path.split("/").filter((part) => part && !isNaN(Number(part))).length,
+      path.includes(RedirectPath.TEMPLATES) &&
+      path.split("/").filter((part) => part && !isNaN(Number(part))).length,
     [path]
   );
 
@@ -38,18 +39,18 @@ export function ClippedDrawer() {
       default:
         break;
     }
-  }, [userRole, path]);
+  }, [userRole, isTemplatePage]);
 
   const switchMap = {
     main: <MainTabsList />,
     teacher: <TeacherTabsList />,
-    template: <RpdList setChoise={() => setChoise} RpdListItems={TeacherRpdListItems} />,
+    template: <RpdList RpdListItems={TeacherRpdListItems} />,
   };
 
   useEffect(() => {
-    if (isTemplatePage) setDrawerWidth(430);
-    else setDrawerWidth(290);
-  }, [page]);
+    if (isTemplatePage) setDrawerWidth(TEMPLATE_DRAWER_WIDTH);
+    else setDrawerWidth(240);
+  }, [isTemplatePage]);
 
   if (path === RedirectPath.SIGN_IN) return <Outlet />;
 
@@ -74,7 +75,9 @@ export function ClippedDrawer() {
             display: "flex",
             flexDirection: "column",
             transition: "transform 0.3s cubic-bezier(0.4, 0, 0.2, 1)",
-            transform: isDrawerOpen ? "translateX(0)" : `translateX(-${drawerWidth}px)`,
+            transform: isDrawerOpen
+              ? "translateX(0)"
+              : `translateX(-${drawerWidth}px)`,
             borderRight: "1px solid rgba(0, 0, 0, 0.12)",
             boxShadow: isDrawerOpen ? "4px 0 16px rgba(0, 0, 0, 0.12)" : "none",
             "& .MuiListItemIcon-root, & svg": {
@@ -105,9 +108,14 @@ export function ClippedDrawer() {
         sx={{
           width: isDrawerOpen ? `calc(100% - ${drawerWidth}px)` : "100%",
           p: 3,
+          px: isTemplatePage ? 9 : undefined,
           marginLeft: isDrawerOpen ? `${drawerWidth}px` : 0,
-          transition: "margin-left 0.3s cubic-bezier(0.4, 0, 0.2, 1), width 0.3s cubic-bezier(0.4, 0, 0.2, 1)",
+          transition:
+            "margin-left 0.3s cubic-bezier(0.4, 0, 0.2, 1), width 0.3s cubic-bezier(0.4, 0, 0.2, 1)",
           overflowX: "hidden",
+          overflowY: "hidden",
+          backgroundColor: "#F2F3F7",
+          minHeight: "100vh",
         }}
       >
         <Toolbar />

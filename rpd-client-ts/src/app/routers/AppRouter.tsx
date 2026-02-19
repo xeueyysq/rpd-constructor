@@ -5,6 +5,7 @@ import { Suspense } from "react";
 import { BrowserRouter, Route, Routes } from "react-router-dom";
 import { ProtectedRoute, RoleBasedRedirect } from "@app/routers/ProtectedRoute";
 import { routes } from "./routeConfig";
+import { RedirectPath } from "@shared/enums";
 
 export const AppRouter = () => {
   return (
@@ -13,7 +14,18 @@ export const AppRouter = () => {
         <Routes>
           <Route element={<ClippedDrawer />}>
             {keys(routes).map((path) => (
-              <Route key={path} path={path} element={<ProtectedRoute key={`pro_${path}`} path={path} />} />
+              <Route
+                key={path}
+                path={path}
+                element={
+                  <Suspense fallback={<Loader />}>
+                    <ProtectedRoute
+                      key={`pro_${path}`}
+                      path={path as RedirectPath}
+                    />
+                  </Suspense>
+                }
+              />
             ))}
             <Route path="*" element={<RoleBasedRedirect />} />
           </Route>

@@ -1,4 +1,4 @@
-import { FC, useEffect, useRef, useState } from "react";
+import { FC, ReactNode, useEffect, useRef, useState } from "react";
 import { EditorState } from "draft-js";
 import { stateToHTML } from "draft-js-export-html";
 import { stateFromHTML } from "draft-js-import-html";
@@ -30,11 +30,19 @@ interface TestEditor {
   value: string;
   saveContent: (htmlValue: string) => Promise<void>;
   setIsEditing: (value: boolean) => void;
+  isComment?: boolean;
 }
 
-const TextEditor: FC<TestEditor> = ({ value, saveContent, setIsEditing }) => {
+const TextEditor: FC<TestEditor> = ({
+  value,
+  saveContent,
+  setIsEditing,
+  isComment,
+}) => {
   const content = stateFromHTML(value);
-  const [editorState, setEditorState] = useState(EditorState.createWithContent(content));
+  const [editorState, setEditorState] = useState(
+    EditorState.createWithContent(content)
+  );
   const editorRef = useRef(null);
 
   useEffect(() => focusOnEditor(editorRef), [editorRef]);
@@ -136,19 +144,15 @@ const TextEditor: FC<TestEditor> = ({ value, saveContent, setIsEditing }) => {
           editorRef={editorRef}
         />
       </Box>
-      <ButtonGroup variant="outlined" aria-label="Basic button group">
-        <Button
-          variant="contained"
-          // endIcon={<SaveAltIcon color="primary" />}
-          onClick={handleSaveClick}
-        >
-          Сохранить изменения
+      <ButtonGroup
+        color={isComment ? "warning" : undefined}
+        variant="outlined"
+        aria-label="Basic button group"
+      >
+        <Button variant="contained" onClick={handleSaveClick}>
+          {isComment ? "Сохранить комментарий" : "Сохранить изменения"}
         </Button>
-        <Button
-          variant="outlined"
-          // endIcon={<DeleteIcon color="primary" />}
-          onClick={() => setIsEditing(false)}
-        >
+        <Button variant="outlined" onClick={() => setIsEditing(false)}>
           Отменить
         </Button>
       </ButtonGroup>

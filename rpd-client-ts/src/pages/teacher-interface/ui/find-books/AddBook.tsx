@@ -7,16 +7,21 @@ import {
   DialogContent,
   DialogTitle,
   Divider,
+  IconButton,
   InputAdornment,
   List,
   ListItem,
   ListItemText,
   TextField,
+  Typography,
 } from "@mui/material";
-import ShowBooks from "./ShowBooks.tsx";
 import { useStore } from "@shared/hooks";
 import { showErrorMessage, showSuccessMessage } from "@shared/lib";
 import { axiosBase } from "@shared/api";
+import { BooksMetaList } from "./BooksMetaList.tsx";
+import { motion } from "framer-motion";
+import ClearIcon from "@mui/icons-material/Clear";
+import SearchIcon from "@mui/icons-material/Search";
 
 interface AddBook {
   elementName: string;
@@ -28,7 +33,7 @@ interface BookData {
   biblio: string;
   url: string;
   thumb?: string;
-  // ... другие поля, если они есть
+  published: string;
 }
 
 const AddBook: FC<AddBook> = ({ elementName }) => {
@@ -36,11 +41,13 @@ const AddBook: FC<AddBook> = ({ elementName }) => {
   const [bookName, setBookName] = useState<string | null>(null);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [manualInput, setManualInput] = useState<string>("");
+  const [isLoadingBooks, setIsLoadingBooks] = useState<boolean>(false);
 
   const jsonData = useStore.getState().jsonData[elementName];
   const [booksData, setBooksData] = useState<BookData[] | null>(jsonData);
 
-  const elementValue: string[] = useStore.getState().jsonData[elementName] || [];
+  const elementValue: string[] =
+    useStore.getState().jsonData[elementName] || [];
   const [addedBooks, setAddedBooks] = useState<string[]>(elementValue);
 
   const { updateJsonData } = useStore();
@@ -66,7 +73,8 @@ const AddBook: FC<AddBook> = ({ elementName }) => {
       setErrorMessage("Поле обязательно для заполнения");
       return;
     }
-    setBooksData(null);
+    // setBooksData(null);
+    setIsLoadingBooks(true);
     setErrorMessage(null);
 
     try {
@@ -74,11 +82,14 @@ const AddBook: FC<AddBook> = ({ elementName }) => {
       const books = response.data;
       if (!books.length) {
         setErrorMessage("По вашему запросу ничего не найдено");
+        setBooksData(null);
         return;
       }
       setBooksData(response.data);
     } catch (error) {
       console.error(error);
+    } finally {
+      setIsLoadingBooks(false);
     }
   };
 
@@ -100,8 +111,9 @@ const AddBook: FC<AddBook> = ({ elementName }) => {
     }
   };
 
-  const handleAddBookToList = (biblio: string) => {
-    saveContent([...addedBooks, biblio]);
+  const handleAddBooksToList = (biblios: string[]) => {
+    //TODO добавить фильтр на добавление книг
+    saveContent([...addedBooks, ...biblios]);
   };
 
   const handleAddManualBook = () => {
@@ -123,11 +135,11 @@ const AddBook: FC<AddBook> = ({ elementName }) => {
     <>
       <Box pt={3}>
         <Button
-          variant="contained"
+          variant="outlined"
           onClick={handleOpenDialog}
-          // endIcon={<AddIcon />}
+          endIcon={<SearchIcon />}
         >
-          Найти книги
+          Найти книги в библиотечной системе
         </Button>
       </Box>
       <List>
@@ -136,20 +148,21 @@ const AddBook: FC<AddBook> = ({ elementName }) => {
             <>
               <ListItem key={index}>
                 <ListItemText>
-                  <Box
+                  <Typography
                     sx={{
                       display: "flex",
                       justifyContent: "space-between",
                       alignItems: "center",
-                      fontFamily: "Times New Roman",
                     }}
                   >
-                    <Box width={"90%"}>{biblio}</Box>
-
-                    <Button color="error" onClick={() => handleRemoveBook(biblio)}>
-                      Удалить
-                    </Button>
-                  </Box>
+                    <Typography fontSize={"14px"}>{biblio}</Typography>
+                    <IconButton
+                      color="error"
+                      onClick={() => handleRemoveBook(biblio)}
+                    >
+                      <ClearIcon />
+                    </IconButton>
+                  </Typography>
                 </ListItemText>
               </ListItem>
               <Divider />
@@ -166,8 +179,7 @@ const AddBook: FC<AddBook> = ({ elementName }) => {
           onChange={(e) => setManualInput(e.target.value)}
           placeholder="Введите библиографическое описание вручную"
           multiline
-          minRows={2}
-          maxRows={6}
+          minRows={3}
           sx={{
             "& .MuiInputBase-root": {
               alignItems: "flex-start",
@@ -176,24 +188,25 @@ const AddBook: FC<AddBook> = ({ elementName }) => {
             },
           }}
         />
-        <Button onClick={handleAddManualBook}>Добавить</Button>
+        <Box pt={1} display={"flex"} justifyContent={"flex-end"}>
+          <Button variant="contained" onClick={handleAddManualBook}>
+            Добавить книгу
+          </Button>
+        </Box>
       </Box>
 
       <Dialog
         open={open}
+        fullWidth
+        maxWidth={booksData && booksData.length > 0 ? "xl" : "sm"}
         onClose={handleCloseDialog}
-        sx={{
-          "& .MuiDialog-container": {
-            "& .MuiPaper-root": {
-              width: "100%",
-              maxWidth: "800px",
-            },
-          },
+        onKeyDown={(e) => {
+          if (e.key === "Enter") handleFindBooks();
         }}
       >
-        <DialogTitle>Поиск книг</DialogTitle>
+        <DialogTitle>Поиск книг в библиотечной системе</DialogTitle>
         <DialogContent>
-          <Box position="sticky" top={0} zIndex={1} bgcolor="background.paper">
+          <Box position="sticky" top={0} zIndex={2} bgcolor="background.paper">
             <TextField
               autoFocus
               margin="dense"
@@ -202,15 +215,30 @@ const AddBook: FC<AddBook> = ({ elementName }) => {
               variant="standard"
               value={bookName}
               onChange={handleBookNameChange}
-              helperText={errorMessage}
+              helperText={
+                isLoadingBooks ? (
+                  <motion.div
+                    animate={{ opacity: [1, 0.3, 1] }}
+                    transition={{
+                      duration: 1.5,
+                      repeat: Infinity,
+                      ease: "easeInOut",
+                    }}
+                  >
+                    Поиск книг...
+                  </motion.div>
+                ) : (
+                  errorMessage
+                )
+              }
               slotProps={{
                 input: {
                   endAdornment: (
                     <InputAdornment position="end">
                       <Box pb={1}>
-                        <Button variant="contained" onClick={handleFindBooks}>
-                          Найти
-                        </Button>
+                        <IconButton onClick={handleFindBooks}>
+                          <SearchIcon color="primary" />
+                        </IconButton>
                       </Box>
                     </InputAdornment>
                   ),
@@ -218,7 +246,13 @@ const AddBook: FC<AddBook> = ({ elementName }) => {
               }}
             />
           </Box>
-          <ShowBooks books={booksData} onAddBookToList={handleAddBookToList} />
+          {booksData && booksData?.length > 0 && (
+            <BooksMetaList
+              books={booksData}
+              addBooksToList={handleAddBooksToList}
+              closeDialog={handleCloseDialog}
+            />
+          )}
         </DialogContent>
         <DialogActions>
           <Button onClick={handleCloseDialog}>Отмена</Button>

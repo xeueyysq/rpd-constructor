@@ -1,71 +1,44 @@
-import { FC, useContext, useMemo } from "react";
+import { FC, useContext } from "react";
 import { Box, AppBar, Toolbar, IconButton } from "@mui/material";
-import AccountMenuButton from "./AccountMenuButton.tsx";
+import { AccountSettings } from "./AccountSettings.tsx";
 import HeaderLogo from "./HeaderLogo.tsx";
-import { AuthContext, useAuth } from "@entities/auth";
-import { UserRole } from "@shared/ability";
+import { AuthContext } from "@entities/auth";
 import { useStore } from "@shared/hooks";
 import MenuIcon from "@mui/icons-material/Menu";
+import { useTheme } from "@mui/material";
 
 export const Header: FC = () => {
   const { isUserLogged } = useContext(AuthContext);
-  const userName = useAuth.getState().userName;
-  const userRole = useAuth.getState().userRole;
   const { toggleDrawer } = useStore();
-
-  const userRoleLocale = useMemo(() => {
-    switch (userRole) {
-      case UserRole.ADMIN:
-        return "Администратор";
-      case UserRole.TEACHER:
-        return "Преподаватель";
-      case UserRole.ROP:
-        return "Руководитель образовательной программы";
-      default:
-        return "Неавторизованный пользователь";
-    }
-  }, [userRole]);
+  const theme = useTheme();
 
   return (
     <AppBar
       sx={{
         zIndex: (theme) => theme.zIndex.drawer + 1,
-        background: "#29363d",
+        backgroundColor: theme.palette.primary.main,
       }}
     >
       <Toolbar>
-        <Box width={"100%"} display={"flex"} justifyContent={"space-between"} alignItems={"center"}>
+        <Box
+          width={"100%"}
+          display={"flex"}
+          justifyContent={"space-between"}
+          alignItems={"center"}
+        >
           <Box display={"flex"} alignItems={"center"}>
-            <IconButton color="inherit" aria-label="toggle drawer" onClick={toggleDrawer} edge="start" sx={{ mr: 2 }}>
+            <IconButton
+              color="inherit"
+              aria-label="toggle drawer"
+              onClick={toggleDrawer}
+              edge="start"
+              sx={{ mr: 2 }}
+            >
               <MenuIcon />
             </IconButton>
             <HeaderLogo />
           </Box>
-          {isUserLogged && (
-            <Box sx={{ display: "flex", alignItems: "center" }}>
-              <Box sx={{ display: "flex", flexDirection: "column", lineHeight: 1.5, pb: 0.5 }}>
-                <Box
-                  sx={{
-                    fontSize: "15px",
-                  }}
-                >
-                  {userName}
-                </Box>
-                <Box
-                  sx={{
-                    fontSize: "12px",
-                    fontWeight: 400,
-                    color: "#B2B2B2",
-                  }}
-                >
-                  {userRoleLocale}
-                </Box>
-              </Box>
-              <Box sx={{ pl: 2 }}>
-                <AccountMenuButton />
-              </Box>
-            </Box>
-          )}
+          {isUserLogged && <AccountSettings />}
         </Box>
       </Toolbar>
     </AppBar>

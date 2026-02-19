@@ -1,52 +1,43 @@
+import { useAuth } from "@entities/auth";
+import {
+  useDeleteRpdComplectsMutation,
+  useRpdComplectsQuery,
+} from "@entities/rpd-complect/model/queries";
 import CachedIcon from "@mui/icons-material/Cached";
+import DeleteIcon from "@mui/icons-material/Delete";
 import FiberManualRecordIcon from "@mui/icons-material/FiberManualRecord";
-import { Box, Breadcrumbs, Button, CssBaseline } from "@mui/material";
-import { axiosBase } from "@shared/api";
+import SaveAsIcon from "@mui/icons-material/SaveAs";
+import {
+  Box,
+  Breadcrumbs,
+  Button,
+  CssBaseline,
+  Typography,
+} from "@mui/material";
+import { UserRole } from "@shared/ability";
 import { RedirectPath } from "@shared/enums";
 import { useStore } from "@shared/hooks";
-import { showErrorMessage, showWarningMessage } from "@shared/lib";
 import type { ComplectData } from "@shared/types";
 import { Loader, PageTitle } from "@shared/ui";
 import { WarningDeleteDialog } from "@widgets/dialogs/ui";
 import { orderBy } from "lodash";
-import { MaterialReactTable, useMaterialReactTable, type MRT_ColumnDef } from "material-react-table";
+import {
+  MaterialReactTable,
+  useMaterialReactTable,
+  type MRT_ColumnDef,
+} from "material-react-table";
 import { MRT_Localization_RU } from "material-react-table/locales/ru";
-import { FC, useCallback, useEffect, useMemo, useState } from "react";
+import { FC, useCallback, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 
 export const RpdComplectsList: FC = () => {
   const [openDeleteConfirm, setOpenDeleteConfirm] = useState<boolean>(false);
-  const [complects, setComplects] = useState<ComplectData[]>([]);
-  const [loading, setLoading] = useState(true);
   const { setComplectId } = useStore();
   const navigate = useNavigate();
   const [rowSelection, setRowSelection] = useState<Record<string, boolean>>({});
-
-  useEffect(() => {
-    fetchComplects();
-  }, []);
-
-  const fetchComplects = async () => {
-    try {
-      const response = await axiosBase.get("get-rpd-complects");
-      setComplects(response.data);
-    } catch (error) {
-      showErrorMessage("Ошибка при получении данных");
-      console.error(error);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const deleteComplect = async (ids: number[]) => {
-    try {
-      const response = await axiosBase.post("delete_rpd_complect", ids);
-      setRowSelection({});
-      await fetchComplects();
-    } catch (error) {
-      console.error(error);
-    }
-  };
+  const userRole = useAuth.getState().userRole;
+  const { complects, isLoading } = useRpdComplectsQuery();
+  const deleteMutation = useDeleteRpdComplectsMutation();
 
   const handleViewComplect = useCallback(
     (complect: ComplectData) => {
@@ -56,28 +47,50 @@ export const RpdComplectsList: FC = () => {
     [setComplectId, navigate]
   );
 
-  const sortedComplectsByYear = useMemo(() => orderBy(complects, ["profile", "year"], ["asc", "asc"]), [complects]);
+  const sortedComplectsByYear = useMemo(
+    () => orderBy(complects, ["profile", "year"], ["asc", "asc"]),
+    [complects]
+  );
 
-  const columns = useMemo<MRT_ColumnDef<ComplectData>[]>(
+  const adminColumns = [
+    {
+      accessorKey: "faculty",
+      header: "Институт",
+    },
+    {
+      accessorKey: "levelEducation",
+      header: "Уровень \nобразования",
+      size: 90,
+    },
+    {
+      accessorKey: "directionOfStudy",
+      header: "Направление",
+    },
+  ];
+
+  const generalColumns = useMemo<MRT_ColumnDef<ComplectData>[]>(
     () => [
+      ...(userRole === UserRole.ADMIN ? adminColumns : []),
       {
         accessorKey: "profile",
         header: "Профиль",
         Cell: ({ table, row }) => {
           const rows = table.getRowModel().rows;
           const prev = rows[row.index - 1];
-          return prev && prev.original.profile === row.original.profile ? null : row.original.profile;
+          return prev && prev.original.profile === row.original.profile
+            ? null
+            : row.original.profile;
         },
       },
       {
         accessorKey: "formEducation",
         header: "Форма обучения",
-        size: 30,
+        size: 110,
       },
       {
         accessorKey: "year",
         header: "Год набора",
-        size: 20,
+        size: 100,
       },
       {
         accessorKey: "actions",
@@ -89,10 +102,15 @@ export const RpdComplectsList: FC = () => {
         Cell: ({ row }) => (
           <Breadcrumbs separator={"/"}>
             {[
-              <Button sx={{ textDecoration: "underline" }} onClick={() => handleViewComplect(row.original)}>
-                Комплект рпд
+              <Button
+                size="medium"
+                sx={{ textDecoration: "underline" }}
+                onClick={() => handleViewComplect(row.original)}
+              >
+                Комплект РПД
               </Button>,
               <Button
+                size="medium"
                 sx={{ textDecoration: "underline" }}
                 onClick={() => {
                   const originalRow = row.original;
@@ -116,24 +134,36 @@ export const RpdComplectsList: FC = () => {
   );
 
   const table = useMaterialReactTable<ComplectData>({
-    columns,
-    data: sortedComplectsByYear,
+    columns: generalColumns,
+    data: userRole === UserRole.ADMIN ? complects : sortedComplectsByYear,
     localization: MRT_Localization_RU,
     enableFilters: false,
     enableSorting: false,
+    enableRowSelection: true,
+    enableColumnResizing: true,
+    positionToolbarAlertBanner: "none",
+    layoutMode: "grid",
+    onRowSelectionChange: setRowSelection,
+    state: { rowSelection },
+    initialState: {
+      pagination: {
+        pageIndex: 0,
+        pageSize: 20,
+      },
+    },
     muiTableProps: {
       size: "small",
-      sx: { px: 2 },
+      className: "table",
     },
-    muiTableBodyCellProps: ({ column }) => ({
-      sx: column.id === "mrt-row-select" ? { paddingRight: 0, paddingLeft: 0 } : { py: 0.5, px: 0.5 },
-    }),
-    muiTableHeadCellProps: ({ column }) => ({
-      sx: column.id === "mrt-row-select" ? { paddingRight: 0, paddingLeft: 0 } : { py: 0.5, px: 0.5 },
-    }),
-    enableRowSelection: true,
+    muiTableBodyCellProps: {
+      sx: {
+        py: 0.5,
+      },
+    },
     renderTopToolbarCustomActions: ({ table }) => {
-      const selectedRowsCount = Object.values(table.getState().rowSelection).length;
+      const selectedRowsCount = Object.values(
+        table.getState().rowSelection
+      ).length;
       return (
         <Box
           sx={{
@@ -144,42 +174,64 @@ export const RpdComplectsList: FC = () => {
           }}
         >
           <Button
-            variant="contained"
+            variant="outlined"
             startIcon={<CachedIcon />}
-            onClick={() => {
-              if (!selectedRowsCount) showWarningMessage("Выберите комплект для обновления");
-            }}
+            disabled={!selectedRowsCount}
+            sx={{ alignSelf: "flex-start" }}
           >
             Обновить комплект
           </Button>
-          {!!selectedRowsCount && <Button color="error">Удалить</Button>}
+          <Button
+            variant="outlined"
+            startIcon={<DeleteIcon />}
+            disabled={!selectedRowsCount}
+            color="error"
+            onClick={() => setOpenDeleteConfirm(true)}
+          >
+            Удалить
+          </Button>
+          <Button
+            variant="outlined"
+            startIcon={<SaveAsIcon />}
+            disabled={!selectedRowsCount}
+          >
+            Добавить содержание рпд
+          </Button>
         </Box>
       );
     },
-    positionToolbarAlertBanner: "none",
-    onRowSelectionChange: setRowSelection,
-    state: { rowSelection },
   });
 
-  if (loading) return <Loader />;
+  if (isLoading) return <Loader />;
 
-  const handleConfirm = async () => {
-    const currentSelectedIds = Object.keys(rowSelection).map((id) => sortedComplectsByYear[Number(id)].id);
+  const handleConfirmDeletion = async () => {
+    const ids = table.getSelectedRowModel().rows.map((r) => r.original.id);
     setOpenDeleteConfirm(false);
-    await deleteComplect(currentSelectedIds);
+    setRowSelection({});
+    await deleteMutation.mutateAsync(ids);
   };
 
   return (
     <Box>
       <CssBaseline />
       <PageTitle title={"Список загруженных комплектов РПД"} />
-      <Box py={1}>
-        <Breadcrumbs separator={<FiberManualRecordIcon sx={{ fontSize: 5 }} />}>
-          {[
-            <span>{sortedComplectsByYear[0].directionOfStudy}</span>,
-            <span>{sortedComplectsByYear[0].levelEducation}</span>,
-          ]}
-        </Breadcrumbs>
+      <Box py={0.5}>
+        {sortedComplectsByYear.length > 0 && userRole !== UserRole.ADMIN && (
+          <Breadcrumbs
+            separator={
+              <FiberManualRecordIcon color="secondary" sx={{ fontSize: 5 }} />
+            }
+          >
+            {[
+              <Typography component={"span"} color="textSecondary">
+                {sortedComplectsByYear[0].directionOfStudy}
+              </Typography>,
+              <Typography component={"span"} color="textSecondary">
+                {sortedComplectsByYear[0].levelEducation}
+              </Typography>,
+            ]}
+          </Breadcrumbs>
+        )}
       </Box>
       <Box pt={2}>
         <MaterialReactTable table={table} />
@@ -187,7 +239,7 @@ export const RpdComplectsList: FC = () => {
       <WarningDeleteDialog
         open={openDeleteConfirm}
         setOpen={setOpenDeleteConfirm}
-        onAccept={handleConfirm}
+        onAccept={handleConfirmDeletion}
         description={"Вы уверены, что хотите удалить выбранные комплекты?"}
       />
     </Box>

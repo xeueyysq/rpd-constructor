@@ -1,27 +1,26 @@
-import { Box, IconButton, Paper } from "@mui/material";
+import { Box, IconButton, BoxProps, Typography } from "@mui/material";
 import ArrowBackRoundedIcon from "@mui/icons-material/ArrowBackRounded";
 import { useNavigate } from "react-router-dom";
 
-type PageTitleProps = {
+type PageTitleProps = BoxProps & {
   title: string;
-  backButton?: boolean;
+  backNavPath?: string;
 };
 
-export function PageTitle({ title, backButton }: PageTitleProps) {
+export function PageTitle(props: PageTitleProps) {
+  const { title, backNavPath } = props;
   const navigate = useNavigate();
 
-  const handleClickBack = () => {
-    navigate(-1);
-  };
-
   return (
-    <Box display={"flex"} gap={1} alignItems={"center"}>
-      {backButton && (
-        <IconButton onClick={handleClickBack}>
+    <Box {...props} display={"flex"} gap={1} alignItems={"center"}>
+      {backNavPath && (
+        <IconButton onClick={() => navigate(backNavPath)}>
           <ArrowBackRoundedIcon />
         </IconButton>
       )}
-      <Box fontSize={"1.4rem"}>{title}</Box>
+      <Typography color={"primary"} fontSize={"1.25rem"} fontWeight={"bold"}>
+        {title}
+      </Typography>
     </Box>
   );
 }

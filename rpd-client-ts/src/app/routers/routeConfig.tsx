@@ -10,7 +10,9 @@ const UserManagement = lazy(() => import("@pages/user-management"));
 const RpdComplectsList = lazy(() => import("@pages/rpd-complects"));
 const PlannedResultsList = lazy(() => import("@pages/planned-results"));
 const RpdComplectPage = lazy(() => import("@pages/rpd-complect"));
-const TeacherInterfaceTemplates = lazy(() => import("@pages/teacher-interface-templates"));
+const TeacherInterfaceTemplates = lazy(
+  () => import("@pages/teacher-interface-templates")
+);
 
 export const mainPages = [
   RedirectPath.COMPLECTS,
@@ -18,11 +20,17 @@ export const mainPages = [
   RedirectPath.PLANNED_RESULTS,
   RedirectPath.COMPLECT,
   RedirectPath.TEMPLATE,
+  RedirectPath.TEMPLATE_SUBPAGE,
 ];
 
 export const roleToAvailablePath: Record<UserRole, RedirectPath[]> = {
   [UserRole.ROP]: mainPages,
-  [UserRole.TEACHER]: [RedirectPath.TEMPLATES, RedirectPath.RPD_TEMPLATE, RedirectPath.TEMPLATE],
+  [UserRole.TEACHER]: [
+    RedirectPath.TEMPLATES,
+    RedirectPath.RPD_TEMPLATE,
+    RedirectPath.TEMPLATE,
+    RedirectPath.TEMPLATE_SUBPAGE,
+  ],
   [UserRole.ADMIN]: [...mainPages, RedirectPath.USER_MANAGEMENT],
   [UserRole.ANONYMOUS]: [RedirectPath.SIGN_IN],
 };
@@ -37,4 +45,5 @@ export const routes = {
   [RedirectPath.USER_MANAGEMENT]: <UserManagement />,
   [RedirectPath.COMPLECT]: <RpdComplectPage />,
   [RedirectPath.TEMPLATE]: <TeacherInterface />,
+  [RedirectPath.TEMPLATE_SUBPAGE]: <TeacherInterface />,
 };

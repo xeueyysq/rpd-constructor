@@ -1,17 +1,29 @@
 import { useAuth } from "@entities/auth";
-import { setTemplateStatus, TemplateStatusEnum } from "@entities/template/index.ts";
+import {
+  setTemplateStatus,
+  TemplateStatusEnum,
+} from "@entities/template/index.ts";
 import ForwardToInboxSharpIcon from "@mui/icons-material/ForwardToInboxSharp";
 import HistoryIcon from "@mui/icons-material/History";
 import MoreHorizIcon from "@mui/icons-material/MoreHoriz";
 import OpenInBrowserIcon from "@mui/icons-material/OpenInBrowser";
-import { IconButton, ListItemIcon, ListItemText, Menu, MenuItem, Typography } from "@mui/material";
+import {
+  IconButton,
+  ListItemIcon,
+  ListItemText,
+  Menu,
+  MenuItem,
+  Typography,
+} from "@mui/material";
 import { axiosBase } from "@shared/api";
-import { useStore } from "@shared/hooks";
-import { showErrorMessage, showSuccessMessage } from "@shared/lib";
+import { showErrorMessage, showSuccessMessage, showWarningMessage } from "@shared/lib";
 import { FC, MouseEvent, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import HistoryModal from "./HistoryModal.tsx";
 import { RedirectPath } from "@shared/enums.ts";
+import FileDownloadOutlinedIcon from "@mui/icons-material/FileDownloadOutlined";
+import { ImportFromComplectsDialog } from "./ImportFromComplectsDialog";
+import { TemplatePagesPath } from "@pages/teacher-interface/model/pathes.ts";
 
 interface TemplateMenu {
   id: number;
@@ -21,14 +33,13 @@ interface TemplateMenu {
 }
 
 const TemplateMenu: FC<TemplateMenu> = ({ id, teacher, status, fetchData }) => {
-  const { setJsonData } = useStore();
   const userName = useAuth.getState().userName;
   const [anchorEl, setAnchorEl] = useState<null | HTMLButtonElement>(null);
   const [openDialog, setOpenDialog] = useState<boolean>(false);
+  const [openImportDialog, setOpenImportDialog] = useState<boolean>(false);
   const [history, setHistory] = useState(undefined);
   const open = Boolean(anchorEl);
   const navigate = useNavigate();
-  const { setTabState } = useStore();
 
   const handleClick = (event: MouseEvent<HTMLButtonElement>) => {
     setAnchorEl(event.currentTarget);
@@ -39,17 +50,43 @@ const TemplateMenu: FC<TemplateMenu> = ({ id, teacher, status, fetchData }) => {
 
   const sendTemplateToTeacher = async (id: number, teacher: string) => {
     try {
+      const teachers = teacher
+        .split(",")
+        .map((t) => t.trim())
+        .filter(Boolean);
       const response = await axiosBase.post("send-template-to-teacher", {
         id,
+        teachers,
         teacher,
         userName,
       });
 
-      if (response.data === "UserNotFound") showErrorMessage("Ошибка. Пользователь не найден");
-      if (response.data === "TemplateAlreadyBinned")
+      const result =
+        typeof response.data === "string" ? response.data : (response.data?.result as string | undefined);
+
+      if (result === "UserNotFound")
+        showErrorMessage("Ошибка. Пользователь не найден");
+      if (result === "TemplateAlreadyBinned")
         showErrorMessage("Ошибка. Данный шаблон уже отправлен преподавателю");
-      if (response.data === "binnedSuccess") {
-        showSuccessMessage("Шаблон успешно отправлен преподавателю");
+      if (result === "binnedSuccess") {
+        showSuccessMessage("Шаблон успешно отправлен преподавателям(-ю)");
+
+        const userNotFound =
+          typeof response.data === "object" && Array.isArray(response.data?.userNotFound)
+            ? (response.data.userNotFound as string[])
+            : [];
+        const alreadyBinned =
+          typeof response.data === "object" && Array.isArray(response.data?.alreadyBinned)
+            ? (response.data.alreadyBinned as string[])
+            : [];
+
+        if (userNotFound.length) {
+          showWarningMessage(`Не найдены пользователи: ${userNotFound.join(", ")}`);
+        }
+        if (alreadyBinned.length) {
+          showWarningMessage(`Уже отправлено: ${alreadyBinned.join(", ")}`);
+        }
+
         fetchData();
       }
     } catch (error) {
@@ -91,12 +128,24 @@ const TemplateMenu: FC<TemplateMenu> = ({ id, teacher, status, fetchData }) => {
           "aria-labelledby": "basic-button",
         }}
       >
-        <MenuItem onClick={() => navigate(`${RedirectPath.TEMPLATES}/${id}`)}>
+        <MenuItem
+          onClick={() =>
+            navigate(
+              `${RedirectPath.TEMPLATES}/${id}/${TemplatePagesPath.COVER_PAGE}`
+            )
+          }
+        >
           <ListItemIcon>
             <OpenInBrowserIcon />
           </ListItemIcon>
           <ListItemText>
-            <Typography variant="button" display="block" gutterBottom color="grey" m="0">
+            <Typography
+              variant="button"
+              display="block"
+              gutterBottom
+              color="grey"
+              m="0"
+            >
               Открыть
             </Typography>
           </ListItemText>
@@ -124,15 +173,28 @@ const TemplateMenu: FC<TemplateMenu> = ({ id, teacher, status, fetchData }) => {
               <ForwardToInboxSharpIcon />
             </ListItemIcon>
             <ListItemText>
-              <Typography variant="button" display="block" gutterBottom color="grey" m="0">
-                {status === TemplateStatusEnum.READY ? "Отправить на доработку" : "Отправить преподавателю"}
+              <Typography
+                variant="button"
+                display="block"
+                gutterBottom
+                color="grey"
+                m="0"
+              >
+                {status === TemplateStatusEnum.READY
+                  ? "Отправить на доработку"
+                  : "Отправить преподавателям(-ю)"}
               </Typography>
             </ListItemText>
           </MenuItem>
         )}
-        {/* <MenuItem>
+        <MenuItem
+          onClick={() => {
+            handleClose();
+            setOpenImportDialog(true);
+          }}
+        >
           <ListItemIcon>
-            <DeleteForeverIcon />
+            <FileDownloadOutlinedIcon />
           </ListItemIcon>
           <ListItemText>
             <Typography
@@ -142,22 +204,42 @@ const TemplateMenu: FC<TemplateMenu> = ({ id, teacher, status, fetchData }) => {
               color="grey"
               m="0"
             >
-              Удалить
+              Импортировать
             </Typography>
           </ListItemText>
-        </MenuItem> */}
+        </MenuItem>
         <MenuItem onClick={() => getTemplateHistory()}>
           <ListItemIcon>
             <HistoryIcon />
           </ListItemIcon>
           <ListItemText>
-            <Typography variant="button" display="block" gutterBottom color="grey" m="0">
+            <Typography
+              variant="button"
+              display="block"
+              gutterBottom
+              color="grey"
+              m="0"
+            >
               История шаблона
             </Typography>
           </ListItemText>
         </MenuItem>
       </Menu>
-      {history && <HistoryModal history={history} openDialog={openDialog} setOpenDialog={setOpenDialog} />}
+      {history && (
+        <HistoryModal
+          history={history}
+          openDialog={openDialog}
+          setOpenDialog={setOpenDialog}
+        />
+      )}
+      {openImportDialog ? (
+        <ImportFromComplectsDialog
+          open={openImportDialog}
+          targetTemplateId={id}
+          onClose={() => setOpenImportDialog(false)}
+          onImported={fetchData}
+        />
+      ) : null}
     </>
   );
 };

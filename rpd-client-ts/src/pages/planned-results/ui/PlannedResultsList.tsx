@@ -1,9 +1,9 @@
+import { useRpdComplectsQuery } from "@entities/rpd-complect";
 import {
   Button,
   FormControl,
   InputLabel,
   MenuItem,
-  Paper,
   Select,
   Table,
   TableBody,
@@ -15,14 +15,18 @@ import {
   Typography,
 } from "@mui/material";
 import { Box } from "@mui/system";
-import { parseCsvToJson, ParsedPlannedResults } from "@shared/ability/lib/parseCsvToJson";
+import {
+  parseCsvToJson,
+  ParsedPlannedResults,
+} from "@shared/ability/lib/parseCsvToJson";
 import { axiosBase } from "@shared/api";
+import { useStore } from "@shared/hooks";
 import { showErrorMessage, showSuccessMessage } from "@shared/lib";
-import { ComplectData } from "@shared/types";
 import { PageTitle } from "@shared/ui";
+import { isAxiosError } from "axios";
+import { keys } from "lodash";
 import { FC, useEffect, useMemo, useState } from "react";
 import { useLocation } from "react-router-dom";
-import { isAxiosError } from "axios";
 
 interface ResultsRow {
   competence: string;
@@ -43,34 +47,38 @@ type FilterState = {
 export const PlannedResultsList: FC = () => {
   const [data, setData] = useState<ResultsData | undefined>();
   const location = useLocation();
+  const filtersState = location.state as FilterState | undefined;
+  const storedFilters = useStore((state) => state.plannedResultsFilters);
+  const setStoredFilters = useStore((state) => state.setPlannedResultsFilters);
 
-  const filtersState = location.state as FilterState;
-
-  const [complects, setComplects] = useState<ComplectData[]>([]);
-  const [filters, setFilters] = useState<FilterState>(filtersState || { profile: "", formEducation: "", year: null });
+  const [filters, setFilters] = useState<FilterState>(
+    () => filtersState || storedFilters
+  );
   const [selectedComplectId, setSelectedComplectId] = useState<number>();
+  const { complects } = useRpdComplectsQuery();
 
   const options = useMemo(() => {
     const profiles = Array.from(new Set(complects.map((i) => i.profile)));
     const forms = Array.from(new Set(complects.map((i) => i.formEducation)));
-    const years = Array.from(new Set(complects.map((i) => i.year))).sort((a, b) => Number(b) - Number(a));
+    const years = Array.from(new Set(complects.map((i) => i.year))).sort(
+      (a, b) => Number(b) - Number(a)
+    );
     return { profiles, forms, years };
   }, [complects]);
 
-  const filtersComplete = Boolean(filters.profile && filters.formEducation && filters.year);
+  const filtersComplete = Boolean(
+    filters.profile && filters.formEducation && filters.year
+  );
 
   useEffect(() => {
-    const fetchComplectsForOptions = async () => {
-      try {
-        const response = await axiosBase.get("get-rpd-complects");
-        const list = response.data as ComplectData[];
-        setComplects(list);
-      } catch (error) {
-        console.error(error);
-      }
-    };
-    fetchComplectsForOptions();
-  }, []);
+    setStoredFilters(filters);
+  }, [filters, setStoredFilters]);
+
+  useEffect(() => {
+    if (!filtersState) return;
+    setFilters(filtersState);
+    setStoredFilters(filtersState);
+  }, [filtersState, setStoredFilters]);
 
   useEffect(() => {
     if (!filtersComplete) return;
@@ -88,7 +96,9 @@ export const PlannedResultsList: FC = () => {
     setSelectedComplectId(complect.id);
     (async () => {
       try {
-        const response = await axiosBase.get("get-results-data", { params: { complectId: complect.id } });
+        const response = await axiosBase.get("get-results-data", {
+          params: { complectId: complect.id },
+        });
         const rows = response.data as ResultsRow[];
         const mapped: ResultsData = {};
         rows.forEach((row, idx) => (mapped[idx] = row));
@@ -120,22 +130,27 @@ export const PlannedResultsList: FC = () => {
         currentRowIdForCompetence = currentId;
         currentId++;
       } else if (item.results) {
+        const discipline = item.results.trim();
+        if (!discipline) continue;
         if (currentRowIdForCompetence === null) {
+          if (!currentCompetence) continue;
           resultsData[currentId] = {
             competence: currentCompetence,
-            indicator: "",
+            indicator: "—",
             disciplines: [],
           };
           currentRowIdForCompetence = currentId;
           currentId++;
         }
-        resultsData[currentRowIdForCompetence].disciplines.push(item.results);
+        resultsData[currentRowIdForCompetence].disciplines.push(discipline);
       }
     }
     return resultsData;
   };
 
-  const handleFileUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
+  const handleFileUpload = async (
+    event: React.ChangeEvent<HTMLInputElement>
+  ) => {
     const file = event.target.files?.[0];
     if (!file) return;
     try {
@@ -144,9 +159,14 @@ export const PlannedResultsList: FC = () => {
       setData(resultsData);
       showSuccessMessage("Данные успешно загружены");
     } catch (error) {
-      const errorMessage = error instanceof Error ? error.message : "Не удалось загрузить файл компетенций";
+      const errorMessage =
+        error instanceof Error
+          ? error.message
+          : "Не удалось загрузить файл компетенций";
       showErrorMessage(errorMessage);
       console.error(error);
+    } finally {
+      event.target.value = "";
     }
   };
 
@@ -160,42 +180,42 @@ export const PlannedResultsList: FC = () => {
       });
       showSuccessMessage("Данные успешно загружены");
     } catch (error) {
-      const errorMessage = isAxiosError(error) ? error.message : "Неизвестная ошибка";
+      const errorMessage = isAxiosError(error)
+        ? error.message
+        : "Неизвестная ошибка";
       showErrorMessage(errorMessage);
       console.error(error);
     }
   };
+
   const headers = [
     "Формируемые компетенции (код и наименование)",
     "Индикаторы достижения компетенций (код и формулировка)",
     "Дисциплины",
   ];
+
   return (
     <Box>
       <PageTitle title={"Загрузка компетенций для всех дисциплин"} />
       <Box pt={2} display={"flex"} justifyContent={"space-between"}>
-        <Box display={"flex"} gap={2} alignItems={"center"} py={3} flexWrap={"wrap"}>
+        <Box
+          display={"flex"}
+          gap={2}
+          alignItems={"center"}
+          py={3}
+          flexWrap={"wrap"}
+        >
           <FormControl sx={{ minWidth: 260 }}>
-            <InputLabel
-              size="small"
-              sx={{
-                top: "50%",
-                transform: "translate(14px, -50%)",
-                "&.MuiInputLabel-shrink": {
-                  top: 0,
-                  transform: "translate(14px, -9px) scale(0.75)",
-                },
-              }}
-              id="profile-label"
-            >
+            <InputLabel size="small" id="profile-label">
               Профиль
             </InputLabel>
             <Select
               labelId="profile-label"
               label="Профиль"
-              sx={{ "& .MuiSelect-select": { py: 0.5 } }}
               value={filters.profile}
-              onChange={(e) => setFilters((prev) => ({ ...prev, profile: e.target.value }))}
+              onChange={(e) =>
+                setFilters((prev) => ({ ...prev, profile: e.target.value }))
+              }
             >
               {options.profiles.map((p) => (
                 <MenuItem key={p} value={p}>
@@ -205,26 +225,19 @@ export const PlannedResultsList: FC = () => {
             </Select>
           </FormControl>
           <FormControl sx={{ minWidth: 180 }}>
-            <InputLabel
-              id="form-label"
-              size="small"
-              sx={{
-                top: "50%",
-                transform: "translate(14px, -50%)",
-                "&.MuiInputLabel-shrink": {
-                  top: 0,
-                  transform: "translate(14px, -9px) scale(0.75)",
-                },
-              }}
-            >
+            <InputLabel id="form-label" size="small">
               Форма обучения
             </InputLabel>
             <Select
               labelId="form-label"
               label="Форма обучения"
               value={filters.formEducation}
-              sx={{ "& .MuiSelect-select": { py: 0.5 } }}
-              onChange={(e) => setFilters((prev) => ({ ...prev, formEducation: e.target.value }))}
+              onChange={(e) =>
+                setFilters((prev) => ({
+                  ...prev,
+                  formEducation: e.target.value,
+                }))
+              }
             >
               {options.forms.map((f) => (
                 <MenuItem key={f} value={f}>
@@ -234,26 +247,19 @@ export const PlannedResultsList: FC = () => {
             </Select>
           </FormControl>
           <FormControl size="small" sx={{ minWidth: 140 }}>
-            <InputLabel
-              size="small"
-              sx={{
-                top: "50%",
-                transform: "translate(14px, -50%)",
-                "&.MuiInputLabel-shrink": {
-                  top: 0,
-                  transform: "translate(14px, -9px) scale(0.75)",
-                },
-              }}
-              id="year-label"
-            >
+            <InputLabel size="small" id="year-label">
               Год набора
             </InputLabel>
             <Select
-              sx={{ "& .MuiSelect-select": { py: 0.5 } }}
               labelId="year-label"
               label="Год набора"
               value={filters.year ?? ""}
-              onChange={(e) => setFilters((prev) => ({ ...prev, year: Number(e.target.value) }))}
+              onChange={(e) =>
+                setFilters((prev) => ({
+                  ...prev,
+                  year: Number(e.target.value),
+                }))
+              }
             >
               {options.years.map((y) => (
                 <MenuItem key={y} value={y}>
@@ -263,7 +269,13 @@ export const PlannedResultsList: FC = () => {
             </Select>
           </FormControl>
         </Box>
-        <Box display={"flex"} justifyContent={"space-between"} alignItems={"center"} py={1} gap={1}>
+        <Box
+          display={"flex"}
+          justifyContent={"space-between"}
+          alignItems={"center"}
+          py={1}
+          gap={1}
+        >
           <Tooltip title="Загрузить файл компетенций (.csv, .xlsx)" arrow>
             <Box component="label" htmlFor="csv-upload">
               <Button variant="outlined" component="span">
@@ -283,8 +295,8 @@ export const PlannedResultsList: FC = () => {
           </Button>
         </Box>
       </Box>
-      <TableContainer component={Paper}>
-        <Table>
+      <TableContainer>
+        <Table className="table" size="small">
           <TableHead>
             <TableRow>
               {headers.map((header) => (
@@ -293,11 +305,14 @@ export const PlannedResultsList: FC = () => {
             </TableRow>
           </TableHead>
           <TableBody>
-            {filtersComplete && data ? (
+            {filtersComplete && data && keys(data).length ? (
               Object.entries(data).map(([key, row]) => (
                 <TableRow key={key}>
                   <TableCell>
-                    {Number(key) === 0 || row.competence !== data[Number(key) - 1].competence ? row.competence : ""}
+                    {Number(key) === 0 ||
+                    row.competence !== data[Number(key) - 1].competence
+                      ? row.competence
+                      : ""}
                   </TableCell>
                   <TableCell>{row.indicator}</TableCell>
                   <TableCell>{row.disciplines.join(", ")}</TableCell>
@@ -305,8 +320,10 @@ export const PlannedResultsList: FC = () => {
               ))
             ) : (
               <TableRow>
-                <TableCell colSpan={headers.length} align="center">
-                  <Typography color="textDisabled">Компетенции пока не были загружены</Typography>
+                <TableCell colSpan={3} align="center">
+                  <Typography color="textDisabled" sx={{ textAlign: "center" }}>
+                    Компетенции пока не были загружены
+                  </Typography>
                 </TableCell>
               </TableRow>
             )}

@@ -1,13 +1,17 @@
+import { Box } from "@mui/material";
+import { TemplatePagesPath } from "@pages/teacher-interface/model/pathes.ts";
+import { PageTitleComment } from "@shared/ui";
 import { FC } from "react";
 import JsonChangeValue from "../changeable-elements/JsonChangeValue.tsx";
-import { Box } from "@mui/material";
 
 const AimsPage: FC = () => {
   return (
     <Box>
-      <Box fontSize={"1.5rem"} sx={{ pb: 2 }}>
-        Цели и задачи освоения дисциплины
-      </Box>
+      <PageTitleComment
+        title="Цели и задачи освоения дисциплины"
+        paddingBottom={2}
+        templateField={TemplatePagesPath.AIMS_PAGE}
+      />
       <JsonChangeValue elementName="goals" />
     </Box>
   );
