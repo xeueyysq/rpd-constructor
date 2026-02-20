@@ -11,7 +11,8 @@ RUN apk add --no-cache \
 
 ENV PUPPETEER_EXECUTABLE_PATH=/usr/bin/chromium-browser \
     PUPPETEER_SKIP_CHROMIUM_DOWNLOAD=true \
-    PUPPETEER_DISABLE_HEADLESS_WARNING=true
+    PUPPETEER_DISABLE_HEADLESS_WARNING=true \
+    npm_config_disturl=https://nodejs.org/download/release
 
 # Установка временных зависимостей для сборки
 RUN apk add --no-cache --virtual .build-deps build-base python3 make g++ \
@@ -28,9 +29,6 @@ RUN npm install
 
 # Копирование остальных файлов приложения
 COPY . .
-
-# Пересборка bcrypt
-RUN npm rebuild bcrypt --build-from-source
 
 # Удаление временных зависимостей
 RUN apk del .build-deps
