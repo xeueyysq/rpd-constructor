@@ -6,12 +6,21 @@ class Rpd1cExchange {
   }
 
   normalizeTeachers(teachers) {
-    const list = Array.isArray(teachers) ? teachers : teachers ? [teachers] : [];
-    return [...new Set(list.map((t) => (typeof t === "string" ? t.trim() : "")).filter(Boolean))];
+    const list = Array.isArray(teachers)
+      ? teachers
+      : teachers
+        ? [teachers]
+        : [];
+    return [
+      ...new Set(
+        list.map((t) => (typeof t === "string" ? t.trim() : "")).filter(Boolean)
+      ),
+    ];
   }
 
   teacherNameToFullnameJson(teacher) {
-    const parts = typeof teacher === "string" ? teacher.trim().split(/\s+/) : [];
+    const parts =
+      typeof teacher === "string" ? teacher.trim().split(/\s+/) : [];
     return {
       surname: parts[0],
       name: parts[1],
@@ -78,9 +87,7 @@ class Rpd1cExchange {
         let competenceRecord = competenciesMap.get(competenceText);
 
         if (!competenceRecord) {
-          const {
-            rows: competenceRows,
-          } = await client.query(
+          const { rows: competenceRows } = await client.query(
             `
               INSERT INTO planned_competencies (set_id, competence)
               VALUES ($1, $2)
@@ -106,9 +113,7 @@ class Rpd1cExchange {
         let indicatorRecord = competenceRecord.indicators.get(indicatorText);
 
         if (!indicatorRecord) {
-          const {
-            rows: indicatorRows,
-          } = await client.query(
+          const { rows: indicatorRows } = await client.query(
             `
               INSERT INTO planned_indicators (competence_id, indicator)
               VALUES ($1, $2)
@@ -122,9 +127,7 @@ class Rpd1cExchange {
         }
 
         if (!indicatorRecord?.id) {
-          throw new Error(
-            "Не удалось сохранить индикатор при загрузке данных"
-          );
+          throw new Error("Не удалось сохранить индикатор при загрузке данных");
         }
 
         const uniqueDisciplines = [
@@ -276,7 +279,11 @@ class Rpd1cExchange {
       const missingTeachers = [];
       for (const currentTeacher of teachers) {
         const fullnameJson = this.teacherNameToFullnameJson(currentTeacher);
-        if (!fullnameJson?.surname || !fullnameJson?.name || !fullnameJson?.patronymic) {
+        if (
+          !fullnameJson?.surname ||
+          !fullnameJson?.name ||
+          !fullnameJson?.patronymic
+        ) {
           missingTeachers.push(currentTeacher);
           continue;
         }
@@ -315,9 +322,10 @@ class Rpd1cExchange {
             semester,
             competencies,
             zet,
-            study_load
+            study_load,
+            control_load
           ) VALUES (
-            $1, $2, $3, $4, $5, $6, $7, $8, $9
+            $1, $2, $3, $4, $5, $6, $7, $8, $9, $10
           ) RETURNING id
         `,
         [
@@ -330,11 +338,13 @@ class Rpd1cExchange {
           competencies,
           resultData.zet,
           JSON.stringify(resultData.study_load),
+          JSON.stringify(resultData.control_load ?? {}),
         ]
       );
 
       const idProfileTemplate = queryResult.rows[0]?.id;
-      if (!idProfileTemplate) throw new Error("Не удалось создать шаблон профиля");
+      if (!idProfileTemplate)
+        throw new Error("Не удалось создать шаблон профиля");
 
       await client.query(
         `

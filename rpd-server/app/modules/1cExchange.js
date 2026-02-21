@@ -125,6 +125,7 @@ const processDisciplines = async (disciplines, RpdComplectId) => {
       zets = null,
       place = "",
       study_load = {},
+      control_load = {},
     } = disc || {};
 
     const normalizedSemester = Number(semester);
@@ -140,6 +141,12 @@ const processDisciplines = async (disciplines, RpdComplectId) => {
       study_load && typeof study_load === "object" && !Array.isArray(study_load)
         ? study_load
         : {};
+    const normalizedControlLoad =
+      control_load &&
+      typeof control_load === "object" &&
+      !Array.isArray(control_load)
+        ? control_load
+        : {};
 
     const insertedId = await insertDiscipline({
       RpdComplectId,
@@ -149,6 +156,7 @@ const processDisciplines = async (disciplines, RpdComplectId) => {
       zets: Number.isFinite(normalizedZets) ? normalizedZets : null,
       place,
       study_load: normalizedStudyLoad,
+      control_load: normalizedControlLoad,
       semester: Number.isFinite(normalizedSemester) ? normalizedSemester : null,
     });
 
@@ -171,9 +179,10 @@ const insertDiscipline = async (data) => {
       zet,
       place,
       study_load,
+      control_load,
       semester
     ) VALUES (
-      $1, $2, $3, $4, $5, $6, $7, $8
+      $1, $2, $3, $4, $5, $6, $7, $8, $9
     ) 
     ON CONFLICT DO NOTHING
     RETURNING id
@@ -186,6 +195,7 @@ const insertDiscipline = async (data) => {
       data.zets,
       data.place,
       JSON.stringify(data.study_load),
+      JSON.stringify(data.control_load ?? {}),
       data.semester,
     ]
   );

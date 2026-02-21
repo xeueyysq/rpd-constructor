@@ -114,6 +114,15 @@ const process = require("process");
         ALTER COLUMN teacher TYPE TEXT;
     `);
 
+    await pool.query(`
+      ALTER TABLE rpd_1c_exchange
+        ADD COLUMN IF NOT EXISTS control_load JSONB;
+    `);
+    await pool.query(`
+      ALTER TABLE rpd_profile_templates
+        ADD COLUMN IF NOT EXISTS control_load JSONB;
+    `);
+
     // Миграция для таблицы `rpd_changeable_values`
     await pool.query(`
       CREATE TABLE IF NOT EXISTS rpd_changeable_values (
