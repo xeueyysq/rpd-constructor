@@ -1,18 +1,18 @@
 import { TemplateStatus, TemplateStatusEnum } from "@entities/template";
-import {
-  Autocomplete,
-  Box,
-  Button,
-  FormControl,
-  MenuItem,
-  Select,
-  TextField,
-} from "@mui/material";
+import { Autocomplete, Box, Button, TextField } from "@mui/material";
 import type { MRT_ColumnDef } from "material-react-table";
 import { useMemo } from "react";
 import TemplateMenu from "../ui/TemplateMenu";
 import type { TemplateData } from "../types";
 import type { SelectedTeachersMap } from "./useComplectData";
+
+function parseTeacherString(teacher: string | undefined): string[] {
+  if (!teacher?.trim()) return [];
+  return teacher
+    .split(",")
+    .map((t) => t.trim())
+    .filter(Boolean);
+}
 
 type UseComplectTableColumnsParams = {
   selectedTeachers: SelectedTeachersMap;
@@ -43,43 +43,24 @@ export function useComplectTableColumns({
         header: "Преподаватель",
         Cell: ({ row }) => (
           <Box width="100%">
-            <FormControl fullWidth variant="standard">
-              {row.original.teacher ? (
-                <Select
-                  labelId={`select-label-${row.original.id}`}
-                  id={`select-${row.original.id}`}
-                  value={row.original.teacher}
+            <Autocomplete
+              id={`select-${row.original.id}`}
+              multiple
+              value={
+                selectedTeachers[row.original.id] ??
+                parseTeacherString(row.original.teacher)
+              }
+              onChange={(_, value) => onTeachersChange(row.original.id, value)}
+              fullWidth
+              renderInput={(params) => (
+                <TextField
                   label="Преподаватель"
-                  disabled
-                  fullWidth
-                >
-                  <MenuItem
-                    key={row.original.teacher}
-                    value={row.original.teacher}
-                  >
-                    {row.original.teacher}
-                  </MenuItem>
-                </Select>
-              ) : (
-                <Autocomplete
-                  id={`select-${row.original.id}`}
-                  multiple
-                  value={selectedTeachers[row.original.id] ?? []}
-                  onChange={(_, value) =>
-                    onTeachersChange(row.original.id, value)
-                  }
-                  fullWidth
-                  renderInput={(params) => (
-                    <TextField
-                      label="Преподаватель"
-                      variant="standard"
-                      {...params}
-                    />
-                  )}
-                  options={row.original.teachers}
+                  variant="standard"
+                  {...params}
                 />
               )}
-            </FormControl>
+              options={row.original.teachers}
+            />
           </Box>
         ),
       },
@@ -110,7 +91,10 @@ export function useComplectTableColumns({
             ) : (
               <TemplateMenu
                 id={row.original.id_profile_template}
-                teacher={row.original.teacher}
+                teacher={(
+                  selectedTeachers[row.original.id] ??
+                  parseTeacherString(row.original.teacher)
+                ).join(", ")}
                 status={row.original.status.status}
                 fetchData={onFetchData}
               />

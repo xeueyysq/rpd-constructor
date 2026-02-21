@@ -88,6 +88,18 @@ function getStudyLoadCategory(label: string): StudyLoadCategory {
   return "unknown";
 }
 
+function sumControlLoadHours(controlLoad: unknown): number {
+  if (
+    !controlLoad ||
+    typeof controlLoad !== "object" ||
+    Array.isArray(controlLoad)
+  )
+    return 0;
+  return (
+    Object.values(controlLoad as Record<string, unknown>) as unknown[]
+  ).reduce<number>((acc, val) => acc + toNumberSafe(val), 0);
+}
+
 function getRowHours(row: DisciplineContentRow) {
   const lectures = toNumberSafe(row.lectures);
   const seminars = toNumberSafe(row.seminars);
@@ -155,7 +167,11 @@ export function DisciplineContentTable({
     () => normalizeStudyLoad(jsonData?.study_load),
     [jsonData?.study_load]
   );
-  const hasMaxHours = dataHours.length > 0;
+  const controlLoadHours = useMemo(
+    () => sumControlLoadHours(jsonData?.control_load),
+    [jsonData?.control_load]
+  );
+  const hasMaxHours = dataHours.length > 0 || controlLoadHours > 0;
   const { maxHoursBase, hasBreakdownHours } = useMemo(() => {
     const empty: ObjectHours = {
       all: 0,
@@ -166,8 +182,19 @@ export function DisciplineContentTable({
       independent_work: 0,
     };
 
-    if (!dataHours.length)
+    if (!dataHours.length && !controlLoadHours) {
       return { maxHoursBase: empty, hasBreakdownHours: false };
+    }
+
+    if (!dataHours.length) {
+      const base = {
+        ...empty,
+        control: controlLoadHours,
+        all: controlLoadHours,
+        lect_and_sems: controlLoadHours,
+      };
+      return { maxHoursBase: base, hasBreakdownHours: false };
+    }
 
     let sumAll = 0;
     let explicitTotal: number | null = null;
@@ -216,10 +243,13 @@ export function DisciplineContentTable({
       );
     }
 
+    base.control += controlLoadHours;
+    if (controlLoadHours > 0) hasControl = true;
+
     base.lect_and_sems = base.lectures + base.seminars + base.control;
 
     return { maxHoursBase: base, hasBreakdownHours: hasBreakdown };
-  }, [dataHours]);
+  }, [dataHours, controlLoadHours]);
   const updateJsonData = useStore((state) => state.updateJsonData);
 
   const storeData = jsonData?.content as DisciplineContentData | undefined;
