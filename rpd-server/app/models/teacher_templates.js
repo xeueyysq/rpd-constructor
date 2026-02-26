@@ -7,7 +7,13 @@ class TeacherTemplates {
 
   normalizeTeachers(teacher, teachers) {
     if (Array.isArray(teachers)) {
-      return [...new Set(teachers.map((t) => (typeof t === "string" ? t.trim() : "")).filter(Boolean))];
+      return [
+        ...new Set(
+          teachers
+            .map((t) => (typeof t === "string" ? t.trim() : ""))
+            .filter(Boolean)
+        ),
+      ];
     }
     if (typeof teacher !== "string") return [];
     return [
@@ -80,8 +86,17 @@ class TeacherTemplates {
         await this.setTemplateStatus(id, userName, "on_teacher");
       }
 
-      if (addedCount === 0 && userNotFound.length > 0 && alreadyBinned.length === 0) return "UserNotFound";
-      if (addedCount === 0 && alreadyBinned.length > 0 && userNotFound.length === 0)
+      if (
+        addedCount === 0 &&
+        userNotFound.length > 0 &&
+        alreadyBinned.length === 0
+      )
+        return "UserNotFound";
+      if (
+        addedCount === 0 &&
+        alreadyBinned.length > 0 &&
+        userNotFound.length === 0
+      )
         return "TemplateAlreadyBinned";
 
       return {
@@ -170,7 +185,6 @@ class TeacherTemplates {
       throw error;
     }
   }
-
 }
 
 module.exports = TeacherTemplates;

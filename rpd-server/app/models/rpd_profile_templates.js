@@ -5,7 +5,12 @@ class RpdProfileTemplates {
     this.pool = pool;
   }
 
-  static JSONB_FIELDS = new Set(["competencies", "content", "study_load"]);
+  static JSONB_FIELDS = new Set([
+    "competencies",
+    "content",
+    "study_load",
+    "control_load",
+  ]);
   static CONTENT_COPY_FIELDS = [
     "protocol",
     "goals",
