@@ -1,5 +1,12 @@
 import { TemplateStatus, TemplateStatusEnum } from "@entities/template";
-import { Autocomplete, Box, Button, TextField } from "@mui/material";
+import {
+  Autocomplete,
+  Box,
+  Button,
+  Divider,
+  ListItemButton,
+  TextField,
+} from "@mui/material";
 import type { MRT_ColumnDef } from "material-react-table";
 import { useMemo } from "react";
 import TemplateMenu from "../ui/TemplateMenu";
@@ -41,28 +48,69 @@ export function useComplectTableColumns({
       {
         accessorKey: "teacher",
         header: "Преподаватель",
-        Cell: ({ row }) => (
-          <Box width="100%">
-            <Autocomplete
-              id={`select-${row.original.id}`}
-              multiple
-              value={
-                selectedTeachers[row.original.id] ??
-                parseTeacherString(row.original.teacher)
-              }
-              onChange={(_, value) => onTeachersChange(row.original.id, value)}
-              fullWidth
-              renderInput={(params) => (
-                <TextField
-                  label="Преподаватель"
-                  variant="standard"
-                  {...params}
-                />
-              )}
-              options={row.original.teachers}
-            />
-          </Box>
-        ),
+        Cell: ({ row }) => {
+          const templateId = row.original.id;
+          const teachersList = row.original.teachers;
+          const ListboxComponent = useMemo(
+            () =>
+              function TeacherListbox(
+                props: React.HTMLAttributes<HTMLUListElement> & {
+                  children?: React.ReactNode;
+                }
+              ) {
+                return (
+                  <ul {...props}>
+                    <li key="add-all" style={{ listStyle: "none", padding: 0 }}>
+                      <ListItemButton
+                        component="div"
+                        onMouseDown={(e) => e.preventDefault()}
+                        onClick={() =>
+                          onTeachersChange(templateId, [...teachersList])
+                        }
+                        sx={{ py: 1.25, px: 2 }}
+                      >
+                        Добавить всех
+                      </ListItemButton>
+                    </li>
+                    <li
+                      key="divider"
+                      style={{ listStyle: "none", padding: 0 }}
+                      aria-hidden
+                    >
+                      <Divider sx={{ my: 1 }} />
+                    </li>
+                    {props.children}
+                  </ul>
+                );
+              },
+            [templateId, teachersList, onTeachersChange]
+          );
+          return (
+            <Box width="100%">
+              <Autocomplete
+                id={`select-${row.original.id}`}
+                multiple
+                value={
+                  selectedTeachers[row.original.id] ??
+                  parseTeacherString(row.original.teacher)
+                }
+                onChange={(_, value) =>
+                  onTeachersChange(row.original.id, value)
+                }
+                fullWidth
+                renderInput={(params) => (
+                  <TextField
+                    label="Преподаватель"
+                    variant="standard"
+                    {...params}
+                  />
+                )}
+                options={row.original.teachers}
+                ListboxComponent={ListboxComponent}
+              />
+            </Box>
+          );
+        },
       },
       {
         accessorKey: "status",

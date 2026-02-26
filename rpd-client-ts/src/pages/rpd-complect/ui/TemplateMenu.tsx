@@ -70,13 +70,10 @@ const TemplateMenu: FC<TemplateMenu> = ({ id, teacher, status, fetchData }) => {
           ? response.data
           : (response.data?.result as string | undefined);
 
-      if (result === "UserNotFound")
-        showErrorMessage("Ошибка. Пользователь не найден");
+      if (result === "UserNotFound") showErrorMessage("Пользователь не найден");
       if (result === "TemplateAlreadyBinned")
-        showErrorMessage("Ошибка. Данный шаблон уже отправлен преподавателю");
+        showWarningMessage("Данный шаблон уже отправлен преподавателям(-ю)");
       if (result === "binnedSuccess") {
-        showSuccessMessage("Шаблон успешно отправлен преподавателям(-ю)");
-
         const userNotFound =
           typeof response.data === "object" &&
           Array.isArray(response.data?.userNotFound)
@@ -87,6 +84,11 @@ const TemplateMenu: FC<TemplateMenu> = ({ id, teacher, status, fetchData }) => {
           Array.isArray(response.data?.alreadyBinned)
             ? (response.data.alreadyBinned as string[])
             : [];
+
+        const totalFailed = userNotFound.length + alreadyBinned.length;
+        if (totalFailed < teachers.length) {
+          showSuccessMessage("Шаблон успешно отправлен преподавателям(-ю)");
+        }
 
         if (userNotFound.length) {
           showWarningMessage(
