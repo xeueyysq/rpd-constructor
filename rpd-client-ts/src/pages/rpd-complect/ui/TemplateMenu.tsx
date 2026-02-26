@@ -16,7 +16,11 @@ import {
   Typography,
 } from "@mui/material";
 import { axiosBase } from "@shared/api";
-import { showErrorMessage, showSuccessMessage, showWarningMessage } from "@shared/lib";
+import {
+  showErrorMessage,
+  showSuccessMessage,
+  showWarningMessage,
+} from "@shared/lib";
 import { FC, MouseEvent, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import HistoryModal from "./HistoryModal.tsx";
@@ -62,26 +66,34 @@ const TemplateMenu: FC<TemplateMenu> = ({ id, teacher, status, fetchData }) => {
       });
 
       const result =
-        typeof response.data === "string" ? response.data : (response.data?.result as string | undefined);
+        typeof response.data === "string"
+          ? response.data
+          : (response.data?.result as string | undefined);
 
-      if (result === "UserNotFound")
-        showErrorMessage("Ошибка. Пользователь не найден");
+      if (result === "UserNotFound") showErrorMessage("Пользователь не найден");
       if (result === "TemplateAlreadyBinned")
-        showErrorMessage("Ошибка. Данный шаблон уже отправлен преподавателю");
+        showWarningMessage("Данный шаблон уже отправлен преподавателям(-ю)");
       if (result === "binnedSuccess") {
-        showSuccessMessage("Шаблон успешно отправлен преподавателям(-ю)");
-
         const userNotFound =
-          typeof response.data === "object" && Array.isArray(response.data?.userNotFound)
+          typeof response.data === "object" &&
+          Array.isArray(response.data?.userNotFound)
             ? (response.data.userNotFound as string[])
             : [];
         const alreadyBinned =
-          typeof response.data === "object" && Array.isArray(response.data?.alreadyBinned)
+          typeof response.data === "object" &&
+          Array.isArray(response.data?.alreadyBinned)
             ? (response.data.alreadyBinned as string[])
             : [];
 
+        const totalFailed = userNotFound.length + alreadyBinned.length;
+        if (totalFailed < teachers.length) {
+          showSuccessMessage("Шаблон успешно отправлен преподавателям(-ю)");
+        }
+
         if (userNotFound.length) {
-          showWarningMessage(`Не найдены пользователи: ${userNotFound.join(", ")}`);
+          showWarningMessage(
+            `Не найдены пользователи: ${userNotFound.join(", ")}`
+          );
         }
         if (alreadyBinned.length) {
           showWarningMessage(`Уже отправлено: ${alreadyBinned.join(", ")}`);
@@ -150,11 +162,7 @@ const TemplateMenu: FC<TemplateMenu> = ({ id, teacher, status, fetchData }) => {
             </Typography>
           </ListItemText>
         </MenuItem>
-        {!(
-          status === TemplateStatusEnum.ON_TEACHER ||
-          status === TemplateStatusEnum.IN_PROGRESS ||
-          status === TemplateStatusEnum.ON_REFINEMENT
-        ) && (
+        {teacher.trim() !== "" && (
           <MenuItem
             onClick={() =>
               status === TemplateStatusEnum.READY

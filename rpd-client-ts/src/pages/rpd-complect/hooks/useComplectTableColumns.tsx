@@ -3,9 +3,8 @@ import {
   Autocomplete,
   Box,
   Button,
-  FormControl,
-  MenuItem,
-  Select,
+  Divider,
+  ListItemButton,
   TextField,
 } from "@mui/material";
 import type { MRT_ColumnDef } from "material-react-table";
@@ -13,6 +12,14 @@ import { useMemo } from "react";
 import TemplateMenu from "../ui/TemplateMenu";
 import type { TemplateData } from "../types";
 import type { SelectedTeachersMap } from "./useComplectData";
+
+function parseTeacherString(teacher: string | undefined): string[] {
+  if (!teacher?.trim()) return [];
+  return teacher
+    .split(",")
+    .map((t) => t.trim())
+    .filter(Boolean);
+}
 
 type UseComplectTableColumnsParams = {
   selectedTeachers: SelectedTeachersMap;
@@ -41,47 +48,69 @@ export function useComplectTableColumns({
       {
         accessorKey: "teacher",
         header: "Преподаватель",
-        Cell: ({ row }) => (
-          <Box width="100%">
-            <FormControl fullWidth variant="standard">
-              {row.original.teacher ? (
-                <Select
-                  labelId={`select-label-${row.original.id}`}
-                  id={`select-${row.original.id}`}
-                  value={row.original.teacher}
-                  label="Преподаватель"
-                  disabled
-                  fullWidth
-                >
-                  <MenuItem
-                    key={row.original.teacher}
-                    value={row.original.teacher}
-                  >
-                    {row.original.teacher}
-                  </MenuItem>
-                </Select>
-              ) : (
-                <Autocomplete
-                  id={`select-${row.original.id}`}
-                  multiple
-                  value={selectedTeachers[row.original.id] ?? []}
-                  onChange={(_, value) =>
-                    onTeachersChange(row.original.id, value)
-                  }
-                  fullWidth
-                  renderInput={(params) => (
-                    <TextField
-                      label="Преподаватель"
-                      variant="standard"
-                      {...params}
-                    />
-                  )}
-                  options={row.original.teachers}
-                />
-              )}
-            </FormControl>
-          </Box>
-        ),
+        Cell: ({ row }) => {
+          const templateId = row.original.id;
+          const teachersList = row.original.teachers;
+          const ListboxComponent = useMemo(
+            () =>
+              function TeacherListbox(
+                props: React.HTMLAttributes<HTMLUListElement> & {
+                  children?: React.ReactNode;
+                }
+              ) {
+                return (
+                  <ul {...props}>
+                    <li key="add-all" style={{ listStyle: "none", padding: 0 }}>
+                      <ListItemButton
+                        component="div"
+                        onMouseDown={(e) => e.preventDefault()}
+                        onClick={() =>
+                          onTeachersChange(templateId, [...teachersList])
+                        }
+                        sx={{ py: 1.25, px: 2 }}
+                      >
+                        Добавить всех
+                      </ListItemButton>
+                    </li>
+                    <li
+                      key="divider"
+                      style={{ listStyle: "none", padding: 0 }}
+                      aria-hidden
+                    >
+                      <Divider sx={{ my: 1 }} />
+                    </li>
+                    {props.children}
+                  </ul>
+                );
+              },
+            [templateId, teachersList, onTeachersChange]
+          );
+          return (
+            <Box width="100%">
+              <Autocomplete
+                id={`select-${row.original.id}`}
+                multiple
+                value={
+                  selectedTeachers[row.original.id] ??
+                  parseTeacherString(row.original.teacher)
+                }
+                onChange={(_, value) =>
+                  onTeachersChange(row.original.id, value)
+                }
+                fullWidth
+                renderInput={(params) => (
+                  <TextField
+                    label="Преподаватель"
+                    variant="standard"
+                    {...params}
+                  />
+                )}
+                options={row.original.teachers}
+                ListboxComponent={ListboxComponent}
+              />
+            </Box>
+          );
+        },
       },
       {
         accessorKey: "status",
@@ -110,7 +139,10 @@ export function useComplectTableColumns({
             ) : (
               <TemplateMenu
                 id={row.original.id_profile_template}
-                teacher={row.original.teacher}
+                teacher={(
+                  selectedTeachers[row.original.id] ??
+                  parseTeacherString(row.original.teacher)
+                ).join(", ")}
                 status={row.original.status.status}
                 fetchData={onFetchData}
               />

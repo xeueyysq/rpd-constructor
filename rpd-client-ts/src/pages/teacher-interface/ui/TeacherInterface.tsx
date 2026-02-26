@@ -36,6 +36,15 @@ export function TeacherInterface() {
     }
   };
 
+  const deriveCertificationFromControlLoad = (
+    controlLoad: unknown
+  ): string | undefined => {
+    if (!controlLoad || typeof controlLoad !== "object" || Array.isArray(controlLoad))
+      return;
+    const keys = Object.keys(controlLoad as Record<string, unknown>);
+    return keys.length > 0 ? keys[0] : undefined;
+  };
+
   const uploadTemplateData = useCallback(async () => {
     try {
       const response = await axiosBase.post("rpd-profile-templates", {
@@ -45,9 +54,9 @@ export function TeacherInterface() {
       setComplectId(response.data.id_rpd_complect);
 
       if (!response.data?.certification) {
-        const derived = deriveCertificationFromStudyLoad(
-          response.data?.study_load
-        );
+        const derived =
+          deriveCertificationFromStudyLoad(response.data?.study_load) ??
+          deriveCertificationFromControlLoad(response.data?.control_load);
         if (derived) {
           updateJsonData("certification", derived);
         }

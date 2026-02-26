@@ -9,6 +9,11 @@ import JsonChangeValue from "../changeable-elements/JsonChangeValue.tsx";
 const DisciplinePlace: FC = () => {
   const data = useStore((state) => state.jsonData);
 
+  const certificationFromControlLoad =
+    (data.control_load && Object.keys(data.control_load || {})[0]) || "";
+  const certification =
+    data.certification || certificationFromControlLoad;
+
   const placeWrapper = () => {
     if (data.place === "Обязательная часть") return "обязательной части";
     if (data.place) return String(data.place).toLowerCase();
@@ -52,8 +57,8 @@ const DisciplinePlace: FC = () => {
           курсе
           <Tg sx={{ pt: 2 }}>
             форма промежуточной аттестации –{" "}
-            <CertificationSelector certification={data.certification || ""} />
-            {!data.certification && (
+            <CertificationSelector certification={certification} />
+            {!certification && (
               <Tg sx={{ color: "warning.main", fontWeight: 600, mt: 1 }}>
                 Форма промежуточной аттестации не подгрузилась из 1С — выберите
                 вручную

@@ -4,14 +4,16 @@ import {
   MaterialReactTable,
   useMaterialReactTable,
 } from "material-react-table";
-import { useParams } from "react-router-dom";
+import { useParams, useNavigate } from "react-router-dom";
 import { RedirectPath } from "@shared/enums";
+import { ComplectTableHeader } from "@widgets/table-header/ui/ComplectTableHeader";
 import { useComplectData, useComplectTableColumns } from "../hooks";
 import { complectTableOptions } from "../config";
 import type { TemplateData } from "../types";
 
 export function RpdComplectPage() {
   const { id } = useParams();
+  const navigate = useNavigate();
   const complectId = Number(id);
 
   const {
@@ -34,6 +36,12 @@ export function RpdComplectPage() {
     ...complectTableOptions,
     columns,
     data: filteredData,
+    renderTopToolbarCustomActions: () => (
+      <ComplectTableHeader
+        id={complectId}
+        onAfterDelete={() => navigate(RedirectPath.COMPLECTS)}
+      />
+    ),
   });
 
   if (!complectMeta) return <Loader />;

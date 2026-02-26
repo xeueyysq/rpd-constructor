@@ -4,7 +4,7 @@ import { axiosBase } from "@shared/api";
 import { useStore } from "@shared/hooks";
 import { showErrorMessage, showSuccessMessage } from "@shared/lib";
 import { PageTitleComment } from "@shared/ui";
-import { FC, useMemo, useState } from "react";
+import { FC, useEffect, useMemo, useState } from "react";
 
 interface StudyLoadItem {
   id: string;
@@ -72,7 +72,16 @@ const ScopeDisciplinePage: FC = () => {
   const [manualHours, setManualHours] = useState<string | number | null>(
     summHours
   );
-  const [creditUnits, setCreditUtins] = useState<string | null>(jsonData.zet);
+  const [creditUnits, setCreditUtins] = useState<string | null>(
+    jsonData.zet ?? jsonData.zets ?? null
+  );
+
+  useEffect(() => {
+    setCreditUtins(jsonData.zet ?? jsonData.zets ?? null);
+  }, [jsonData.zet, jsonData.zets]);
+  useEffect(() => {
+    setManualHours(summHours);
+  }, [summHours]);
 
   const saveManualHours = async () => {
     const parsed = Number(manualHours);

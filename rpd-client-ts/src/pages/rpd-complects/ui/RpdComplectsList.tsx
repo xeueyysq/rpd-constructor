@@ -1,12 +1,6 @@
 import { useAuth } from "@entities/auth";
-import {
-  useDeleteRpdComplectsMutation,
-  useRpdComplectsQuery,
-} from "@entities/rpd-complect/model/queries";
-import CachedIcon from "@mui/icons-material/Cached";
-import DeleteIcon from "@mui/icons-material/Delete";
+import { useRpdComplectsQuery } from "@entities/rpd-complect/model/queries";
 import FiberManualRecordIcon from "@mui/icons-material/FiberManualRecord";
-import SaveAsIcon from "@mui/icons-material/SaveAs";
 import {
   Box,
   Breadcrumbs,
@@ -19,7 +13,7 @@ import { RedirectPath } from "@shared/enums";
 import { useStore } from "@shared/hooks";
 import type { ComplectData } from "@shared/types";
 import { Loader, PageTitle } from "@shared/ui";
-import { WarningDeleteDialog } from "@widgets/dialogs/ui";
+import { ComplectTableHeader } from "@widgets/table-header/ui/ComplectTableHeader";
 import { orderBy } from "lodash";
 import {
   MaterialReactTable,
@@ -31,13 +25,11 @@ import { FC, useCallback, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 
 export const RpdComplectsList: FC = () => {
-  const [openDeleteConfirm, setOpenDeleteConfirm] = useState<boolean>(false);
   const { setComplectId } = useStore();
   const navigate = useNavigate();
   const [rowSelection, setRowSelection] = useState<Record<string, boolean>>({});
   const userRole = useAuth.getState().userRole;
   const { complects, isLoading } = useRpdComplectsQuery();
-  const deleteMutation = useDeleteRpdComplectsMutation();
 
   const handleViewComplect = useCallback(
     (complect: ComplectData) => {
@@ -160,56 +152,12 @@ export const RpdComplectsList: FC = () => {
         py: 0.5,
       },
     },
-    renderTopToolbarCustomActions: ({ table }) => {
-      const selectedRowsCount = Object.values(
-        table.getState().rowSelection
-      ).length;
-      return (
-        <Box
-          sx={{
-            display: "flex",
-            px: 1.5,
-            pt: 0.5,
-            gap: "12px",
-          }}
-        >
-          <Button
-            variant="outlined"
-            startIcon={<CachedIcon />}
-            disabled={!selectedRowsCount}
-            sx={{ alignSelf: "flex-start" }}
-          >
-            Обновить комплект
-          </Button>
-          <Button
-            variant="outlined"
-            startIcon={<DeleteIcon />}
-            disabled={!selectedRowsCount}
-            color="error"
-            onClick={() => setOpenDeleteConfirm(true)}
-          >
-            Удалить
-          </Button>
-          <Button
-            variant="outlined"
-            startIcon={<SaveAsIcon />}
-            disabled={!selectedRowsCount}
-          >
-            Добавить содержание рпд
-          </Button>
-        </Box>
-      );
-    },
+    renderTopToolbarCustomActions: ({ table }) => (
+      <ComplectTableHeader setRowSelection={setRowSelection} table={table} />
+    ),
   });
 
   if (isLoading) return <Loader />;
-
-  const handleConfirmDeletion = async () => {
-    const ids = table.getSelectedRowModel().rows.map((r) => r.original.id);
-    setOpenDeleteConfirm(false);
-    setRowSelection({});
-    await deleteMutation.mutateAsync(ids);
-  };
 
   return (
     <Box>
@@ -236,12 +184,6 @@ export const RpdComplectsList: FC = () => {
       <Box pt={2}>
         <MaterialReactTable table={table} />
       </Box>
-      <WarningDeleteDialog
-        open={openDeleteConfirm}
-        setOpen={setOpenDeleteConfirm}
-        onAccept={handleConfirmDeletion}
-        description={"Вы уверены, что хотите удалить выбранные комплекты?"}
-      />
     </Box>
   );
 };
