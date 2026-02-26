@@ -29,6 +29,7 @@ services:
     image: postgres:16
     restart: unless-stopped
     environment:
+      - DB_HOST=db
       - POSTGRES_USER=postgres
       - POSTGRES_PASSWORD=KuliK@4774
       - POSTGRES_DB=Rpd
