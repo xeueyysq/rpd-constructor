@@ -11,7 +11,13 @@ async function findRpd(pool, complectId) {
   const rpd1cExchange = new Rpd1cExchange(pool);
 
   const complectMeta = await rpdComplects.findRpdComplectMeta(complectId);
-  const complectTemplates = await rpd1cExchange.findRpd(complectId);
+
+  if (!complectMeta || !complectMeta.id) {
+    throw new Error("Комплект не найден");
+  }
+
+  const numericComplectId = complectMeta.id;
+  const complectTemplates = await rpd1cExchange.findRpd(numericComplectId);
   return {
     ...complectMeta,
     templates: complectTemplates,

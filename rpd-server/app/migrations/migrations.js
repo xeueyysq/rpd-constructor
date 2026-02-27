@@ -5,6 +5,10 @@ const process = require("process");
   try {
     console.log("Starting migrations...");
 
+    await pool.query(`
+      CREATE EXTENSION IF NOT EXISTS "pgcrypto";
+    `);
+
     // Миграция для таблицы `rpd_complects`
     await pool.query(`
       CREATE TABLE IF NOT EXISTS rpd_complects (
@@ -282,6 +286,61 @@ const process = require("process");
         complect_id INT REFERENCES rpd_complects(id) ON DELETE CASCADE
       )
       `);
+
+    await pool.query(`
+      ALTER TABLE rpd_complects
+        ADD COLUMN IF NOT EXISTS uuid UUID DEFAULT gen_random_uuid();
+    `);
+
+    await pool.query(`
+      ALTER TABLE rpd_complects
+        ALTER COLUMN uuid SET NOT NULL;
+    `);
+
+    await pool.query(`
+      CREATE UNIQUE INDEX IF NOT EXISTS idx_rpd_complects_uuid
+        ON rpd_complects (uuid);
+    `);
+
+    await pool.query(`
+      CREATE UNIQUE INDEX IF NOT EXISTS idx_rpd_complects_business
+        ON rpd_complects (
+          faculty,
+          year,
+          education_form,
+          education_level,
+          profile,
+          direction
+        );
+    `);
+
+    await pool.query(`
+      CREATE UNIQUE INDEX IF NOT EXISTS idx_user_complect_unique
+        ON user_complect (user_id, complect_id);
+    `);
+
+    // Короткий публичный id для шаблонов (12 hex-символов)
+    await pool.query(`
+      ALTER TABLE rpd_profile_templates
+        ADD COLUMN IF NOT EXISTS public_id VARCHAR(12);
+    `);
+    await pool.query(`
+      UPDATE rpd_profile_templates
+        SET public_id = encode(gen_random_bytes(6), 'hex')
+        WHERE public_id IS NULL;
+    `);
+    await pool.query(`
+      ALTER TABLE rpd_profile_templates
+        ALTER COLUMN public_id SET NOT NULL;
+    `);
+    await pool.query(`
+      ALTER TABLE rpd_profile_templates
+        ALTER COLUMN public_id SET DEFAULT encode(gen_random_bytes(6), 'hex');
+    `);
+    await pool.query(`
+      CREATE UNIQUE INDEX IF NOT EXISTS idx_rpd_profile_templates_public_id
+        ON rpd_profile_templates (public_id);
+    `);
 
     console.log("Все миграции загружены успешно");
   } catch (error) {
