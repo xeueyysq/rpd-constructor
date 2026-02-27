@@ -17,7 +17,7 @@ import type { ComplectMeta, TemplateData } from "../types";
 
 export type SelectedTeachersMap = Record<number, string[]>;
 
-export function useComplectData(complectId: number) {
+export function useComplectData(complectId: string | undefined) {
   const selectedTemplateData = useStore.getState().selectedTemplateData;
   const userName = useAuth.getState().userName;
   const [complectMeta, setComplectMeta] = useState<ComplectMeta | undefined>();

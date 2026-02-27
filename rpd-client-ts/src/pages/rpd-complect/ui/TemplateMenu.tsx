@@ -31,12 +31,19 @@ import { TemplatePagesPath } from "@pages/teacher-interface/model/pathes.ts";
 
 interface TemplateMenu {
   id: number;
+  publicId?: string;
   teacher: string;
   status: string;
   fetchData: () => Promise<void>;
 }
 
-const TemplateMenu: FC<TemplateMenu> = ({ id, teacher, status, fetchData }) => {
+const TemplateMenu: FC<TemplateMenu> = ({
+  id,
+  publicId,
+  teacher,
+  status,
+  fetchData,
+}) => {
   const userName = useAuth.getState().userName;
   const [anchorEl, setAnchorEl] = useState<null | HTMLButtonElement>(null);
   const [openDialog, setOpenDialog] = useState<boolean>(false);
@@ -143,7 +150,7 @@ const TemplateMenu: FC<TemplateMenu> = ({ id, teacher, status, fetchData }) => {
         <MenuItem
           onClick={() =>
             navigate(
-              `${RedirectPath.TEMPLATES}/${id}/${TemplatePagesPath.COVER_PAGE}`
+              `${RedirectPath.TEMPLATES}/${publicId ?? id}/${TemplatePagesPath.COVER_PAGE}`
             )
           }
         >

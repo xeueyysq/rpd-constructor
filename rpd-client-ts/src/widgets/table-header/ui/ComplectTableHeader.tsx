@@ -11,7 +11,7 @@ import { MRT_TableInstance } from "material-react-table";
 interface IComplectTableHeader {
   setRowSelection?: (value: Record<string, boolean>) => void;
   table?: MRT_TableInstance<ComplectData>;
-  id?: number;
+  id?: string;
   onAfterDelete?: () => void;
 }
 
@@ -30,7 +30,7 @@ export function ComplectTableHeader({
 
   const handleConfirmDeletion = async () => {
     const ids = table
-      ? table.getSelectedRowModel().rows.map((r) => r.original.id)
+      ? table.getSelectedRowModel().rows.map((r) => r.original.uuid)
       : id != null
         ? [id]
         : [];

@@ -39,6 +39,7 @@ interface TemplateStatusObject {
 
 interface TemplateData {
   id: number;
+  public_id?: string;
   disciplins_name: string;
   faculty: string;
   direction: string;
@@ -77,13 +78,12 @@ export const TeacherInterfaceTemplates: FC = () => {
 
   useEffect(() => {
     if (templatesData) {
-      const templates = templatesData.map((row) => {
-        return {
-          id: row.id,
-          text: row.disciplins_name,
-          year: row.year,
-        };
-      });
+      const templates = templatesData.map((row) => ({
+        id: row.id,
+        public_id: row.public_id,
+        text: row.disciplins_name,
+        year: row.year,
+      }));
       setTeacherTemplates(templates || []);
     }
   }, [templatesData, setTeacherTemplates]);
@@ -99,9 +99,10 @@ export const TeacherInterfaceTemplates: FC = () => {
   };
 
   const handleOpenTemplate = useCallback(
-    (templateId: number) => {
+    (template: TemplateData) => {
       handleMenuClose();
-      navigate(`${RedirectPath.TEMPLATES}/${templateId}`);
+      const id = template.public_id ?? String(template.id);
+      navigate(`${RedirectPath.TEMPLATES}/${id}`);
     },
     [navigate]
   );
@@ -177,7 +178,7 @@ export const TeacherInterfaceTemplates: FC = () => {
                 }
                 onClose={handleMenuClose}
               >
-                <MenuItem onClick={() => handleOpenTemplate(row.original.id)}>
+                <MenuItem onClick={() => handleOpenTemplate(row.original)}>
                   <ListItemIcon>
                     <FolderOpen fontSize="small" />
                   </ListItemIcon>

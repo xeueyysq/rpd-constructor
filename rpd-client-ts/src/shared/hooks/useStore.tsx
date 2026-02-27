@@ -34,6 +34,7 @@ interface TabState {
 
 interface TeacherTemplate {
   id: number | undefined;
+  public_id?: string;
   text: string | undefined;
   year: number | undefined;
 }
