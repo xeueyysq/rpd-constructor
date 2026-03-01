@@ -245,7 +245,6 @@ class Rpd1cExchange {
     if (!id_1c) throw new Error("Не указан id_1c");
     if (!complectId) throw new Error("Не указан complectId");
     if (!discipline) throw new Error("Не указана дисциплина");
-    if (!teachers.length) throw new Error("Не выбраны преподаватели");
 
     const client = await this.pool.connect();
     try {

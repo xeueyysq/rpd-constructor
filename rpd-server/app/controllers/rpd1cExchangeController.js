@@ -76,9 +76,25 @@ class Rpd1cExchangeController {
   async createTemplate(req, res) {
     try {
       const { id_1c, complectId, teachers, teacher, year, discipline, userName } = req.body;
+
+      if (!complectId) {
+        return res
+          .status(400)
+          .json({ result: "validation_error", message: "Не указан complectId" });
+      }
+
+      const complectMeta = await this.complectsModel.findRpdComplectMeta(
+        complectId
+      );
+      if (!complectMeta?.id) {
+        return res
+          .status(404)
+          .json({ message: "Комплект не найден" });
+      }
+
       const record = await this.model.createTemplate(
         id_1c,
-        complectId,
+        complectMeta.id,
         Array.isArray(teachers) ? teachers : teacher,
         year,
         discipline,
@@ -87,7 +103,6 @@ class Rpd1cExchangeController {
       res.json(record);
     } catch (err) {
       const validationErrors = [
-        "Не выбраны преподаватели",
         "Не указан id_1c",
         "Не указан complectId",
         "Не указана дисциплина",
