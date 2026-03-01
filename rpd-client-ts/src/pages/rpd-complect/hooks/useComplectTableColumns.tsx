@@ -139,6 +139,7 @@ export function useComplectTableColumns({
             ) : (
               <TemplateMenu
                 id={row.original.id_profile_template}
+                publicId={row.original.profile_template_public_id}
                 teacher={(
                   selectedTeachers[row.original.id] ??
                   parseTeacherString(row.original.teacher)

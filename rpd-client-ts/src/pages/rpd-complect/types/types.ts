@@ -9,6 +9,7 @@ export interface TemplateStatusObject {
 export interface TemplateData {
   id: number;
   id_profile_template: number;
+  profile_template_public_id?: string;
   discipline: string;
   teachers: string[];
   teacher: string;
@@ -22,7 +23,7 @@ export type ComplectMeta = ComplectData & {
 
 export interface CreateTemplateDataParams {
   id_1c: number;
-  complectId: number | undefined;
+  complectId: string | undefined;
   teachers: string[];
   year: string | undefined;
   discipline: string;

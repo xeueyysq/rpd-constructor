@@ -1,5 +1,7 @@
 import { Box } from "@mui/material";
+import { useAuth } from "@entities/auth";
 import { axiosBase } from "@shared/api";
+import { UserRole } from "@shared/ability";
 import { useStore } from "@shared/hooks";
 import { showErrorMessage } from "@shared/lib/showMessage.ts";
 import { useCallback, useEffect } from "react";
@@ -21,6 +23,8 @@ import { Loader } from "@shared/ui/Loader.tsx";
 export function TeacherInterface() {
   const { toggleDrawer, setJsonData, updateJsonData, setComplectId, jsonData } =
     useStore((state) => state);
+  const userRole = useAuth((state) => state.userRole);
+  const isTeacher = userRole === UserRole.TEACHER;
   const { id: templateId, page = TemplatePagesPath.COVER_PAGE } = useParams();
 
   const deriveCertificationFromStudyLoad = (
@@ -39,7 +43,11 @@ export function TeacherInterface() {
   const deriveCertificationFromControlLoad = (
     controlLoad: unknown
   ): string | undefined => {
-    if (!controlLoad || typeof controlLoad !== "object" || Array.isArray(controlLoad))
+    if (
+      !controlLoad ||
+      typeof controlLoad !== "object" ||
+      Array.isArray(controlLoad)
+    )
       return;
     const keys = Object.keys(controlLoad as Record<string, unknown>);
     return keys.length > 0 ? keys[0] : undefined;
@@ -76,9 +84,13 @@ export function TeacherInterface() {
     [TemplatePagesPath.COVER_PAGE]: <CoverPage />,
     [TemplatePagesPath.APPROVAL_PAGE]: <ApprovalPage />,
     [TemplatePagesPath.AIMS_PAGE]: <AimsPage />,
-    [TemplatePagesPath.DISCIPLINE_PLACE]: <DisciplinePlace />,
+    [TemplatePagesPath.DISCIPLINE_PLACE]: (
+      <DisciplinePlace readOnly={isTeacher} />
+    ),
     [TemplatePagesPath.DISCIPLINE_PLANNED_RESULTS]: <PlannedResultsPage />,
-    [TemplatePagesPath.DISCIPLINE_SCOPE]: <ScopeDisciplinePage />,
+    [TemplatePagesPath.DISCIPLINE_SCOPE]: (
+      <ScopeDisciplinePage readOnly={isTeacher} />
+    ),
     [TemplatePagesPath.DISCIPLINE_CONTENT]: <DisciplineContentPage />,
     [TemplatePagesPath.DISCIPLINE_SUPPORT]: <DisciplineSupportPage />,
     [TemplatePagesPath.DISCIPLINE_EVALUATIONS_FUNDS]: (

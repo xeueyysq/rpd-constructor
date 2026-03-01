@@ -1,5 +1,5 @@
 import EditIcon from "@mui/icons-material/Edit";
-import { Box, Button, ButtonGroup } from "@mui/material";
+import { Box, Button } from "@mui/material";
 import { JsonChangeValueTypes } from "@pages/teacher-interface/model/DisciplineContentPageTypes.ts";
 import { axiosBase } from "@shared/api";
 import { useStore } from "@shared/hooks";

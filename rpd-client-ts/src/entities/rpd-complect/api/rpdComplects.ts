@@ -6,6 +6,6 @@ export const getRpdComplects = async (): Promise<ComplectData[]> => {
   return data;
 };
 
-export const deleteRpdComplects = async (ids: number[]): Promise<void> => {
+export const deleteRpdComplects = async (ids: string[]): Promise<void> => {
   await axiosBase.post("delete_rpd_complect", ids);
 };

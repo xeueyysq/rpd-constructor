@@ -159,7 +159,9 @@ export const RpdList: FC<RpdListProps> = ({ RpdListItems }) => {
           <ListItem disableGutters disablePadding>
             <ListItemButton
               onClick={() =>
-                navigate(`${RedirectPath.COMPLECTS}/${complectId}`)
+                navigate(
+                  `${RedirectPath.COMPLECTS}/${jsonData?.complect_uuid ?? complectId}`
+                )
               }
               sx={{ py: 1 }}
             >

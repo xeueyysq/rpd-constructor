@@ -1,5 +1,6 @@
 export type ComplectData = {
   id: number;
+  uuid: string;
   faculty: string;
   levelEducation: string;
   directionOfStudy: string;

@@ -33,7 +33,7 @@ export const RpdComplectsList: FC = () => {
 
   const handleViewComplect = useCallback(
     (complect: ComplectData) => {
-      navigate(`${RedirectPath.COMPLECTS}/${complect.id}`);
+      navigate(`${RedirectPath.COMPLECTS}/${complect.uuid}`);
       setComplectId(complect.id);
     },
     [setComplectId, navigate]

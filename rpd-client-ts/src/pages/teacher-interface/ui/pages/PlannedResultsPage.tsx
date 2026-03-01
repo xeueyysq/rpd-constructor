@@ -9,14 +9,12 @@ import {
   TableHead,
   TableRow,
   TextField,
-  Tooltip,
+  useTheme,
 } from "@mui/material";
+import { useAuth } from "@entities/auth";
 import { PlannedResultsData } from "@pages/teacher-interface/model/DisciplineContentPageTypes.ts";
 import { TemplatePagesPath } from "@pages/teacher-interface/model/pathes";
-import {
-  parseCsvToJson,
-  ParsedPlannedResults,
-} from "@shared/ability/lib/parseCsvToJson.ts";
+import { UserRole } from "@shared/ability";
 import { axiosBase } from "@shared/api";
 import { useStore } from "@shared/hooks";
 import { showErrorMessage, showSuccessMessage } from "@shared/lib";
@@ -83,14 +81,25 @@ const cellTextFieldSx = {
 const PlannedResultsTableRow: FC<{
   rowKeyStr: string;
   row: PlannedRow;
+  readOnly: boolean;
   onChangeBase: (
     id: number,
     value: string,
     key: "competence" | "indicator"
   ) => void;
   onChangeResult: (id: number, value: string, key: ResultKey) => void;
-}> = ({ rowKeyStr, row, onChangeBase, onChangeResult }) => {
+}> = ({ rowKeyStr, row, readOnly, onChangeBase, onChangeResult }) => {
+  const theme = useTheme();
   const id = Number(rowKeyStr);
+  const cellSx = {
+    ...cellTextFieldSx,
+    ...(readOnly && {
+      "& .MuiInputBase-input.Mui-disabled": {
+        WebkitTextFillColor: theme.palette.text.primary,
+        opacity: 1,
+      },
+    }),
+  };
   const values = useMemo(
     () => [
       row.competence,
@@ -115,12 +124,13 @@ const PlannedResultsTableRow: FC<{
         <Box sx={{ display: "flex" }}>
           <TextField
             fullWidth
-            sx={cellTextFieldSx}
+            sx={cellSx}
             multiline
             minRows={1}
             value={row.competence}
             onChange={(e) => onChangeBase(id, e.target.value, "competence")}
             inputRef={registerTextarea(0)}
+            disabled={readOnly}
           />
         </Box>
       </TableCell>
@@ -128,12 +138,13 @@ const PlannedResultsTableRow: FC<{
         <Box sx={{ display: "flex" }}>
           <TextField
             fullWidth
-            sx={cellTextFieldSx}
+            sx={cellSx}
             multiline
             minRows={1}
             value={row.indicator}
             onChange={(e) => onChangeBase(id, e.target.value, "indicator")}
             inputRef={registerTextarea(1)}
+            disabled={readOnly}
           />
         </Box>
       </TableCell>
@@ -142,12 +153,13 @@ const PlannedResultsTableRow: FC<{
           <Box sx={{ display: "flex" }}>
             <TextField
               fullWidth
-              sx={cellTextFieldSx}
+              sx={cellSx}
               multiline
               minRows={1}
               value={row.results[resultKey]}
               onChange={(e) => onChangeResult(id, e.target.value, resultKey)}
               inputRef={registerTextarea(2 + idx)}
+              disabled={readOnly}
             />
           </Box>
         </TableCell>
@@ -157,6 +169,8 @@ const PlannedResultsTableRow: FC<{
 };
 
 const PlannedResultsPage: FC = () => {
+  const userRole = useAuth((state) => state.userRole);
+  const readOnly = userRole === UserRole.TEACHER;
   const disciplineName = useStore(
     (state) => state.jsonData.disciplins_name
   ) as string;
@@ -169,63 +183,6 @@ const PlannedResultsPage: FC = () => {
   useEffect(() => {
     setData(initialData);
   }, [initialData]);
-
-  const filterData = (parsedData: ParsedPlannedResults) => {
-    const filteredDataMap: PlannedResultsData = {};
-    let competence = "";
-    let indicator = "";
-
-    parsedData &&
-      Object.values(parsedData).forEach((row) => {
-        const dataLength = Object.keys(filteredDataMap).length;
-
-        if (row.competence) {
-          competence = `${row.competence}. ${row.results}`;
-          indicator = "";
-        } else if (row.indicator) {
-          indicator = `${row.indicator}. ${row.results}`;
-        } else if (row.results === disciplineName) {
-          const hasSameEntry = Object.values(filteredDataMap).some(
-            (existingRow) =>
-              existingRow.competence === competence &&
-              existingRow.indicator === indicator
-          );
-
-          const competenceValue = hasSameEntry ? "" : competence;
-
-          filteredDataMap[dataLength] = {
-            competence: competenceValue,
-            indicator,
-            results: {
-              know: "",
-              beAble: "",
-              own: "",
-            },
-          };
-        }
-      });
-    return filteredDataMap;
-  };
-
-  const handleFileUpload = async (
-    event: React.ChangeEvent<HTMLInputElement>
-  ) => {
-    const file = event.target.files?.[0];
-    if (!file) return;
-
-    try {
-      const parsedData = (await parseCsvToJson(file)) as ParsedPlannedResults;
-      const filteredData = filterData(parsedData);
-      setData(filteredData);
-      showSuccessMessage("Данные успешные загружены");
-    } catch (error: unknown) {
-      const errorMessage =
-        error instanceof Error ? error.message : "Неизвестная ошибка";
-      showErrorMessage(errorMessage);
-    } finally {
-      event.target.value = "";
-    }
-  };
 
   const saveData = async () => {
     if (!data) return;
@@ -331,25 +288,13 @@ const PlannedResultsPage: FC = () => {
         paddingBottom={2}
         templateField={TemplatePagesPath.DISCIPLINE_PLANNED_RESULTS}
       />
-      <Box pt={2} display={"flex"} justifyContent="flex-end" gap={1}>
-        <Tooltip title="Загрузить файл компетенций (.csv, .xlsx)" arrow>
-          <Box component="label" htmlFor="csv-upload">
-            <Button variant="outlined" component="span">
-              Загрузить файл
-            </Button>
-            <input
-              id="csv-upload"
-              type="file"
-              accept=".csv,.xlsx"
-              onChange={handleFileUpload}
-              style={{ display: "none" }}
-            />
-          </Box>
-        </Tooltip>
-        <Button variant="contained" onClick={saveData}>
-          Сохранить
-        </Button>
-      </Box>
+      {!readOnly && (
+        <Box pt={2} display={"flex"} justifyContent="flex-end" gap={1}>
+          <Button variant="contained" onClick={saveData}>
+            Сохранить
+          </Button>
+        </Box>
+      )}
       <TableContainer component={Paper} sx={{ my: 2, borderRadius: 0 }}>
         <Table
           sx={{
@@ -389,6 +334,7 @@ const PlannedResultsPage: FC = () => {
                 key={key}
                 rowKeyStr={key}
                 row={data[key]}
+                readOnly={readOnly}
                 onChangeBase={handleChangeBaseCell}
                 onChangeResult={handleChangeResult}
               />

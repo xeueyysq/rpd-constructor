@@ -12,9 +12,8 @@ import { complectTableOptions } from "../config";
 import type { TemplateData } from "../types";
 
 export function RpdComplectPage() {
-  const { id } = useParams();
+  const { id: complectId } = useParams();
   const navigate = useNavigate();
-  const complectId = Number(id);
 
   const {
     complectMeta,
