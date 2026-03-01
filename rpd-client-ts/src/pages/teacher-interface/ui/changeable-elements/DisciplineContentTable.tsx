@@ -456,31 +456,67 @@ export function DisciplineContentTable({
     isComparable: boolean,
     hasComparableMax: boolean
   ) => {
-    if (!hasComparableMax) return "grey";
-    if (!isComparable) return "grey";
-    if (toNumberSafe(hours) !== toNumberSafe(maxHours)) return "red";
-    return "green";
+    if (!hasComparableMax) return "neutral";
+    if (!isComparable) return "neutral";
+    if (toNumberSafe(hours) !== toNumberSafe(maxHours)) return "error";
+    return "success";
   };
+
+  const getValidationCellSx = (
+    hours: number,
+    maxHours: number,
+    isComparable: boolean,
+    hasComparableMax: boolean
+  ) => {
+    const validationState = validateHours(
+      hours,
+      maxHours,
+      isComparable,
+      hasComparableMax
+    );
+
+    if (validationState === "error") {
+      return {
+        color: "error.main",
+        backgroundColor: "rgba(211, 47, 47, 0.08)",
+      };
+    }
+
+    if (validationState === "success") {
+      return {
+        color: "success.main",
+      };
+    }
+
+    return {
+      color: "text.secondary",
+    };
+  };
+
+  const hoursValidationMessage = (() => {
+    if (
+      !(hasMaxHours || manualPlanTouchedTotal || manualPlanTouchedBreakdown)
+    ) {
+      return "";
+    }
+
+    if (hasBreakdownHours || manualPlanTouchedBreakdown) {
+      return compareObjects(summ, displayMaxHours)
+        ? ""
+        : "Ошибка заполнения данных. Данные по часам не совпадают";
+    }
+
+    if (manualPlanTouchedTotal || hasMaxHours) {
+      return toNumberSafe(summ.all) === toNumberSafe(displayMaxHours.all)
+        ? ""
+        : "Ошибка заполнения данных. Общее количество часов не совпадает";
+    }
+
+    return "";
+  })();
 
   const saveData = async () => {
     if (!data) return;
-    if (hasMaxHours || manualPlanTouchedTotal || manualPlanTouchedBreakdown) {
-      if (hasBreakdownHours || manualPlanTouchedBreakdown) {
-        if (!compareObjects(summ, displayMaxHours)) {
-          showErrorMessage(
-            "Ошибка заполнения данных. Данные по часам не совпадают"
-          );
-          return;
-        }
-      } else if (manualPlanTouchedTotal || hasMaxHours) {
-        if (toNumberSafe(summ.all) !== toNumberSafe(displayMaxHours.all)) {
-          showErrorMessage(
-            "Ошибка заполнения данных. Общее количество часов не совпадает"
-          );
-          return;
-        }
-      }
-    }
     const id = jsonData.id;
 
     const filteredData = Object.entries(data).reduce(
@@ -783,14 +819,12 @@ export function DisciplineContentTable({
               <TableRow>
                 <TableCell>Итого за семестр / курс</TableCell>
                 <TableCell
-                  sx={{
-                    color: validateHours(
-                      summ.all,
-                      displayMaxHours.all,
-                      true,
-                      canCompareTotal
-                    ),
-                  }}
+                  sx={getValidationCellSx(
+                    summ.all,
+                    displayMaxHours.all,
+                    true,
+                    canCompareTotal
+                  )}
                 >
                   <Box
                     sx={{
@@ -817,14 +851,12 @@ export function DisciplineContentTable({
                   </Box>
                 </TableCell>
                 <TableCell
-                  sx={{
-                    color: validateHours(
-                      summ.lectures,
-                      displayMaxHours.lectures,
-                      canCompareBreakdown,
-                      canCompareBreakdown
-                    ),
-                  }}
+                  sx={getValidationCellSx(
+                    summ.lectures,
+                    displayMaxHours.lectures,
+                    canCompareBreakdown,
+                    canCompareBreakdown
+                  )}
                 >
                   <Box
                     sx={{
@@ -854,14 +886,12 @@ export function DisciplineContentTable({
                   </Box>
                 </TableCell>
                 <TableCell
-                  sx={{
-                    color: validateHours(
-                      summ.seminars,
-                      displayMaxHours.seminars,
-                      canCompareBreakdown,
-                      canCompareBreakdown
-                    ),
-                  }}
+                  sx={getValidationCellSx(
+                    summ.seminars,
+                    displayMaxHours.seminars,
+                    canCompareBreakdown,
+                    canCompareBreakdown
+                  )}
                 >
                   <Box
                     sx={{
@@ -891,14 +921,12 @@ export function DisciplineContentTable({
                   </Box>
                 </TableCell>
                 <TableCell
-                  sx={{
-                    color: validateHours(
-                      summ.control,
-                      displayMaxHours.control,
-                      canCompareBreakdown,
-                      canCompareBreakdown
-                    ),
-                  }}
+                  sx={getValidationCellSx(
+                    summ.control,
+                    displayMaxHours.control,
+                    canCompareBreakdown,
+                    canCompareBreakdown
+                  )}
                 >
                   <Box
                     sx={{
@@ -928,14 +956,12 @@ export function DisciplineContentTable({
                   </Box>
                 </TableCell>
                 <TableCell
-                  sx={{
-                    color: validateHours(
-                      summ.lect_and_sems,
-                      displayMaxHours.lect_and_sems,
-                      canCompareBreakdown,
-                      canCompareBreakdown
-                    ),
-                  }}
+                  sx={getValidationCellSx(
+                    summ.lect_and_sems,
+                    displayMaxHours.lect_and_sems,
+                    canCompareBreakdown,
+                    canCompareBreakdown
+                  )}
                 >
                   {summ.lect_and_sems} /{" "}
                   {manualPlanEnabled
@@ -945,14 +971,12 @@ export function DisciplineContentTable({
                       : "—"}
                 </TableCell>
                 <TableCell
-                  sx={{
-                    color: validateHours(
-                      summ.independent_work,
-                      displayMaxHours.independent_work,
-                      canCompareBreakdown,
-                      canCompareBreakdown
-                    ),
-                  }}
+                  sx={getValidationCellSx(
+                    summ.independent_work,
+                    displayMaxHours.independent_work,
+                    canCompareBreakdown,
+                    canCompareBreakdown
+                  )}
                 >
                   <Box
                     sx={{
@@ -1002,6 +1026,12 @@ export function DisciplineContentTable({
           </Box>
         )}
       </Box>
+
+      {!readOnly && hoursValidationMessage && (
+        <Box sx={{ pb: 1, color: "error.main", fontWeight: 600 }}>
+          {hoursValidationMessage}
+        </Box>
+      )}
 
       {!readOnly && (
         <ButtonGroup variant="outlined" aria-label="Basic button group">
