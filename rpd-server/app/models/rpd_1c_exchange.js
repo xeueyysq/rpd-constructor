@@ -18,6 +18,45 @@ class Rpd1cExchange {
     ];
   }
 
+  splitTeacherString(teacher) {
+    if (typeof teacher !== "string" || !teacher.trim()) return [];
+    return teacher
+      .split(",")
+      .map((value) => value.trim())
+      .filter(Boolean);
+  }
+
+  mergeTeacherLists(...lists) {
+    const merged = [];
+    for (const list of lists) {
+      if (!Array.isArray(list)) continue;
+      for (const teacher of list) {
+        if (typeof teacher !== "string") continue;
+        const normalized = teacher.trim();
+        if (normalized) merged.push(normalized);
+      }
+    }
+    return [...new Set(merged)];
+  }
+
+  async getSystemTeachers() {
+    const { rows } = await this.pool.query(
+      `
+        SELECT trim(concat_ws(
+          ' ',
+          fullname ->> 'surname',
+          fullname ->> 'name',
+          fullname ->> 'patronymic'
+        )) AS teacher
+        FROM users
+        WHERE role = 2 AND fullname IS NOT NULL
+        ORDER BY teacher
+      `
+    );
+
+    return [...new Set(rows.map((row) => row.teacher).filter(Boolean))];
+  }
+
   teacherNameToFullnameJson(teacher) {
     const parts =
       typeof teacher === "string" ? teacher.trim().split(/\s+/) : [];
@@ -213,8 +252,9 @@ class Rpd1cExchange {
 
   async findRpd(complectId) {
     try {
-      const queryResult = await this.pool.query(
-        `
+      const [queryResult, systemTeachers] = await Promise.all([
+        this.pool.query(
+          `
         SELECT r.id, r.discipline, r.teachers, r.teacher,
         r.semester, ts.id_profile_template, rpt.public_id AS profile_template_public_id, (
           SELECT status
@@ -231,9 +271,19 @@ class Rpd1cExchange {
         LEFT JOIN template_status ts ON r.id = ts.id_1c_template
         LEFT JOIN rpd_profile_templates rpt ON rpt.id = ts.id_profile_template
         WHERE r.id_rpd_complect = $1`,
-        [complectId]
-      );
-      return queryResult.rows;
+          [complectId]
+        ),
+        this.getSystemTeachers(),
+      ]);
+
+      return queryResult.rows.map((row) => ({
+        ...row,
+        teachers: this.mergeTeacherLists(
+          row.teachers,
+          this.splitTeacherString(row.teacher),
+          systemTeachers
+        ),
+      }));
     } catch (err) {
       console.error(err);
       throw new Error("Ошибка в models/rpd_1c_exchange/findRpd");
