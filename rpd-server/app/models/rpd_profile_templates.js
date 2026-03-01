@@ -29,7 +29,6 @@ class RpdProfileTemplates {
     "logistics_template",
   ];
 
-  /** Возвращает числовой id шаблона по id или public_id (короткий uuid). */
   async resolveTemplateId(identifier) {
     if (identifier == null || identifier === "") return null;
     const { rows } = await this.pool.query(
@@ -99,8 +98,8 @@ class RpdProfileTemplates {
       value === null || value === undefined
         ? null
         : typeof value === "string"
-        ? value
-        : JSON.stringify(value);
+          ? value
+          : JSON.stringify(value);
 
     const queryResult = await this.pool.query(
       `INSERT INTO template_field_comment (
@@ -300,7 +299,8 @@ class RpdProfileTemplates {
       );
 
       const sourceValue = sourceTemplateResult.rows[0]?.[fieldToCopy];
-      if (sourceTemplateResult.rows.length === 0) throw new Error("Исходный шаблон не найден");
+      if (sourceTemplateResult.rows.length === 0)
+        throw new Error("Исходный шаблон не найден");
 
       const updateResult = await this.pool.query(
         `UPDATE rpd_profile_templates SET ${fieldToCopy} = $1 WHERE id = $2 RETURNING *`,
