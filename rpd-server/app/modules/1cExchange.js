@@ -164,7 +164,7 @@ const processDisciplines = async (disciplines, RpdComplectId) => {
       division,
       discipline,
       teachers: normalizedTeachers,
-      zets: Number.isFinite(normalizedZets) ? normalizedZets : null,
+      zets: Number.isFinite(normalizedZets) ? normalizedZets / 36 : null,
       place,
       study_load: normalizedStudyLoad,
       control_load: normalizedControlLoad,
