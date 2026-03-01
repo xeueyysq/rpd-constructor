@@ -1,9 +1,12 @@
 const Rpd1cExchange = require("../models/rpd_1c_exchange");
+const RpdComplects = require("../models/rpd_complects");
 const { findRpd } = require("../services/Complects");
 
 class Rpd1cExchangeController {
   constructor(pool) {
+    this.pool = pool;
     this.model = new Rpd1cExchange(pool);
+    this.complectsModel = new RpdComplects(pool);
   }
 
   async setResultsData(req, res) {
@@ -16,9 +19,18 @@ class Rpd1cExchangeController {
           .json({ message: "Не указан идентификатор комплекта" });
       }
 
+      const complectMeta = await this.complectsModel.findRpdComplectMeta(
+        complectId
+      );
+      if (!complectMeta?.id) {
+        return res
+          .status(404)
+          .json({ message: "Комплект не найден" });
+      }
+
       const records = await this.model.setResultsData(
         Array.isArray(data) ? data : [],
-        Number(complectId)
+        complectMeta.id
       );
       res.json(records);
     } catch (err) {
@@ -28,15 +40,23 @@ class Rpd1cExchangeController {
 
   async getResultsData(req, res) {
     try {
-      const complectId = Number(req.query?.complectId);
-
-      if (!complectId) {
+      const complectIdRaw = req.query?.complectId;
+      if (!complectIdRaw) {
         return res
           .status(400)
           .json({ message: "Не указан идентификатор комплекта" });
       }
 
-      const records = await this.model.getResultsData(complectId);
+      const complectMeta = await this.complectsModel.findRpdComplectMeta(
+        complectIdRaw
+      );
+      if (!complectMeta?.id) {
+        return res
+          .status(404)
+          .json({ message: "Комплект не найден" });
+      }
+
+      const records = await this.model.getResultsData(complectMeta.id);
       res.json(records);
     } catch (err) {
       res.status(500).json({ message: err.message });
@@ -56,9 +76,25 @@ class Rpd1cExchangeController {
   async createTemplate(req, res) {
     try {
       const { id_1c, complectId, teachers, teacher, year, discipline, userName } = req.body;
+
+      if (!complectId) {
+        return res
+          .status(400)
+          .json({ result: "validation_error", message: "Не указан complectId" });
+      }
+
+      const complectMeta = await this.complectsModel.findRpdComplectMeta(
+        complectId
+      );
+      if (!complectMeta?.id) {
+        return res
+          .status(404)
+          .json({ message: "Комплект не найден" });
+      }
+
       const record = await this.model.createTemplate(
         id_1c,
-        complectId,
+        complectMeta.id,
         Array.isArray(teachers) ? teachers : teacher,
         year,
         discipline,
@@ -67,7 +103,6 @@ class Rpd1cExchangeController {
       res.json(record);
     } catch (err) {
       const validationErrors = [
-        "Не выбраны преподаватели",
         "Не указан id_1c",
         "Не указан complectId",
         "Не указана дисциплина",

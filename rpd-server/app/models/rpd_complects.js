@@ -43,8 +43,11 @@ class RpdComplects {
     try {
       const result = await this.pool.query(
         `
-          select * from rpd_complects
-          where id = $1
+          SELECT *
+          FROM rpd_complects
+          WHERE id::text = $1::text
+             OR uuid::text = $1::text
+          LIMIT 1
         `,
         [complect_id]
       );
@@ -94,7 +97,11 @@ class RpdComplects {
   async getAllRpdComplects() {
     try {
       const result = await this.pool.query(`
-            SELECT id, faculty, year, education_form as "formEducation", 
+            SELECT id,
+                   uuid,
+                   faculty,
+                   year,
+                   education_form as "formEducation", 
                    education_level as "levelEducation", profile, direction as "directionOfStudy"
             FROM rpd_complects
             ORDER BY id DESC
@@ -111,6 +118,7 @@ class RpdComplects {
       const result = await this.pool.query(
         `
             SELECT rc.id,
+                    rc.uuid,
                     rc.faculty,
                     rc.year,
                     rc.education_form as "formEducation",
@@ -133,11 +141,17 @@ class RpdComplects {
 
   async deleteRpdComplect(ids) {
     try {
+      const idStrings = Array.isArray(ids) ? ids.map((x) => String(x)) : [];
+      if (idStrings.length === 0) {
+        return { rowCount: 0 };
+      }
       const result = await this.pool.query(
         `
-                DELETE FROM rpd_complects
-                WHERE id = ANY($1)`,
-        [ids]
+          DELETE FROM rpd_complects
+          WHERE id::text = ANY($1::text[])
+             OR uuid::text = ANY($1::text[])
+        `,
+        [idStrings]
       );
       return result;
     } catch (error) {

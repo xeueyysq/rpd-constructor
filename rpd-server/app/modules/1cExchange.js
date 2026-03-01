@@ -91,7 +91,18 @@ const createRpdComplect = async (apiData) => {
       direction
     ) VALUES (
       $1, $2, $3, $4, $5, $6
-    ) RETURNING id
+    )
+    ON CONFLICT (
+      faculty,
+      year,
+      education_form,
+      education_level,
+      profile,
+      direction
+    )
+    DO UPDATE SET
+      faculty = EXCLUDED.faculty
+    RETURNING id
     `,
     [
       apiData.faculty,
@@ -153,7 +164,7 @@ const processDisciplines = async (disciplines, RpdComplectId) => {
       division,
       discipline,
       teachers: normalizedTeachers,
-      zets: Number.isFinite(normalizedZets) ? normalizedZets : null,
+      zets: Number.isFinite(normalizedZets) ? normalizedZets / 36 : null,
       place,
       study_load: normalizedStudyLoad,
       control_load: normalizedControlLoad,

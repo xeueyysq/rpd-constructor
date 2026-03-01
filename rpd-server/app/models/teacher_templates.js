@@ -132,7 +132,7 @@ class TeacherTemplates {
 
       const result = await this.pool.query(
         `
-                SELECT rpt.id, rpt.disciplins_name, rc.faculty,
+                SELECT rpt.id, rpt.public_id, rpt.disciplins_name, rc.faculty,
                 rc.direction, rc.profile, rc.education_level,
                 rc.education_form, rc.year, (
                     SELECT status

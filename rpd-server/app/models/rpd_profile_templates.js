@@ -29,7 +29,22 @@ class RpdProfileTemplates {
     "logistics_template",
   ];
 
+  async resolveTemplateId(identifier) {
+    if (identifier == null || identifier === "") return null;
+    const { rows } = await this.pool.query(
+      `
+      SELECT id FROM rpd_profile_templates
+      WHERE id::text = $1::text OR public_id = $1
+      LIMIT 1
+      `,
+      [String(identifier)]
+    );
+    return rows[0]?.id ?? null;
+  }
+
   async getJsonProfile(id) {
+    const numericId = await this.resolveTemplateId(id);
+    if (numericId == null) return null;
     const queryResult = await this.pool.query(
       `
       SELECT
@@ -40,6 +55,7 @@ class RpdProfileTemplates {
         rc.education_level,
         rc.education_form,
         rc.year,
+        rc.uuid AS complect_uuid,
         COALESCE(c.comments, '{}'::jsonb) AS comments
       FROM rpd_profile_templates rpt
       JOIN rpd_complects rc ON rc.id = rpt.id_rpd_complect
@@ -53,12 +69,14 @@ class RpdProfileTemplates {
       ) c ON true
       WHERE rpt.id = $1;
     `,
-      [id]
+      [numericId]
     );
     return queryResult.rows[0];
   }
 
   async updateById(id, fieldToUpdate, value) {
+    const numericId = await this.resolveTemplateId(id);
+    if (numericId == null) return null;
     const preparedValue =
       RpdProfileTemplates.JSONB_FIELDS.has(fieldToUpdate) &&
       value !== null &&
@@ -68,18 +86,20 @@ class RpdProfileTemplates {
 
     const queryResult = await this.pool.query(
       `UPDATE rpd_profile_templates SET ${fieldToUpdate} = $1 WHERE id = $2 RETURNING *`,
-      [preparedValue, id]
+      [preparedValue, numericId]
     );
     return queryResult.rows[0];
   }
 
   async upsetTemplateComment(templateId, commentatorId, field, value) {
+    const numericTemplateId = await this.resolveTemplateId(templateId);
+    if (numericTemplateId == null) return null;
     const preparedValue =
       value === null || value === undefined
         ? null
         : typeof value === "string"
-        ? value
-        : JSON.stringify(value);
+          ? value
+          : JSON.stringify(value);
 
     const queryResult = await this.pool.query(
       `INSERT INTO template_field_comment (
@@ -95,7 +115,7 @@ class RpdProfileTemplates {
         updated_at = CURRENT_TIMESTAMP
       RETURNING *
       `,
-      [templateId, commentatorId, field, preparedValue]
+      [numericTemplateId, commentatorId, field, preparedValue]
     );
 
     return queryResult.rows[0];
@@ -163,11 +183,13 @@ class RpdProfileTemplates {
           data: searchResult.rows[0].id,
         };
       } else {
+        const numericId = await this.resolveTemplateId(id);
+        if (numericId == null) throw new Error("Existing record not found");
         const existingRecordResult = await this.pool.query(
           `
               SELECT * FROM rpd_profile_templates WHERE id = $1
             `,
-          [id]
+          [numericId]
         );
         const existingRecord = existingRecordResult.rows[0];
         if (!existingRecord) {
@@ -266,16 +288,23 @@ class RpdProfileTemplates {
 
   async copyTemplateData(sourceTemplateId, targetTemplateId, fieldToCopy) {
     try {
+      const sourceId = await this.resolveTemplateId(sourceTemplateId);
+      const targetId = await this.resolveTemplateId(targetTemplateId);
+      if (sourceId == null || targetId == null) {
+        throw new Error("Шаблон не найден");
+      }
       const sourceTemplateResult = await this.pool.query(
         `SELECT ${fieldToCopy} FROM rpd_profile_templates WHERE id = $1`,
-        [sourceTemplateId]
+        [sourceId]
       );
 
-      const sourceValue = sourceTemplateResult.rows[0][fieldToCopy];
+      const sourceValue = sourceTemplateResult.rows[0]?.[fieldToCopy];
+      if (sourceTemplateResult.rows.length === 0)
+        throw new Error("Исходный шаблон не найден");
 
       const updateResult = await this.pool.query(
         `UPDATE rpd_profile_templates SET ${fieldToCopy} = $1 WHERE id = $2 RETURNING *`,
-        [sourceValue, targetTemplateId]
+        [sourceValue, targetId]
       );
 
       return {
@@ -291,6 +320,11 @@ class RpdProfileTemplates {
 
   async copyTemplateContent(sourceTemplateId, targetTemplateId) {
     try {
+      const sourceId = await this.resolveTemplateId(sourceTemplateId);
+      const targetId = await this.resolveTemplateId(targetTemplateId);
+      if (sourceId == null || targetId == null) {
+        throw new Error("Шаблон не найден");
+      }
       const { rows: columnRows } = await this.pool.query(
         `
           SELECT column_name
@@ -321,7 +355,7 @@ class RpdProfileTemplates {
           WHERE source.id = $1 AND target.id = $2
           RETURNING target.*;
         `,
-        [sourceTemplateId, targetTemplateId]
+        [sourceId, targetId]
       );
 
       if (queryResult.rowCount === 0) {
@@ -344,9 +378,16 @@ class RpdProfileTemplates {
 
   async getChangeableValues(ids, rowName) {
     try {
+      const idList = Array.isArray(ids) ? ids : [ids];
+      const numericIds = [];
+      for (const id of idList) {
+        const n = await this.resolveTemplateId(id);
+        if (n != null) numericIds.push(n);
+      }
+      if (numericIds.length === 0) return [];
       const queryResult = await this.pool.query(
-        `SELECT ${rowName}, id FROM rpd_profile_templates where id = any($1)`,
-        [ids]
+        `SELECT ${rowName}, id, public_id FROM rpd_profile_templates WHERE id = ANY($1)`,
+        [numericIds]
       );
       return queryResult.rows;
     } catch (error) {

@@ -152,15 +152,17 @@ class RpdProfileTemplatesController {
         });
       }
 
-      if (Number(sourceTemplateId) === Number(targetTemplateId)) {
+      const sourceId = await this.model.resolveTemplateId(sourceTemplateId);
+      const targetId = await this.model.resolveTemplateId(targetTemplateId);
+      if (sourceId != null && targetId != null && sourceId === targetId) {
         return res.status(400).json({
           message: "Нельзя импортировать шаблон сам в себя",
         });
       }
 
       const result = await this.model.copyTemplateContent(
-        Number(sourceTemplateId),
-        Number(targetTemplateId)
+        sourceTemplateId,
+        targetTemplateId
       );
 
       res.json(result);
