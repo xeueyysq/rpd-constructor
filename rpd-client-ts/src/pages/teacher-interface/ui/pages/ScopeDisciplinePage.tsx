@@ -77,9 +77,6 @@ const ScopeDisciplinePage: FC = () => {
   );
 
   useEffect(() => {
-    setCreditUtins(jsonData.zet ?? jsonData.zets ?? null);
-  }, [jsonData.zet, jsonData.zets]);
-  useEffect(() => {
     setManualHours(summHours);
   }, [summHours]);
 
