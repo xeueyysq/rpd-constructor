@@ -55,9 +55,12 @@ const fetchUpLink = async (apiData) => {
         axios.post(
           url,
           {
-            year: Number.isFinite(normalizedYear) ? normalizedYear : apiData.year,
+            year: Number.isFinite(normalizedYear)
+              ? normalizedYear
+              : apiData.year,
             education_level: apiData.educationLevel,
             education_form: apiData.educationForm,
+            profile: apiData.profile,
             direction: apiData.direction,
           },
           {
