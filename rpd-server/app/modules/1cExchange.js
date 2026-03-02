@@ -55,9 +55,12 @@ const fetchUpLink = async (apiData) => {
         axios.post(
           url,
           {
-            year: Number.isFinite(normalizedYear) ? normalizedYear : apiData.year,
+            year: Number.isFinite(normalizedYear)
+              ? normalizedYear
+              : apiData.year,
             education_level: apiData.educationLevel,
             education_form: apiData.educationForm,
+            profile: apiData.profile,
             direction: apiData.direction,
           },
           {
@@ -164,7 +167,10 @@ const processDisciplines = async (disciplines, RpdComplectId) => {
       division,
       discipline,
       teachers: normalizedTeachers,
-      zets: Number.isFinite(normalizedZets) ? normalizedZets / 36 : null,
+      zets:
+        Number.isFinite(normalizedZets) && normalizedZets > 36
+          ? normalizedZets / 36
+          : null,
       place,
       study_load: normalizedStudyLoad,
       control_load: normalizedControlLoad,
