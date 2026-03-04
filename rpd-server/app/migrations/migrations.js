@@ -98,6 +98,7 @@ const process = require("process");
         teacher TEXT,
         zet INTEGER,
         place TEXT,
+        record_type TEXT,
         study_load JSONB,
         semester INTEGER
       );
@@ -121,6 +122,10 @@ const process = require("process");
     await pool.query(`
       ALTER TABLE rpd_1c_exchange
         ADD COLUMN IF NOT EXISTS control_load JSONB;
+    `);
+    await pool.query(`
+      ALTER TABLE rpd_1c_exchange
+        ADD COLUMN IF NOT EXISTS record_type TEXT;
     `);
     await pool.query(`
       ALTER TABLE rpd_profile_templates
