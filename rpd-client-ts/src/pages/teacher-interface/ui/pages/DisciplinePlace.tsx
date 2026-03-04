@@ -18,7 +18,26 @@ const DisciplinePlace: FC<DisciplinePlaceProps> = ({ readOnly = false }) => {
   const certification = data.certification || certificationFromControlLoad;
 
   const placeWrapper = () => {
-    if (data.place === "Обязательная часть") return "обязательной части";
+    const placeValue =
+      typeof data.place === "string" ? data.place.trim().toLowerCase() : "";
+
+    if (!placeValue) return "";
+
+    if (
+      placeValue === "обязательная часть" ||
+      placeValue === "обязательной части"
+    ) {
+      return "обязательной части";
+    }
+
+    if (
+      placeValue ===
+        "часть, формируемая участниками образовательных отношений" ||
+      placeValue === "части, формируемой участниками образовательных отношений"
+    ) {
+      return "части, формируемой участниками образовательных отношений";
+    }
+
     if (data.place) return String(data.place).toLowerCase();
     return "";
   };
