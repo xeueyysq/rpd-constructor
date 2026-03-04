@@ -30,6 +30,25 @@ const requestWithSingleRetry = async (requestFn, requestName) => {
   }
 };
 
+const placeFromRecordType = (recordType) => {
+  if (typeof recordType !== "string") return "";
+
+  const normalized = recordType.trim();
+  if (!normalized) return "";
+
+  const marker = normalized.split(".")[1]?.trim()?.charAt(0)?.toUpperCase();
+
+  if (marker === "О" || marker === "O") {
+    return "обязательной части";
+  }
+
+  if (marker === "В" || marker === "B") {
+    return "части, формируемой участниками образовательных отношений";
+  }
+
+  return "";
+};
+
 async function exchange1C(apiData, { userId } = {}) {
   try {
     const disciplines = await fetchUpLink(apiData);
@@ -137,7 +156,7 @@ const processDisciplines = async (disciplines, RpdComplectId) => {
       division = "",
       teachers = [],
       zets = null,
-      place = "",
+      record_type = "",
       study_load = {},
       control_load = {},
     } = disc || {};
@@ -161,6 +180,8 @@ const processDisciplines = async (disciplines, RpdComplectId) => {
       !Array.isArray(control_load)
         ? control_load
         : {};
+    const normalizedRecordType =
+      typeof record_type === "string" ? record_type.trim() : "";
 
     const insertedId = await insertDiscipline({
       RpdComplectId,
@@ -168,7 +189,8 @@ const processDisciplines = async (disciplines, RpdComplectId) => {
       discipline,
       teachers: normalizedTeachers,
       zets: normalizedZets,
-      place,
+      place: placeFromRecordType(normalizedRecordType),
+      record_type: normalizedRecordType,
       study_load: normalizedStudyLoad,
       control_load: normalizedControlLoad,
       semester: Number.isFinite(normalizedSemester) ? normalizedSemester : null,
@@ -194,9 +216,10 @@ const insertDiscipline = async (data) => {
       place,
       study_load,
       control_load,
-      semester
+      semester,
+      record_type
     ) VALUES (
-      $1, $2, $3, $4, $5, $6, $7, $8, $9
+      $1, $2, $3, $4, $5, $6, $7, $8, $9, $10
     ) 
     ON CONFLICT DO NOTHING
     RETURNING id
@@ -211,6 +234,7 @@ const insertDiscipline = async (data) => {
       JSON.stringify(data.study_load),
       JSON.stringify(data.control_load ?? {}),
       data.semester,
+      data.record_type,
     ]
   );
 
