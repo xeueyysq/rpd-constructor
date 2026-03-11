@@ -251,6 +251,7 @@ const TemplateMenu: FC<TemplateMenu> = ({
         <ImportFromComplectsDialog
           open={openImportDialog}
           targetTemplateId={id}
+          appendParagraph
           onClose={() => setOpenImportDialog(false)}
           onImported={fetchData}
         />

@@ -105,6 +105,7 @@ export function ExportFromTemplates({
         sourceTemplateId,
         targetTemplateId: currentTemplateId,
         fieldToCopy,
+        appendParagraph: true,
       });
 
       if (response.data.success) {

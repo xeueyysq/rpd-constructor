@@ -1,8 +1,8 @@
-import { FC } from "react";
-import JsonChangeValue from "../changeable-elements/JsonChangeValue.tsx";
 import { Box } from "@mui/material";
 import { TemplatePagesPath } from "@pages/teacher-interface/model/pathes.ts";
-import { PageTitleComment } from "@shared/ui";
+import { PageTitleComment } from "@shared/ui/PageTitleComment.tsx";
+import { FC } from "react";
+import DisciplineEvaluationsFundsForm from "@features/discipline-evaluations-funds/ui/DisciplineEvaluationsFundsForm";
 
 const DisciplineEvaluationsFunds: FC = () => {
   return (
@@ -12,7 +12,7 @@ const DisciplineEvaluationsFunds: FC = () => {
         paddingBottom={2}
         templateField={TemplatePagesPath.DISCIPLINE_EVALUATIONS_FUNDS}
       />
-      <JsonChangeValue elementName="assessment_tools_template" />
+      <DisciplineEvaluationsFundsForm />
     </Box>
   );
 };
