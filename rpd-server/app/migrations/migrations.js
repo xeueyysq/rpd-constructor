@@ -132,6 +132,11 @@ const process = require("process");
         ADD COLUMN IF NOT EXISTS control_load JSONB;
     `);
 
+    await pool.query(`
+      ALTER TABLE rpd_profile_templates
+        ADD COLUMN IF NOT EXISTS assessment_tools_questions JSONB;
+    `);
+
     // Миграция для таблицы `rpd_changeable_values`
     await pool.query(`
       CREATE TABLE IF NOT EXISTS rpd_changeable_values (
