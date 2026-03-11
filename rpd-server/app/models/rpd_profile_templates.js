@@ -10,7 +10,9 @@ class RpdProfileTemplates {
     "content",
     "study_load",
     "control_load",
+    "assessment_tools_questions",
   ]);
+  static TEXT_APPEND_SEPARATOR = "<p></p>";
   static CONTENT_COPY_FIELDS = [
     "protocol",
     "goals",
@@ -22,12 +24,37 @@ class RpdProfileTemplates {
     "content_template_more_text",
     "methodological_support_template",
     "assessment_tools_template",
+    "assessment_tools_questions",
     "textbook",
     "additional_textbook",
     "professional_information_resources",
     "software",
     "logistics_template",
   ];
+
+  mergeFieldValue(fieldName, targetValue, sourceValue) {
+    if (RpdProfileTemplates.JSONB_FIELDS.has(fieldName)) {
+      return sourceValue;
+    }
+
+    if (typeof sourceValue !== "string") {
+      return sourceValue;
+    }
+
+    const sourceTrimmed = sourceValue.trim();
+    if (!sourceTrimmed) {
+      return targetValue ?? sourceValue;
+    }
+
+    const targetString = typeof targetValue === "string" ? targetValue : "";
+    const targetTrimmed = targetString.trim();
+
+    if (!targetTrimmed) {
+      return sourceValue;
+    }
+
+    return `${targetString}${RpdProfileTemplates.TEXT_APPEND_SEPARATOR}${sourceValue}`;
+  }
 
   async resolveTemplateId(identifier) {
     if (identifier == null || identifier === "") return null;
@@ -221,6 +248,7 @@ class RpdProfileTemplates {
             content_template_more_text, 
             methodological_support_template,
             assessment_tools_template, 
+            assessment_tools_questions,
             textbook, 
             additional_textbook, 
             professional_information_resources,
@@ -230,7 +258,7 @@ class RpdProfileTemplates {
             $1, $2, $3, $4, $5, $6, $7, $8,
             $9, $10, $11, $12, $13, $14,
             $15, $16, $17, $18, $19, $20,
-            $21, $22, $23, $24, $25, $26, $27
+            $21, $22, $23, $24, $25, $26, $27, $28
           ) RETURNING id
           `,
           [
@@ -256,6 +284,7 @@ class RpdProfileTemplates {
             existingRecord.content_template_more_text,
             existingRecord.methodological_support_template,
             existingRecord.assessment_tools_template,
+            existingRecord.assessment_tools_questions,
             existingRecord.textbook,
             existingRecord.additional_textbook,
             existingRecord.professional_information_resources,
@@ -297,14 +326,24 @@ class RpdProfileTemplates {
         `SELECT ${fieldToCopy} FROM rpd_profile_templates WHERE id = $1`,
         [sourceId]
       );
+      const targetTemplateResult = await this.pool.query(
+        `SELECT ${fieldToCopy} FROM rpd_profile_templates WHERE id = $1`,
+        [targetId]
+      );
 
       const sourceValue = sourceTemplateResult.rows[0]?.[fieldToCopy];
+      const targetValue = targetTemplateResult.rows[0]?.[fieldToCopy];
       if (sourceTemplateResult.rows.length === 0)
         throw new Error("Исходный шаблон не найден");
 
+      const nextValue = this.mergeFieldValue(
+        fieldToCopy,
+        targetValue,
+        sourceValue
+      );
       const updateResult = await this.pool.query(
         `UPDATE rpd_profile_templates SET ${fieldToCopy} = $1 WHERE id = $2 RETURNING *`,
-        [sourceValue, targetId]
+        [nextValue, targetId]
       );
 
       return {
@@ -345,17 +384,39 @@ class RpdProfileTemplates {
         };
       }
 
-      const setClause = fields.map((f) => `${f} = source.${f}`).join(", ");
+      const { rows: sourceRows } = await this.pool.query(
+        `SELECT ${fields.join(", ")} FROM rpd_profile_templates WHERE id = $1`,
+        [sourceId]
+      );
+      const { rows: targetRows } = await this.pool.query(
+        `SELECT ${fields.join(", ")} FROM rpd_profile_templates WHERE id = $1`,
+        [targetId]
+      );
+
+      if (sourceRows.length === 0 || targetRows.length === 0) {
+        return {
+          success: false,
+          message: "Не удалось импортировать данные: шаблон не найден",
+        };
+      }
+
+      const sourceRow = sourceRows[0];
+      const targetRow = targetRows[0];
+      const nextValues = fields.map((field) =>
+        this.mergeFieldValue(field, targetRow[field], sourceRow[field])
+      );
+      const setClause = fields
+        .map((f, idx) => `${f} = $${idx + 1}`)
+        .join(", ");
 
       const queryResult = await this.pool.query(
         `
-          UPDATE rpd_profile_templates AS target
+          UPDATE rpd_profile_templates
           SET ${setClause}
-          FROM rpd_profile_templates AS source
-          WHERE source.id = $1 AND target.id = $2
-          RETURNING target.*;
+          WHERE id = $${fields.length + 1}
+          RETURNING *;
         `,
-        [sourceId, targetId]
+        [...nextValues, targetId]
       );
 
       if (queryResult.rowCount === 0) {
