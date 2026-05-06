@@ -75,6 +75,12 @@ router.get(
     rpdProfileTemplatesController
   )
 );
+router.post(
+  "/generate-assessment-funds-docx",
+  rpdProfileTemplatesController.generateAssessmentFundsDocx.bind(
+    rpdProfileTemplatesController
+  )
+);
 
 const Rpd1cExchangeController = require("../controllers/rpd1cExchangeController");
 const rpd1cExchangeController = new Rpd1cExchangeController(pool);
