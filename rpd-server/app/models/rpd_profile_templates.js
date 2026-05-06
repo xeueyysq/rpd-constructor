@@ -456,6 +456,116 @@ class RpdProfileTemplates {
       throw error;
     }
   }
+
+  async getAssessmentFundsDocumentData(complectId, competence) {
+    const complectResult = await this.pool.query(
+      `
+        SELECT *
+        FROM rpd_complects
+        WHERE id::text = $1::text OR uuid::text = $1::text
+        LIMIT 1
+      `,
+      [String(complectId)]
+    );
+    const complect = complectResult.rows[0];
+    if (!complect?.id) return null;
+
+    const directionsResult = await this.pool.query(
+      `
+        SELECT
+          rc.direction,
+          rc.profile,
+          array_agg(DISTINCT d.discipline ORDER BY d.discipline) AS disciplines
+        FROM planned_results_sets prs
+        JOIN rpd_complects rc ON rc.id = prs.complect_id
+        JOIN planned_competencies pc ON pc.set_id = prs.id
+        JOIN planned_indicators pi ON pi.competence_id = pc.id
+        JOIN planned_indicator_disciplines d ON d.indicator_id = pi.id
+        WHERE pc.competence = $1
+        GROUP BY rc.id, rc.direction, rc.profile
+        ORDER BY rc.direction, rc.profile
+      `,
+      [competence]
+    );
+
+    const questionsResult = await this.pool.query(
+      `
+        SELECT disciplins_name, assessment_tools_questions
+        FROM rpd_profile_templates
+        WHERE id_rpd_complect = $1
+          AND assessment_tools_questions IS NOT NULL
+      `,
+      [complect.id]
+    );
+
+    const openQuestions = [];
+    const closedQuestions = [];
+    const parseLegacyQuestions = (value) =>
+      typeof value === "string"
+        ? value
+            .split(/\r?\n+/)
+            .map((text) => text.trim())
+            .filter(Boolean)
+            .map((text, idx) => ({ id: `legacy_${idx}`, text }))
+        : [];
+
+    for (const row of questionsResult.rows) {
+      const funds = row.assessment_tools_questions ?? {};
+      const item = funds?.competencies?.[competence];
+      if (!item) continue;
+
+      const openPool =
+        Array.isArray(item.openPool) && item.openPool.length
+          ? item.openPool
+          : parseLegacyQuestions(item.openQuestions);
+      const closedPool =
+        Array.isArray(item.closedPool) && item.closedPool.length
+          ? item.closedPool
+          : parseLegacyQuestions(item.closedQuestions);
+      const selectedOpen = new Set(
+        Array.isArray(item.selectedOpenIds)
+          ? item.selectedOpenIds
+          : openPool.map((question) => question.id)
+      );
+      const selectedClosed = new Set(
+        Array.isArray(item.selectedClosedIds)
+          ? item.selectedClosedIds
+          : closedPool.map((question) => question.id)
+      );
+
+      for (const question of openPool) {
+        if (!selectedOpen.has(question.id)) continue;
+        openQuestions.push({
+          text: question.text,
+          answer:
+            typeof question.correctAnswer === "string"
+              ? question.correctAnswer
+              : "",
+          discipline: row.disciplins_name,
+        });
+      }
+
+      for (const question of closedPool) {
+        if (!selectedClosed.has(question.id)) continue;
+        closedQuestions.push({
+          text: question.text,
+          answer:
+            typeof question.correctAnswer === "string"
+              ? question.correctAnswer
+              : "",
+          discipline: row.disciplins_name,
+        });
+      }
+    }
+
+    return {
+      competence,
+      complect,
+      directions: directionsResult.rows,
+      openQuestions,
+      closedQuestions,
+    };
+  }
 }
 
 module.exports = RpdProfileTemplates;
