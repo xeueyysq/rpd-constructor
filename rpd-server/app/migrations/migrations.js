@@ -352,6 +352,38 @@ const process = require("process");
         ON rpd_profile_templates (public_id);
     `);
 
+    // Удаление дублей дисциплин 1С перед уникальным индексом (повторная выгрузка комплекта)
+    await pool.query(`
+      DELETE FROM template_status ts
+      USING rpd_1c_exchange dup, rpd_1c_exchange keep
+      WHERE dup.id > keep.id
+        AND dup.id_rpd_complect = keep.id_rpd_complect
+        AND dup.discipline = keep.discipline
+        AND dup.semester IS NOT DISTINCT FROM keep.semester
+        AND COALESCE(dup.record_type, '') = COALESCE(keep.record_type, '')
+        AND ts.id_1c_template = dup.id;
+    `);
+
+    await pool.query(`
+      DELETE FROM rpd_1c_exchange dup
+      USING rpd_1c_exchange keep
+      WHERE dup.id > keep.id
+        AND dup.id_rpd_complect = keep.id_rpd_complect
+        AND dup.discipline = keep.discipline
+        AND dup.semester IS NOT DISTINCT FROM keep.semester
+        AND COALESCE(dup.record_type, '') = COALESCE(keep.record_type, '');
+    `);
+
+    await pool.query(`
+      CREATE UNIQUE INDEX IF NOT EXISTS idx_rpd_1c_exchange_discipline_unique
+        ON rpd_1c_exchange (
+          id_rpd_complect,
+          discipline,
+          COALESCE(semester, -1),
+          COALESCE(record_type, '')
+        );
+    `);
+
     console.log("Все миграции загружены успешно");
   } catch (error) {
     console.error("Ошибка загрузки миграций", error.stack);

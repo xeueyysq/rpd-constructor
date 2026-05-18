@@ -182,11 +182,20 @@ const processDisciplines = async (disciplines, RpdComplectId) => {
         : {};
     const normalizedRecordType =
       typeof record_type === "string" ? record_type.trim() : "";
+    const normalizedDiscipline =
+      typeof discipline === "string" ? discipline.trim() : "";
+
+    if (!normalizedDiscipline) {
+      console.warn(
+        `Дисциплина ${index + 1} из ${recordsLength} пропущена: пустое название`
+      );
+      return;
+    }
 
     const insertedId = await insertDiscipline({
       RpdComplectId,
       division,
-      discipline,
+      discipline: normalizedDiscipline,
       teachers: normalizedTeachers,
       zets: normalizedZets,
       place: placeFromRecordType(normalizedRecordType),
@@ -205,6 +214,27 @@ const processDisciplines = async (disciplines, RpdComplectId) => {
 };
 
 const insertDiscipline = async (data) => {
+  const discipline = (data.discipline || "").trim();
+  if (!discipline) return null;
+
+  const recordType = data.record_type ?? "";
+  const semester = data.semester ?? null;
+
+  const { rows: existing } = await pool.query(
+    `
+      SELECT id
+      FROM rpd_1c_exchange
+      WHERE id_rpd_complect = $1
+        AND discipline = $2
+        AND semester IS NOT DISTINCT FROM $3
+        AND COALESCE(record_type, '') = COALESCE($4, '')
+      LIMIT 1
+    `,
+    [data.RpdComplectId, discipline, semester, recordType]
+  );
+
+  if (existing[0]?.id) return null;
+
   const { rows } = await pool.query(
     `
     INSERT INTO rpd_1c_exchange (
@@ -220,21 +250,20 @@ const insertDiscipline = async (data) => {
       record_type
     ) VALUES (
       $1, $2, $3, $4, $5, $6, $7, $8, $9, $10
-    ) 
-    ON CONFLICT DO NOTHING
+    )
     RETURNING id
     `,
     [
       data.RpdComplectId,
       data.division,
-      data.discipline,
+      discipline,
       data.teachers,
       data.zets,
       data.place,
       JSON.stringify(data.study_load),
       JSON.stringify(data.control_load ?? {}),
-      data.semester,
-      data.record_type,
+      semester,
+      recordType,
     ]
   );
 
@@ -242,6 +271,18 @@ const insertDiscipline = async (data) => {
 };
 
 const insertStatusHistory = async (templateId) => {
+  const { rows: existing } = await pool.query(
+    `
+      SELECT id
+      FROM template_status
+      WHERE id_1c_template = $1
+      LIMIT 1
+    `,
+    [templateId]
+  );
+
+  if (existing.length) return;
+
   const history = [
     {
       date: moment().format(),
