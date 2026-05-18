@@ -21,6 +21,11 @@ import { showErrorMessage, showSuccessMessage } from "@shared/lib";
 import { Loader, PageTitleComment } from "@shared/ui";
 import { isAxiosError } from "axios";
 import {
+  hasPlannedResultsData,
+  mapComplectResultsToPlannedResults,
+  type ComplectResultsRow,
+} from "@pages/teacher-interface/lib/mapPlannedResultsFromComplect.ts";
+import {
   FC,
   useEffect,
   useLayoutEffect,
@@ -237,49 +242,47 @@ const PlannedResultsPage: FC = () => {
     });
   };
 
-  const complectId = useStore.getState().complectId;
+  const complectId = useStore((state) => state.complectId);
+  const complectFetchKeyRef = useRef<string | null>(null);
 
   useEffect(() => {
-    if (data && Object.keys(data).length) return;
-    if (!complectId) return;
+    const fetchKey = `${complectId ?? ""}:${disciplineName}`;
+
+    if (hasPlannedResultsData(initialData)) {
+      complectFetchKeyRef.current = fetchKey;
+      return;
+    }
+    if (!complectId || !disciplineName) return;
+    if (complectFetchKeyRef.current === fetchKey) return;
+    complectFetchKeyRef.current = fetchKey;
+
+    let cancelled = false;
 
     (async () => {
       try {
-        const response = await axiosBase.get("get-results-data", {
-          params: { complectId },
-        });
-        type Row = {
-          competence: string;
-          indicator: string;
-          disciplines: string[];
-        };
-        const rows = response.data as Row[];
-        const filtered = rows.filter((r) =>
-          r.disciplines.includes(disciplineName)
+        const response = await axiosBase.get<ComplectResultsRow[]>(
+          "get-results-data",
+          { params: { complectId } }
         );
-
-        const mapped: PlannedResultsData = {};
-        let idx = 0;
-        let lastCompetence = "";
-        filtered.forEach((r) => {
-          const competenceToSet =
-            r.competence === lastCompetence ? "" : r.competence;
-          lastCompetence = r.competence;
-          mapped[idx++] = {
-            competence: competenceToSet,
-            indicator: r.indicator,
-            results: { know: "", beAble: "", own: "" },
-          };
-        });
-
-        setData(mapped);
+        if (cancelled) return;
+        setData(
+          mapComplectResultsToPlannedResults(
+            Array.isArray(response.data) ? response.data : [],
+            disciplineName
+          )
+        );
       } catch (error) {
         console.error(error);
+        if (!cancelled) setData({});
       }
     })();
-  }, [data, complectId, disciplineName]);
 
-  if (!data) return <Loader />;
+    return () => {
+      cancelled = true;
+    };
+  }, [complectId, disciplineName, initialData]);
+
+  if (data === undefined) return <Loader />;
 
   return (
     <Box>

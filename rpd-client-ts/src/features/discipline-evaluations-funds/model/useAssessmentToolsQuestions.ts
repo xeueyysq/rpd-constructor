@@ -10,13 +10,12 @@ import {
   CompetenceAssessmentQuestions,
   PlannedResultsData,
 } from "./types";
+import {
+  hasPlannedResultsData,
+  mapComplectResultsToPlannedResults,
+  type ComplectResultsRow,
+} from "@pages/teacher-interface/lib/mapPlannedResultsFromComplect.ts";
 import { buildCompetenceGroups, normalizeFunds } from "./utils";
-
-type ResultsApiRow = {
-  competence: string;
-  indicator: string;
-  disciplines: string[];
-};
 
 type UseAssessmentToolsQuestionsResult = {
   competenceGroups: { competence: string }[];
@@ -113,7 +112,7 @@ export const useAssessmentToolsQuestions =
     >(() => initialPlannedResults);
 
     const [complectResultRows, setComplectResultRows] = useState<
-      ResultsApiRow[]
+      ComplectResultsRow[]
     >([]);
 
     useEffect(() => {
@@ -128,7 +127,7 @@ export const useAssessmentToolsQuestions =
       let active = true;
       (async () => {
         try {
-          const { data } = await axiosBase.get<ResultsApiRow[]>(
+          const { data } = await axiosBase.get<ComplectResultsRow[]>(
             "get-results-data",
             { params: { complectId } }
           );
@@ -143,46 +142,44 @@ export const useAssessmentToolsQuestions =
       };
     }, [complectId]);
 
+    const complectFetchKeyRef = useRef<string | null>(null);
+
     useEffect(() => {
-      if (plannedResults && Object.keys(plannedResults).length) return;
-      if (!complectId) return;
+      const fetchKey = `${complectId ?? ""}:${disciplineName}`;
+
+      if (hasPlannedResultsData(initialPlannedResults)) {
+        complectFetchKeyRef.current = fetchKey;
+        return;
+      }
+      if (!complectId || !disciplineName) return;
+      if (complectFetchKeyRef.current === fetchKey) return;
+      complectFetchKeyRef.current = fetchKey;
 
       let isActive = true;
 
       (async () => {
         try {
-          const response = await axiosBase.get("get-results-data", {
-            params: { complectId },
-          });
-          const rows = response.data as ResultsApiRow[];
-          const filtered = rows.filter((r) =>
-            r.disciplines.includes(disciplineName)
+          const response = await axiosBase.get<ComplectResultsRow[]>(
+            "get-results-data",
+            { params: { complectId } }
           );
-
-          const mapped: PlannedResultsData = {};
-          let idx = 0;
-          let lastCompetence = "";
-          filtered.forEach((r) => {
-            const competenceToSet =
-              r.competence === lastCompetence ? "" : r.competence;
-            lastCompetence = r.competence;
-            mapped[idx++] = {
-              competence: competenceToSet,
-              indicator: r.indicator,
-              results: { know: "", beAble: "", own: "" },
-            };
-          });
-
-          if (isActive) setPlannedResults(mapped);
+          if (!isActive) return;
+          setPlannedResults(
+            mapComplectResultsToPlannedResults(
+              Array.isArray(response.data) ? response.data : [],
+              disciplineName
+            )
+          );
         } catch (error) {
           console.error(error);
+          if (isActive) setPlannedResults({});
         }
       })();
 
       return () => {
         isActive = false;
       };
-    }, [plannedResults, complectId, disciplineName]);
+    }, [complectId, disciplineName, initialPlannedResults]);
 
     const competenceGroups = useMemo(
       () => buildCompetenceGroups(plannedResults),
