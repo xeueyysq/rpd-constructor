@@ -1,4 +1,11 @@
-import { Box, Button, TextField, Typography as Tg } from "@mui/material";
+import {
+  Box,
+  Button,
+  TextField,
+  Typography as Tg,
+  useTheme,
+} from "@mui/material";
+import type { Theme } from "@mui/material/styles";
 import { TemplatePagesPath } from "@pages/teacher-interface/model/pathes";
 import { axiosBase } from "@shared/api";
 import { useStore } from "@shared/hooks";
@@ -50,7 +57,21 @@ function normalizeStudyLoad(studyLoad: unknown): StudyLoadItem[] {
   return [];
 }
 
-const ScopeDisciplinePage: FC = () => {
+type ScopeDisciplinePageProps = {
+  readOnly?: boolean;
+};
+
+const disabledInputSx = (theme: Theme) => ({
+  "& .MuiInputBase-input.Mui-disabled": {
+    WebkitTextFillColor: theme.palette.text.primary,
+    opacity: 1,
+  },
+});
+
+const ScopeDisciplinePage: FC<ScopeDisciplinePageProps> = ({
+  readOnly = false,
+}) => {
+  const theme = useTheme();
   const jsonData = useStore((state) => state.jsonData);
   const templateId = useStore((state) => state.jsonData.id);
   const updateJsonData = useStore((state) => state.updateJsonData);
@@ -76,9 +97,6 @@ const ScopeDisciplinePage: FC = () => {
     jsonData.zet ?? jsonData.zets ?? null
   );
 
-  useEffect(() => {
-    setCreditUtins(jsonData.zet ?? jsonData.zets ?? null);
-  }, [jsonData.zet, jsonData.zets]);
   useEffect(() => {
     setManualHours(summHours);
   }, [summHours]);
@@ -145,11 +163,13 @@ const ScopeDisciplinePage: FC = () => {
             value={creditUnits}
             placeholder="?"
             onChange={(e) => setCreditUtins(e.target.value)}
+            disabled={readOnly}
             sx={{
               width: 80,
               "& .MuiInputBase-input": {
                 textAlign: "center",
               },
+              ...(readOnly && disabledInputSx(theme)),
             }}
           />
         </Tg>
@@ -169,22 +189,26 @@ const ScopeDisciplinePage: FC = () => {
             value={manualHours}
             placeholder="?"
             onChange={(e) => setManualHours(e.target.value)}
+            disabled={readOnly}
             sx={{
               width: 80,
               "& .MuiInputBase-input": {
                 textAlign: "center",
               },
+              ...(readOnly && disabledInputSx(theme)),
             }}
           />
         </Tg>
         академических часа(ов)
       </Tg>
 
-      <Box sx={{ pt: 1 }}>
-        <Button variant="contained" onClick={saveManualHours}>
-          Сохранить
-        </Button>
-      </Box>
+      {!readOnly && (
+        <Box sx={{ pt: 1 }}>
+          <Button variant="contained" onClick={saveManualHours}>
+            Сохранить
+          </Button>
+        </Box>
+      )}
     </Box>
   );
 };

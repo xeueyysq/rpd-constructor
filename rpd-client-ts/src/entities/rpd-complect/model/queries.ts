@@ -25,7 +25,7 @@ export const useDeleteRpdComplectsMutation = () => {
       qc.setQueryData<ComplectData[]>(rpdComplectsQueryKey, (prev) => {
         if (!prev) return prev;
         const toDelete = new Set(ids);
-        return prev.filter((c) => !toDelete.has(c.id));
+        return prev.filter((c) => !toDelete.has(c.uuid));
       });
     },
   });

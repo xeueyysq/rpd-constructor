@@ -20,11 +20,10 @@ export function ClippedDrawer() {
   const [drawerWidth, setDrawerWidth] = useState<number>(240);
   const { isDrawerOpen } = useStore();
 
-  //@TODO Костыль на определение страницы
   const isTemplatePage = useMemo(
     () =>
       path.includes(RedirectPath.TEMPLATES) &&
-      path.split("/").filter((part) => part && !isNaN(Number(part))).length,
+      path.split("/").filter(Boolean).length >= 2,
     [path]
   );
 

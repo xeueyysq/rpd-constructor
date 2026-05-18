@@ -6,7 +6,7 @@ import type {
 } from "../types";
 
 export async function fetchComplectRpd(
-  complectId: number
+  complectId: string | undefined
 ): Promise<ComplectMeta> {
   const { data } = await axiosBase.post<ComplectMeta>("find-rpd", {
     complectId,

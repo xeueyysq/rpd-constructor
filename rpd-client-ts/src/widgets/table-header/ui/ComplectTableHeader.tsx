@@ -1,8 +1,15 @@
 import CachedIcon from "@mui/icons-material/Cached";
 import DeleteIcon from "@mui/icons-material/Delete";
 import SaveAsIcon from "@mui/icons-material/SaveAs";
-import { WarningDeleteDialog } from "@widgets/dialogs/ui";
-import { Box, Button } from "@mui/material";
+import PlaylistAddCheckIcon from "@mui/icons-material/PlaylistAddCheck";
+import {
+  Box,
+  Button,
+  Dialog,
+  DialogActions,
+  DialogContent,
+  DialogTitle,
+} from "@mui/material";
 import { useState } from "react";
 import { useDeleteRpdComplectsMutation } from "@entities/rpd-complect/model/queries";
 import { ComplectData } from "@shared/types";
@@ -11,8 +18,9 @@ import { MRT_TableInstance } from "material-react-table";
 interface IComplectTableHeader {
   setRowSelection?: (value: Record<string, boolean>) => void;
   table?: MRT_TableInstance<ComplectData>;
-  id?: number;
+  id?: string;
   onAfterDelete?: () => void;
+  onBuildFundsClick?: () => void;
 }
 
 export function ComplectTableHeader({
@@ -20,6 +28,7 @@ export function ComplectTableHeader({
   setRowSelection,
   id,
   onAfterDelete,
+  onBuildFundsClick,
 }: IComplectTableHeader) {
   const [openDeleteConfirm, setOpenDeleteConfirm] = useState<boolean>(false);
   const deleteMutation = useDeleteRpdComplectsMutation();
@@ -30,7 +39,7 @@ export function ComplectTableHeader({
 
   const handleConfirmDeletion = async () => {
     const ids = table
-      ? table.getSelectedRowModel().rows.map((r) => r.original.id)
+      ? table.getSelectedRowModel().rows.map((r) => r.original.uuid)
       : id != null
         ? [id]
         : [];
@@ -73,16 +82,37 @@ export function ComplectTableHeader({
       >
         Добавить содержание рпд
       </Button>
-      <WarningDeleteDialog
+      <Button
+        variant="contained"
+        startIcon={<PlaylistAddCheckIcon />}
+        disabled={!isPageMode || !onBuildFundsClick}
+        onClick={onBuildFundsClick}
+      >
+        Собрать ФОСы
+      </Button>
+      <Dialog
         open={openDeleteConfirm}
-        setOpen={setOpenDeleteConfirm}
-        onAccept={handleConfirmDeletion}
-        description={
-          isPageMode
+        onClose={() => setOpenDeleteConfirm(false)}
+        maxWidth="xs"
+        fullWidth
+      >
+        <DialogTitle>Подтвердите удаление</DialogTitle>
+        <DialogContent>
+          {isPageMode
             ? "Вы уверены, что хотите удалить комплект?"
-            : "Вы уверены, что хотите удалить выбранные комплекты?"
-        }
-      />
+            : "Вы уверены, что хотите удалить выбранные комплекты?"}
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => setOpenDeleteConfirm(false)}>Отмена</Button>
+          <Button
+            color="error"
+            variant="contained"
+            onClick={handleConfirmDeletion}
+          >
+            Удалить
+          </Button>
+        </DialogActions>
+      </Dialog>
     </Box>
   );
 }

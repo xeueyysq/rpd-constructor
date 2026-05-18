@@ -54,7 +54,7 @@ export const PlannedResultsList: FC = () => {
   const [filters, setFilters] = useState<FilterState>(
     () => filtersState || storedFilters
   );
-  const [selectedComplectId, setSelectedComplectId] = useState<number>();
+  const [selectedComplectId, setSelectedComplectId] = useState<string>();
   const { complects } = useRpdComplectsQuery();
 
   const options = useMemo(() => {
@@ -93,7 +93,7 @@ export const PlannedResultsList: FC = () => {
       setSelectedComplectId(undefined);
       return;
     }
-    setSelectedComplectId(complect.id);
+    setSelectedComplectId(complect.uuid);
     (async () => {
       try {
         const response = await axiosBase.get("get-results-data", {

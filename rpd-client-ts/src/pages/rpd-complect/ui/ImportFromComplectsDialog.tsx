@@ -38,6 +38,7 @@ type ComplectTemplatesResponse = ComplectData & {
 export type ImportFromComplectsDialogProps = {
   open: boolean;
   targetTemplateId: number;
+  appendParagraph?: boolean;
   onClose: () => void;
   onImported: () => Promise<void> | void;
 };
@@ -45,6 +46,7 @@ export type ImportFromComplectsDialogProps = {
 export function ImportFromComplectsDialog({
   open,
   targetTemplateId,
+  appendParagraph = true,
   onClose,
   onImported,
 }: ImportFromComplectsDialogProps) {
@@ -141,6 +143,7 @@ export function ImportFromComplectsDialog({
       }>("copy-template-content", {
         sourceTemplateId: selectedSourceProfileTemplateId,
         targetTemplateId,
+        appendParagraph,
       });
       if (data?.success === false) {
         showErrorMessage(data?.message || "Ошибка при импорте данных");

@@ -1,14 +1,24 @@
 import { FC, useEffect, useState } from "react";
-import { MenuItem, Select, SelectChangeEvent } from "@mui/material";
+import {
+  MenuItem,
+  Select,
+  SelectChangeEvent,
+  useTheme,
+} from "@mui/material";
 import { useStore } from "@shared/hooks";
 import { showErrorMessage, showSuccessMessage } from "@shared/lib";
 import { axiosBase } from "@shared/api";
 
 interface SelectorProps {
   certification: string;
+  readOnly?: boolean;
 }
 
-const CertificationSelector: FC<SelectorProps> = ({ certification }) => {
+const CertificationSelector: FC<SelectorProps> = ({
+  certification,
+  readOnly = false,
+}) => {
+  const theme = useTheme();
   const templateId = useStore((state) => state.jsonData.id);
   const storeCertification = useStore((state) => state.jsonData.certification);
   const updateJsonData = useStore((state) => state.updateJsonData);
@@ -45,9 +55,16 @@ const CertificationSelector: FC<SelectorProps> = ({ certification }) => {
       id="certification-select"
       value={valueCertification}
       onChange={handleChange}
+      disabled={readOnly}
       size="small"
       sx={{
         minWidth: "150px",
+        ...(readOnly && {
+          "& .MuiSelect-select.Mui-disabled": {
+            WebkitTextFillColor: theme.palette.text.primary,
+            opacity: 1,
+          },
+        }),
       }}
     >
       <MenuItem value="Зачет">зачет</MenuItem>

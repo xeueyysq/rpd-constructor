@@ -4,17 +4,19 @@ import {
   MaterialReactTable,
   useMaterialReactTable,
 } from "material-react-table";
+import { useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { RedirectPath } from "@shared/enums";
 import { ComplectTableHeader } from "@widgets/table-header/ui/ComplectTableHeader";
 import { useComplectData, useComplectTableColumns } from "../hooks";
 import { complectTableOptions } from "../config";
 import type { TemplateData } from "../types";
+import { BuildFundsByComplectDialog } from "./BuildFundsByComplectDialog";
 
 export function RpdComplectPage() {
-  const { id } = useParams();
+  const { id: complectId } = useParams();
   const navigate = useNavigate();
-  const complectId = Number(id);
+  const [openBuildFunds, setOpenBuildFunds] = useState(false);
 
   const {
     complectMeta,
@@ -40,6 +42,7 @@ export function RpdComplectPage() {
       <ComplectTableHeader
         id={complectId}
         onAfterDelete={() => navigate(RedirectPath.COMPLECTS)}
+        onBuildFundsClick={() => setOpenBuildFunds(true)}
       />
     ),
   });
@@ -55,6 +58,13 @@ export function RpdComplectPage() {
       <Box pt={2}>
         <MaterialReactTable table={table} />
       </Box>
+      {complectId ? (
+        <BuildFundsByComplectDialog
+          open={openBuildFunds}
+          complectId={complectId}
+          onClose={() => setOpenBuildFunds(false)}
+        />
+      ) : null}
     </Box>
   );
 }

@@ -6,16 +6,38 @@ import { FC } from "react";
 import CertificationSelector from "../changeable-elements/CertificationSelector.tsx";
 import JsonChangeValue from "../changeable-elements/JsonChangeValue.tsx";
 
-const DisciplinePlace: FC = () => {
+type DisciplinePlaceProps = {
+  readOnly?: boolean;
+};
+
+const DisciplinePlace: FC<DisciplinePlaceProps> = ({ readOnly = false }) => {
   const data = useStore((state) => state.jsonData);
 
   const certificationFromControlLoad =
     (data.control_load && Object.keys(data.control_load || {})[0]) || "";
-  const certification =
-    data.certification || certificationFromControlLoad;
+  const certification = data.certification || certificationFromControlLoad;
 
   const placeWrapper = () => {
-    if (data.place === "Обязательная часть") return "обязательной части";
+    const placeValue =
+      typeof data.place === "string" ? data.place.trim().toLowerCase() : "";
+
+    if (!placeValue) return "";
+
+    if (
+      placeValue === "обязательная часть" ||
+      placeValue === "обязательной части"
+    ) {
+      return "обязательной части";
+    }
+
+    if (
+      placeValue ===
+        "часть, формируемая участниками образовательных отношений" ||
+      placeValue === "части, формируемой участниками образовательных отношений"
+    ) {
+      return "части, формируемой участниками образовательных отношений";
+    }
+
     if (data.place) return String(data.place).toLowerCase();
     return "";
   };
@@ -57,7 +79,10 @@ const DisciplinePlace: FC = () => {
           курсе
           <Tg sx={{ pt: 2 }}>
             форма промежуточной аттестации –{" "}
-            <CertificationSelector certification={certification} />
+            <CertificationSelector
+              certification={certification}
+              readOnly={readOnly}
+            />
             {!certification && (
               <Tg sx={{ color: "warning.main", fontWeight: 600, mt: 1 }}>
                 Форма промежуточной аттестации не подгрузилась из 1С — выберите
