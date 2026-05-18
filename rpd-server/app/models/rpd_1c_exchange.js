@@ -270,7 +270,8 @@ class Rpd1cExchange {
         FROM rpd_1c_exchange r
         LEFT JOIN template_status ts ON r.id = ts.id_1c_template
         LEFT JOIN rpd_profile_templates rpt ON rpt.id = ts.id_profile_template
-        WHERE r.id_rpd_complect = $1`,
+        WHERE r.id_rpd_complect = $1
+          AND NULLIF(TRIM(r.discipline), '') IS NOT NULL`,
           [complectId]
         ),
         this.getSystemTeachers(),
