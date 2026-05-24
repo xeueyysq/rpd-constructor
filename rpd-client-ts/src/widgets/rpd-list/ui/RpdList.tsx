@@ -5,7 +5,6 @@ import {
   Accordion,
   AccordionDetails,
   AccordionSummary,
-  alpha,
   Box,
   Divider,
   List,
@@ -15,7 +14,6 @@ import {
   ListItemText,
   Typography,
 } from "@mui/material";
-// import { TreeItem } from "@mui/x-tree-view/TreeItem";
 import { TemplatePagesPath } from "@pages/teacher-interface/model/pathes.ts";
 import { Can } from "@shared/ability";
 import { RedirectPath } from "@shared/enums.ts";
@@ -95,9 +93,6 @@ export const RpdList: FC<RpdListProps> = ({ RpdListItems }) => {
           overflowY: "scroll",
           overflowX: "hidden",
           minHeight: 0,
-          // scrollbarColor: "#bdbdbd #f5f5f5",
-          // scrollbarWidth: "thin",
-          // scrollbarGutter: "stable",
           "&::-webkit-scrollbar": {
             width: "8px",
             backgroundColor: "#f5f5f5",
@@ -113,16 +108,13 @@ export const RpdList: FC<RpdListProps> = ({ RpdListItems }) => {
       >
         <List dense disablePadding>
           {RpdListItems.map((item) => (
-            <>
-              {/* <Divider sx={{ bgcolor: "#ffffff", height: 0 }} /> */}
-              <RpdListItemComponent
-                item={item}
-                templateId={templateId}
-                templatePage={page}
-              />
-            </>
+            <RpdListItemComponent
+              key={item.id}
+              item={item}
+              templateId={templateId}
+              templatePage={page}
+            />
           ))}
-          {/* <Divider sx={{ bgcolor: "#ffffff", height: 0 }} /> */}
         </List>
       </Box>
       <Box
