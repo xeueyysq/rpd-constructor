@@ -1,6 +1,7 @@
 const { pool } = require("../../config/db");
 const axios = require("axios");
 const moment = require("moment");
+const { resolveZetFromStudyLoad } = require("./disciplineScope");
 
 const apiUrl = "https://1c-api.uni-dubna.ru/v1/api/persons/reports";
 
@@ -171,9 +172,11 @@ const processDisciplines = async (disciplines, RpdComplectId) => {
         ? [teachers.trim()]
         : [];
     const normalizedStudyLoad =
-      study_load && typeof study_load === "object" && !Array.isArray(study_load)
-        ? study_load
-        : {};
+      study_load && typeof study_load === "object" ? study_load : {};
+    const resolvedZet = resolveZetFromStudyLoad(
+      normalizedStudyLoad,
+      normalizedZets
+    );
     const normalizedControlLoad =
       control_load &&
       typeof control_load === "object" &&
@@ -197,7 +200,7 @@ const processDisciplines = async (disciplines, RpdComplectId) => {
       division,
       discipline: normalizedDiscipline,
       teachers: normalizedTeachers,
-      zets: normalizedZets,
+      zets: resolvedZet,
       place: placeFromRecordType(normalizedRecordType),
       record_type: normalizedRecordType,
       study_load: normalizedStudyLoad,
