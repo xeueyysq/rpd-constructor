@@ -1,8 +1,12 @@
 const { pool } = require("../../config/db");
 const axios = require("axios");
 const moment = require("moment");
+const { resolveZetFromStudyLoad } = require("./disciplineScope");
+const { mapApiDataFor1c, hashPayload, loadReferenceTree } = require("./specProfilesMapping");
+const { merge1cIntoReferenceTree } = require("./specProfilesTransformer");
 
 const apiUrl = "https://1c-api.uni-dubna.ru/v1/api/persons/reports";
+const CACHE_ROW_ID = 1;
 
 const isRetryable1cError = (error) => {
   if (!error || error.statusCode) {
@@ -67,25 +71,12 @@ async function exchange1C(apiData, { userId } = {}) {
 const fetchUpLink = async (apiData) => {
   try {
     const url = `${apiUrl}/GetDisciplinesByPlan`;
-    const normalizedYear = Number(apiData.year);
 
     const response = await requestWithSingleRetry(
       () =>
-        axios.post(
-          url,
-          {
-            year: Number.isFinite(normalizedYear)
-              ? normalizedYear
-              : apiData.year,
-            education_level: apiData.educationLevel,
-            education_form: apiData.educationForm,
-            profile: apiData.profile,
-            direction: apiData.direction,
-          },
-          {
-            timeout: 30000,
-          }
-        ),
+        axios.post(url, mapApiDataFor1c(apiData), {
+          timeout: 30000,
+        }),
       "GetDisciplinesByPlan"
     );
 
@@ -171,9 +162,11 @@ const processDisciplines = async (disciplines, RpdComplectId) => {
         ? [teachers.trim()]
         : [];
     const normalizedStudyLoad =
-      study_load && typeof study_load === "object" && !Array.isArray(study_load)
-        ? study_load
-        : {};
+      study_load && typeof study_load === "object" ? study_load : {};
+    const resolvedZet = resolveZetFromStudyLoad(
+      normalizedStudyLoad,
+      normalizedZets
+    );
     const normalizedControlLoad =
       control_load &&
       typeof control_load === "object" &&
@@ -197,7 +190,7 @@ const processDisciplines = async (disciplines, RpdComplectId) => {
       division,
       discipline: normalizedDiscipline,
       teachers: normalizedTeachers,
-      zets: normalizedZets,
+      zets: resolvedZet,
       place: placeFromRecordType(normalizedRecordType),
       record_type: normalizedRecordType,
       study_load: normalizedStudyLoad,
@@ -322,4 +315,99 @@ const handle1cError = (error) => {
   return error;
 };
 
-module.exports = { exchange1C, fetchUpLink };
+const fetchAllSpecProfiles = async () => {
+  try {
+    const url = `${apiUrl}/GetAllSpecProfiles`;
+    const response = await requestWithSingleRetry(
+      () =>
+        axios.get(url, {
+          timeout: 30000,
+        }),
+      "GetAllSpecProfiles"
+    );
+
+    if (!Array.isArray(response.data)) {
+      const error = new Error("Некорректный ответ 1С по профилям");
+      error.statusCode = 502;
+      throw error;
+    }
+
+    return response.data;
+  } catch (error) {
+    throw handle1cError(error);
+  }
+};
+
+const readCachedSpecProfiles = async (dbPool) => {
+  const { rows } = await dbPool.query(
+    `
+      SELECT tree_payload
+      FROM spec_profiles_cache
+      WHERE id = $1
+      LIMIT 1
+    `,
+    [CACHE_ROW_ID]
+  );
+
+  return rows[0]?.tree_payload ?? null;
+};
+
+const upsertSpecProfilesCache = async (dbPool, rawPayload, treePayload, payloadHash) => {
+  await dbPool.query(
+    `
+      INSERT INTO spec_profiles_cache (
+        id,
+        raw_payload,
+        tree_payload,
+        payload_hash,
+        synced_at
+      ) VALUES ($1, $2, $3, $4, NOW())
+      ON CONFLICT (id) DO UPDATE SET
+        raw_payload = EXCLUDED.raw_payload,
+        tree_payload = EXCLUDED.tree_payload,
+        payload_hash = EXCLUDED.payload_hash,
+        synced_at = NOW()
+    `,
+    [CACHE_ROW_ID, JSON.stringify(rawPayload), JSON.stringify(treePayload), payloadHash]
+  );
+};
+
+const syncAndGetSpecProfiles = async (dbPool) => {
+  try {
+    const rawPayload = await fetchAllSpecProfiles();
+    const tree = merge1cIntoReferenceTree(rawPayload);
+    const payloadHash = hashPayload(tree);
+
+    const { rows } = await dbPool.query(
+      `
+        SELECT payload_hash
+        FROM spec_profiles_cache
+        WHERE id = $1
+        LIMIT 1
+      `,
+      [CACHE_ROW_ID]
+    );
+
+    if (rows[0]?.payload_hash !== payloadHash) {
+      await upsertSpecProfilesCache(dbPool, rawPayload, tree, payloadHash);
+    }
+
+    return { tree, source: "1c" };
+  } catch (error) {
+    console.warn("GetAllSpecProfiles failed, using cache or fallback:", error.message);
+
+    const cachedTree = await readCachedSpecProfiles(dbPool);
+    if (cachedTree) {
+      return { tree: cachedTree, source: "database" };
+    }
+
+    return { tree: loadReferenceTree(), source: "fallback" };
+  }
+};
+
+module.exports = {
+  exchange1C,
+  fetchUpLink,
+  fetchAllSpecProfiles,
+  syncAndGetSpecProfiles,
+};

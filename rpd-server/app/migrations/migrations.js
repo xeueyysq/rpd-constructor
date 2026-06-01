@@ -384,6 +384,16 @@ const process = require("process");
         );
     `);
 
+    await pool.query(`
+      CREATE TABLE IF NOT EXISTS spec_profiles_cache (
+        id SMALLINT PRIMARY KEY DEFAULT 1 CHECK (id = 1),
+        raw_payload JSONB NOT NULL,
+        tree_payload JSONB NOT NULL,
+        payload_hash TEXT NOT NULL,
+        synced_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+      );
+    `);
+
     console.log("Все миграции загружены успешно");
   } catch (error) {
     console.error("Ошибка загрузки миграций", error.stack);
