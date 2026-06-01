@@ -82,6 +82,14 @@ router.post(
   )
 );
 
+const SpecProfilesController = require("../controllers/specProfilesController");
+const specProfilesController = new SpecProfilesController(pool);
+
+router.get(
+  "/spec-profiles",
+  specProfilesController.getProfiles.bind(specProfilesController)
+);
+
 const Rpd1cExchangeController = require("../controllers/rpd1cExchangeController");
 const rpd1cExchangeController = new Rpd1cExchangeController(pool);
 
