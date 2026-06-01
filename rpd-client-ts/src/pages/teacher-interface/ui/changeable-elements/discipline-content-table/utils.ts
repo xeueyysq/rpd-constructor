@@ -231,6 +231,14 @@ export function calculateMaxHours(
   };
 }
 
+export function extractTotalAcademicHours(studyLoad: unknown): number | null {
+  const { maxHours, hasMaxHours } = calculateMaxHours(
+    normalizeStudyLoad(studyLoad),
+    0
+  );
+  return hasMaxHours ? maxHours.all : null;
+}
+
 export function getNextIdFromData(content: DisciplineContentData | undefined) {
   if (!content) return 0;
   const numericKeys = Object.keys(content)

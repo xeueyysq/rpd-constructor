@@ -28,30 +28,30 @@ const CoverPage: FC = () => {
         __________________202_ год <br />
       </Tg>
       <Tg sx={{ fontWeight: "600", py: 2 }}>Рабочая программа дисциплины</Tg>
-      <Tg sx={{ p: 1, border: "1px dashed grey", my: 1 }}>
+      <Box sx={{ p: 1, border: "1px dashed grey", my: 1 }}>
         <Tg sx={{ fontWeight: "600" }}>Название дисциплины</Tg>
         <Tg>{jsonData.disciplins_name}</Tg>
-      </Tg>
-      <Tg sx={{ p: 1, border: "1px dashed grey", my: 1 }}>
+      </Box>
+      <Box sx={{ p: 1, border: "1px dashed grey", my: 1 }}>
         <Tg sx={{ fontWeight: "600" }}>Направление подготовки</Tg>
         <Tg>{jsonData.direction}</Tg>
-      </Tg>
-      <Tg sx={{ p: 1, border: "1px dashed grey", my: 1 }}>
+      </Box>
+      <Box sx={{ p: 1, border: "1px dashed grey", my: 1 }}>
         <Tg sx={{ fontWeight: "600" }}>Профиль</Tg>
         <Tg>{jsonData.profile}</Tg>
-      </Tg>
-      <Tg sx={{ p: 1, border: "1px dashed grey", my: 1 }}>
+      </Box>
+      <Box sx={{ p: 1, border: "1px dashed grey", my: 1 }}>
         <Tg sx={{ fontWeight: "600" }}>Уровень высшего образования</Tg>
         <Tg>{jsonData.education_level}</Tg>
-      </Tg>
-      <Tg sx={{ p: 1, border: "1px dashed grey", my: 1 }}>
+      </Box>
+      <Box sx={{ p: 1, border: "1px dashed grey", my: 1 }}>
         <Tg sx={{ fontWeight: "600" }}>Форма обучения</Tg>
         <Tg>{jsonData.education_form}</Tg>
-      </Tg>
-      <Tg sx={{ p: 1, border: "1px dashed grey", my: 1 }}>
+      </Box>
+      <Box sx={{ p: 1, border: "1px dashed grey", my: 1 }}>
         <Tg sx={{ fontWeight: "600" }}>Год обучения</Tg>
         <Tg>{jsonData.year}</Tg>
-      </Tg>
+      </Box>
     </Box>
   );
 };

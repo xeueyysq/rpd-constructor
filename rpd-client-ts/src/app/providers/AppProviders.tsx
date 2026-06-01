@@ -21,7 +21,15 @@ export const AppProviders: FC<Props> = ({ children }) => {
         <CssBaseline />
         <AuthProvider>
           <CaslProvider>
-            <SnackbarProvider maxSnack={3}>{children}</SnackbarProvider>
+            <SnackbarProvider
+              maxSnack={3}
+              anchorOrigin={{
+                vertical: "bottom",
+                horizontal: "right",
+              }}
+            >
+              {children}
+            </SnackbarProvider>
           </CaslProvider>
         </AuthProvider>
       </ThemeProvider>
