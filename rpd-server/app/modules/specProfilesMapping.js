@@ -1,9 +1,10 @@
 const crypto = require("crypto");
 const fs = require("fs");
 const path = require("path");
+const process = require("process");
 
 const DEFAULT_FORM = "Очная";
-const REFERENCE_PATH = path.join(__dirname, "../data/json_profiles.json");
+const REFERENCE_PATH = path.join(process.cwd(), "app/data/json_profiles.json");
 const YEAR_SLOTS_COUNT = 5;
 
 const LEVEL_BY_SEGMENT = {
@@ -182,6 +183,10 @@ const resolveCanonicalDirection = (code, name, institute, level, indexes) => {
   const normalizedName = normalizeName(name);
   const candidate = normalizeWhitespace(`${code} ${name}`);
 
+  if (!candidate) {
+    return null;
+  }
+
   if (indexes.directionExact.has(candidate)) {
     return candidate;
   }
@@ -193,7 +198,7 @@ const resolveCanonicalDirection = (code, name, institute, level, indexes) => {
 
   const matches = directionsForPath.get(normalizedCode) || [];
   if (!matches.length) {
-    return null;
+    return candidate;
   }
 
   if (matches.length === 1) {
@@ -209,7 +214,7 @@ const resolveCanonicalDirection = (code, name, institute, level, indexes) => {
     return matchedByName[0];
   }
 
-  return null;
+  return candidate;
 };
 
 const resolveCanonicalProfile = (profileName, canonicalDirection, indexes) => {
@@ -220,7 +225,7 @@ const resolveCanonicalProfile = (profileName, canonicalDirection, indexes) => {
 
   const profilesForDirection = indexes.profileByDirection.get(canonicalDirection);
   if (!profilesForDirection) {
-    return null;
+    return trimmed;
   }
 
   if (profilesForDirection.has(normalizeName(trimmed))) {
@@ -233,7 +238,7 @@ const resolveCanonicalProfile = (profileName, canonicalDirection, indexes) => {
     }
   }
 
-  return null;
+  return trimmed;
 };
 
 const resolveCanonicalForm = () => DEFAULT_FORM;
