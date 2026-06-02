@@ -7,6 +7,7 @@ const { merge1cIntoReferenceTree } = require("./specProfilesTransformer");
 
 const apiUrl = "https://1c-api.uni-dubna.ru/v1/api/persons/reports";
 const CACHE_ROW_ID = 1;
+const SPEC_PROFILES_TIMEOUT_MS = 5000;
 
 const isRetryable1cError = (error) => {
   if (!error || error.statusCode) {
@@ -318,13 +319,9 @@ const handle1cError = (error) => {
 const fetchAllSpecProfiles = async () => {
   try {
     const url = `${apiUrl}/GetAllSpecProfiles`;
-    const response = await requestWithSingleRetry(
-      () =>
-        axios.get(url, {
-          timeout: 30000,
-        }),
-      "GetAllSpecProfiles"
-    );
+    const response = await axios.get(url, {
+      timeout: SPEC_PROFILES_TIMEOUT_MS,
+    });
 
     if (!Array.isArray(response.data)) {
       const error = new Error("Некорректный ответ 1С по профилям");
@@ -394,7 +391,11 @@ const syncAndGetSpecProfiles = async (dbPool) => {
 
     return { tree, source: "1c" };
   } catch (error) {
-    console.warn("GetAllSpecProfiles failed, using cache or fallback:", error.message);
+    if (error?.response?.status === 504 || error?.code === "ECONNABORTED") {
+      console.warn("GetAllSpecProfiles timeout/504, using cache or fallback");
+    } else {
+      console.warn("GetAllSpecProfiles failed, using cache or fallback:", error.message);
+    }
 
     const cachedTree = await readCachedSpecProfiles(dbPool);
     if (cachedTree) {
