@@ -17,7 +17,6 @@ const merge1cIntoReferenceTree = (raw1c) => {
   const indexes = buildReferenceIndexes(referenceTree);
   const tree = deepClone(referenceTree);
   const items = Array.isArray(raw1c) ? raw1c : [];
-  let skippedProfiles = 0;
 
   for (const item of items) {
     const specialisation = item?.specialisation;
@@ -59,7 +58,6 @@ const merge1cIntoReferenceTree = (raw1c) => {
       );
 
       if (!profileKey) {
-        skippedProfiles += 1;
         continue;
       }
 
@@ -69,12 +67,6 @@ const merge1cIntoReferenceTree = (raw1c) => {
         buildYearLeaves()
       );
     }
-  }
-
-  if (skippedProfiles > 0) {
-    console.log(
-      `specProfiles: пропущено профилей без канонического имени — ${skippedProfiles}`
-    );
   }
 
   return tree;
