@@ -7,4 +7,6 @@ export type ComplectData = {
   profile: string;
   formEducation: string;
   year: number | string;
+  lastSyncedAt?: string | null;
+  hasPendingChanges?: boolean;
 };

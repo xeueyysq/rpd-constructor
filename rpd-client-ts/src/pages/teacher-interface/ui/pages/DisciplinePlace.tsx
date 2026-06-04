@@ -1,7 +1,9 @@
 import { Box, Typography as Tg } from "@mui/material";
 import { TemplatePagesPath } from "@pages/teacher-interface/model/pathes.ts";
 import { useStore } from "@shared/hooks";
+import { FieldChangeNotice } from "@shared/ui/FieldChangeNotice";
 import { Loader, PageTitleComment } from "@shared/ui";
+import { useFieldChanges } from "@pages/teacher-interface/model/useFieldChanges";
 import { FC } from "react";
 import CertificationSelector from "../changeable-elements/CertificationSelector.tsx";
 import JsonChangeValue from "../changeable-elements/JsonChangeValue.tsx";
@@ -12,6 +14,8 @@ type DisciplinePlaceProps = {
 
 const DisciplinePlace: FC<DisciplinePlaceProps> = ({ readOnly = false }) => {
   const data = useStore((state) => state.jsonData);
+  const { fieldChanges, handleAcknowledge, isAcknowledging } =
+    useFieldChanges();
 
   const certificationFromControlLoad =
     (data.control_load && Object.keys(data.control_load || {})[0]) || "";
@@ -48,6 +52,30 @@ const DisciplinePlace: FC<DisciplinePlaceProps> = ({ readOnly = false }) => {
         title="Место дисциплины в структуре ОПОП"
         paddingBottom={2}
         templateField={TemplatePagesPath.DISCIPLINE_PLACE}
+      />
+      <FieldChangeNotice
+        fieldKey="semester"
+        changes={fieldChanges}
+        onAcknowledge={handleAcknowledge}
+        isAcknowledging={isAcknowledging}
+      />
+      <FieldChangeNotice
+        fieldKey="place"
+        changes={fieldChanges}
+        onAcknowledge={handleAcknowledge}
+        isAcknowledging={isAcknowledging}
+      />
+      <FieldChangeNotice
+        fieldKey="certification"
+        changes={fieldChanges}
+        onAcknowledge={handleAcknowledge}
+        isAcknowledging={isAcknowledging}
+      />
+      <FieldChangeNotice
+        fieldKey="control_load"
+        changes={fieldChanges}
+        onAcknowledge={handleAcknowledge}
+        isAcknowledging={isAcknowledging}
       />
       {Object.keys(data).length ? (
         <Tg sx={{ py: 2 }}>

@@ -8,7 +8,9 @@ import {
 import type { Theme } from "@mui/material/styles";
 import { useScopeDisciplineForm } from "@pages/teacher-interface/model/useScopeDisciplineForm";
 import { TemplatePagesPath } from "@pages/teacher-interface/model/pathes";
+import { FieldChangeNotice } from "@shared/ui/FieldChangeNotice";
 import { PageTitleComment } from "@shared/ui";
+import { useFieldChanges } from "@pages/teacher-interface/model/useFieldChanges";
 import { FC } from "react";
 
 type ScopeDisciplinePageProps = {
@@ -28,6 +30,8 @@ const ScopeDisciplinePage: FC<ScopeDisciplinePageProps> = ({
   const theme = useTheme();
   const { creditUnits, setCreditUnits, academicHours, setAcademicHours, save } =
     useScopeDisciplineForm();
+  const { fieldChanges, handleAcknowledge, isAcknowledging } =
+    useFieldChanges();
 
   return (
     <Box>
@@ -35,6 +39,18 @@ const ScopeDisciplinePage: FC<ScopeDisciplinePageProps> = ({
         title="Объем дисциплины"
         paddingBottom={2}
         templateField={TemplatePagesPath.DISCIPLINE_SCOPE}
+      />
+      <FieldChangeNotice
+        fieldKey="zet"
+        changes={fieldChanges}
+        onAcknowledge={handleAcknowledge}
+        isAcknowledging={isAcknowledging}
+      />
+      <FieldChangeNotice
+        fieldKey="study_load"
+        changes={fieldChanges}
+        onAcknowledge={handleAcknowledge}
+        isAcknowledging={isAcknowledging}
       />
       <Tg sx={{ py: 2 }}>
         Объем дисциплины составляет
