@@ -9,9 +9,11 @@ import {
   DialogActions,
   DialogContent,
   DialogTitle,
+  Tooltip,
 } from "@mui/material";
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { useDeleteRpdComplectsMutation } from "@entities/rpd-complect/model/queries";
+import { UpdateComplectDialog } from "@features/complect-sync";
 import { ComplectData } from "@shared/types";
 import { MRT_TableInstance } from "material-react-table";
 
@@ -21,6 +23,7 @@ interface IComplectTableHeader {
   id?: string;
   onAfterDelete?: () => void;
   onBuildFundsClick?: () => void;
+  onSyncApplied?: () => void;
 }
 
 export function ComplectTableHeader({
@@ -29,13 +32,30 @@ export function ComplectTableHeader({
   id,
   onAfterDelete,
   onBuildFundsClick,
+  onSyncApplied,
 }: IComplectTableHeader) {
   const [openDeleteConfirm, setOpenDeleteConfirm] = useState<boolean>(false);
+  const [openSyncDialog, setOpenSyncDialog] = useState(false);
   const deleteMutation = useDeleteRpdComplectsMutation();
 
   const isPageMode = id != null;
   const selectedRowsCount = table ? table.getSelectedRowModel().rows.length : 0;
   const hasSelection = isPageMode || selectedRowsCount > 0;
+
+  const complectUuid = useMemo(() => {
+    if (isPageMode && id) return id;
+    if (!table || selectedRowsCount !== 1) return null;
+    return table.getSelectedRowModel().rows[0]?.original.uuid ?? null;
+  }, [id, isPageMode, selectedRowsCount, table]);
+
+  const syncDisabled =
+    !complectUuid || (!isPageMode && selectedRowsCount !== 1);
+  const syncTooltip =
+    !isPageMode && selectedRowsCount > 1
+      ? "Выберите один комплект"
+      : !hasSelection
+        ? "Выберите комплект"
+        : "";
 
   const handleConfirmDeletion = async () => {
     const ids = table
@@ -58,14 +78,25 @@ export function ComplectTableHeader({
         gap: "12px",
       }}
     >
-      <Button
-        variant="outlined"
-        startIcon={<CachedIcon />}
-        disabled={!hasSelection}
-        sx={{ alignSelf: "flex-start" }}
-      >
-        Обновить комплект
-      </Button>
+      <Tooltip title={syncTooltip}>
+        <span>
+          <Button
+            variant="outlined"
+            startIcon={<CachedIcon />}
+            disabled={syncDisabled}
+            onClick={() => setOpenSyncDialog(true)}
+            sx={{ alignSelf: "flex-start" }}
+          >
+            Обновить комплект
+          </Button>
+        </span>
+      </Tooltip>
+      <UpdateComplectDialog
+        open={openSyncDialog}
+        complectUuid={complectUuid}
+        onClose={() => setOpenSyncDialog(false)}
+        onApplied={onSyncApplied}
+      />
       <Button
         variant="outlined"
         startIcon={<DeleteIcon />}

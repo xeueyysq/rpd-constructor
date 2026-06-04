@@ -5,7 +5,9 @@ import {
   Box,
   Breadcrumbs,
   Button,
+  Chip,
   CssBaseline,
+  Tooltip,
   Typography,
 } from "@mui/material";
 import { UserRole } from "@shared/ability";
@@ -83,6 +85,22 @@ export const RpdComplectsList: FC = () => {
         accessorKey: "year",
         header: "Год набора",
         size: 100,
+      },
+      {
+        accessorKey: "hasPendingChanges",
+        header: "Изменения",
+        size: 120,
+        Cell: ({ row }) => {
+          if (!row.original.hasPendingChanges) return null;
+          const syncedAt = row.original.lastSyncedAt
+            ? new Date(row.original.lastSyncedAt).toLocaleString("ru-RU")
+            : "неизвестно";
+          return (
+            <Tooltip title={`Последняя синхронизация: ${syncedAt}`}>
+              <Chip label="Обновлён" color="warning" size="small" />
+            </Tooltip>
+          );
+        },
       },
       {
         accessorKey: "actions",

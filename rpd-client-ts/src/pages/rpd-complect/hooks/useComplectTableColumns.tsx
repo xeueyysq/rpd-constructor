@@ -3,15 +3,25 @@ import {
   Autocomplete,
   Box,
   Button,
+  Chip,
   Divider,
   ListItemButton,
   TextField,
+  Tooltip,
 } from "@mui/material";
+import { getFieldLabel } from "@features/complect-sync";
 import type { MRT_ColumnDef } from "material-react-table";
 import { useMemo } from "react";
 import TemplateMenu from "../ui/TemplateMenu";
-import type { TemplateData } from "../types";
+import type { DisciplineSyncStatus, TemplateData } from "../types";
 import type { SelectedTeachersMap } from "./useComplectData";
+
+const SYNC_STATUS_LABEL: Record<DisciplineSyncStatus, string> = {
+  new: "Новая",
+  updated: "Обновлено",
+  removed: "Удалена из плана",
+  unchanged: "",
+};
 
 function parseTeacherString(teacher: string | undefined): string[] {
   if (!teacher?.trim()) return [];
@@ -44,6 +54,35 @@ export function useComplectTableColumns({
         accessorKey: "semester",
         header: "Семестр",
         size: 100,
+      },
+      {
+        accessorKey: "syncStatus",
+        header: "Изменения",
+        size: 160,
+        Cell: ({ row }) => {
+          const status = row.original.syncStatus ?? "unchanged";
+          if (status === "unchanged") return null;
+          const summary = row.original.lastChangeSummary ?? [];
+          const tooltip =
+            summary.length > 0
+              ? summary.map((field) => getFieldLabel(field)).join(", ")
+              : SYNC_STATUS_LABEL[status];
+          return (
+            <Tooltip title={tooltip}>
+              <Chip
+                label={SYNC_STATUS_LABEL[status]}
+                size="small"
+                color={
+                  status === "removed"
+                    ? "error"
+                    : status === "new"
+                      ? "success"
+                      : "warning"
+                }
+              />
+            </Tooltip>
+          );
+        },
       },
       {
         accessorKey: "teacher",

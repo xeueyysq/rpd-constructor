@@ -43,6 +43,7 @@ export function RpdComplectPage() {
         id={complectId}
         onAfterDelete={() => navigate(RedirectPath.COMPLECTS)}
         onBuildFundsClick={() => setOpenBuildFunds(true)}
+        onSyncApplied={fetchComplectData}
       />
     ),
   });

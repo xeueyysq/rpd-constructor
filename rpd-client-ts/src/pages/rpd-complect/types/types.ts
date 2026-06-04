@@ -6,6 +6,8 @@ export interface TemplateStatusObject {
   user: string;
 }
 
+export type DisciplineSyncStatus = "new" | "updated" | "removed" | "unchanged";
+
 export interface TemplateData {
   id: number;
   id_profile_template: number;
@@ -15,6 +17,10 @@ export interface TemplateData {
   teacher: string;
   semester: number;
   status: TemplateStatusObject;
+  syncStatus?: DisciplineSyncStatus;
+  lastChangeSummary?: string[];
+  hasProfileTemplate?: boolean;
+  removed_at?: string | null;
 }
 
 export type ComplectMeta = ComplectData & {
