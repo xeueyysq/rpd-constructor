@@ -102,7 +102,11 @@ class RpdComplects {
                    faculty,
                    year,
                    education_form as "formEducation", 
-                   education_level as "levelEducation", profile, direction as "directionOfStudy"
+                   education_level as "levelEducation",
+                   profile,
+                   direction as "directionOfStudy",
+                   last_synced_at as "lastSyncedAt",
+                   has_pending_changes as "hasPendingChanges"
             FROM rpd_complects
             ORDER BY id DESC
         `);
@@ -124,7 +128,9 @@ class RpdComplects {
                     rc.education_form as "formEducation",
                     rc.education_level as "levelEducation",
                     rc.profile,
-                    rc.direction as "directionOfStudy"
+                    rc.direction as "directionOfStudy",
+                    rc.last_synced_at as "lastSyncedAt",
+                    rc.has_pending_changes as "hasPendingChanges"
             FROM rpd_complects rc
             INNER JOIN user_complect uc ON uc.complect_id = rc.id
             WHERE uc.user_id = $1

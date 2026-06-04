@@ -250,7 +250,14 @@ class RpdProfileTemplatesController {
     try {
       const { id } = req.body;
       const value = await this.model.getJsonProfile(id);
-      res.json(value);
+      if (!value) {
+        return res.status(404).json({ message: "Шаблон не найден" });
+      }
+      const {
+        getUnacknowledgedFieldChanges,
+      } = require("../modules/complectSync");
+      const fieldChanges = await getUnacknowledgedFieldChanges(value.id);
+      res.json({ ...value, fieldChanges });
     } catch (err) {
       res.status(500).json({ message: err.message });
     }
