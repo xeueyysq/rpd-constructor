@@ -394,6 +394,58 @@ const process = require("process");
       );
     `);
 
+    await pool.query(`
+      ALTER TABLE rpd_complects
+        ADD COLUMN IF NOT EXISTS last_synced_at TIMESTAMPTZ,
+        ADD COLUMN IF NOT EXISTS has_pending_changes BOOLEAN NOT NULL DEFAULT false;
+    `);
+
+    await pool.query(`
+      ALTER TABLE rpd_1c_exchange
+        ADD COLUMN IF NOT EXISTS removed_at TIMESTAMPTZ;
+    `);
+
+    await pool.query(`
+      CREATE TABLE IF NOT EXISTS complect_sync_log (
+        id SERIAL PRIMARY KEY,
+        complect_id INT NOT NULL REFERENCES rpd_complects(id) ON DELETE CASCADE,
+        user_id INT REFERENCES users(id) ON DELETE SET NULL,
+        source VARCHAR(16) NOT NULL CHECK (source IN ('1c', 'manual')),
+        created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+      );
+    `);
+
+    await pool.query(`
+      CREATE TABLE IF NOT EXISTS template_field_changes (
+        id SERIAL PRIMARY KEY,
+        sync_log_id INT NOT NULL REFERENCES complect_sync_log(id) ON DELETE CASCADE,
+        id_1c_exchange INT NOT NULL REFERENCES rpd_1c_exchange(id) ON DELETE CASCADE,
+        id_profile_template INT REFERENCES rpd_profile_templates(id) ON DELETE SET NULL,
+        field_key VARCHAR(64) NOT NULL,
+        old_value JSONB,
+        new_value JSONB,
+        applied_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+        acknowledged_at TIMESTAMPTZ
+      );
+    `);
+
+    await pool.query(`
+      CREATE INDEX IF NOT EXISTS idx_complect_sync_log_complect_id
+        ON complect_sync_log (complect_id);
+    `);
+
+    await pool.query(`
+      CREATE INDEX IF NOT EXISTS idx_template_field_changes_profile_template
+        ON template_field_changes (id_profile_template)
+        WHERE id_profile_template IS NOT NULL;
+    `);
+
+    await pool.query(`
+      CREATE INDEX IF NOT EXISTS idx_template_field_changes_unacknowledged
+        ON template_field_changes (id_profile_template, id_1c_exchange)
+        WHERE acknowledged_at IS NULL;
+    `);
+
     console.log("Все миграции загружены успешно");
   } catch (error) {
     console.error("Ошибка загрузки миграций", error.stack);

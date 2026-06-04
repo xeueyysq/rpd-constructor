@@ -256,7 +256,8 @@ class Rpd1cExchange {
         this.pool.query(
           `
         SELECT r.id, r.discipline, r.teachers, r.teacher,
-        r.semester, ts.id_profile_template, rpt.public_id AS profile_template_public_id, (
+        r.semester, r.removed_at,
+        ts.id_profile_template, rpt.public_id AS profile_template_public_id, (
           SELECT status
           FROM jsonb_array_elements((
             SELECT history
@@ -266,10 +267,28 @@ class Rpd1cExchange {
           )) AS elem(status)
           ORDER BY elem DESC
           LIMIT 1
-        )
+        ),
+        CASE
+          WHEN r.removed_at IS NOT NULL THEN 'removed'
+          WHEN COALESCE(ch.is_new, false) THEN 'new'
+          WHEN COALESCE(array_length(ch.change_fields, 1), 0) > 0 THEN 'updated'
+          ELSE 'unchanged'
+        END AS sync_status,
+        COALESCE(ch.change_fields, ARRAY[]::text[]) AS last_change_summary,
+        (ts.id_profile_template IS NOT NULL) AS has_profile_template
         FROM rpd_1c_exchange r
         LEFT JOIN template_status ts ON r.id = ts.id_1c_template
         LEFT JOIN rpd_profile_templates rpt ON rpt.id = ts.id_profile_template
+        LEFT JOIN LATERAL (
+          SELECT
+            bool_or(tfc.field_key = '__new__') AS is_new,
+            array_agg(DISTINCT tfc.field_key) FILTER (
+              WHERE tfc.field_key NOT IN ('__new__', 'removed', 'teachers')
+            ) AS change_fields
+          FROM template_field_changes tfc
+          WHERE tfc.id_1c_exchange = r.id
+            AND tfc.acknowledged_at IS NULL
+        ) ch ON true
         WHERE r.id_rpd_complect = $1
           AND NULLIF(TRIM(r.discipline), '') IS NOT NULL`,
           [complectId]
@@ -279,6 +298,9 @@ class Rpd1cExchange {
 
       return queryResult.rows.map((row) => ({
         ...row,
+        syncStatus: row.sync_status,
+        lastChangeSummary: row.last_change_summary ?? [],
+        hasProfileTemplate: row.has_profile_template,
         teachers: this.mergeTeacherLists(
           row.teachers,
           this.splitTeacherString(row.teacher),

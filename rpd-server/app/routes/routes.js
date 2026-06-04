@@ -133,6 +133,9 @@ router.post(
 const RpdComplectsController = require("../controllers/rpdComplectsController");
 const rpdComplectsController = new RpdComplectsController(pool);
 
+const ComplectSyncController = require("../controllers/complectSyncController");
+const complectSyncController = new ComplectSyncController(pool);
+
 router.post(
   "/find_rpd_complect",
   TokenService.checkAccess,
@@ -151,6 +154,21 @@ router.get(
 router.post(
   "/delete_rpd_complect",
   rpdComplectsController.deleteRbdComplect.bind(rpdComplectsController)
+);
+router.post(
+  "/complects/sync/preview",
+  TokenService.checkAccess,
+  complectSyncController.preview.bind(complectSyncController)
+);
+router.post(
+  "/complects/sync/apply",
+  TokenService.checkAccess,
+  complectSyncController.apply.bind(complectSyncController)
+);
+router.post(
+  "/acknowledge-field-changes",
+  TokenService.checkAccess,
+  complectSyncController.acknowledgeFieldChanges.bind(complectSyncController)
 );
 
 const TemplateStatusController = require("../controllers/templateStatusController");

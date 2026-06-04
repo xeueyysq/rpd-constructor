@@ -1,7 +1,7 @@
 const { pool } = require("../../config/db");
 const axios = require("axios");
 const moment = require("moment");
-const { resolveZetFromStudyLoad } = require("./disciplineScope");
+const { normalizeDisciplineFrom1c } = require("./normalizeDisciplineFrom1c");
 const { mapApiDataFor1c, hashPayload, loadReferenceTree } = require("./specProfilesMapping");
 const { merge1cIntoReferenceTree } = require("./specProfilesTransformer");
 
@@ -33,25 +33,6 @@ const requestWithSingleRetry = async (requestFn, requestName) => {
     console.warn(`${requestName} failed, retrying once...`, error.message);
     return await requestFn();
   }
-};
-
-const placeFromRecordType = (recordType) => {
-  if (typeof recordType !== "string") return "";
-
-  const normalized = recordType.trim();
-  if (!normalized) return "";
-
-  const marker = normalized.split(".")[1]?.trim()?.charAt(0)?.toUpperCase();
-
-  if (marker === "О" || marker === "O") {
-    return "обязательной части";
-  }
-
-  if (marker === "В" || marker === "B") {
-    return "части, формируемой участниками образовательных отношений";
-  }
-
-  return "";
 };
 
 async function exchange1C(apiData, { userId } = {}) {
@@ -142,44 +123,9 @@ const processDisciplines = async (disciplines, RpdComplectId) => {
 
   const promises = disciplines.map(async (disc, index) => {
     console.log(`Дисциплина ${index + 1} из ${recordsLength} обрабатывается`);
-    const {
-      discipline = "",
-      semester = null,
-      division = "",
-      teachers = [],
-      zets = null,
-      record_type = "",
-      study_load = {},
-      control_load = {},
-    } = disc || {};
+    const normalized = normalizeDisciplineFrom1c(disc);
 
-    const normalizedSemester = Number(semester);
-    const normalizedZets = Number(zets);
-    const normalizedTeachers = Array.isArray(teachers)
-      ? teachers.filter(
-          (teacher) => typeof teacher === "string" && teacher.trim()
-        )
-      : typeof teachers === "string" && teachers.trim()
-        ? [teachers.trim()]
-        : [];
-    const normalizedStudyLoad =
-      study_load && typeof study_load === "object" ? study_load : {};
-    const resolvedZet = resolveZetFromStudyLoad(
-      normalizedStudyLoad,
-      normalizedZets
-    );
-    const normalizedControlLoad =
-      control_load &&
-      typeof control_load === "object" &&
-      !Array.isArray(control_load)
-        ? control_load
-        : {};
-    const normalizedRecordType =
-      typeof record_type === "string" ? record_type.trim() : "";
-    const normalizedDiscipline =
-      typeof discipline === "string" ? discipline.trim() : "";
-
-    if (!normalizedDiscipline) {
+    if (!normalized.discipline) {
       console.warn(
         `Дисциплина ${index + 1} из ${recordsLength} пропущена: пустое название`
       );
@@ -188,15 +134,15 @@ const processDisciplines = async (disciplines, RpdComplectId) => {
 
     const insertedId = await insertDiscipline({
       RpdComplectId,
-      division,
-      discipline: normalizedDiscipline,
-      teachers: normalizedTeachers,
-      zets: resolvedZet,
-      place: placeFromRecordType(normalizedRecordType),
-      record_type: normalizedRecordType,
-      study_load: normalizedStudyLoad,
-      control_load: normalizedControlLoad,
-      semester: Number.isFinite(normalizedSemester) ? normalizedSemester : null,
+      division: normalized.department,
+      discipline: normalized.discipline,
+      teachers: normalized.teachers,
+      zets: normalized.zet,
+      place: normalized.place,
+      record_type: normalized.record_type,
+      study_load: normalized.study_load,
+      control_load: normalized.control_load,
+      semester: normalized.semester,
     });
 
     if (insertedId) {
