@@ -1,4 +1,5 @@
 const moment = require("moment");
+const { ASSIGNABLE_TEACHER_ROLES } = require("./constants");
 
 class Rpd1cExchange {
   constructor(pool) {
@@ -39,7 +40,7 @@ class Rpd1cExchange {
     return [...new Set(merged)];
   }
 
-  async getSystemTeachers() {
+  async getAssignableTeachers() {
     const { rows } = await this.pool.query(
       `
         SELECT trim(concat_ws(
@@ -49,9 +50,10 @@ class Rpd1cExchange {
           fullname ->> 'patronymic'
         )) AS teacher
         FROM users
-        WHERE role = 2 AND fullname IS NOT NULL
+        WHERE role = ANY($1::int[]) AND fullname IS NOT NULL
         ORDER BY teacher
-      `
+      `,
+      [ASSIGNABLE_TEACHER_ROLES]
     );
 
     return [...new Set(rows.map((row) => row.teacher).filter(Boolean))];
@@ -252,7 +254,7 @@ class Rpd1cExchange {
 
   async findRpd(complectId) {
     try {
-      const [queryResult, systemTeachers] = await Promise.all([
+      const [queryResult, assignableTeachers] = await Promise.all([
         this.pool.query(
           `
         SELECT r.id, r.discipline, r.teachers, r.teacher,
@@ -295,7 +297,7 @@ class Rpd1cExchange {
           AND NULLIF(TRIM(r.discipline), '') IS NOT NULL`,
           [complectId]
         ),
-        this.getSystemTeachers(),
+        this.getAssignableTeachers(),
       ]);
 
       return queryResult.rows.map((row) => ({
@@ -307,7 +309,7 @@ class Rpd1cExchange {
         teachers: this.mergeTeacherLists(
           row.teachers,
           this.splitTeacherString(row.teacher),
-          systemTeachers
+          assignableTeachers
         ),
       }));
     } catch (err) {
