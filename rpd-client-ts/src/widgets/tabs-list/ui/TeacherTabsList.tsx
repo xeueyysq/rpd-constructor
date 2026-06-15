@@ -1,4 +1,4 @@
-import { FC, useEffect, useState } from "react";
+import { FC, Fragment, useEffect, useState } from "react";
 import {
   List,
   Box,
@@ -28,10 +28,9 @@ export const TeacherTabsList: FC = () => {
     <Box sx={{ overflow: "auto" }}>
       <List disablePadding>
         {teacherTabs.map((value) => (
-          <>
+          <Fragment key={value.name}>
             {value.name === "Выйти" && <Divider />}
             <ListItem
-              key={value.name}
               onClick={
                 value.name === "Выйти"
                   ? handleLogOut
@@ -66,7 +65,7 @@ export const TeacherTabsList: FC = () => {
                 />
               </ListItemButton>
             </ListItem>
-          </>
+          </Fragment>
         ))}
       </List>
     </Box>

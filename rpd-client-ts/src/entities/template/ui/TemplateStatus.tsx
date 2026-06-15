@@ -8,11 +8,13 @@ interface TemplateStatusObject {
   user: string;
 }
 
-type TemplateStatus = {
-  status: TemplateStatusObject;
+type TemplateStatusProps = {
+  status: TemplateStatusObject | null | undefined;
 };
 
-export const TemplateStatus: FC<TemplateStatus> = ({ status }) => {
+export const TemplateStatus: FC<TemplateStatusProps> = ({ status }) => {
+  if (!status) return null;
+
   const label =
     statusConfig[status.status as keyof typeof statusConfig]?.label ||
     status.status;

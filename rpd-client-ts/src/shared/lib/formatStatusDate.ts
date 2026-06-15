@@ -3,5 +3,9 @@ import { ru } from "date-fns/locale";
 
 export function formatStatusDate(date: string | null | undefined): string | null {
   if (!date) return null;
-  return format(parseISO(date), "d MMMM yyyy, HH:mm", { locale: ru });
+  try {
+    return format(parseISO(date), "d MMMM yyyy, HH:mm", { locale: ru });
+  } catch {
+    return null;
+  }
 }

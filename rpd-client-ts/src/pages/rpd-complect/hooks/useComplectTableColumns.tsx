@@ -156,7 +156,7 @@ export function useComplectTableColumns({
         size: 100,
         Cell: ({ row }) => (
           <Box>
-            {row.original.status.status === TemplateStatusEnum.UNLOADED ? (
+            {row.original.status?.status === TemplateStatusEnum.UNLOADED ? (
               <Button
                 variant="contained"
                 onClick={() =>
@@ -173,7 +173,7 @@ export function useComplectTableColumns({
                   selectedTeachers[row.original.id] ??
                   parseTeacherString(row.original.teacher)
                 ).join(", ")}
-                status={row.original.status.status}
+                status={row.original.status?.status ?? ""}
                 fetchData={onFetchData}
               />
             )}

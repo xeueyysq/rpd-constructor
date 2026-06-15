@@ -1,4 +1,5 @@
 import { AuthContext, useAuth } from "@entities/auth";
+import { getRoleLabel } from "@entities/auth";
 import { Logout } from "@mui/icons-material";
 import PersonIcon from "@mui/icons-material/Person";
 import SettingsIcon from "@mui/icons-material/Settings";
@@ -11,13 +12,15 @@ import {
   MenuItem,
   Typography,
 } from "@mui/material";
-import { MouseEvent, useContext, useMemo, useState } from "react";
-import { UserRole } from "@shared/ability";
+import { MouseEvent, useContext, useState } from "react";
+import { useRoleSwitch } from "../model/useRoleSwitch";
+import { RoleSwitchMenuItems } from "./RoleSwitchMenuItems";
 
 export function AccountSettings() {
   const { handleLogOut } = useContext(AuthContext);
-  const userName = useAuth.getState().userName;
-  const userRole = useAuth.getState().userRole;
+  const userName = useAuth((state) => state.userName);
+  const userRole = useAuth((state) => state.userRole);
+  const { availableRoles, handleSwitchRole, canSwitchRoles } = useRoleSwitch();
 
   const [anchorEl, setAnchorEl] = useState<HTMLElement | null>(null);
   const open = Boolean(anchorEl);
@@ -29,19 +32,6 @@ export function AccountSettings() {
   const handleClose = () => {
     setAnchorEl(null);
   };
-
-  const userRoleLocale = useMemo(() => {
-    switch (userRole) {
-      case UserRole.ADMIN:
-        return "Администратор";
-      case UserRole.TEACHER:
-        return "Преподаватель";
-      case UserRole.ROP:
-        return "Руководитель образовательной программы";
-      default:
-        return "Неавторизованный пользователь";
-    }
-  }, [userRole]);
 
   return (
     <Box
@@ -74,13 +64,7 @@ export function AccountSettings() {
           pb: 0.5,
         }}
       >
-        <Box
-          sx={{
-            fontSize: "15px",
-          }}
-        >
-          {userName}
-        </Box>
+        <Box sx={{ fontSize: "15px" }}>{userName}</Box>
         <Box
           sx={{
             fontSize: "12px",
@@ -88,7 +72,7 @@ export function AccountSettings() {
             color: "#B2B2B2",
           }}
         >
-          {userRoleLocale}
+          {getRoleLabel(userRole)}
         </Box>
       </Box>
       <Box sx={{ pl: 2 }}>
@@ -103,7 +87,7 @@ export function AccountSettings() {
         slotProps={{
           paper: {
             style: {
-              width: "225px",
+              width: canSwitchRoles ? 280 : 225,
               marginTop: 5,
             },
           },
@@ -122,7 +106,20 @@ export function AccountSettings() {
             </Typography>
           </ListItemText>
         </MenuItem>
-        <MenuItem onClick={handleLogOut}>
+        {canSwitchRoles ? (
+          <RoleSwitchMenuItems
+            availableRoles={availableRoles}
+            activeRole={userRole}
+            onSwitch={handleSwitchRole}
+            onClose={handleClose}
+          />
+        ) : null}
+        <MenuItem
+          onClick={() => {
+            handleClose();
+            handleLogOut();
+          }}
+        >
           <ListItemIcon>
             <Logout />
           </ListItemIcon>
