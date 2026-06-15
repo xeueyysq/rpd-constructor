@@ -18,6 +18,7 @@ export interface TemplateData {
   semester: number;
   status: TemplateStatusObject;
   syncStatus?: DisciplineSyncStatus;
+  syncChangedAt?: string | null;
   lastChangeSummary?: string[];
   hasProfileTemplate?: boolean;
   removed_at?: string | null;

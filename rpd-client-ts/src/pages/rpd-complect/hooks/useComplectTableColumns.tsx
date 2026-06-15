@@ -3,7 +3,6 @@ import {
   Autocomplete,
   Box,
   Button,
-  Chip,
   Divider,
   ListItemButton,
   TextField,
@@ -12,6 +11,7 @@ import {
 import { getFieldLabel } from "@features/complect-sync";
 import type { MRT_ColumnDef } from "material-react-table";
 import { useMemo } from "react";
+import { StatusWithDate } from "@shared/ui";
 import TemplateMenu from "../ui/TemplateMenu";
 import type { DisciplineSyncStatus, TemplateData } from "../types";
 import type { SelectedTeachersMap } from "./useComplectData";
@@ -54,35 +54,6 @@ export function useComplectTableColumns({
         accessorKey: "semester",
         header: "Семестр",
         size: 100,
-      },
-      {
-        accessorKey: "syncStatus",
-        header: "Изменения",
-        size: 160,
-        Cell: ({ row }) => {
-          const status = row.original.syncStatus ?? "unchanged";
-          if (status === "unchanged") return null;
-          const summary = row.original.lastChangeSummary ?? [];
-          const tooltip =
-            summary.length > 0
-              ? summary.map((field) => getFieldLabel(field)).join(", ")
-              : SYNC_STATUS_LABEL[status];
-          return (
-            <Tooltip title={tooltip}>
-              <Chip
-                label={SYNC_STATUS_LABEL[status]}
-                size="small"
-                color={
-                  status === "removed"
-                    ? "error"
-                    : status === "new"
-                      ? "success"
-                      : "warning"
-                }
-              />
-            </Tooltip>
-          );
-        },
       },
       {
         accessorKey: "teacher",
@@ -154,11 +125,30 @@ export function useComplectTableColumns({
       {
         accessorKey: "status",
         header: "Статус",
-        Cell: ({ row }) => (
-          <Box>
-            <TemplateStatus status={row.original.status} />
-          </Box>
-        ),
+        Cell: ({ row }) => {
+          const syncStatus = row.original.syncStatus ?? "unchanged";
+          const summary = row.original.lastChangeSummary ?? [];
+          const tooltip =
+            summary.length > 0
+              ? summary.map((field) => getFieldLabel(field)).join(", ")
+              : SYNC_STATUS_LABEL[syncStatus];
+
+          return (
+            <Box>
+              <TemplateStatus status={row.original.status} />
+              {syncStatus !== "unchanged" ? (
+                <Tooltip title={tooltip}>
+                  <Box mt={1}>
+                    <StatusWithDate
+                      label={SYNC_STATUS_LABEL[syncStatus]}
+                      date={row.original.syncChangedAt}
+                    />
+                  </Box>
+                </Tooltip>
+              ) : null}
+            </Box>
+          );
+        },
       },
       {
         accessorKey: "choise",
