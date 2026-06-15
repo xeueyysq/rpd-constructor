@@ -275,6 +275,7 @@ class Rpd1cExchange {
           ELSE 'unchanged'
         END AS sync_status,
         COALESCE(ch.change_fields, ARRAY[]::text[]) AS last_change_summary,
+        ch.sync_changed_at,
         (ts.id_profile_template IS NOT NULL) AS has_profile_template
         FROM rpd_1c_exchange r
         LEFT JOIN template_status ts ON r.id = ts.id_1c_template
@@ -284,7 +285,8 @@ class Rpd1cExchange {
             bool_or(tfc.field_key = '__new__') AS is_new,
             array_agg(DISTINCT tfc.field_key) FILTER (
               WHERE tfc.field_key NOT IN ('__new__', 'removed', 'teachers')
-            ) AS change_fields
+            ) AS change_fields,
+            MAX(tfc.applied_at) AS sync_changed_at
           FROM template_field_changes tfc
           WHERE tfc.id_1c_exchange = r.id
             AND tfc.acknowledged_at IS NULL
@@ -299,6 +301,7 @@ class Rpd1cExchange {
       return queryResult.rows.map((row) => ({
         ...row,
         syncStatus: row.sync_status,
+        syncChangedAt: row.sync_changed_at ?? row.removed_at ?? null,
         lastChangeSummary: row.last_change_summary ?? [],
         hasProfileTemplate: row.has_profile_template,
         teachers: this.mergeTeacherLists(
