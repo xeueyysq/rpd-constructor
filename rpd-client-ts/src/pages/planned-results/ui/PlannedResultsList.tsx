@@ -70,6 +70,10 @@ export const PlannedResultsList: FC = () => {
     filters.profile && filters.formEducation && filters.year
   );
 
+  const canUploadFile = filtersComplete && Boolean(selectedComplectId);
+  const hasResultsData = Boolean(data && keys(data).length > 0);
+  const canSaveData = canUploadFile && hasResultsData;
+
   useEffect(() => {
     setStoredFilters(filters);
   }, [filters, setStoredFilters]);
@@ -171,7 +175,7 @@ export const PlannedResultsList: FC = () => {
   };
 
   const saveData = async () => {
-    if (!selectedComplectId) return;
+    if (!canSaveData || !selectedComplectId) return;
     try {
       const payload = Array.isArray(data) ? data : Object.values(data ?? {});
       await axiosBase.post("set-results-data", {
@@ -276,21 +280,35 @@ export const PlannedResultsList: FC = () => {
           py={1}
           gap={1}
         >
-          <Tooltip title="Загрузить файл компетенций (.csv, .xlsx)" arrow>
-            <Box component="label" htmlFor="csv-upload">
-              <Button variant="outlined" component="span">
-                Загрузить файл
-              </Button>
-              <input
-                id="csv-upload"
-                type="file"
-                accept=".csv,.xlsx"
-                onChange={handleFileUpload}
-                style={{ display: "none" }}
-              />
-            </Box>
-          </Tooltip>
-          <Button onClick={() => saveData()} variant="contained">
+          {canUploadFile ? (
+            <Tooltip title="Загрузить файл компетенций (.csv, .xlsx)" arrow>
+              <Box
+                component="label"
+                htmlFor="csv-upload"
+                sx={{ cursor: "pointer" }}
+              >
+                <Button variant="outlined" component="span">
+                  Загрузить файл
+                </Button>
+                <input
+                  id="csv-upload"
+                  type="file"
+                  accept=".csv,.xlsx"
+                  onChange={handleFileUpload}
+                  style={{ display: "none" }}
+                />
+              </Box>
+            </Tooltip>
+          ) : (
+            <Button variant="outlined" disabled>
+              Загрузить файл
+            </Button>
+          )}
+          <Button
+            onClick={() => saveData()}
+            variant="contained"
+            disabled={!canSaveData}
+          >
             Сохранить
           </Button>
         </Box>
