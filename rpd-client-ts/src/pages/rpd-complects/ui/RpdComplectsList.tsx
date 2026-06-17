@@ -5,16 +5,14 @@ import {
   Box,
   Breadcrumbs,
   Button,
-  Chip,
   CssBaseline,
-  Tooltip,
   Typography,
 } from "@mui/material";
 import { UserRole } from "@shared/ability";
 import { RedirectPath } from "@shared/enums";
 import { useStore } from "@shared/hooks";
 import type { ComplectData } from "@shared/types";
-import { Loader, PageTitle } from "@shared/ui";
+import { Loader, PageTitle, StatusWithDate } from "@shared/ui";
 import { ComplectTableHeader } from "@widgets/table-header/ui/ComplectTableHeader";
 import { orderBy } from "lodash";
 import {
@@ -87,18 +85,13 @@ export const RpdComplectsList: FC = () => {
         size: 100,
       },
       {
-        accessorKey: "hasPendingChanges",
-        header: "Изменения",
+        accessorKey: "status",
+        header: "Статус",
         size: 120,
         Cell: ({ row }) => {
           if (!row.original.hasPendingChanges) return null;
-          const syncedAt = row.original.lastSyncedAt
-            ? new Date(row.original.lastSyncedAt).toLocaleString("ru-RU")
-            : "неизвестно";
           return (
-            <Tooltip title={`Последняя синхронизация: ${syncedAt}`}>
-              <Chip label="Обновлён" color="warning" size="small" />
-            </Tooltip>
+            <StatusWithDate label="Обновлён" date={row.original.lastSyncedAt} />
           );
         },
       },

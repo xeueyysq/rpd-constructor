@@ -10,7 +10,14 @@ import {
   ZoomOut,
 } from "@mui/icons-material";
 import FileDownloadOutlinedIcon from "@mui/icons-material/FileDownloadOutlined";
-import { Box, Button, IconButton, Stack, Typography } from "@mui/material";
+import {
+  Box,
+  Button,
+  CircularProgress,
+  IconButton,
+  Stack,
+  Typography,
+} from "@mui/material";
 import { useStore } from "@shared/hooks";
 import { Document, Page } from "react-pdf";
 import "react-pdf/dist/esm/Page/AnnotationLayer.css";
@@ -18,9 +25,15 @@ import "react-pdf/dist/esm/Page/TextLayer.css";
 
 interface PdfReaderProps {
   file: Blob | MediaSource;
+  onDownloadWord?: () => void;
+  isWordLoading?: boolean;
 }
 
-export const PdfReader: FC<PdfReaderProps> = ({ file }) => {
+export const PdfReader: FC<PdfReaderProps> = ({
+  file,
+  onDownloadWord,
+  isWordLoading = false,
+}) => {
   const [numPages, setNumPages] = useState<number>(0);
   const [pageNumber, setPageNumber] = useState<number>(1);
   const [fileUrl, setFileUrl] = useState("");
@@ -108,21 +121,38 @@ export const PdfReader: FC<PdfReaderProps> = ({ file }) => {
             <ZoomIn />
           </IconButton>
         </Box>
-        <Button
-          sx={{ display: "flex", justifyContent: "flex-end" }}
-          variant="contained"
-          startIcon={<FileDownloadOutlinedIcon />}
-          onClick={() => {
-            const link = document.createElement("a");
-            link.href = fileUrl;
-            link.download = `${jsonData.profile}_${jsonData.year}`;
-            document.body.appendChild(link);
-            link.click();
-            document.body.removeChild(link);
-          }}
-        >
-          Скачать документ
-        </Button>
+        <Stack direction="row" spacing={1} justifyContent="flex-end">
+          <Button
+            variant="contained"
+            startIcon={<FileDownloadOutlinedIcon />}
+            onClick={() => {
+              const link = document.createElement("a");
+              link.href = fileUrl;
+              link.download = `${jsonData.profile}_${jsonData.year}.pdf`;
+              document.body.appendChild(link);
+              link.click();
+              document.body.removeChild(link);
+            }}
+          >
+            Скачать PDF
+          </Button>
+          {onDownloadWord && (
+            <Button
+              variant="outlined"
+              startIcon={
+                isWordLoading ? (
+                  <CircularProgress size={18} color="inherit" />
+                ) : (
+                  <FileDownloadOutlinedIcon />
+                )
+              }
+              disabled={isWordLoading}
+              onClick={onDownloadWord}
+            >
+              Скачать Word
+            </Button>
+          )}
+        </Stack>
       </Stack>
 
       <Box pr={10} border={"1px dashed black"} my={2}>

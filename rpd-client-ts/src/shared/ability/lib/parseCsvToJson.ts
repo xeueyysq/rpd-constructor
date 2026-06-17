@@ -38,7 +38,14 @@ const excelCellValueToString = (value: unknown): string => {
 };
 
 const normalizeCode = (value: string): string =>
-  value.replace(/[–—]/g, "-").replace(/\s+/g, "").toUpperCase();
+  value
+    .replace(/[–—‑]/g, "-")
+    // Some files type codes with a space instead of a hyphen (e.g. "ПК 4").
+    // Treat a space between the letter prefix and the digits as a separator
+    // so it normalizes to "ПК-4" rather than being collapsed into "ПК4".
+    .replace(/^([A-Za-zА-Яа-яЁё]{1,16})\s+(\d)/, "$1-$2")
+    .replace(/\s+/g, "")
+    .toUpperCase();
 
 // We intentionally keep these regexes *generic*.
 // They are used only to:

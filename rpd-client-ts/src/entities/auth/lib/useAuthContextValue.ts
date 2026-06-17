@@ -9,7 +9,7 @@ export const useAuthContextValue = (): AuthContextProps => {
   const [isAppReady, setIsAppReady] = useState(false);
   const [isUserLogged, setIsUserLogged] = useState(false);
   const [data, setData] = useState<UserCredentials>();
-  const { updateAbility, updateUserName } = useAuth();
+  const { updateAbility, updateUserName, resetAuth } = useAuth();
 
   const refreshTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
@@ -30,8 +30,8 @@ export const useAuthContextValue = (): AuthContextProps => {
           .then((res) => {
             const { role, fullname, accessToken, accessTokenExpiration } =
               res.data;
-            updateAbility(role);
             updateUserName(fullname);
+            updateAbility(role);
             setIsUserLogged(true);
             setAccessToken(accessToken);
             scheduleRefresh(accessTokenExpiration);
@@ -48,14 +48,13 @@ export const useAuthContextValue = (): AuthContextProps => {
     AuthClient.post("/logout")
       .then(() => {
         setIsUserLogged(false);
-        updateAbility();
-        updateUserName(undefined);
+        resetAuth();
         setData(undefined);
         clearRefreshTimer();
         setAccessToken(undefined);
       })
       .catch((error) => showErrorMessage(error.response.data.error));
-  }, [updateAbility, updateUserName, clearRefreshTimer]);
+  }, [resetAuth, clearRefreshTimer]);
 
   const handleSignIn = useCallback(
     (credentials: UserCredentials) => {
@@ -63,8 +62,8 @@ export const useAuthContextValue = (): AuthContextProps => {
         .then((res) => {
           const { fullname, role, accessToken, accessTokenExpiration } =
             res.data;
-          updateAbility(role);
           updateUserName(fullname);
+          updateAbility(role);
           setIsUserLogged(true);
           setAccessToken(accessToken);
           scheduleRefresh(accessTokenExpiration);
@@ -78,8 +77,8 @@ export const useAuthContextValue = (): AuthContextProps => {
     AuthClient.post("/refresh")
       .then((res) => {
         const { role, fullname, accessToken, accessTokenExpiration } = res.data;
-        updateAbility(role);
         updateUserName(fullname);
+        updateAbility(role);
         setIsUserLogged(true);
         setIsAppReady(true);
         setAccessToken(accessToken);

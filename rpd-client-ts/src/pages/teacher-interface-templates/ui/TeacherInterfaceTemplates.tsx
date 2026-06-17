@@ -47,7 +47,7 @@ interface TemplateData {
   education_level: string;
   education_form: string;
   year: number;
-  status: TemplateStatusObject;
+  status: TemplateStatusObject | null;
 }
 
 export const TeacherInterfaceTemplates: FC = () => {
@@ -117,7 +117,7 @@ export const TeacherInterfaceTemplates: FC = () => {
         enableColumnActions: false,
         Cell: ({ row }) => (
           <Box>
-            <StatusCell status={row.original.status.status} />
+            <StatusCell status={row.original.status?.status ?? ""} />
           </Box>
         ),
         size: 40,
@@ -165,7 +165,7 @@ export const TeacherInterfaceTemplates: FC = () => {
         enableSorting: false,
         enableColumnFilter: false,
         Cell: ({ row }) => {
-          return row.original.status.status ===
+          return row.original.status?.status ===
             TemplateStatusEnum.IN_PROGRESS ? (
             <>
               <IconButton onClick={(e) => handleMenuOpen(e, row.original.id)}>

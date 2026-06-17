@@ -11,6 +11,7 @@ export default function TestPdf() {
     undefined
   );
   const [isLoading, setIsLoading] = useState(false);
+  const [isWordLoading, setIsWordLoading] = useState(false);
 
   useEffect(() => {
     const loadPdf = async () => {
@@ -42,7 +43,45 @@ export default function TestPdf() {
     }
   };
 
+  const downloadWord = async () => {
+    const { id, profile, year } = useStore.getState().jsonData;
+
+    setIsWordLoading(true);
+    try {
+      const response = await axiosBase.get("generate-docx", {
+        responseType: "blob",
+        params: { id },
+      });
+
+      const url = URL.createObjectURL(response.data);
+      const link = document.createElement("a");
+      link.href = url;
+      link.download = `${profile}_${year}.docx`;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      URL.revokeObjectURL(url);
+    } catch (error) {
+      showErrorMessage(
+        "Произошла ошибка при формировании Word файла. Пожалуйста, проверьте корректность введенных данных"
+      );
+      console.error(error);
+    } finally {
+      setIsWordLoading(false);
+    }
+  };
+
   if (isLoading) return <Loader />;
 
-  return <Box>{fileName && <PdfReader file={fileName} />}</Box>;
+  return (
+    <Box>
+      {fileName && (
+        <PdfReader
+          file={fileName}
+          onDownloadWord={downloadWord}
+          isWordLoading={isWordLoading}
+        />
+      )}
+    </Box>
+  );
 }

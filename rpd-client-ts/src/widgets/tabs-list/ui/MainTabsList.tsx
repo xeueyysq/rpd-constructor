@@ -12,7 +12,7 @@ import {
 import { useNavigate, useLocation } from "react-router-dom";
 import { useContext } from "react";
 import { AuthContext } from "@entities/auth";
-import { mainTabs } from "../model/consts";
+import { mainTabs, TabItem } from "../model/consts";
 import { Can } from "@shared/ability";
 
 export const MainTabsList: FC = () => {
@@ -20,6 +20,21 @@ export const MainTabsList: FC = () => {
   const navigate = useNavigate();
   const location = useLocation();
   const [activeTab, setActiveTab] = useState<string | null>(location.pathname);
+
+  const handleItemClick = (value: TabItem) => {
+    if (value.name === "Выйти") {
+      handleLogOut();
+      return;
+    }
+    if (value.href) {
+      window.open(value.href, "_blank", "noopener,noreferrer");
+      return;
+    }
+    if (value.path) {
+      navigate(value.path);
+      setActiveTab(value.path);
+    }
+  };
 
   useEffect(() => {
     setActiveTab(location.pathname);
@@ -37,16 +52,7 @@ export const MainTabsList: FC = () => {
                 <>
                   {value.name === "Выйти" && <Divider />}
                   <ListItem
-                    onClick={
-                      value.name === "Выйти"
-                        ? handleLogOut
-                        : () => {
-                            if (value.path) {
-                              navigate(value.path);
-                              setActiveTab(value.path);
-                            }
-                          }
-                    }
+                    onClick={() => handleItemClick(value)}
                     disablePadding
                     sx={{
                       width: "100%",
@@ -90,16 +96,7 @@ export const MainTabsList: FC = () => {
               {value.name === "Выйти" && <Divider />}
               <ListItem
                 key={value.name}
-                onClick={
-                  value.name === "Выйти"
-                    ? handleLogOut
-                    : () => {
-                        if (value.path) {
-                          navigate(value.path);
-                          setActiveTab(value.path);
-                        }
-                      }
-                }
+                onClick={() => handleItemClick(value)}
                 disablePadding
                 sx={{
                   width: "100%",

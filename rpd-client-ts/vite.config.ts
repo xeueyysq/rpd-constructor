@@ -42,6 +42,7 @@ export default defineConfig({
     include: ["react-pdf"],
   },
   build: {
+    target: "es2022",
     chunkSizeWarningLimit: 1000,
     rollupOptions: {
       output: {

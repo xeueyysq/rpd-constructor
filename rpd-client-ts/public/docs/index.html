@@ -1,0 +1,156 @@
+<!DOCTYPE html>
+<html lang="ru">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Справка — Конструктор РПД</title>
+    <style>
+      :root {
+        --primary: #29363d;
+        --accent: #1976d2;
+        --bg: #f2f3f7;
+        --border: rgba(0, 0, 0, 0.12);
+      }
+      * {
+        box-sizing: border-box;
+      }
+      body {
+        margin: 0;
+        font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto,
+          Helvetica, Arial, sans-serif;
+        color: var(--primary);
+        background: var(--bg);
+        line-height: 1.6;
+      }
+      .layout {
+        display: flex;
+        max-width: 1100px;
+        margin: 0 auto;
+        gap: 32px;
+        padding: 32px 24px;
+      }
+      nav {
+        flex: 0 0 220px;
+        position: sticky;
+        top: 32px;
+        align-self: flex-start;
+      }
+      nav a {
+        display: block;
+        padding: 6px 10px;
+        color: var(--primary);
+        text-decoration: none;
+        border-radius: 6px;
+        font-size: 14px;
+      }
+      nav a:hover {
+        background: #e3e6ef;
+      }
+      main {
+        flex: 1 1 auto;
+        background: #fff;
+        border: 1px solid var(--border);
+        border-radius: 12px;
+        padding: 32px 40px;
+      }
+      h1 {
+        margin-top: 0;
+      }
+      h2 {
+        margin-top: 40px;
+        padding-top: 8px;
+        border-top: 1px solid var(--border);
+      }
+      code {
+        background: #f0f1f5;
+        padding: 2px 6px;
+        border-radius: 4px;
+        font-size: 0.9em;
+      }
+      .lead {
+        font-size: 18px;
+        color: #555;
+      }
+      footer {
+        text-align: center;
+        color: #888;
+        font-size: 13px;
+        padding: 24px;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="layout">
+      <nav>
+        <strong style="display: block; padding: 6px 10px">Справка</strong>
+        <a href="#intro">Введение</a>
+        <a href="#roles">Роли</a>
+        <a href="#complects">Комплекты РПД</a>
+        <a href="#templates">Шаблоны</a>
+        <a href="#competencies">Компетенции</a>
+        <a href="#faq">Частые вопросы</a>
+      </nav>
+
+      <main>
+        <h1>Конструктор РПД — документация</h1>
+        <p class="lead">
+          Руководство пользователя по работе с системой формирования рабочих
+          программ дисциплин.
+        </p>
+
+        <h2 id="intro">Введение</h2>
+        <p>
+          «Конструктор РПД» — это веб-приложение для создания, согласования и
+          выгрузки рабочих программ дисциплин. Документация открывается из
+          сайдбара по ссылке <code>Документация</code> и доступна на всех
+          страницах приложения.
+        </p>
+
+        <h2 id="roles">Роли</h2>
+        <ul>
+          <li>
+            <strong>РОП / Администратор</strong> — создание комплектов,
+            управление шаблонами, компетенциями и пользователями.
+          </li>
+          <li>
+            <strong>Преподаватель</strong> — заполнение шаблонов РПД по
+            закреплённым дисциплинам.
+          </li>
+        </ul>
+
+        <h2 id="complects">Комплекты РПД</h2>
+        <p>
+          Раздел <em>«Создание комплекта»</em> позволяет сформировать новый
+          комплект рабочих программ, а <em>«Список комплектов»</em> — открыть
+          ранее созданные комплекты для просмотра и редактирования.
+        </p>
+
+        <h2 id="templates">Шаблоны</h2>
+        <p>
+          Преподаватели работают с шаблонами РПД через раздел
+          <em>«Список шаблонов»</em>. Каждый шаблон содержит разделы программы,
+          которые заполняются и сохраняются автоматически.
+        </p>
+
+        <h2 id="competencies">Компетенции</h2>
+        <p>
+          Раздел <em>«Список компетенций»</em> содержит планируемые результаты
+          обучения, которые привязываются к дисциплинам при формировании РПД.
+        </p>
+
+        <h2 id="faq">Частые вопросы</h2>
+        <p>
+          <strong>Как выгрузить РПД в Word?</strong> — Выгрузка доступна со
+          страницы комплекта; документ формируется в формате <code>.docx</code>.
+        </p>
+        <p>
+          <strong>Не сохраняются изменения.</strong> — Проверьте подключение к
+          сети и обновите страницу; данные сохраняются автоматически при
+          переходе между разделами.
+        </p>
+
+        <footer>Конструктор РПД · внутренняя документация</footer>
+      </main>
+    </div>
+  </body>
+</html>
