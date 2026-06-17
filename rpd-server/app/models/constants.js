@@ -4,6 +4,9 @@ const USER_ROLES = {
   ROP: 3,
 };
 
+const ASSIGNABLE_TEACHER_ROLES = [USER_ROLES.TEACHER, USER_ROLES.ROP];
+
 module.exports = {
   USER_ROLES,
+  ASSIGNABLE_TEACHER_ROLES,
 };

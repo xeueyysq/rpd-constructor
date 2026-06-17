@@ -1,4 +1,5 @@
 const moment = require("moment");
+const { ASSIGNABLE_TEACHER_ROLES } = require("./constants");
 
 class Rpd1cExchange {
   constructor(pool) {
@@ -39,7 +40,7 @@ class Rpd1cExchange {
     return [...new Set(merged)];
   }
 
-  async getSystemTeachers() {
+  async getAssignableTeachers() {
     const { rows } = await this.pool.query(
       `
         SELECT trim(concat_ws(
@@ -49,9 +50,10 @@ class Rpd1cExchange {
           fullname ->> 'patronymic'
         )) AS teacher
         FROM users
-        WHERE role = 2 AND fullname IS NOT NULL
+        WHERE role = ANY($1::int[]) AND fullname IS NOT NULL
         ORDER BY teacher
-      `
+      `,
+      [ASSIGNABLE_TEACHER_ROLES]
     );
 
     return [...new Set(rows.map((row) => row.teacher).filter(Boolean))];
@@ -252,7 +254,7 @@ class Rpd1cExchange {
 
   async findRpd(complectId) {
     try {
-      const [queryResult, systemTeachers] = await Promise.all([
+      const [queryResult, assignableTeachers] = await Promise.all([
         this.pool.query(
           `
         SELECT r.id, r.discipline, r.teachers, r.teacher,
@@ -275,6 +277,7 @@ class Rpd1cExchange {
           ELSE 'unchanged'
         END AS sync_status,
         COALESCE(ch.change_fields, ARRAY[]::text[]) AS last_change_summary,
+        ch.sync_changed_at,
         (ts.id_profile_template IS NOT NULL) AS has_profile_template
         FROM rpd_1c_exchange r
         LEFT JOIN template_status ts ON r.id = ts.id_1c_template
@@ -284,7 +287,8 @@ class Rpd1cExchange {
             bool_or(tfc.field_key = '__new__') AS is_new,
             array_agg(DISTINCT tfc.field_key) FILTER (
               WHERE tfc.field_key NOT IN ('__new__', 'removed', 'teachers')
-            ) AS change_fields
+            ) AS change_fields,
+            MAX(tfc.applied_at) AS sync_changed_at
           FROM template_field_changes tfc
           WHERE tfc.id_1c_exchange = r.id
             AND tfc.acknowledged_at IS NULL
@@ -293,18 +297,19 @@ class Rpd1cExchange {
           AND NULLIF(TRIM(r.discipline), '') IS NOT NULL`,
           [complectId]
         ),
-        this.getSystemTeachers(),
+        this.getAssignableTeachers(),
       ]);
 
       return queryResult.rows.map((row) => ({
         ...row,
         syncStatus: row.sync_status,
+        syncChangedAt: row.sync_changed_at ?? row.removed_at ?? null,
         lastChangeSummary: row.last_change_summary ?? [],
         hasProfileTemplate: row.has_profile_template,
         teachers: this.mergeTeacherLists(
           row.teachers,
           this.splitTeacherString(row.teacher),
-          systemTeachers
+          assignableTeachers
         ),
       }));
     } catch (err) {

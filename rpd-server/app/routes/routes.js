@@ -1,6 +1,7 @@
 const express = require("express");
 const router = express.Router();
 const generatePDF = require("../pdf-generator/document-generator");
+const generateWord = require("../pdf-generator/word-generator");
 const { pool } = require("../../config/db");
 const TokenService = require("../services/Token");
 
@@ -206,6 +207,24 @@ router.get("/generate-pdf", async (req, res) => {
   } catch (error) {
     console.error("Error generating PDF:", error);
     res.status(500).send("Error generating PDF");
+  }
+});
+
+router.get("/generate-docx", async (req, res) => {
+  try {
+    const { id } = req.query;
+    const docxBuffer = await generateWord(id);
+
+    res.setHeader(
+      "Content-Type",
+      "application/vnd.openxmlformats-officedocument.wordprocessingml.document"
+    );
+    res.setHeader("Content-Disposition", "attachment; filename=example.docx");
+
+    res.send(docxBuffer);
+  } catch (error) {
+    console.error("Error generating DOCX:", error);
+    res.status(500).send("Error generating DOCX");
   }
 });
 

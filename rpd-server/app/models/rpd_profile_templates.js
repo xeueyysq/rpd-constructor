@@ -17,7 +17,6 @@ class RpdProfileTemplates {
     "protocol",
     "goals",
     "place_more_text",
-    "certification",
     "competencies",
     "content",
     "content_more_text",

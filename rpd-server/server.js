@@ -8,7 +8,7 @@ const fileUpload = require("express-fileupload");
 
 const dotenv = require("dotenv");
 const cookieParser = require("cookie-parser");
-const Fingerprint = require("express-fingerprint");
+const Fingerprint = require("./app/middleware/fingerprint");
 const AuthRootRouter = require("./app/routes/Auth");
 const TokenService = require("./app/services/Token");
 
