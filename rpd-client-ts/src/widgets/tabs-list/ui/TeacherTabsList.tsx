@@ -12,13 +12,25 @@ import {
 import { useLocation, useNavigate } from "react-router-dom";
 import { useContext } from "react";
 import { AuthContext } from "@entities/auth";
-import { teacherTabs } from "../model/consts";
+import { teacherTabs, TabItem } from "../model/consts";
 
 export const TeacherTabsList: FC = () => {
   const { handleLogOut } = useContext(AuthContext);
   const navigate = useNavigate();
   const location = useLocation();
   const [activeTab, setActiveTab] = useState<string | null>(location.pathname);
+
+  const handleItemClick = (value: TabItem) => {
+    if (value.name === "Выйти") {
+      handleLogOut();
+      return;
+    }
+    if (value.href) {
+      window.open(value.href, "_blank", "noopener,noreferrer");
+      return;
+    }
+    if (value.path) navigate(value.path);
+  };
 
   useEffect(() => {
     setActiveTab(location.pathname);
@@ -31,11 +43,7 @@ export const TeacherTabsList: FC = () => {
           <Fragment key={value.name}>
             {value.name === "Выйти" && <Divider />}
             <ListItem
-              onClick={
-                value.name === "Выйти"
-                  ? handleLogOut
-                  : () => value.path && navigate(value.path)
-              }
+              onClick={() => handleItemClick(value)}
               disablePadding
               sx={{ width: "100%" }}
             >
