@@ -1,11 +1,26 @@
 const puppeteer = require("puppeteer");
 const {
+  wrapHtml,
   generateCoverPage,
   generateApprovalPage,
   generateContentPage,
 } = require("./page-generator");
 
-async function createPDF(htmlPages) {
+const PAGE_BREAK = '<div style="page-break-after: always;"></div>';
+
+async function buildHtml(id) {
+  const htmlCoverPage = await generateCoverPage(id);
+  const htmlApprovalPage = await generateApprovalPage(id);
+  const htmlContentPage = await generateContentPage(id);
+
+  const body = [htmlCoverPage, htmlApprovalPage, htmlContentPage].join(
+    PAGE_BREAK
+  );
+
+  return wrapHtml(body);
+}
+
+async function createPDF(fullHtml) {
   const browser = await puppeteer.launch({
     args: [
       "--no-sandbox",
@@ -16,14 +31,11 @@ async function createPDF(htmlPages) {
       "--disable-features=VizDisplayCompositor",
       "--disable-extensions",
       "--disable-dev-tools",
-      "--no-zygote",  
+      "--no-zygote",
     ],
     headless: "new",
   });
   const page = await browser.newPage();
-  const fullHtml = htmlPages.join(
-    '<div style="page-break-after: always;"></div>'
-  );
 
   await page.setContent(fullHtml, {
     waitUntil: "networkidle0",
@@ -45,16 +57,10 @@ async function createPDF(htmlPages) {
 }
 
 async function generatePDF(id) {
-  const htmlCoverPage = await generateCoverPage(id);
-  const htmlApprovalPage = await generateApprovalPage(id);
-  const htmlContentPage = await generateContentPage(id);
-
-  const pdfBuffer = await createPDF([
-    htmlCoverPage,
-    htmlApprovalPage,
-    htmlContentPage,
-  ]);
+  const fullHtml = await buildHtml(id);
+  const pdfBuffer = await createPDF(fullHtml);
   return pdfBuffer;
 }
 
 module.exports = generatePDF;
+module.exports.buildHtml = buildHtml;

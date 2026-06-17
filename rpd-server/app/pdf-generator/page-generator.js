@@ -3,11 +3,50 @@ const RpdChangeableValues = require("../models/rpd_changeable_values");
 const RpdProfileTemplates = require("../models/rpd_profile_templates");
 const RpdComplects = require("../models/rpd_complects");
 
+// Общий инлайн-стилизованный HTML для PDF (puppeteer) и Word (@turbodocx/html-to-docx).
+// Особенности конвертера html->docx (см. memory turbodocx-html-to-docx-quirks):
+//  - <style>/классы игнорируются — только инлайн style;
+//  - text-align работает на <p>/<h*>/ячейках таблиц, но НЕ на <div>;
+//  - <br/> внутри <p> даёт перенос строки, внутри <div> — разрыв абзаца.
+const PAGE_STYLE =
+  "font-family:'Times', 'Times New Roman', serif; line-height:1.5;";
+const CELL_STYLE = "border:1px solid black; padding:3px; vertical-align:top;";
+const HEAD_CELL_STYLE = `${CELL_STYLE} font-weight:600; text-align:center;`;
+const TABLE_STYLE =
+  "width:100%; border-collapse:collapse; margin:20px 0; font-size:16px;";
+
+// Нормализуем кривые/закрывающие <br> к <br/>, который корректно понимают оба рендера.
+function normalizeBr(value) {
+  if (value == null) return "";
+  return String(value).replace(/<\s*\/?\s*br\s*\/?\s*>/gi, "<br/>");
+}
+
+// @font-face нельзя задать инлайн, поэтому он остаётся в <head> — нужен только
+// для PDF (puppeteer). html-to-docx этот блок игнорирует и берёт шрифт из опций.
+function wrapHtml(bodyContent) {
+  return `<!DOCTYPE html>
+    <html lang="ru">
+    <head>
+        <meta charset="UTF-8" />
+        <title>РПД</title>
+        <style>
+            @font-face {
+                font-family: 'Times';
+                src: url('../fonts/times-new-roman-cyr-normal.ttf') format('truetype');
+            }
+            .content-page-content p { text-indent: 30px; }
+        </style>
+    </head>
+    <body>${bodyContent}</body>
+    </html>`;
+}
+
 async function generateCoverPage(id) {
   //data
   let uniName = null;
   let approvalField = null;
   let jsonData = null;
+  let complectData = null;
 
   try {
     uniName = await new RpdChangeableValues(pool).getChangeableValue("uniName");
@@ -20,91 +59,43 @@ async function generateCoverPage(id) {
     console.log(error);
   }
 
-  const htmlCoverPage = `
-    <html>
-    <head>
-        <title>Пример</title>
-        <style>
-            @font-face {
-                font-family: 'Times';
-                src: url('../fonts/times-new-roman-cyr-normal.ttf') format('truetype');
-            }
-            .page {
-                font-family: 'Times';
-                line-height: 1.5;
-            }
-            .cover-page-name {
-                font-size: 16px;
-                font-weight: 600;
-                text-align: center;
-            }
-            .cover-page-faculty {
-                font-size: 16px;
-                text-align: center;
-                padding-top: 20px;
-            }
-            .cover-page-approval {
-                font-size: 16px;
-                text-align: end;
-                padding: 60px 0;
-            }
-            .cover-page-title {
-                font-size: 20px;
-                text-align: center;
-                padding-top: 20px;
-            }
-            .cover-page-subtitles {
-                font-size: 16px;
-                text-align: center;
-                padding-top: 20px;
-            }
-            .cover-page-subtitles-name {
-                font-size: 18px;
-                text-align: center;
-            }
-            .cover-page-year {
-                font-size: 16px;
-                text-align: center;
-                padding-top: 100px;
-            }
-        </style>
-    </head>
-    <body>
-        <div class="page">
-            <div class="cover-page-name">
-                <div>${uniName.value}</div>
-            </div>
-            <div class="cover-page-faculty">
-                <div>${complectData.faculty}</div>
-                <div>${jsonData.department}</div>
-            </div>
-            <div class="cover-page-approval">
-                <div>${approvalField.value}</div>
-            </div>
-            <div class="cover-page-title"><b>Рабочая программа дисциплины</b></div>
-            <div class="cover-page-title">${jsonData.disciplins_name}</div>
-            <div class="cover-page-subtitles">
-                <div>Направление подготовки</div>
-                <div class="cover-page-subtitles-name"><u>${jsonData.direction}</u></div>
-            </div>
-            <div class="cover-page-subtitles">
-                <div>Уровень высшего образования</div>
-                <div class="cover-page-subtitles-name"><u>${jsonData.education_level}</u></div>
-            </div>
-            <div class="cover-page-subtitles">
-                <div>Направленность (профиль) программы</div>
-                <div class="cover-page-subtitles-name"><u>${complectData.profile}</u></div>
-            </div>
-            <div class="cover-page-subtitles">
-                <div>Форма(ы) обучения</div>
-                <div class="cover-page-subtitles-name"><u>${complectData.education_form}</u></div>
-            </div>
-            <div class="cover-page-year">Дубна, ${complectData.year}</div> 
-        </div>
-    </body>
-    </html>`;
+  const center = "text-align:center; margin:0;";
+  const subtitle = "text-align:center; font-size:16px; margin:20px 0 0 0;";
+  const subtitleName = "font-size:18px;";
 
-  return htmlCoverPage;
+  const coverPageFragment = `
+        <div class="page" style="${PAGE_STYLE}">
+            <p style="${center} font-size:16px; font-weight:600;">${normalizeBr(
+    uniName.value
+  )}</p>
+            <p style="${center} font-size:16px; margin-top:20px;">${
+    complectData.faculty
+  }<br/>${jsonData.department}</p>
+            <p style="text-align:right; font-size:16px; margin:60px 0;">${normalizeBr(
+              approvalField.value
+            )}</p>
+            <p style="${center} font-size:20px; margin-top:20px;"><b>Рабочая программа дисциплины</b></p>
+            <p style="${center} font-size:20px; margin-top:20px;">${
+    jsonData.disciplins_name
+  }</p>
+            <p style="${subtitle}">Направление подготовки<br/><span style="${subtitleName}"><u>${
+    jsonData.direction
+  }</u></span></p>
+            <p style="${subtitle}">Уровень высшего образования<br/><span style="${subtitleName}"><u>${
+    jsonData.education_level
+  }</u></span></p>
+            <p style="${subtitle}">Направленность (профиль) программы<br/><span style="${subtitleName}"><u>${
+    complectData.profile
+  }</u></span></p>
+            <p style="${subtitle}">Форма(ы) обучения<br/><span style="${subtitleName}"><u>${
+    complectData.education_form
+  }</u></span></p>
+            <p style="${center} font-size:16px; margin-top:100px;">Дубна, ${
+    complectData.year
+  }</p>
+        </div>`;
+
+  return coverPageFragment;
 }
 
 async function generateApprovalPage(id) {
@@ -117,77 +108,37 @@ async function generateApprovalPage(id) {
     console.log(error);
   }
 
-  const htmlApprovalPage = `
-    <html>
-    <head>
-        <title>Пример</title>
-        <style>
-            @font-face {
-                font-family: 'Times';
-                src: url('../fonts/times-new-roman-cyr-normal.ttf') format('truetype');
-            }
-            .page {
-                font-family: 'Times';
-                line-height: 1.5;
-            }
-            .approval-page-teachers {
-                display: flex;
-                justify-content: space-between;
-                text-align: center;
-            }
-            .approval-page-teacher {
-                position: absolute;
-                left: 20%;
-            }
-            .approval-page-direction {
-                position: absolute;
-            }
-            .approval-page-teachers-caption {
-                font-size: 12px;
-            }
-            .approval-page-caption {
-                font-size: 12px;
-                text-align: center;
-            }
+  const caption = "text-align:center; font-size:12px; margin:0;";
+  const line = "margin:20px 0 0 0;";
 
-        </style>
-    </head>
-    <body>
-        <div class="page">
-            <div>Преподаватель (преподаватели):</div>
-            <div class="approval-page-teachers">
-                <div>
-                    <div class="approval-page-teacher">${jsonData.teacher}</div>
-                    <div>________________________________________________________</div>
-                    <div class="approval-page-teachers-caption"><i>Фамилия И.О., должность, ученая степень (при наличии),<br/>ученое звание (при наличии), кафедра</i></div>
-                </div>
-                <div>
-                    <div>_______________</div>
-                    <div class="approval-page-teachers-caption"><i>подпись</i></div>
-                </div>
-            </div>
-            <div style="padding-top: 20px">Рабочая программа разработана в соответствии с требованиями ФГОС ВО по направлению подготовки высшего образования</div>
-            <div class="approval-page-direction">${jsonData.direction}</div>
-            <div>______________________________________________________________________________</div>
-            <div class="approval-page-caption"><i>(код и наименование направления подготовки (специальности))</i></div>
-            <div style="padding-top: 20px">Программа рассмотрена на заседании кафедры</div>
-            <div>______________________________________________________________________________</div>
-            <div class="approval-page-caption"><i>(название кафедры)</i></div>
-            <div style="padding-top: 20px">Протокол заседания № _____ от «____» _______ 20___ г.</div>
-            <div style="padding-top: 20px">Заведующий кафедрой   _____________________</div>
-            <div style="padding-left: 190px; font-size: 12px;"><i>(Фамилия И.О., подпись)</i></div>
-            <div style="padding-top: 40px">СОГЛАСОВАНО</div>
-            <div style="padding-top: 20px">Заведующий выпускающей кафедрой   _____________________</div>
-            <div style="padding-left: 290px; font-size: 12px;"><i>(Фамилия И.О., подпись)</i></div>
-            <div style="padding-top: 20px">«____» _______ 20___ г.</div>
-            <div style="padding-top: 40px">Эксперт (рецензент):</div>
-            <div>______________________________________________________________________________</div>
-            <div class="approval-page-caption"><i>(Ф.И.О., ученая степень, ученое звание, место работы, должность; если текст рецензии не прикладывается –<br/>подпись эксперта (рецензента), заверенная по месту работы)</i></div>
-        </div>
-    </body>
-    </html>`;
+  const approvalPageFragment = `
+        <div class="page" style="${PAGE_STYLE}">
+            <p style="margin:0;">Преподаватель (преподаватели):</p>
+            <p style="margin:0;">${jsonData.teacher || ""}</p>
+            <p style="margin:0;">________________________________________________________</p>
+            <p style="${caption}"><i>Фамилия И.О., должность, ученая степень (при наличии),<br/>ученое звание (при наличии), кафедра</i></p>
+            <p style="margin:20px 0 0 0;">_______________</p>
+            <p style="${caption}"><i>подпись</i></p>
+            <p style="${line}">Рабочая программа разработана в соответствии с требованиями ФГОС ВО по направлению подготовки высшего образования</p>
+            <p style="margin:20px 0 0 0;">${jsonData.direction || ""}</p>
+            <p style="margin:0;">______________________________________________________________________________</p>
+            <p style="${caption}"><i>(код и наименование направления подготовки (специальности))</i></p>
+            <p style="${line}">Программа рассмотрена на заседании кафедры</p>
+            <p style="margin:0;">______________________________________________________________________________</p>
+            <p style="${caption}"><i>(название кафедры)</i></p>
+            <p style="${line}">Протокол заседания № _____ от «____» _______ 20___ г.</p>
+            <p style="${line}">Заведующий кафедрой   _____________________</p>
+            <p style="text-align:right; font-size:12px; margin:0;"><i>(Фамилия И.О., подпись)</i></p>
+            <p style="margin:40px 0 0 0;">СОГЛАСОВАНО</p>
+            <p style="${line}">Заведующий выпускающей кафедрой   _____________________</p>
+            <p style="text-align:right; font-size:12px; margin:0;"><i>(Фамилия И.О., подпись)</i></p>
+            <p style="${line}">«____» _______ 20___ г.</p>
+            <p style="margin:40px 0 0 0;">Эксперт (рецензент):</p>
+            <p style="margin:0;">______________________________________________________________________________</p>
+            <p style="${caption}"><i>(Ф.И.О., ученая степень, ученое звание, место работы, должность; если текст рецензии не прикладывается –<br/>подпись эксперта (рецензента), заверенная по месту работы)</i></p>
+        </div>`;
 
-  return htmlApprovalPage;
+  return approvalPageFragment;
 }
 
 function contentResultFunc(data) {
@@ -219,7 +170,7 @@ function contentResultFunc(data) {
   return summ;
 }
 
-async function generateContentPage(id) {
+async function generateContentPage(id, { forWord = false } = {}) {
   //data
   let jsonData = null;
   let cource = null;
@@ -252,15 +203,12 @@ async function generateContentPage(id) {
           console.log(results);
           return `
               <tr>
-                  <td>${value.competence || ""}</td>
-                  <td>${value.indicator || ""}</td>
-                  <td>
-                  <u>Знать:</u>
-                  <br>${results["know"] || ""}</br>
-                  <u>Уметь:</u>
-                  <br>${results["beAble"] || ""}</br>
-                  <u>Владеть:</u>
-                  <br>${results["own"] || ""}</br>
+                  <td style="${CELL_STYLE}">${value.competence || ""}</td>
+                  <td style="${CELL_STYLE}">${value.indicator || ""}</td>
+                  <td style="${CELL_STYLE}">
+                  <u>Знать:</u><br/>${results["know"] || ""}<br/>
+                  <u>Уметь:</u><br/>${results["beAble"] || ""}<br/>
+                  <u>Владеть:</u><br/>${results["own"] || ""}
                   </td>
               </tr>
           `;
@@ -277,16 +225,29 @@ async function generateContentPage(id) {
           const independentWork = Number(value.independent_work) || 0;
           return `
               <tr>
-                  <td>${value.theme || ""}</td>
-                  <td>${lectures + seminars + independentWork}</td>
-                  <td>${lectures}</td>
-                  <td>${seminars}</td>
-                  <td>${lectures + seminars}</td>
-                  <td>${independentWork}</td>
+                  <td style="${CELL_STYLE}">${value.theme || ""}</td>
+                  <td style="${CELL_STYLE}">${
+            lectures + seminars + independentWork
+          }</td>
+                  <td style="${CELL_STYLE}">${lectures}</td>
+                  <td style="${CELL_STYLE}">${seminars}</td>
+                  <td style="${CELL_STYLE}">${lectures + seminars}</td>
+                  <td style="${CELL_STYLE}">${independentWork}</td>
               </tr>
           `;
         })
         .join("")
+    : "";
+
+  // "Самостоятельная работа" в шапке таблицы объёма. В PDF — вертикальное
+  // объединение (rowspan=2). html-to-docx ломает rowspan для колонок, идущих
+  // после colspan, поэтому для Word используем обычную ячейку + пустую ячейку
+  // снизу. См. memory turbodocx-html-to-docx-quirks.
+  const independentHeaderRow1 = forWord
+    ? `<th style="${HEAD_CELL_STYLE}">Самостоятельная работа обучающегося</th>`
+    : `<th style="${HEAD_CELL_STYLE}" rowspan="2">Самостоятельная работа обучающегося</th>`;
+  const independentHeaderFiller = forWord
+    ? `<th style="${HEAD_CELL_STYLE}"></th>`
     : "";
 
   const textbookList = Array.isArray(jsonData.textbook)
@@ -299,164 +260,141 @@ async function generateContentPage(id) {
         .join("")
     : "";
 
-  const htmlContentPage = `
-    <html>
-    <head>
-        <title>Пример</title>
-        <style>
-            @font-face {
-                font-family: 'Times';
-                src: url('../fonts/times-new-roman-cyr-normal.ttf') format('truetype');
-            }
-            .page {
-                font-family: 'Times';
-                line-height: 1.5;
-            }
-            .content-page-title {
-                text-indent: 20px;
-                font-size: 16px;
-                font-weight: 600;
-            }
-            .content-page-content {
-                font-size: 16px;
-                text-align: justify;
-            }
-            .content-page-content p {
-                text-indent: 30px;
-            }
-            .table {
-                width: 100%;
-                border-collapse: collapse;
-                border-spacing: 0;
-                height: auto;
-                margin: 20px 0;
-                font-size: 16px;
-            }
-            .table, .table td, .table th {
-                border: 1px solid black; 
-            }
-            .table td, .table th, .table tr{
-                min-height: 35px;
-                padding: 3px; 
-            }
-            .table th {
-                font-weight: 600; 
-            }
-            .table i {
-                font-size: 12px;
-            }
-        </style>
-    </head>
-    <body>
-        <div class="page">
-            <div class="content-page-title">1. Цели и задачи освоения дисциплины</div>
-            <div class="content-page-content">${jsonData.goals || ""}</div>
-            <div class="content-page-title">2. Место дисциплины в структуре ОПОП</div>
-            <div class="content-page-content"><p>Дисциплина «${
-              jsonData.disciplins_name || ""
-            }» относится к ${jsonData.place || ""} учебного плана направления ${
+  const titleStyle = "text-indent:20px; font-size:16px; margin:16px 0 0 0;";
+  const contentStyle = "font-size:16px; text-align:justify;";
+  const title = (text, extra = "") =>
+    `<p style="${titleStyle} ${extra}"><b>${text}</b></p>`;
+
+  const contentPageFragment = `
+        <div class="page" style="${PAGE_STYLE}">
+            ${title("1. Цели и задачи освоения дисциплины")}
+            <div class="content-page-content" style="${contentStyle}">${
+    jsonData.goals || ""
+  }</div>
+            ${title("2. Место дисциплины в структуре ОПОП")}
+            <div class="content-page-content" style="${contentStyle}"><p style="text-indent:30px;">Дисциплина «${
+    jsonData.disciplins_name || ""
+  }» относится к ${jsonData.place || ""} учебного плана направления ${
     jsonData.direction_of_study || ""
   }.</p></div>
-            <div class="content-page-content"><p>Дисциплина преподается в ${
-              jsonData.semester || ""
-            } семестре, на ${cource || ""} курсе.</p></div>
-            <div class="content-page-content"><p>${
-              jsonData.place_more_text || ""
-            }</p></div>
-            <div class="content-page-title">3. Планируемые результаты обучения по дисциплине (модулю)</div>
-            <table class="table">
+            <div class="content-page-content" style="${contentStyle}"><p style="text-indent:30px;">Дисциплина преподается в ${
+    jsonData.semester || ""
+  } семестре, на ${cource || ""} курсе.</p></div>
+            <div class="content-page-content" style="${contentStyle}"><p style="text-indent:30px;">${
+    jsonData.place_more_text || ""
+  }</p></div>
+            ${title("3. Планируемые результаты обучения по дисциплине (модулю)")}
+            <table style="${TABLE_STYLE}">
                 <thead>
                     <tr>
-                        <th>Формируемые компетенции<br/><i>(код и наименование)</i></th>
-                        <th>Индикаторы достижения компетенций<br/><i>(код и формулировка)</i></th>
-                        <th>Планируемые результаты обучения по дисциплине (модулю)</th>
+                        <th style="${HEAD_CELL_STYLE}">Формируемые компетенции<br/><i style="font-size:12px;">(код и наименование)</i></th>
+                        <th style="${HEAD_CELL_STYLE}">Индикаторы достижения компетенций<br/><i style="font-size:12px;">(код и формулировка)</i></th>
+                        <th style="${HEAD_CELL_STYLE}">Планируемые результаты обучения по дисциплине (модулю)</th>
                     </tr>
                 </thead>
                 <tbody>
                 ${competenciesContent}
                 </tbody>
             </table>
-            <div class="content-page-title">4. Объем дисциплины</div>
-            <div class="content-page-content"><p>Объем дисциплины составляет ${
-              jsonData.zet || ""
-            } зачетных единиц, всего ${
+            ${title("4. Объем дисциплины")}
+            <div class="content-page-content" style="${contentStyle}"><p style="text-indent:30px;">Объем дисциплины составляет ${
+    jsonData.zet || ""
+  } зачетных единиц, всего ${
     contentResult.result
   } академических часов.</p></div>
-            <div class="content-page-title">5. Содержание дисциплины</div>
-            <table class="table">
+            ${title("5. Содержание дисциплины")}
+            <table style="${TABLE_STYLE}">
                 <tbody>
                     <tr>
-                        <th rowspan="3">Наименование разделов и тем дисциплины </th>
-                        <th rowspan="3">Всего(академ. часы)</th>
-                        <th colspan="4">в том числе:</th>
+                        <th style="${HEAD_CELL_STYLE}" rowspan="3">Наименование разделов и тем дисциплины</th>
+                        <th style="${HEAD_CELL_STYLE}" rowspan="3">Всего(академ. часы)</th>
+                        <th style="${HEAD_CELL_STYLE}" colspan="4">в том числе:</th>
                     </tr>
                     <tr>
-                        <th colspan="3">Контактная работа (работа во взаимодействии с преподавателем)</th>
-                        <th rowspan="2">Самостоятельная работа обучающегося</th>
+                        <th style="${HEAD_CELL_STYLE}" colspan="3">Контактная работа (работа во взаимодействии с преподавателем)</th>
+                        ${independentHeaderRow1}
                     </tr>
                     <tr>
-                        <th>Лекции</th>
-                        <th>Практические (семинарские) занятия</th>
-                        <th><b>Всего</b></th>
+                        <th style="${HEAD_CELL_STYLE}">Лекции</th>
+                        <th style="${HEAD_CELL_STYLE}">Практические (семинарские) занятия</th>
+                        <th style="${HEAD_CELL_STYLE}"><b>Всего</b></th>
+                        ${independentHeaderFiller}
                     </tr>
                     ${contentTableRows}
                     <tr>
-                        <td><b>Итого за семестр / курс</b></td>
-                        <td><b>${contentResult.result}</b></td>
-                        <td><b>${contentResult.lectures}</b></td>
-                        <td><b>${contentResult.seminars}</b></td>
-                        <td><b>${contentResult.lect_and_sems}</b></td>
-                        <td><b>${contentResult.independent_work}</b></td>
+                        <td style="${CELL_STYLE}"><b>Итого за семестр / курс</b></td>
+                        <td style="${CELL_STYLE}"><b>${
+    contentResult.result
+  }</b></td>
+                        <td style="${CELL_STYLE}"><b>${
+    contentResult.lectures
+  }</b></td>
+                        <td style="${CELL_STYLE}"><b>${
+    contentResult.seminars
+  }</b></td>
+                        <td style="${CELL_STYLE}"><b>${
+    contentResult.lect_and_sems
+  }</b></td>
+                        <td style="${CELL_STYLE}"><b>${
+    contentResult.independent_work
+  }</b></td>
                     </tr>
                 </tbody>
             </table>
-            <div class="content-page-title">Содержание дисциплины</div>
-            <div class="content-page-content">${
-              jsonData.content_more_text || ""
-            }</div>
-            <div class="content-page-content">${
-              jsonData.content_template_more_text || ""
-            }</div>
-            <div class="content-page-title" style="padding-top: 20px">6. Перечень учебно-методического обеспечения по дисциплине</div>
-            <div class="content-page-content">${
-              jsonData.methodological_support_template || ""
-            }</div>
-            <div class="content-page-title">7. Фонды оценочных средств по дисциплине</div>
-            <div class="content-page-content">${
-              jsonData.assessment_tools_template || ""
-            }</div>
-            <div class="content-page-title" style="padding: 20px 0">8. Ресурсное обеспечение</div>
-            <div class="content-page-title">Перечень литературы</div>
-            <div class="content-page-title">Основная литература</div>
-            <div class="content-page-content">
+            ${title("Содержание дисциплины")}
+            <div class="content-page-content" style="${contentStyle}">${
+    jsonData.content_more_text || ""
+  }</div>
+            <div class="content-page-content" style="${contentStyle}">${
+    jsonData.content_template_more_text || ""
+  }</div>
+            ${title(
+              "6. Перечень учебно-методического обеспечения по дисциплине",
+              "padding-top:20px;"
+            )}
+            <div class="content-page-content" style="${contentStyle}">${
+    jsonData.methodological_support_template || ""
+  }</div>
+            ${title("7. Фонды оценочных средств по дисциплине")}
+            <div class="content-page-content" style="${contentStyle}">${
+    jsonData.assessment_tools_template || ""
+  }</div>
+            ${title("8. Ресурсное обеспечение", "padding:20px 0;")}
+            ${title("Перечень литературы")}
+            ${title("Основная литература")}
+            <div class="content-page-content" style="${contentStyle}">
                 <ol>
                     ${textbookList}
                 </ol>
             </div>
-            <div class="content-page-title">Дополнительная литература</div>
-            <div class="content-page-content">
+            ${title("Дополнительная литература")}
+            <div class="content-page-content" style="${contentStyle}">
                 <ol>
                     ${additionalTextbookList}
                 </ol>
             </div>
-            <div class="content-page-title">Профессиональные базы данных и информационные справочные системы</div>
-            <div class="content-page-content">${
-              jsonData.professional_information_resources || ""
-            }</div>
-            <div class="content-page-title" style="padding-top: 20px">Необходимое программное обеспечение</div>
-            <div class="content-page-content">${jsonData.software || ""}</div>
-            <div class="content-page-title">Необходимое материально-техническое обеспечение</div>
-            <div class="content-page-content">${
-              jsonData.logistics_template || ""
-            }</div>
-        </div>
-    </body>
-    </html>`;
+            ${title(
+              "Профессиональные базы данных и информационные справочные системы"
+            )}
+            <div class="content-page-content" style="${contentStyle}">${
+    jsonData.professional_information_resources || ""
+  }</div>
+            ${title("Необходимое программное обеспечение", "padding-top:20px;")}
+            <div class="content-page-content" style="${contentStyle}">${
+    jsonData.software || ""
+  }</div>
+            ${title("Необходимое материально-техническое обеспечение")}
+            <div class="content-page-content" style="${contentStyle}">${
+    jsonData.logistics_template || ""
+  }</div>
+        </div>`;
 
-  return htmlContentPage;
+  return contentPageFragment;
 }
 
 module.exports = {
+  wrapHtml,
+  normalizeBr,
   generateCoverPage,
   generateApprovalPage,
   generateContentPage,
