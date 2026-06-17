@@ -97,15 +97,17 @@ export function ComplectTableHeader({
         onClose={() => setOpenSyncDialog(false)}
         onApplied={onSyncApplied}
       />
-      <Button
-        variant="outlined"
-        startIcon={<DeleteIcon />}
-        disabled={!hasSelection}
-        color="error"
-        onClick={() => setOpenDeleteConfirm(true)}
-      >
-        Удалить
-      </Button>
+      {!isPageMode && (
+        <Button
+          variant="outlined"
+          startIcon={<DeleteIcon />}
+          disabled={!hasSelection}
+          color="error"
+          onClick={() => setOpenDeleteConfirm(true)}
+        >
+          Удалить
+        </Button>
+      )}
       <Button
         variant="outlined"
         startIcon={<SaveAsIcon />}

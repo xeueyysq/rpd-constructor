@@ -1,11 +1,10 @@
-import { Box, Button } from "@mui/material";
 import { MRT_Localization_RU } from "material-react-table/locales/ru";
 import type { MRT_TableOptions } from "material-react-table";
 import type { TemplateData } from "../types";
 
 export const complectTableOptions: Partial<MRT_TableOptions<TemplateData>> = {
   localization: MRT_Localization_RU,
-  enableRowSelection: true,
+  enableRowSelection: false,
   enableColumnResizing: true,
   layoutMode: "grid",
   initialState: {
@@ -35,9 +34,4 @@ export const complectTableOptions: Partial<MRT_TableOptions<TemplateData>> = {
       },
     };
   },
-  renderToolbarAlertBannerContent: ({ table }) => (
-    <Box sx={{ display: "flex", px: 2, gap: "8px" }}>
-      <Button onClick={() => table.resetRowSelection()}>Очистить выбор</Button>
-    </Box>
-  ),
 };

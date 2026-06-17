@@ -12,6 +12,7 @@ import {
 import { useQueryClient } from "@tanstack/react-query";
 import { useCallback, useMemo, useState } from "react";
 import { showErrorMessage, showSuccessMessage } from "@shared/lib";
+import { ConfirmActionDialog } from "@shared/ui";
 import { SyncDiffTable } from "./SyncDiffTable";
 import type {
   SyncApplySelection,
@@ -112,11 +113,13 @@ export function UpdateComplectDialog({
     Record<string, Record<string, boolean>>
   >({});
   const [rowSelection, setRowSelection] = useState<Record<string, boolean>>({});
+  const [openApplyConfirm, setOpenApplyConfirm] = useState(false);
 
   const resetState = useCallback(() => {
     setPreview(null);
     setFieldSelection({});
     setRowSelection({});
+    setOpenApplyConfirm(false);
   }, []);
 
   const handleClose = () => {
@@ -147,12 +150,18 @@ export function UpdateComplectDialog({
     [preview, rowSelection, fieldSelection]
   );
 
-  const handleApply = async () => {
+  const handleApplyClick = () => {
     if (!complectUuid || !preview) return;
     if (!selections.length) {
       showErrorMessage("Выберите хотя бы одно изменение");
       return;
     }
+    setOpenApplyConfirm(true);
+  };
+
+  const handleApply = async () => {
+    if (!complectUuid || !preview || !selections.length) return;
+    setOpenApplyConfirm(false);
     try {
       await applyMutation.mutateAsync({
         complectId: complectUuid,
@@ -214,12 +223,21 @@ export function UpdateComplectDialog({
         <Button onClick={handleClose}>Отмена</Button>
         <Button
           variant="contained"
-          onClick={handleApply}
+          onClick={handleApplyClick}
           disabled={!preview || !selections.length || isLoading}
         >
           Применить выбранное
         </Button>
       </DialogActions>
+      <ConfirmActionDialog
+        open={openApplyConfirm}
+        title="Подтвердите обновление"
+        description={`Выбранные изменения (${selections.length}) будут применены к комплекту. Часть текущих данных может быть перезаписана. Продолжить?`}
+        confirmText="Применить"
+        confirmColor="warning"
+        onConfirm={handleApply}
+        onClose={() => setOpenApplyConfirm(false)}
+      />
     </Dialog>
   );
 }
