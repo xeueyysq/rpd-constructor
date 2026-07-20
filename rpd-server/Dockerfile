@@ -15,16 +15,20 @@ ENV PUPPETEER_EXECUTABLE_PATH=/usr/bin/chromium-browser \
 
 # Установка временных зависимостей для сборки
 RUN apk add --no-cache --virtual .build-deps build-base python3 make g++ \
-    && apk add --no-cache netcat-openbsd curl
+    && apk add --no-cache netcat-openbsd curl bash unzip
+
+# Установка bun
+RUN curl -fsSL https://bun.sh/install | bash
+ENV PATH="/root/.bun/bin:${PATH}"
 
 # Установка рабочих директорий
 WORKDIR /app
 
-# Копирование package.json и package-lock.json
-COPY package*.json ./
+# Копирование package.json и bun.lock
+COPY package.json bun.lock ./
 
-# Установка зависимостей npm
-RUN npm install
+# Установка зависимостей
+RUN bun install
 
 # Копирование остальных файлов приложения
 COPY . .
@@ -39,4 +43,4 @@ RUN apk del .build-deps
 EXPOSE 8000
 
 # Запуск приложения
-CMD ["npm", "run", "dev"]
+CMD ["bun", "run", "dev"]

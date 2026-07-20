@@ -1,0 +1,9 @@
+.study.docs/
+.DS_Store
+.vscode/
+.cursor/
+.claude/settings.local.json
+**/node_modules/
+**/dist/
+**/build/
+*.log

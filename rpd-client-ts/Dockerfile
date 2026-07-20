@@ -2,13 +2,17 @@ FROM node:20.11.1-alpine as builder
 
 WORKDIR /app
 
-COPY package*.json ./
+RUN apk add --no-cache curl bash unzip \
+    && curl -fsSL https://bun.sh/install | bash
+ENV PATH="/root/.bun/bin:${PATH}"
 
-RUN npm ci
+COPY package.json bun.lock ./
+
+RUN bun install --frozen-lockfile
 
 COPY . .
 
-RUN npm run build
+RUN bun run build
 
 FROM nginx:alpine
 
