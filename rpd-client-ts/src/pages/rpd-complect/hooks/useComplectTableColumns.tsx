@@ -1,0 +1,186 @@
+import { TemplateStatus, TemplateStatusEnum } from "@entities/template";
+import {
+  Autocomplete,
+  Box,
+  Button,
+  Divider,
+  ListItemButton,
+  TextField,
+  Tooltip,
+} from "@mui/material";
+import { getFieldLabel } from "@features/complect-sync";
+import type { MRT_ColumnDef } from "material-react-table";
+import { useMemo } from "react";
+import { StatusWithDate } from "@shared/ui";
+import TemplateMenu from "../ui/TemplateMenu";
+import type { DisciplineSyncStatus, TemplateData } from "../types";
+import type { SelectedTeachersMap } from "./useComplectData";
+
+const SYNC_STATUS_LABEL: Record<DisciplineSyncStatus, string> = {
+  new: "Новая",
+  updated: "Обновлено",
+  removed: "Удалена из плана",
+  unchanged: "",
+};
+
+function parseTeacherString(teacher: string | undefined): string[] {
+  if (!teacher?.trim()) return [];
+  return teacher
+    .split(",")
+    .map((t) => t.trim())
+    .filter(Boolean);
+}
+
+type UseComplectTableColumnsParams = {
+  selectedTeachers: SelectedTeachersMap;
+  onTeachersChange: (templateId: number, value: string[]) => void;
+  onCreateTemplate: (id: number, discipline: string) => Promise<void>;
+  onFetchData: () => Promise<void>;
+};
+
+export function useComplectTableColumns({
+  selectedTeachers,
+  onTeachersChange,
+  onCreateTemplate,
+  onFetchData,
+}: UseComplectTableColumnsParams): MRT_ColumnDef<TemplateData>[] {
+  return useMemo(
+    () => [
+      {
+        accessorKey: "discipline",
+        header: "Дисциплина",
+      },
+      {
+        accessorKey: "semester",
+        header: "Семестр",
+        size: 100,
+      },
+      {
+        accessorKey: "teacher",
+        header: "Преподаватель",
+        Cell: ({ row }) => {
+          const templateId = row.original.id;
+          const teachersList = row.original.teachers;
+          const ListboxComponent = useMemo(
+            () =>
+              function TeacherListbox(
+                props: React.HTMLAttributes<HTMLUListElement> & {
+                  children?: React.ReactNode;
+                }
+              ) {
+                return (
+                  <ul {...props}>
+                    <li key="add-all" style={{ listStyle: "none", padding: 0 }}>
+                      <ListItemButton
+                        component="div"
+                        onMouseDown={(e) => e.preventDefault()}
+                        onClick={() =>
+                          onTeachersChange(templateId, [...teachersList])
+                        }
+                        sx={{ py: 1.25, px: 2 }}
+                      >
+                        Добавить всех
+                      </ListItemButton>
+                    </li>
+                    <li
+                      key="divider"
+                      style={{ listStyle: "none", padding: 0 }}
+                      aria-hidden
+                    >
+                      <Divider sx={{ my: 1 }} />
+                    </li>
+                    {props.children}
+                  </ul>
+                );
+              },
+            [templateId, teachersList, onTeachersChange]
+          );
+          return (
+            <Box width="100%">
+              <Autocomplete
+                id={`select-${row.original.id}`}
+                multiple
+                value={
+                  selectedTeachers[row.original.id] ??
+                  parseTeacherString(row.original.teacher)
+                }
+                onChange={(_, value) =>
+                  onTeachersChange(row.original.id, value)
+                }
+                fullWidth
+                renderInput={(params) => (
+                  <TextField
+                    label="Преподаватель"
+                    variant="standard"
+                    {...params}
+                  />
+                )}
+                options={row.original.teachers}
+                ListboxComponent={ListboxComponent}
+              />
+            </Box>
+          );
+        },
+      },
+      {
+        accessorKey: "status",
+        header: "Статус",
+        Cell: ({ row }) => {
+          const syncStatus = row.original.syncStatus ?? "unchanged";
+          const summary = row.original.lastChangeSummary ?? [];
+          const tooltip =
+            summary.length > 0
+              ? summary.map((field) => getFieldLabel(field)).join(", ")
+              : SYNC_STATUS_LABEL[syncStatus];
+
+          return (
+            <Box>
+              <TemplateStatus status={row.original.status} />
+              {syncStatus !== "unchanged" ? (
+                <Tooltip title={tooltip}>
+                  <Box mt={1}>
+                    <StatusWithDate
+                      label={SYNC_STATUS_LABEL[syncStatus]}
+                      date={row.original.syncChangedAt}
+                    />
+                  </Box>
+                </Tooltip>
+              ) : null}
+            </Box>
+          );
+        },
+      },
+      {
+        accessorKey: "choise",
+        header: "Действие",
+        size: 100,
+        Cell: ({ row }) => (
+          <Box>
+            {row.original.status?.status === TemplateStatusEnum.UNLOADED ? (
+              <Button
+                variant="contained"
+                onClick={() =>
+                  onCreateTemplate(row.original.id, row.original.discipline)
+                }
+              >
+                Создать
+              </Button>
+            ) : (
+              <TemplateMenu
+                id={row.original.id_profile_template}
+                publicId={row.original.profile_template_public_id}
+                teacher={(
+                  selectedTeachers[row.original.id] ??
+                  parseTeacherString(row.original.teacher)
+                ).join(", ")}
+                status={row.original.status?.status ?? ""}
+                fetchData={onFetchData}
+              />
+            )}
+          </Box>
+        ),
+      },
+    ],
+    [selectedTeachers, onTeachersChange, onCreateTemplate, onFetchData]
+  );
+}
