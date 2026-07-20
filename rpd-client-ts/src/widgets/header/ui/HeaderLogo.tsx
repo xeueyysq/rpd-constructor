@@ -1,0 +1,26 @@
+import { Box, Button } from "@mui/material";
+import { FC } from "react";
+import { useNavigate } from "react-router-dom";
+
+const HeaderLogo: FC = () => {
+  const navigate = useNavigate();
+
+  return (
+    <Box sx={{ px: 1 }} alignItems={"center"}>
+      <Button
+        onClick={() => navigate("/")}
+        sx={{
+          color: "white",
+          fontWeight: "600",
+          fontSize: "16px",
+          userSelect: "none",
+          textTransform: "uppercase",
+        }}
+      >
+        Конструктор РПД
+      </Button>
+    </Box>
+  );
+};
+
+export default HeaderLogo;
