@@ -41,29 +41,26 @@ export const SignIn: FC = () => {
   };
 
   return (
-    <Box display={"flex"} height={"100vh"}>
-      <Box
-        sx={{ background: "#f1f2f4" }}
-        minWidth={"600px"}
-        // pt={23}
-        p={5}
-      >
-        <Box display={"flex"} alignItems={"center"} gap={3}>
+    <Box sx={{ display: "flex", height: "100vh" }}>
+      <Box sx={{ minWidth: "600px", p: 5, background: "#f1f2f4" }}>
+        <Box sx={{ display: "flex", alignItems: "center", gap: 3 }}>
           <SvgIcon
             component={Logo}
             inheritViewBox
             sx={{ fontSize: "85px", ml: 2.5 }}
           />
-          <Typography color="#737781" fontSize={"1.2rem"}>
+          <Typography sx={{ fontSize: "1.2rem" }} color="#737781">
             Государственный университет Дубна
           </Typography>
         </Box>
-        <Box pt={15}>
+        <Box sx={{ pt: 15 }}>
           <Typography
-            ml={2.5}
-            fontSize={"30px"}
-            width={"500px"}
-            fontWeight={"bold"}
+            sx={{
+              ml: 2.5,
+              fontSize: "30px",
+              width: "500px",
+              fontWeight: "bold",
+            }}
             gutterBottom
           >
             Добро пожаловать в конструктор рабочих программ дисциплин
@@ -77,7 +74,7 @@ export const SignIn: FC = () => {
                 primary="Преподаватели"
                 slotProps={{
                   primary: {
-                    fontSize: "1.25rem",
+                    sx: { fontSize: "1.25rem" },
                   },
                 }}
               />
@@ -90,7 +87,7 @@ export const SignIn: FC = () => {
                 primary="Справочники"
                 slotProps={{
                   primary: {
-                    fontSize: "1.25rem",
+                    sx: { fontSize: "1.25rem" },
                   },
                 }}
               />
@@ -103,7 +100,7 @@ export const SignIn: FC = () => {
                 primary="Шаблоны рабочих программ"
                 slotProps={{
                   primary: {
-                    fontSize: "1.25rem",
+                    sx: { fontSize: "1.25rem" },
                   },
                 }}
               />
@@ -116,7 +113,7 @@ export const SignIn: FC = () => {
                 primary="Конструктор рабочих программ"
                 slotProps={{
                   primary: {
-                    fontSize: "1.25rem",
+                    sx: { fontSize: "1.25rem" },
                   },
                 }}
               />
@@ -126,10 +123,12 @@ export const SignIn: FC = () => {
       </Box>
       <FormProvider {...formMethods}>
         <Box
-          width={"100%"}
-          alignContent={"center"}
-          alignItems={"center"}
-          pb={5}
+          sx={{
+            width: "100%",
+            alignContent: "center",
+            alignItems: "center",
+            pb: 5,
+          }}
         >
           <Box
             sx={{
@@ -141,9 +140,7 @@ export const SignIn: FC = () => {
             }}
           >
             <Box component="form" onSubmit={handleSubmit(handleSignIn)}>
-              <Box fontSize={"1.5rem"} sx={{ py: 4 }}>
-                Войти в аккаунт
-              </Box>
+              <Box sx={{ fontSize: "1.5rem", py: 4 }}>Войти в аккаунт</Box>
               <Box
                 sx={{
                   maxWidth: "400px",

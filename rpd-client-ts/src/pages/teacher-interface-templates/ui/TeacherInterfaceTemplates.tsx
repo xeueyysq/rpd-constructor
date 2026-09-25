@@ -52,7 +52,7 @@ interface TemplateData {
 
 export const TeacherInterfaceTemplates: FC = () => {
   const userName = useAuth.getState().userName;
-  const { setJsonData, setTeacherTemplates } = useStore();
+  const { setTeacherTemplates } = useStore();
   const [templatesData, setTemplatesData] = useState<TemplateData[]>();
   const navigate = useNavigate();
   const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null);
@@ -249,7 +249,7 @@ export const TeacherInterfaceTemplates: FC = () => {
     <Box>
       <CssBaseline />
       <PageTitle title={"Выбор РПД для редактирования"} />
-      <Box py={2}>
+      <Box sx={{ py: 2 }}>
         <MaterialReactTable table={table} />
       </Box>
     </Box>

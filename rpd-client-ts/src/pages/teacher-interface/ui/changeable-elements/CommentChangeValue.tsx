@@ -153,14 +153,13 @@ export function CommentChangeValue({
             }}
           >
             <Box>
-              <Typography display="block" gutterBottom m="0">
+              <Typography sx={{ display: "block", m: "0" }} gutterBottom>
                 Комментарий
               </Typography>
               <Typography
+                sx={{ display: "block", m: "0" }}
                 variant="caption"
-                display="block"
                 color="text.secondary"
-                m="0"
               >
                 {isEdited
                   ? `Изменен: ${formatDateTime(updatedAt)}`
@@ -168,18 +167,17 @@ export function CommentChangeValue({
               </Typography>
             </Box>
             <Typography
+              sx={{ display: "block", m: "0" }}
               color="text.secondary"
-              display="block"
               gutterBottom
-              m="0"
             >
               Автор: {comment.commentator_id}
             </Typography>
           </Box>
-          <Box pl={2}>
+          <Box sx={{ pl: 2 }}>
             <Typography dangerouslySetInnerHTML={{ __html: commentText }} />
           </Box>
-          <Box p={2} pb={1}>
+          <Box sx={{ p: 2, pb: 1 }}>
             <Box sx={{ display: "flex", justifyContent: "space-between" }}>
               {userRole !== UserRole.TEACHER && (
                 <Button
@@ -208,9 +206,7 @@ export function CommentChangeValue({
                 anchorEl={anchorEl}
                 open={open}
                 onClose={handleClose}
-                MenuListProps={{
-                  "aria-labelledby": "basic-button",
-                }}
+                slotProps={{ list: { "aria-labelledby": "basic-button" } }}
               >
                 <MenuItem onClick={deleteComment}>
                   <ListItemIcon>
@@ -218,11 +214,10 @@ export function CommentChangeValue({
                   </ListItemIcon>
                   <ListItemText>
                     <Typography
+                      sx={{ display: "block", m: "0" }}
                       variant="button"
-                      display="block"
                       gutterBottom
                       color="error"
-                      m="0"
                     >
                       Удалить комментарий
                     </Typography>
@@ -233,7 +228,7 @@ export function CommentChangeValue({
           </Box>
         </Box>
       ) : (
-        <Box p={2}>
+        <Box sx={{ p: 2 }}>
           <TextEditor
             value={commentText ?? ""}
             saveContent={saveComment}

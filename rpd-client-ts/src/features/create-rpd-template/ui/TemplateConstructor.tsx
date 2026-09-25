@@ -101,7 +101,7 @@ export const TemplateConstructor: FC<TemplateConstructorType> = ({
             <Box sx={{ py: 2 }}>
               {createComplectStatus === "pending" && (
                 <Box>
-                  <Typography color={"warning"} pb={2}>
+                  <Typography sx={{ pb: 2 }} color={"warning"}>
                     Пожалуйста, проверьте данные комплекта РПД
                   </Typography>
                   <BackButton text="Назад" />
@@ -130,7 +130,7 @@ export const TemplateConstructor: FC<TemplateConstructorType> = ({
               )}
               {createComplectStatus === "success" && (
                 <Box>
-                  <Typography pb={2}>
+                  <Typography sx={{ pb: 2 }}>
                     Комплект РПД создан успешно. Перейти к редактированию?
                   </Typography>
                   <BackButton text="Назад" />
@@ -146,13 +146,13 @@ export const TemplateConstructor: FC<TemplateConstructorType> = ({
               )}
             </Box>
           ) : (
-            <Typography sx={{ py: 2 }} fontWeight={"bold"} color={"success"}>
+            <Typography sx={{ fontWeight: "bold", py: 2 }} color={"success"}>
               Комплект РПД успешно найден
             </Typography>
           )}
         </>
       )}
-      <Box display="flex" gap={3}>
+      <Box sx={{ display: "flex", gap: 3 }}>
         {isFindComplect && (
           <Box>
             <BackButton text="Назад" />

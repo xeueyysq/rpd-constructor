@@ -11,14 +11,12 @@ import {
   DialogActions,
   Button,
   SelectChangeEvent,
-  Divider,
 } from "@mui/material";
 import type { NewUser } from "../model/types";
 import { UserRole } from "@shared/ability";
 import { useState, KeyboardEvent } from "react";
 import { axiosBase } from "@shared/api";
 import { showErrorMessage, showSuccessMessage } from "@shared/lib";
-import { Selectors } from "@features/select-template-data";
 
 type DialogAddUserType = {
   open: boolean;

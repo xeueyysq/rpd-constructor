@@ -50,7 +50,7 @@ const DisciplinePlace: FC<DisciplinePlaceProps> = ({ readOnly = false }) => {
     <Box>
       <PageTitleComment
         title="Место дисциплины в структуре ОПОП"
-        paddingBottom={2}
+        sx={{ pb: 2 }}
         templateField={TemplatePagesPath.DISCIPLINE_PLACE}
       />
       <FieldChangeNotice

@@ -21,12 +21,14 @@ export const Header: FC = () => {
     >
       <Toolbar>
         <Box
-          width={"100%"}
-          display={"flex"}
-          justifyContent={"space-between"}
-          alignItems={"center"}
+          sx={{
+            width: "100%",
+            display: "flex",
+            justifyContent: "space-between",
+            alignItems: "center",
+          }}
         >
-          <Box display={"flex"} alignItems={"center"}>
+          <Box sx={{ display: "flex", alignItems: "center" }}>
             <IconButton
               color="inherit"
               aria-label="toggle drawer"

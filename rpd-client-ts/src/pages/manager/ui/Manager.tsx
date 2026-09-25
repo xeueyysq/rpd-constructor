@@ -14,8 +14,8 @@ export const Manager: FC = () => {
   return (
     <Box>
       <Box
-        p={3}
         sx={{
+          p: 3,
           backgroundColor: "#ffffff",
           width: "100%",
           minHeight: "85vh",

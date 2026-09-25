@@ -9,18 +9,17 @@ export function DisciplineContentPage() {
     <Box>
       <PageTitleComment
         title="Содержание дисциплины"
-        paddingBottom={2}
+        sx={{ pb: 2 }}
         templateField={TemplatePagesPath.DISCIPLINE_CONTENT}
       />
       <DisciplineContentTable />
       <PageTitleComment
-        py={2}
-        pt={3}
+        sx={{ py: 2, pt: 3 }}
         title="Содержание дисциплины"
         templateField={`${TemplatePagesPath.DISCIPLINE_CONTENT}_1`}
       />
       <JsonChangeValue elementName="content_more_text" />
-      <Box pt={1}>
+      <Box sx={{ pt: 1 }}>
         <JsonChangeValue elementName="content_template_more_text" />
       </Box>
     </Box>

@@ -7,7 +7,7 @@ interface IBookThumbZoom {
 
 export function BookThumbZoom({ thumb, zoomOut }: IBookThumbZoom) {
   return (
-    <Dialog open={!!thumb} onClose={zoomOut}>
+    <Dialog open={!!thumb} onClose={() => zoomOut(undefined)}>
       <Box component="img" src={thumb} sx={{ width: "300px" }}></Box>
     </Dialog>
   );

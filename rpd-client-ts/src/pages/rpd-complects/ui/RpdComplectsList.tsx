@@ -174,7 +174,7 @@ export const RpdComplectsList: FC = () => {
     <Box>
       <CssBaseline />
       <PageTitle title={"Список загруженных комплектов РПД"} />
-      <Box py={0.5}>
+      <Box sx={{ py: 0.5 }}>
         {sortedComplectsByYear.length > 0 && userRole !== UserRole.ADMIN && (
           <Breadcrumbs
             separator={
@@ -192,7 +192,7 @@ export const RpdComplectsList: FC = () => {
           </Breadcrumbs>
         )}
       </Box>
-      <Box pt={2}>
+      <Box sx={{ pt: 2 }}>
         <MaterialReactTable table={table} />
       </Box>
     </Box>
