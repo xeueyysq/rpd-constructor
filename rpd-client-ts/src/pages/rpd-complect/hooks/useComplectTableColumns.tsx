@@ -1,4 +1,8 @@
-import { TemplateStatus, TemplateStatusEnum } from "@entities/template";
+import {
+  getTemplateStatusLabel,
+  TemplateStatus,
+  TemplateStatusEnum,
+} from "@entities/template";
 import {
   Autocomplete,
   Box,
@@ -124,8 +128,15 @@ export function useComplectTableColumns({
         },
       },
       {
-        accessorKey: "status",
+        id: "status",
         header: "Статус",
+        accessorFn: (row) =>
+          [
+            getTemplateStatusLabel(row.status?.status),
+            SYNC_STATUS_LABEL[row.syncStatus ?? "unchanged"],
+          ]
+            .filter(Boolean)
+            .join(" "),
         Cell: ({ row }) => {
           const syncStatus = row.original.syncStatus ?? "unchanged";
           const summary = row.original.lastChangeSummary ?? [];
@@ -155,6 +166,9 @@ export function useComplectTableColumns({
         accessorKey: "choise",
         header: "Действие",
         size: 100,
+        enableSorting: false,
+        enableColumnFilter: false,
+        enableGlobalFilter: false,
         Cell: ({ row }) => (
           <Box>
             {row.original.status?.status === TemplateStatusEnum.UNLOADED ? (

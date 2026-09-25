@@ -1,5 +1,6 @@
 import { useAuth } from "@entities/auth";
 import {
+  getTemplateStatusLabel,
   setTemplateStatus,
   TemplateStatus,
   TemplateStatusEnum,
@@ -155,8 +156,9 @@ export const TeacherInterfaceTemplates: FC = () => {
         size: 150,
       },
       {
-        accessorKey: "status",
+        id: "status",
         header: "Статус",
+        accessorFn: (row) => getTemplateStatusLabel(row.status?.status),
         Cell: ({ row }) => <TemplateStatus status={row.original.status} />,
       },
       {

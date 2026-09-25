@@ -7,7 +7,7 @@ export interface User {
     name: string;
     surname: string;
     patronymic: string;
-  };
+  } | null;
   role: UserRole;
 }
 

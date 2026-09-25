@@ -9,8 +9,13 @@ import {
 } from "@mui/material";
 import { UserRole } from "@shared/ability";
 import { axiosBase } from "@shared/api";
-import { showErrorMessage, showSuccessMessage } from "@shared/lib";
+import {
+  formatFullName,
+  showErrorMessage,
+  showSuccessMessage,
+} from "@shared/lib";
 import { Loader, PageTitle } from "@shared/ui";
+import { getRoleLabel } from "@entities/auth";
 import { WarningDeleteDialog } from "@widgets/dialogs";
 import axios from "axios";
 import {
@@ -44,19 +49,6 @@ export const UserManagementPage: FC = () => {
   }, []);
 
   const handleOpen = () => setOpen(true);
-
-  const getRoleName = (role: UserRole) => {
-    switch (role) {
-      case UserRole.ADMIN:
-        return "Администратор";
-      case UserRole.TEACHER:
-        return "Преподаватель";
-      case UserRole.ROP:
-        return "Руководитель образовательной программы";
-      default:
-        return "Неизвестно";
-    }
-  };
 
   const selectedIds = useMemo(
     () =>
@@ -119,16 +111,14 @@ export const UserManagementPage: FC = () => {
     () => [
       { accessorKey: "name", header: "Логин" },
       {
-        accessorKey: "fullname",
+        id: "fullname",
         header: "ФИО",
-        Cell: ({ row }) =>
-          `${row.original.fullname.surname} ${row.original.fullname.name} ${row.original.fullname.patronymic}`,
-        enableSorting: false,
+        accessorFn: (row) => formatFullName(row.fullname),
       },
       {
-        accessorKey: "role",
+        id: "role",
         header: "Роль",
-        Cell: ({ row }) => getRoleName(row.original.role),
+        accessorFn: (row) => getRoleLabel(row.role),
       },
     ],
     []
