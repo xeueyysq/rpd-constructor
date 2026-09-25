@@ -1,5 +1,4 @@
 const bcrypt = require("bcryptjs");
-const jwt = require("jsonwebtoken");
 const TokenService = require("./Token.js");
 const { NotFound, Forbidden, Conflict, Unauthorized } = require("../utils/Errors.js");
 const RefreshSessionRepository = require("../repositories/RefreshSession.js");
@@ -46,11 +45,12 @@ class AuthService {
     }
 
     const hashedPassword = bcrypt.hashSync(password, 8);
-    const { id } = await UserRepository.createUser({
+    const createdUser = await UserRepository.createUser({
       userName,
       hashedPassword,
       role,
     });
+    const { id } = createdUser;
 
     const payload = { userName, role, id };
 
@@ -64,8 +64,8 @@ class AuthService {
     });
 
     return {
-      fullname: userData.fullname,
-      role: userData.role,
+      fullname: createdUser.fullname ?? null,
+      role: createdUser.role,
       accessToken,
       refreshToken,
       accessTokenExpiration: ACCESS_TOKEN_EXPIRATION,

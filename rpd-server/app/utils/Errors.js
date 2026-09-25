@@ -36,12 +36,6 @@ class Unauthorized extends WebError {
   }
 }
 
-class BadRequest extends WebError {
-  constructor(error) {
-    super(400, error);
-  }
-}
-
 class ErrorUtils {
   static catchError(res, error) {
     console.log(error);

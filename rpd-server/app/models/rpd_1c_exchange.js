@@ -314,7 +314,7 @@ class Rpd1cExchange {
       }));
     } catch (err) {
       console.error(err);
-      throw new Error("Ошибка в models/rpd_1c_exchange/findRpd");
+      throw new Error("Ошибка в models/rpd_1c_exchange/findRpd", { cause: err });
     }
   }
 
