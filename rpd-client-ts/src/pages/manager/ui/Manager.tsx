@@ -3,12 +3,11 @@ import { TemplateConstructor } from "@features/create-rpd-template";
 import { CreateRpdTemplateFromYear } from "@features/create-rpd-template-from-year";
 import { Selectors } from "@features/select-template-data";
 import { Box } from "@mui/material";
-import RpdComplectPage from "@pages/rpd-complect";
 import { useStore } from "@shared/hooks";
 import { PageTitle } from "@shared/ui";
-import { FC } from "react";
+import { FC, ReactNode } from "react";
 
-export const Manager: FC = () => {
+export const Manager: FC<{ complectPage: ReactNode }> = ({ complectPage }) => {
   const { managerPage, setManagerPage } = useStore();
 
   return (
@@ -34,7 +33,7 @@ export const Manager: FC = () => {
         {managerPage === "createTemplateFromCurrentYear" && (
           <CreateRpdTemplateFromYear setChoise={setManagerPage} />
         )}
-        {managerPage === "createTemplateFromExchange" && <RpdComplectPage />}
+        {managerPage === "createTemplateFromExchange" && complectPage}
       </Box>
     </Box>
   );

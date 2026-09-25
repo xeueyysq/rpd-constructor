@@ -1,8 +1,8 @@
 import { Box } from "@mui/material";
-import { TemplatePagesPath } from "@pages/teacher-interface/model/pathes.ts";
-import { PageTitleComment } from "@shared/ui/PageTitleComment.tsx";
+import { TemplatePagesPath } from "@shared/enums";
+import { PageTitleComment } from "../PageTitleComment";
 import { FC } from "react";
-import DisciplineEvaluationsFundsForm from "@features/discipline-evaluations-funds/ui/DisciplineEvaluationsFundsForm";
+import { DisciplineEvaluationsFundsForm } from "@features/discipline-evaluations-funds";
 
 const DisciplineEvaluationsFunds: FC = () => {
   return (

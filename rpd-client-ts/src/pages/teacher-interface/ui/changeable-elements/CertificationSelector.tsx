@@ -1,10 +1,5 @@
 import { FC, useEffect, useState } from "react";
-import {
-  MenuItem,
-  Select,
-  SelectChangeEvent,
-  useTheme,
-} from "@mui/material";
+import { MenuItem, Select, SelectChangeEvent, useTheme } from "@mui/material";
 import { useStore } from "@shared/hooks";
 import { showErrorMessage, showSuccessMessage } from "@shared/lib";
 import { axiosBase } from "@shared/api";

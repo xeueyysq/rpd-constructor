@@ -13,16 +13,7 @@ export default function TestPdf() {
   const [isLoading, setIsLoading] = useState(false);
   const [isWordLoading, setIsWordLoading] = useState(false);
 
-  useEffect(() => {
-    const loadPdf = async () => {
-      setIsLoading(true);
-      await TestPdf();
-      setIsLoading(false);
-    };
-    loadPdf();
-  }, []);
-
-  const TestPdf = async () => {
+  const loadPdfFile = async () => {
     const id = useStore.getState().jsonData.id;
 
     const params = {
@@ -42,6 +33,15 @@ export default function TestPdf() {
       console.error(error);
     }
   };
+
+  useEffect(() => {
+    const loadPdf = async () => {
+      setIsLoading(true);
+      await loadPdfFile();
+      setIsLoading(false);
+    };
+    loadPdf();
+  }, []);
 
   const downloadWord = async () => {
     const { id, profile, year } = useStore.getState().jsonData;

@@ -190,7 +190,7 @@ export function calculateMaxHours(
   const totalsSum = totals.reduce((acc, val) => acc + val, 0);
   const breakdownTotal = lectures + seminars + independent + controlFromStudy;
 
-  let all = 0;
+  let all: number;
   if (totals.length === 1) {
     all = totals[0];
   } else if (totals.length > 1) {

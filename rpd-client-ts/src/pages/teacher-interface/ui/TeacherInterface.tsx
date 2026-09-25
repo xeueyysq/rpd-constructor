@@ -6,7 +6,7 @@ import { useStore } from "@shared/hooks";
 import { showErrorMessage } from "@shared/lib/showMessage.ts";
 import { useCallback, useEffect } from "react";
 import { useParams } from "react-router-dom";
-import { TemplatePagesPath } from "../model/pathes.ts";
+import { TemplatePagesPath } from "@shared/enums";
 import AimsPage from "./pages/AimsPage.tsx";
 import ApprovalPage from "./pages/ApprovalPage.tsx";
 import CoverPage from "./pages/CoverPage.tsx";

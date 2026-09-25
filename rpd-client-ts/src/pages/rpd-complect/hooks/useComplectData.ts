@@ -88,6 +88,8 @@ export function useComplectData(complectId: string | undefined) {
     []
   );
 
+  // React Compiler не может подтвердить зависимости сортировки; сохраняем существующий кеш.
+  // eslint-disable-next-line react-hooks/preserve-manual-memoization
   const filteredData: TemplateData[] = useMemo(() => {
     if (!complectMeta?.templates) return [];
     return sortTemplatesByStatus(complectMeta.templates, statusPriority);

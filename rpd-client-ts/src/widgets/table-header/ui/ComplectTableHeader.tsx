@@ -12,7 +12,7 @@ import {
   Tooltip,
 } from "@mui/material";
 import { useMemo, useState } from "react";
-import { useDeleteRpdComplectsMutation } from "@entities/rpd-complect/model/queries";
+import { useDeleteRpdComplectsMutation } from "@entities/rpd-complect";
 import { UpdateComplectDialog } from "@features/complect-sync";
 import { ComplectData } from "@shared/types";
 import { MRT_TableInstance } from "material-react-table";

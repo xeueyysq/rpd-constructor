@@ -1,6 +1,6 @@
 import { Box, Typography as Tg } from "@mui/material";
-import { TemplatePagesPath } from "@pages/teacher-interface/model/pathes.ts";
-import { PageTitleComment } from "@shared/ui";
+import { TemplatePagesPath } from "@shared/enums";
+import { PageTitleComment } from "../PageTitleComment";
 import JsonChangeValue from "../changeable-elements/JsonChangeValue.tsx";
 import AddBook from "../find-books/AddBook.tsx";
 

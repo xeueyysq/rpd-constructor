@@ -1,4 +1,4 @@
-import { statusConfig } from "@entities/template/model/templateStatusCodes";
+import { statusConfig } from "@entities/template";
 import { Box, Tooltip } from "@mui/material";
 
 export function StatusCell({ status }: { status: string }) {

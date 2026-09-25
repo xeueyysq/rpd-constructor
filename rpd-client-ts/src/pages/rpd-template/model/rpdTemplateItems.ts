@@ -1,4 +1,4 @@
-import type { RpdSelectionItem } from "@widgets/rpd-list/model/types.ts";
+import type { RpdSelectionItem } from "@widgets/rpd-list";
 
 export const RpdListItems: RpdSelectionItem[] = [
   {

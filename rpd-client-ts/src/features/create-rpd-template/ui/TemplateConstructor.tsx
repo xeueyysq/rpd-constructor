@@ -10,6 +10,14 @@ import { useNavigate } from "react-router-dom";
 import { templateDataTitles } from "../model/templateDataTitles.ts";
 import { RedirectPath } from "@shared/enums.ts";
 
+function BackButton({ onClick }: { onClick: () => void }) {
+  return (
+    <Button sx={{ mr: 1 }} variant="outlined" onClick={onClick}>
+      Назад
+    </Button>
+  );
+}
+
 export const TemplateConstructor: FC<TemplateConstructorType> = ({
   setChoise,
 }) => {
@@ -68,18 +76,6 @@ export const TemplateConstructor: FC<TemplateConstructorType> = ({
     fetchData();
   }, [fetchData]);
 
-  function BackButton({ text }: { text: string }) {
-    return (
-      <Button
-        sx={{ mr: 1 }}
-        variant="outlined"
-        onClick={() => setChoise("selectData")}
-      >
-        {text}
-      </Button>
-    );
-  }
-
   return (
     <>
       <Typography sx={{ py: 2, fontSize: "18px", fontWeight: "600" }}>
@@ -104,7 +100,7 @@ export const TemplateConstructor: FC<TemplateConstructorType> = ({
                   <Typography sx={{ pb: 2 }} color={"warning"}>
                     Пожалуйста, проверьте данные комплекта РПД
                   </Typography>
-                  <BackButton text="Назад" />
+                  <BackButton onClick={() => setChoise("selectData")} />
                   <Button variant="contained" onClick={createRpdComplect}>
                     Создать комплект
                   </Button>
@@ -133,7 +129,7 @@ export const TemplateConstructor: FC<TemplateConstructorType> = ({
                   <Typography sx={{ pb: 2 }}>
                     Комплект РПД создан успешно. Перейти к редактированию?
                   </Typography>
-                  <BackButton text="Назад" />
+                  <BackButton onClick={() => setChoise("selectData")} />
                   <Button
                     variant="contained"
                     onClick={() =>
@@ -155,7 +151,7 @@ export const TemplateConstructor: FC<TemplateConstructorType> = ({
       <Box sx={{ display: "flex", gap: 3 }}>
         {isFindComplect && (
           <Box>
-            <BackButton text="Назад" />
+            <BackButton onClick={() => setChoise("selectData")} />
             <Button
               variant="contained"
               onClick={() =>

@@ -1,5 +1,5 @@
 import { Loader } from "@shared/ui/";
-import { ClippedDrawer } from "@widgets/drawer";
+import { ClippedDrawer } from "@app/layout/ClippedDrawer";
 import { keys } from "lodash";
 import { Suspense } from "react";
 import { BrowserRouter, Route, Routes } from "react-router-dom";
