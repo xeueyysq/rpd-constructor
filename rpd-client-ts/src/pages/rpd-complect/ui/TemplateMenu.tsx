@@ -27,7 +27,7 @@ import HistoryModal from "./HistoryModal.tsx";
 import { RedirectPath } from "@shared/enums.ts";
 import FileDownloadOutlinedIcon from "@mui/icons-material/FileDownloadOutlined";
 import { ImportFromComplectsDialog } from "./ImportFromComplectsDialog";
-import { TemplatePagesPath } from "@pages/teacher-interface/model/pathes.ts";
+import { TemplatePagesPath } from "@shared/enums";
 
 interface TemplateMenu {
   id: number;
@@ -143,9 +143,7 @@ const TemplateMenu: FC<TemplateMenu> = ({
         anchorEl={anchorEl}
         open={open}
         onClose={handleClose}
-        MenuListProps={{
-          "aria-labelledby": "basic-button",
-        }}
+        slotProps={{ list: { "aria-labelledby": "basic-button" } }}
       >
         <MenuItem
           onClick={() =>
@@ -159,11 +157,10 @@ const TemplateMenu: FC<TemplateMenu> = ({
           </ListItemIcon>
           <ListItemText>
             <Typography
+              sx={{ display: "block", m: "0" }}
               variant="button"
-              display="block"
               gutterBottom
               color="grey"
-              m="0"
             >
               Открыть
             </Typography>
@@ -189,11 +186,10 @@ const TemplateMenu: FC<TemplateMenu> = ({
             </ListItemIcon>
             <ListItemText>
               <Typography
+                sx={{ display: "block", m: "0" }}
                 variant="button"
-                display="block"
                 gutterBottom
                 color="grey"
-                m="0"
               >
                 {status === TemplateStatusEnum.READY
                   ? "Отправить на доработку"
@@ -213,11 +209,10 @@ const TemplateMenu: FC<TemplateMenu> = ({
           </ListItemIcon>
           <ListItemText>
             <Typography
+              sx={{ display: "block", m: "0" }}
               variant="button"
-              display="block"
               gutterBottom
               color="grey"
-              m="0"
             >
               Импортировать
             </Typography>
@@ -229,11 +224,10 @@ const TemplateMenu: FC<TemplateMenu> = ({
           </ListItemIcon>
           <ListItemText>
             <Typography
+              sx={{ display: "block", m: "0" }}
               variant="button"
-              display="block"
               gutterBottom
               color="grey"
-              m="0"
             >
               История шаблона
             </Typography>

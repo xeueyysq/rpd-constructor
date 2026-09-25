@@ -3,7 +3,9 @@ import { SpecProfilesTree } from "./types";
 
 const YEARS_COUNT = 5;
 
-export const getFacultyOptions = (tree: SpecProfilesTree | undefined): OptionType[] => {
+export const getFacultyOptions = (
+  tree: SpecProfilesTree | undefined
+): OptionType[] => {
   if (!tree) {
     return [];
   }

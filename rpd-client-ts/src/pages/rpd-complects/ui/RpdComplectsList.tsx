@@ -1,5 +1,5 @@
 import { useAuth } from "@entities/auth";
-import { useRpdComplectsQuery } from "@entities/rpd-complect/model/queries";
+import { useRpdComplectsQuery } from "@entities/rpd-complect";
 import FiberManualRecordIcon from "@mui/icons-material/FiberManualRecord";
 import {
   Box,
@@ -13,7 +13,7 @@ import { RedirectPath } from "@shared/enums";
 import { useStore } from "@shared/hooks";
 import type { ComplectData } from "@shared/types";
 import { Loader, PageTitle, StatusWithDate } from "@shared/ui";
-import { ComplectTableHeader } from "@widgets/table-header/ui/ComplectTableHeader";
+import { ComplectTableHeader } from "@widgets/table-header";
 import { orderBy } from "lodash";
 import {
   MaterialReactTable,
@@ -174,7 +174,7 @@ export const RpdComplectsList: FC = () => {
     <Box>
       <CssBaseline />
       <PageTitle title={"Список загруженных комплектов РПД"} />
-      <Box py={0.5}>
+      <Box sx={{ py: 0.5 }}>
         {sortedComplectsByYear.length > 0 && userRole !== UserRole.ADMIN && (
           <Breadcrumbs
             separator={
@@ -192,7 +192,7 @@ export const RpdComplectsList: FC = () => {
           </Breadcrumbs>
         )}
       </Box>
-      <Box pt={2}>
+      <Box sx={{ pt: 2 }}>
         <MaterialReactTable table={table} />
       </Box>
     </Box>

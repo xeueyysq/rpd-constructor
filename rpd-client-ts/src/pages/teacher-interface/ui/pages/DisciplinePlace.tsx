@@ -1,8 +1,9 @@
 import { Box, Typography as Tg } from "@mui/material";
-import { TemplatePagesPath } from "@pages/teacher-interface/model/pathes.ts";
+import { TemplatePagesPath } from "@shared/enums";
 import { useStore } from "@shared/hooks";
 import { FieldChangeNotice } from "@shared/ui/FieldChangeNotice";
-import { Loader, PageTitleComment } from "@shared/ui";
+import { Loader } from "@shared/ui";
+import { PageTitleComment } from "../PageTitleComment";
 import { useFieldChanges } from "@pages/teacher-interface/model/useFieldChanges";
 import { FC } from "react";
 import CertificationSelector from "../changeable-elements/CertificationSelector.tsx";
@@ -50,7 +51,7 @@ const DisciplinePlace: FC<DisciplinePlaceProps> = ({ readOnly = false }) => {
     <Box>
       <PageTitleComment
         title="Место дисциплины в структуре ОПОП"
-        paddingBottom={2}
+        sx={{ pb: 2 }}
         templateField={TemplatePagesPath.DISCIPLINE_PLACE}
       />
       <FieldChangeNotice

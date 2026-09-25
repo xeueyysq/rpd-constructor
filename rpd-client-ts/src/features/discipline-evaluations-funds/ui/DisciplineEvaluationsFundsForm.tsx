@@ -119,7 +119,7 @@ function PoolQuestionCard({
 }: PoolQuestionCardProps) {
   return (
     <Box sx={questionCardSx}>
-      <Stack direction="row" spacing={1} alignItems="flex-start">
+      <Stack sx={{ alignItems: "flex-start" }} direction="row" spacing={1}>
         <Checkbox
           size="small"
           checked={checked}

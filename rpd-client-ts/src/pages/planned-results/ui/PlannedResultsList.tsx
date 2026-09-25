@@ -201,13 +201,15 @@ export const PlannedResultsList: FC = () => {
   return (
     <Box>
       <PageTitle title={"Загрузка компетенций для всех дисциплин"} />
-      <Box pt={2} display={"flex"} justifyContent={"space-between"}>
+      <Box sx={{ pt: 2, display: "flex", justifyContent: "space-between" }}>
         <Box
-          display={"flex"}
-          gap={2}
-          alignItems={"center"}
-          py={3}
-          flexWrap={"wrap"}
+          sx={{
+            display: "flex",
+            gap: 2,
+            alignItems: "center",
+            py: 3,
+            flexWrap: "wrap",
+          }}
         >
           <FormControl sx={{ minWidth: 260 }}>
             <InputLabel size="small" id="profile-label">
@@ -274,11 +276,13 @@ export const PlannedResultsList: FC = () => {
           </FormControl>
         </Box>
         <Box
-          display={"flex"}
-          justifyContent={"space-between"}
-          alignItems={"center"}
-          py={1}
-          gap={1}
+          sx={{
+            display: "flex",
+            justifyContent: "space-between",
+            alignItems: "center",
+            py: 1,
+            gap: 1,
+          }}
         >
           {canUploadFile ? (
             <Tooltip title="Загрузить файл компетенций (.csv, .xlsx)" arrow>

@@ -1,4 +1,4 @@
-import { statusConfig } from "@entities/template/model/templateStatusCodes";
+import { statusConfig, TemplateStatusEnum } from "@entities/template";
 import {
   Box,
   Breadcrumbs,
@@ -26,6 +26,8 @@ interface HistoryModal {
 function HistoryModal({ history, openDialog, setOpenDialog }: HistoryModal) {
   const formattedDate = (date: string) =>
     format(parseISO(date), "d MMMM yyyy, HH:mm", { locale: ru });
+  const isKnownStatus = (status: string): status is TemplateStatusEnum =>
+    Object.hasOwn(statusConfig, status);
 
   return (
     <Dialog
@@ -40,7 +42,11 @@ function HistoryModal({ history, openDialog, setOpenDialog }: HistoryModal) {
             <Box key={index} sx={{ p: 1 }}>
               <Box>{formattedDate(data.date)}</Box>
               <Box>{data.user}</Box>
-              <Box>{statusConfig[data.status]?.label}</Box>
+              <Box>
+                {isKnownStatus(data.status)
+                  ? statusConfig[data.status].label
+                  : undefined}
+              </Box>
             </Box>
           ))}
         </Breadcrumbs>

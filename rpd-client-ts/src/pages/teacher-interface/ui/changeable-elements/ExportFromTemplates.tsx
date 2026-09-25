@@ -135,9 +135,7 @@ export function ExportFromTemplates({
         anchorEl={anchorEl}
         open={open}
         onClose={handleClose}
-        MenuListProps={{
-          "aria-labelledby": "basic-button",
-        }}
+        slotProps={{ list: { "aria-labelledby": "basic-button" } }}
       >
         <MenuItem
           onClick={() => {
@@ -150,11 +148,10 @@ export function ExportFromTemplates({
           </ListItemIcon>
           <ListItemText>
             <Typography
+              sx={{ display: "block", m: "0" }}
               variant="button"
-              display="block"
               color="grey"
               gutterBottom
-              m="0"
             >
               Загрузить данные из шаблона
               <br /> другого года
@@ -172,11 +169,10 @@ export function ExportFromTemplates({
           </ListItemIcon>
           <ListItemText>
             <Typography
+              sx={{ display: "block", m: "0" }}
               variant="button"
-              display="block"
               gutterBottom
               color="grey"
-              m="0"
             >
               Загрузить данные из шаблона
               <br /> другого направления

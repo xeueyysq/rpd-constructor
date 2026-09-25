@@ -1,6 +1,6 @@
 import { Box } from "@mui/material";
-import { TemplatePagesPath } from "@pages/teacher-interface/model/pathes.ts";
-import { PageTitleComment } from "@shared/ui";
+import { TemplatePagesPath } from "@shared/enums";
+import { PageTitleComment } from "../PageTitleComment";
 import { FC } from "react";
 import JsonChangeValue from "../changeable-elements/JsonChangeValue.tsx";
 
@@ -9,7 +9,7 @@ const AimsPage: FC = () => {
     <Box>
       <PageTitleComment
         title="Цели и задачи освоения дисциплины"
-        paddingBottom={2}
+        sx={{ pb: 2 }}
         templateField={TemplatePagesPath.AIMS_PAGE}
       />
       <JsonChangeValue elementName="goals" />

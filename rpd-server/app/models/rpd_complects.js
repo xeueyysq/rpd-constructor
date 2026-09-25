@@ -35,7 +35,7 @@ class RpdComplects {
       return resultId;
     } catch (error) {
       console.log(error);
-      throw new Error(error);
+      throw new Error(error, { cause: error });
     }
   }
 
@@ -54,7 +54,7 @@ class RpdComplects {
       return result.rows[0];
     } catch (error) {
       console.log(error);
-      throw new Error(error);
+      throw new Error(error, { cause: error });
     }
   }
 
@@ -72,7 +72,7 @@ class RpdComplects {
       return result.rows[0];
     } catch (error) {
       console.log(error);
-      throw new Error(error);
+      throw new Error(error, { cause: error });
     }
   }
 
@@ -113,7 +113,7 @@ class RpdComplects {
       return result.rows;
     } catch (error) {
       console.log(error);
-      throw new Error(error);
+      throw new Error(error, { cause: error });
     }
   }
 
@@ -141,7 +141,7 @@ class RpdComplects {
       return result.rows;
     } catch (error) {
       console.log(error);
-      throw new Error(error);
+      throw new Error(error, { cause: error });
     }
   }
 
@@ -162,7 +162,7 @@ class RpdComplects {
       return result;
     } catch (error) {
       console.error(error);
-      throw new Error(error);
+      throw new Error(error, { cause: error });
     }
   }
 }

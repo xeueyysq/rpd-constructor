@@ -7,9 +7,9 @@ import {
 } from "@mui/material";
 import type { Theme } from "@mui/material/styles";
 import { useScopeDisciplineForm } from "@pages/teacher-interface/model/useScopeDisciplineForm";
-import { TemplatePagesPath } from "@pages/teacher-interface/model/pathes";
+import { TemplatePagesPath } from "@shared/enums";
 import { FieldChangeNotice } from "@shared/ui/FieldChangeNotice";
-import { PageTitleComment } from "@shared/ui";
+import { PageTitleComment } from "../PageTitleComment";
 import { useFieldChanges } from "@pages/teacher-interface/model/useFieldChanges";
 import { FC } from "react";
 
@@ -37,7 +37,7 @@ const ScopeDisciplinePage: FC<ScopeDisciplinePageProps> = ({
     <Box>
       <PageTitleComment
         title="Объем дисциплины"
-        paddingBottom={2}
+        sx={{ pb: 2 }}
         templateField={TemplatePagesPath.DISCIPLINE_SCOPE}
       />
       <FieldChangeNotice

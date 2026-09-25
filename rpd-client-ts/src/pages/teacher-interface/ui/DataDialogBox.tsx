@@ -119,7 +119,7 @@ export function DataDialogBox(props: DataDialogBoxProps) {
         },
       }}
       maxWidth={"md"}
-      TransitionProps={{ onEntering: handleEntering }}
+      slotProps={{ transition: { onEntering: handleEntering } }}
       open={open}
       onClose={handleCancel}
       {...other}
@@ -128,78 +128,80 @@ export function DataDialogBox(props: DataDialogBoxProps) {
       <DialogContent dividers>
         {options.length ? (
           <RadioGroup ref={radioGroupRef} value={value} onChange={handleChange}>
-            {options.map((option) => (
-              <Box key={option.id} sx={{ mb: 1 }}>
-                <Box
-                  sx={{
-                    display: "flex",
-                    alignItems: "center",
-                    justifyContent: "space-between",
-                    border: "1px solid #e0e0e0",
-                    borderRadius: 1,
-                    p: 1,
-                    backgroundColor: "#fafafa",
-                  }}
-                >
-                  <FormControlLabel
-                    value={option.id}
-                    control={<Radio />}
-                    label={`${option.text} (${option.year})`}
-                    sx={{ flex: 1 }}
-                  />
-                  <IconButton
-                    onClick={() => handleToggleExpand(option.id!)}
-                    sx={{ ml: 1 }}
-                  >
-                    {expandedItems?.has(option.id!) ? (
-                      <ExpandLess />
-                    ) : (
-                      <ExpandMore />
-                    )}
-                  </IconButton>
-                </Box>
-                <Collapse in={expandedItems?.has(option.id!)}>
+            {options.map((option) => {
+              const currentFieldData = getCurrentFieldData(option);
+              return (
+                <Box key={option.id} sx={{ mb: 1 }}>
                   <Box
                     sx={{
-                      p: 2,
-                      backgroundColor: "#f5f5f5",
+                      display: "flex",
+                      alignItems: "center",
+                      justifyContent: "space-between",
                       border: "1px solid #e0e0e0",
-                      borderTop: "none",
-                      borderRadius: "0 0 4px 4px",
+                      borderRadius: 1,
+                      p: 1,
+                      backgroundColor: "#fafafa",
                     }}
                   >
-                    {isLoading ? (
-                      <Box sx={{ display: "flex", justifyContent: "center" }}>
-                        <CircularProgress size={24} />
-                      </Box>
-                    ) : error ? (
-                      <Alert severity="error" sx={{ mb: 1 }}>
-                        Ошибка загрузки данных: {error.message}
-                      </Alert>
-                    ) : typeof getCurrentFieldData(option) === "object" &&
-                      getCurrentFieldData(option) !== null ? (
-                      <Box>
-                        <DisciplineContentTable
-                          readOnly
-                          tableData={
-                            getCurrentFieldData(option) as DisciplineContentData
-                          }
-                        />
-                      </Box>
-                    ) : (
-                      <Box
-                        dangerouslySetInnerHTML={{
-                          __html:
-                            getCurrentFieldData(option) ||
-                            "Нет данных для отображения",
-                        }}
-                        color="text.secondary"
-                      />
-                    )}
+                    <FormControlLabel
+                      value={option.id}
+                      control={<Radio />}
+                      label={`${option.text} (${option.year})`}
+                      sx={{ flex: 1 }}
+                    />
+                    <IconButton
+                      onClick={() => handleToggleExpand(option.id!)}
+                      sx={{ ml: 1 }}
+                    >
+                      {expandedItems?.has(option.id!) ? (
+                        <ExpandLess />
+                      ) : (
+                        <ExpandMore />
+                      )}
+                    </IconButton>
                   </Box>
-                </Collapse>
-              </Box>
-            ))}
+                  <Collapse in={expandedItems?.has(option.id!)}>
+                    <Box
+                      sx={{
+                        p: 2,
+                        backgroundColor: "#f5f5f5",
+                        border: "1px solid #e0e0e0",
+                        borderTop: "none",
+                        borderRadius: "0 0 4px 4px",
+                      }}
+                    >
+                      {isLoading ? (
+                        <Box sx={{ display: "flex", justifyContent: "center" }}>
+                          <CircularProgress size={24} />
+                        </Box>
+                      ) : error ? (
+                        <Alert severity="error" sx={{ mb: 1 }}>
+                          Ошибка загрузки данных: {error.message}
+                        </Alert>
+                      ) : typeof currentFieldData === "object" &&
+                        currentFieldData !== null ? (
+                        <Box>
+                          <DisciplineContentTable
+                            readOnly
+                            tableData={
+                              currentFieldData as DisciplineContentData
+                            }
+                          />
+                        </Box>
+                      ) : (
+                        <Box
+                          dangerouslySetInnerHTML={{
+                            __html:
+                              currentFieldData || "Нет данных для отображения",
+                          }}
+                          color="text.secondary"
+                        />
+                      )}
+                    </Box>
+                  </Collapse>
+                </Box>
+              );
+            })}
           </RadioGroup>
         ) : (
           <DialogContentText>Нет данных по другим шаблонам</DialogContentText>

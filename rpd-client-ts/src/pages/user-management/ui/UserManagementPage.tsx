@@ -11,7 +11,7 @@ import { UserRole } from "@shared/ability";
 import { axiosBase } from "@shared/api";
 import { showErrorMessage, showSuccessMessage } from "@shared/lib";
 import { Loader, PageTitle } from "@shared/ui";
-import { WarningDeleteDialog } from "@widgets/dialogs/ui";
+import { WarningDeleteDialog } from "@widgets/dialogs";
 import axios from "axios";
 import {
   MaterialReactTable,
@@ -158,7 +158,7 @@ export const UserManagementPage: FC = () => {
         table.getState().rowSelection
       ).length;
       return (
-        <Box display={"flex"} gap={2} pl={2} alignItems={"center"}>
+        <Box sx={{ display: "flex", gap: 2, pl: 2, alignItems: "center" }}>
           <FormControl
             disabled={!selectedRowsCount}
             size="small"
@@ -193,7 +193,7 @@ export const UserManagementPage: FC = () => {
       );
     },
     renderToolbarInternalActions: () => (
-      <Box pr={1}>
+      <Box sx={{ pr: 1 }}>
         <Button variant="contained" onClick={handleOpen}>
           Добавить пользователя
         </Button>
@@ -206,7 +206,7 @@ export const UserManagementPage: FC = () => {
   return (
     <Box>
       <PageTitle title={"Управление пользователями"} />
-      <Box pt={3}>
+      <Box sx={{ pt: 3 }}>
         <MaterialReactTable table={table} />
       </Box>
       <WarningDeleteDialog

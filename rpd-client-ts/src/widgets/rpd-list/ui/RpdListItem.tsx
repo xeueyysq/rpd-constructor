@@ -6,32 +6,46 @@ import {
   ListItemIcon,
 } from "@mui/material";
 import { FC } from "react";
-import type { RpdListItem } from "../model/types.ts";
+import type { RpdListItem, RpdSelectionItem } from "../model/types.ts";
 import FiberManualRecordIcon from "@mui/icons-material/FiberManualRecord";
 import { useNavigate } from "react-router-dom";
 import { RedirectPath } from "@shared/enums.ts";
 
-type RpdListItemProps = {
-  item: RpdListItem;
-  templateId: string | undefined;
-  templatePage: string | undefined;
-};
+type RpdListItemProps =
+  | {
+      item: RpdListItem;
+      templateId: string | undefined;
+      templatePage: string | undefined;
+      onSelect?: never;
+      selectedId?: never;
+    }
+  | {
+      item: RpdSelectionItem;
+      onSelect: (id: string) => void;
+      selectedId: string;
+      templateId?: never;
+      templatePage?: never;
+    };
 
-const RpdListItem: FC<RpdListItemProps> = ({
-  item,
-  templateId,
-  templatePage,
-}) => {
-  const { id, text, path } = item;
+const RpdListItem: FC<RpdListItemProps> = (props) => {
+  const { id, text } = props.item;
   const navigate = useNavigate();
-  const isActive = templatePage === path;
+  const isActive = props.onSelect
+    ? props.selectedId === id
+    : props.templatePage === props.item.path;
 
   return (
     <ListItem disableGutters disablePadding>
       <ListItemButton
-        onClick={() =>
-          navigate(`${RedirectPath.TEMPLATES}/${templateId}/${path}`)
-        }
+        onClick={() => {
+          if (props.onSelect) {
+            props.onSelect(id);
+          } else {
+            navigate(
+              `${RedirectPath.TEMPLATES}/${props.templateId}/${props.item.path}`
+            );
+          }
+        }}
         sx={{
           py: 0.15,
           pl: 0.5,
@@ -48,7 +62,7 @@ const RpdListItem: FC<RpdListItemProps> = ({
           <FiberManualRecordIcon sx={{ fontSize: "5px" }} />
         </ListItemIcon>
         <ListItemText
-          primary={<Typography fontSize={"14px"}>{text}</Typography>}
+          primary={<Typography sx={{ fontSize: "14px" }}>{text}</Typography>}
         />
       </ListItemButton>
     </ListItem>

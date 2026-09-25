@@ -1,5 +1,5 @@
-import { FC, ReactNode, useEffect, useRef, useState } from "react";
-import { EditorState } from "draft-js";
+import { FC, RefObject, useEffect, useRef, useState } from "react";
+import { Editor as DraftEditor, EditorState } from "draft-js";
 import { stateToHTML } from "draft-js-export-html";
 import { stateFromHTML } from "draft-js-import-html";
 import {
@@ -43,9 +43,11 @@ const TextEditor: FC<TestEditor> = ({
   const [editorState, setEditorState] = useState(
     EditorState.createWithContent(content)
   );
-  const editorRef = useRef(null);
+  const editorRef = useRef<DraftEditor>(null);
+  // contenido ожидает ненулевой ref, хотя React заполняет его только после монтирования.
+  const contenidoEditorRef = editorRef as RefObject<DraftEditor>;
 
-  useEffect(() => focusOnEditor(editorRef), [editorRef]);
+  useEffect(() => focusOnEditor(contenidoEditorRef), [contenidoEditorRef]);
 
   const toolbarButtons = [
     {
@@ -111,9 +113,9 @@ const TextEditor: FC<TestEditor> = ({
         ))}
       </Box>
       <Box
-        gap={4}
-        p={1}
         sx={{
+          gap: 4,
+          p: 1,
           border: "1px solid grey",
           borderRadius: "0 5px 5px 5px",
           mb: 2,
@@ -141,7 +143,7 @@ const TextEditor: FC<TestEditor> = ({
           onChange={setEditorState}
           handleKeyCommand={shortcutHandler(setEditorState)}
           keyBindingFn={getDefaultKeyBindingFn}
-          editorRef={editorRef}
+          editorRef={contenidoEditorRef}
         />
       </Box>
       <ButtonGroup

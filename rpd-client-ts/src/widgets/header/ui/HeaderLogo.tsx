@@ -6,7 +6,7 @@ const HeaderLogo: FC = () => {
   const navigate = useNavigate();
 
   return (
-    <Box sx={{ px: 1 }} alignItems={"center"}>
+    <Box sx={{ alignItems: "center", px: 1 }}>
       <Button
         onClick={() => navigate("/")}
         sx={{

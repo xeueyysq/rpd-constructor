@@ -1,6 +1,6 @@
-import { RpdListItem } from "@widgets/rpd-list/model/types.ts";
+import type { RpdSelectionItem } from "@widgets/rpd-list";
 
-export const RpdListItems: RpdListItem[] = [
+export const RpdListItems: RpdSelectionItem[] = [
   {
     id: "coverPage",
     text: "Титульный лист",

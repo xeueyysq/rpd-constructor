@@ -47,7 +47,7 @@ export function RoleSwitchMenuItems({
             )}
           </ListItemIcon>
           <ListItemText>
-            <Typography variant="button" display="block" color="grey">
+            <Typography sx={{ display: "block" }} variant="button" color="grey">
               {getRoleLabel(role)}
             </Typography>
           </ListItemText>

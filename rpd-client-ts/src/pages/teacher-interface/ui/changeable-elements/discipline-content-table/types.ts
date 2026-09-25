@@ -14,21 +14,12 @@ export interface StudyLoad {
 }
 
 export type StudyLoadCategory =
-  | "total"
-  | "lectures"
-  | "seminars"
-  | "independent"
-  | "control"
-  | "unknown";
+  "total" | "lectures" | "seminars" | "independent" | "control" | "unknown";
 
 export type DisciplineContentRow = DisciplineContentData[string];
 
 export type EditableRowKey =
-  | "theme"
-  | "lectures"
-  | "seminars"
-  | "control"
-  | "independent_work";
+  "theme" | "lectures" | "seminars" | "control" | "independent_work";
 
 export type StudyLoadSaveItem = { name: string; id: string };
 

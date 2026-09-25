@@ -13,18 +13,19 @@ import {
 } from "@mui/material";
 import { useAuth } from "@entities/auth";
 import { PlannedResultsData } from "@pages/teacher-interface/model/DisciplineContentPageTypes.ts";
-import { TemplatePagesPath } from "@pages/teacher-interface/model/pathes";
+import { TemplatePagesPath } from "@shared/enums";
 import { UserRole } from "@shared/ability";
 import { axiosBase } from "@shared/api";
 import { useStore } from "@shared/hooks";
 import { showErrorMessage, showSuccessMessage } from "@shared/lib";
-import { Loader, PageTitleComment } from "@shared/ui";
+import { Loader } from "@shared/ui";
+import { PageTitleComment } from "../PageTitleComment";
 import { isAxiosError } from "axios";
 import {
   hasPlannedResultsData,
   mapComplectResultsToPlannedResults,
   type ComplectResultsRow,
-} from "@pages/teacher-interface/lib/mapPlannedResultsFromComplect.ts";
+} from "@features/discipline-evaluations-funds";
 import {
   FC,
   useEffect,
@@ -180,8 +181,7 @@ const PlannedResultsPage: FC = () => {
     (state) => state.jsonData.disciplins_name
   ) as string;
   const initialData = useStore((state) => state.jsonData.competencies) as
-    | PlannedResultsData
-    | undefined;
+    PlannedResultsData | undefined;
   const { updateJsonData } = useStore();
   const [data, setData] = useState<PlannedResultsData | undefined>(initialData);
 
@@ -288,11 +288,13 @@ const PlannedResultsPage: FC = () => {
     <Box>
       <PageTitleComment
         title="Планируемые результаты обучения по дисциплине (модулю)"
-        paddingBottom={2}
+        sx={{ pb: 2 }}
         templateField={TemplatePagesPath.DISCIPLINE_PLANNED_RESULTS}
       />
       {!readOnly && (
-        <Box pt={2} display={"flex"} justifyContent="flex-end" gap={1}>
+        <Box
+          sx={{ pt: 2, display: "flex", justifyContent: "flex-end", gap: 1 }}
+        >
           <Button variant="contained" onClick={saveData}>
             Сохранить
           </Button>

@@ -19,7 +19,7 @@ import {
 } from "@mui/material";
 import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { useRpdComplectsQuery } from "@entities/rpd-complect/model/queries";
+import { useRpdComplectsQuery } from "@entities/rpd-complect";
 import { axiosBase } from "@shared/api";
 import { showErrorMessage, showSuccessMessage } from "@shared/lib";
 import type { ComplectData } from "@shared/types";
@@ -296,9 +296,11 @@ export function ImportFromComplectsDialog({
                                 <ListItemText
                                   primary={
                                     <Box
-                                      display="flex"
-                                      justifyContent="space-between"
-                                      gap={2}
+                                      sx={{
+                                        display: "flex",
+                                        justifyContent: "space-between",
+                                        gap: 2,
+                                      }}
                                     >
                                       <Box sx={{ minWidth: 0 }}>
                                         <Typography

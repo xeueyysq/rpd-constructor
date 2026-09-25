@@ -10,7 +10,7 @@ import {
 } from "@mui/material";
 import { getFieldLabel } from "@features/complect-sync";
 import type { MRT_ColumnDef } from "material-react-table";
-import { useMemo } from "react";
+import { forwardRef, useMemo } from "react";
 import { StatusWithDate } from "@shared/ui";
 import TemplateMenu from "../ui/TemplateMenu";
 import type { DisciplineSyncStatus, TemplateData } from "../types";
@@ -63,40 +63,41 @@ export function useComplectTableColumns({
           const teachersList = row.original.teachers;
           const ListboxComponent = useMemo(
             () =>
-              function TeacherListbox(
-                props: React.HTMLAttributes<HTMLUListElement> & {
-                  children?: React.ReactNode;
-                }
-              ) {
-                return (
-                  <ul {...props}>
-                    <li key="add-all" style={{ listStyle: "none", padding: 0 }}>
-                      <ListItemButton
-                        component="div"
-                        onMouseDown={(e) => e.preventDefault()}
-                        onClick={() =>
-                          onTeachersChange(templateId, [...teachersList])
-                        }
-                        sx={{ py: 1.25, px: 2 }}
+              forwardRef<HTMLUListElement, React.HTMLAttributes<HTMLElement>>(
+                function TeacherListbox(props, ref) {
+                  return (
+                    <ul {...props} ref={ref}>
+                      <li
+                        key="add-all"
+                        style={{ listStyle: "none", padding: 0 }}
                       >
-                        Добавить всех
-                      </ListItemButton>
-                    </li>
-                    <li
-                      key="divider"
-                      style={{ listStyle: "none", padding: 0 }}
-                      aria-hidden
-                    >
-                      <Divider sx={{ my: 1 }} />
-                    </li>
-                    {props.children}
-                  </ul>
-                );
-              },
+                        <ListItemButton
+                          component="div"
+                          onMouseDown={(e) => e.preventDefault()}
+                          onClick={() =>
+                            onTeachersChange(templateId, [...teachersList])
+                          }
+                          sx={{ py: 1.25, px: 2 }}
+                        >
+                          Добавить всех
+                        </ListItemButton>
+                      </li>
+                      <li
+                        key="divider"
+                        style={{ listStyle: "none", padding: 0 }}
+                        aria-hidden
+                      >
+                        <Divider sx={{ my: 1 }} />
+                      </li>
+                      {props.children}
+                    </ul>
+                  );
+                }
+              ),
             [templateId, teachersList, onTeachersChange]
           );
           return (
-            <Box width="100%">
+            <Box sx={{ width: "100%" }}>
               <Autocomplete
                 id={`select-${row.original.id}`}
                 multiple
@@ -116,7 +117,7 @@ export function useComplectTableColumns({
                   />
                 )}
                 options={row.original.teachers}
-                ListboxComponent={ListboxComponent}
+                slots={{ listbox: ListboxComponent }}
               />
             </Box>
           );
@@ -138,7 +139,7 @@ export function useComplectTableColumns({
               <TemplateStatus status={row.original.status} />
               {syncStatus !== "unchanged" ? (
                 <Tooltip title={tooltip}>
-                  <Box mt={1}>
+                  <Box sx={{ mt: 1 }}>
                     <StatusWithDate
                       label={SYNC_STATUS_LABEL[syncStatus]}
                       date={row.original.syncChangedAt}

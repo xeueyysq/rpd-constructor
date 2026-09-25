@@ -38,7 +38,7 @@ const DisciplineTitle = ({
   incoming?: SyncDisciplineIncoming;
   fallback?: string;
 }) => (
-  <Typography fontWeight={600}>
+  <Typography sx={{ fontWeight: 600 }}>
     {incoming?.discipline ?? fallback ?? "—"}
   </Typography>
 );

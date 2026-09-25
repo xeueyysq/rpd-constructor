@@ -68,7 +68,9 @@ export const TeacherTabsList: FC = () => {
                 </ListItemIcon>
                 <ListItemText
                   primary={
-                    <Typography fontSize={"14px"}>{value.name}</Typography>
+                    <Typography sx={{ fontSize: "14px" }}>
+                      {value.name}
+                    </Typography>
                   }
                 />
               </ListItemButton>

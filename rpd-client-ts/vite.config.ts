@@ -1,9 +1,13 @@
+/// <reference types="vitest/config" />
 import react from "@vitejs/plugin-react-swc";
 import { defineConfig } from "vite";
 import path from "path";
 import svgr from "vite-plugin-svgr";
 
 export default defineConfig({
+  test: {
+    environment: "node",
+  },
   plugins: [
     react({
       jsxImportSource: "@emotion/react",
@@ -19,7 +23,6 @@ export default defineConfig({
       "@features": path.resolve(__dirname, "src/features"),
       "@entities": path.resolve(__dirname, "src/entities"),
       "@shared": path.resolve(__dirname, "src/shared"),
-      "@": path.resolve(__dirname, "./src"),
     },
   },
   server: {

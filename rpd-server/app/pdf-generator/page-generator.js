@@ -197,7 +197,7 @@ async function generateContentPage(id, { forWord = false } = {}) {
           let results = value.results;
           try {
             results = JSON.parse(results);
-          } catch (e) {
+          } catch {
             // Если не JSON, оставляем как строку
           }
           console.log(results);

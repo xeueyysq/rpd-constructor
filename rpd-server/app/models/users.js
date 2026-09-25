@@ -16,7 +16,7 @@ class Users {
       return result.rows.length ? result.rows : [];
     } catch (error) {
       console.error(error);
-      throw new Error(error);
+      throw new Error(error, { cause: error });
     }
   }
 
@@ -31,7 +31,7 @@ class Users {
       );
     } catch (error) {
       console.log(error);
-      throw new Error(error);
+      throw new Error(error, { cause: error });
     }
   }
 
@@ -59,7 +59,7 @@ class Users {
       return result.rows[0];
     } catch (error) {
       console.error(error);
-      throw new Error(error.message);
+      throw new Error(error.message, { cause: error });
     }
   }
 
@@ -81,7 +81,7 @@ class Users {
       return result.rows[0];
     } catch (error) {
       console.error(error);
-      throw new Error(error.message);
+      throw new Error(error.message, { cause: error });
     }
   }
 }

@@ -1,5 +1,5 @@
 import { RpdListItem } from "@widgets/rpd-list";
-import { TemplatePagesPath } from "./pathes";
+import { TemplatePagesPath } from "@shared/enums";
 
 export const TeacherRpdListItems: RpdListItem[] = [
   {

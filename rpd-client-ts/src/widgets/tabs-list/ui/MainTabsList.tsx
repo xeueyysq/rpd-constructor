@@ -79,7 +79,7 @@ export const MainTabsList: FC = () => {
                       </ListItemIcon>
                       <ListItemText
                         primary={
-                          <Typography fontSize={"14px"}>
+                          <Typography sx={{ fontSize: "14px" }}>
                             {value.name}
                           </Typography>
                         }
@@ -122,7 +122,9 @@ export const MainTabsList: FC = () => {
                   </ListItemIcon>
                   <ListItemText
                     primary={
-                      <Typography fontSize={"14px"}>{value.name}</Typography>
+                      <Typography sx={{ fontSize: "14px" }}>
+                        {value.name}
+                      </Typography>
                     }
                   />
                 </ListItemButton>

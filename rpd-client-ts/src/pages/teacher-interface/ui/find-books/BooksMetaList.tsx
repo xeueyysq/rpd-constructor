@@ -41,7 +41,7 @@ export function BooksMetaList({
         if (rowSelection[index])
           return book.biblio.replace(/<b>.*?<\/b>|<br>/g, "");
       })
-      .filter(Boolean);
+      .filter((biblio): biblio is string => Boolean(biblio));
     addBooksToList(selectedBooks);
     closeDialog();
   };
@@ -54,10 +54,9 @@ export function BooksMetaList({
         Cell: ({ row }) => (
           <Box
             onClick={() => setZoomThumbSrc(row.original.thumb)}
-            p={2}
+            sx={{ p: 2, width: "100px", cursor: "pointer" }}
             component="img"
             src={row.original.thumb}
-            sx={{ width: "100px", cursor: "pointer" }}
           ></Box>
         ),
         enableColumnFilter: false,
@@ -162,7 +161,7 @@ export function BooksMetaList({
   });
 
   return (
-    <Box pt={2}>
+    <Box sx={{ pt: 2 }}>
       <MaterialReactTable table={table} />
       <BookThumbZoom
         thumb={zoomThumbSrc}
