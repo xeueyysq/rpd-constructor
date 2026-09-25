@@ -2,7 +2,7 @@ import { useAuth } from "@entities/auth";
 import Box from "@mui/material/Box";
 import Drawer from "@mui/material/Drawer";
 import Toolbar from "@mui/material/Toolbar";
-import { TeacherRpdListItems } from "@pages/teacher-interface/model/teacherInterfaceItems";
+import { TeacherRpdListItems } from "./teacherInterfaceItems";
 import { UserRole } from "@shared/ability";
 import { RedirectPath } from "@shared/enums";
 import { useStore } from "@shared/hooks";

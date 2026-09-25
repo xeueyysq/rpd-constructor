@@ -14,7 +14,7 @@ import {
   hasPlannedResultsData,
   mapComplectResultsToPlannedResults,
   type ComplectResultsRow,
-} from "@pages/teacher-interface/lib/mapPlannedResultsFromComplect.ts";
+} from "../lib/mapPlannedResultsFromComplect";
 import { buildCompetenceGroups, normalizeFunds } from "./utils";
 
 type UseAssessmentToolsQuestionsResult = {
@@ -105,6 +105,7 @@ export const useAssessmentToolsQuestions =
     const complectId = useStore((state) => state.complectId);
 
     const complectIdRef = useRef(complectId);
+    // eslint-disable-next-line react-hooks/refs -- обработчики читают последнее значение комплекта.
     complectIdRef.current = complectId;
 
     const [plannedResults, setPlannedResults] = useState<
@@ -225,6 +226,7 @@ export const useAssessmentToolsQuestions =
     }, [complectId, maxSelectableByCompetence]);
 
     const quotaRef = useRef(maxSelectableByCompetence);
+    // eslint-disable-next-line react-hooks/refs -- обработчики читают последнюю квоту выбора.
     quotaRef.current = maxSelectableByCompetence;
 
     const [fundsData, setFundsData] = useState<AssessmentToolsQuestionsData>(

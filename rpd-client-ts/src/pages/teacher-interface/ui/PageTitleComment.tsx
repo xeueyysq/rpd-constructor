@@ -1,11 +1,11 @@
 import { useAuth } from "@entities/auth";
 import AddCommentIcon from "@mui/icons-material/AddComment";
 import { Box, BoxProps, IconButton } from "@mui/material";
-import { CommentChangeValue } from "@pages/teacher-interface/ui/changeable-elements/CommentChangeValue";
+import { CommentChangeValue } from "./changeable-elements/CommentChangeValue";
 import { UserRole } from "@shared/ability";
 import { useStore } from "@shared/hooks";
 import { useMemo, useState } from "react";
-import { PageTitle } from "./PageTitle";
+import { PageTitle } from "@shared/ui";
 
 type PageTitleCommentProps = BoxProps & {
   title: string;

@@ -138,9 +138,11 @@ export function DisciplineContentTable({
   }, [attestationTheme, maxHours.control, setData, jsonData?.id]);
 
   const hoursValidationMessage = useMemo(() => {
-    if (
-      !(hasMaxHours || manualPlanTouchedTotal || manualPlanTouchedBreakdown)
-    ) {
+    if (!(
+      hasMaxHours ||
+      manualPlanTouchedTotal ||
+      manualPlanTouchedBreakdown
+    )) {
       return "";
     }
 

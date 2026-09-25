@@ -1,4 +1,4 @@
-import type { PlannedResultsData } from "@pages/teacher-interface/model/DisciplineContentPageTypes.ts";
+import type { PlannedResultsData } from "../model/types";
 
 export type ComplectResultsRow = {
   competence: string;

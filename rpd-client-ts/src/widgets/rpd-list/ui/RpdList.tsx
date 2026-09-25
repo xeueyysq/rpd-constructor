@@ -14,9 +14,8 @@ import {
   ListItemText,
   Typography,
 } from "@mui/material";
-import { TemplatePagesPath } from "@pages/teacher-interface/model/pathes.ts";
 import { Can } from "@shared/ability";
-import { RedirectPath } from "@shared/enums.ts";
+import { RedirectPath, TemplatePagesPath } from "@shared/enums";
 import { useStore } from "@shared/hooks";
 import { FC } from "react";
 import { useNavigate, useParams } from "react-router-dom";

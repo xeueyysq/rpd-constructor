@@ -27,7 +27,7 @@ import HistoryModal from "./HistoryModal.tsx";
 import { RedirectPath } from "@shared/enums.ts";
 import FileDownloadOutlinedIcon from "@mui/icons-material/FileDownloadOutlined";
 import { ImportFromComplectsDialog } from "./ImportFromComplectsDialog";
-import { TemplatePagesPath } from "@pages/teacher-interface/model/pathes.ts";
+import { TemplatePagesPath } from "@shared/enums";
 
 interface TemplateMenu {
   id: number;

@@ -7,7 +7,7 @@ import {
 import { useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { RedirectPath } from "@shared/enums";
-import { ComplectTableHeader } from "@widgets/table-header/ui/ComplectTableHeader";
+import { ComplectTableHeader } from "@widgets/table-header";
 import { useComplectData, useComplectTableColumns } from "../hooks";
 import { complectTableOptions } from "../config";
 import type { TemplateData } from "../types";

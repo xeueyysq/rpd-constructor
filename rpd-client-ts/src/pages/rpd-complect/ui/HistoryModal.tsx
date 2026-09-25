@@ -1,7 +1,4 @@
-import {
-  statusConfig,
-  TemplateStatusEnum,
-} from "@entities/template/model/templateStatusCodes";
+import { statusConfig, TemplateStatusEnum } from "@entities/template";
 import {
   Box,
   Breadcrumbs,

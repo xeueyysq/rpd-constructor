@@ -11,7 +11,7 @@ import { UserRole } from "@shared/ability";
 import { axiosBase } from "@shared/api";
 import { showErrorMessage, showSuccessMessage } from "@shared/lib";
 import { Loader, PageTitle } from "@shared/ui";
-import { WarningDeleteDialog } from "@widgets/dialogs/ui";
+import { WarningDeleteDialog } from "@widgets/dialogs";
 import axios from "axios";
 import {
   MaterialReactTable,

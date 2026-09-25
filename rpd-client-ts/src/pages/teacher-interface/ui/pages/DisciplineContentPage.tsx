@@ -1,8 +1,8 @@
 import JsonChangeValue from "../changeable-elements/JsonChangeValue.tsx";
 import { Box } from "@mui/material";
 import { DisciplineContentTable } from "../changeable-elements/DisciplineContentTable.tsx";
-import { TemplatePagesPath } from "@pages/teacher-interface/model/pathes.ts";
-import { PageTitleComment } from "@shared/ui";
+import { TemplatePagesPath } from "@shared/enums";
+import { PageTitleComment } from "../PageTitleComment";
 
 export function DisciplineContentPage() {
   return (
