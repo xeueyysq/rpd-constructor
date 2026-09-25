@@ -14,7 +14,8 @@ import {
   Alert,
 } from "@mui/material";
 import { useState, useRef, useCallback } from "react";
-import { ExpandMore, ExpandLess } from "@mui/icons-material";
+import ExpandMore from "@mui/icons-material/ExpandMore";
+import ExpandLess from "@mui/icons-material/ExpandLess";
 import { getTemplateField } from "../model/api";
 import { useQuery } from "@tanstack/react-query";
 import CircularProgress from "@mui/material/CircularProgress";

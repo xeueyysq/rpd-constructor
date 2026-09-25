@@ -17,7 +17,7 @@ import { useMemo, useState } from "react";
 import TextEditor from "./TextEditor.tsx";
 import MoreHorizIcon from "@mui/icons-material/MoreHoriz";
 import EditIcon from "@mui/icons-material/Edit";
-import RemoveCircleOutlineIcon from "@mui/icons-material/RemoveCircleOutline";
+import RemoveCircleOutlineOutlined from "@mui/icons-material/RemoveCircleOutlineOutlined";
 
 interface ICommentChangeValue {
   templateField: string;
@@ -214,7 +214,7 @@ export function CommentChangeValue({
               >
                 <MenuItem onClick={deleteComment}>
                   <ListItemIcon>
-                    <RemoveCircleOutlineIcon color="error" />
+                    <RemoveCircleOutlineOutlined color="error" />
                   </ListItemIcon>
                   <ListItemText>
                     <Typography

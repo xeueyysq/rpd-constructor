@@ -44,12 +44,15 @@ export default defineConfig({
   build: {
     target: "es2022",
     chunkSizeWarningLimit: 1000,
-    rollupOptions: {
+    rolldownOptions: {
       output: {
-        manualChunks: {
-          "react-vendor": ["react", "react-dom"],
-          "mui-vendor": ["@mui/material", "@mui/icons-material"],
-          pdfjs: ["pdfjs-dist"],
+        manualChunks(id) {
+          if (id.includes("node_modules")) {
+            if (/[/\\](react|react-dom)[/\\]/.test(id)) return "react-vendor";
+            if (/[/\\]@mui[/\\](material|icons-material)[/\\]/.test(id))
+              return "mui-vendor";
+            if (id.includes("pdfjs-dist")) return "pdfjs";
+          }
         },
       },
     },
