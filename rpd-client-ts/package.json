@@ -7,6 +7,7 @@
   "scripts": {
     "dev": "vite",
     "build": "vite build",
+    "test": "vitest run",
     "lint": "eslint . --report-unused-disable-directives --max-warnings 0",
     "lint:fix": "eslint . --fix --report-unused-disable-directives --max-warnings 0",
     "typecheck": "tsc --noEmit -p tsconfig.json",
@@ -76,7 +77,8 @@
     "typescript": "^6.0.2",
     "vite": "^8.1.5",
     "vite-plugin-static-copy": "^4.1.1",
-    "vite-plugin-svgr": "^5.2.0"
+    "vite-plugin-svgr": "^5.2.0",
+    "vitest": "^4.1"
   },
   "overrides": {
     "esbuild": "^0.25.0",
