@@ -27,17 +27,27 @@ class AuthController {
     const { fingerprint } = req;
 
     try {
-      const { accessToken, refreshToken, accessTokenExpiration } =
-        await AuthService.signUp({
-          userName,
-          password,
-          role,
-          fingerprint,
-        });
+      const {
+        fullname,
+        role: createdRole,
+        accessToken,
+        refreshToken,
+        accessTokenExpiration,
+      } = await AuthService.signUp({
+        userName,
+        password,
+        role,
+        fingerprint,
+      });
 
       res.cookie("refreshToken", refreshToken, COOKIE_SETTINGS.REFRESH_TOKEN);
 
-      return res.status(200).json({ fullname, role, accessToken, accessTokenExpiration });
+      return res.status(200).json({
+        fullname,
+        role: createdRole,
+        accessToken,
+        accessTokenExpiration,
+      });
     } catch (err) {
       return ErrorUtils.catchError(res, err);
     }

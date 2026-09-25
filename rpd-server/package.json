@@ -24,8 +24,6 @@
     "murmurhash3js": "^3.0.1",
     "node-fetch": "^3.3.2",
     "pdf2docx": "^0.0.0",
-    "pdfkit": "^0.19.1",
-    "pdfkit-table": "^0.2.11",
     "pg": "^8.22.0",
     "puppeteer": "^25.3.0",
     "traverse": "^0.6.11",
@@ -46,6 +44,7 @@
     "import-api-data": "node ./app/modules/1cExchange.js",
     "migrate": "node ./app/migrations/migrations.js",
     "start": "node server.js",
+    "test": "node --test tests/*.test.js",
     "lint": "eslint .",
     "lint:fix": "eslint . --fix"
   },

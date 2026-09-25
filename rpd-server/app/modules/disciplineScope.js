@@ -137,7 +137,7 @@ function extractTotalAcademicHours(studyLoad) {
 
   const breakdownTotal = lectures + seminars + independent + controlFromStudy;
 
-  let all = 0;
+  let all;
   if (totals.length === 1) {
     all = totals[0];
   } else if (totals.length > 1) {

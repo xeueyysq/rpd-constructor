@@ -13,7 +13,7 @@ class TemplateStatus {
             return result.rows[0].history;
         } catch (error) {
             console.log(error);
-            throw new Error(error);
+            throw new Error(error, { cause: error });
         }
     }
 }
