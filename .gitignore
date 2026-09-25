@@ -1,4 +1,4 @@
-.study.docs/
+study.docs/
 .DS_Store
 .vscode/
 .cursor/
@@ -9,3 +9,6 @@
 *.log
 ./claude
 CLAUDE.md
+.serena/
+.claude/
+AGENTS.md
