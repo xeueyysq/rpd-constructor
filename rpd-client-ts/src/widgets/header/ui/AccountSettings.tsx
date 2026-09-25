@@ -1,6 +1,6 @@
 import { AuthContext, useAuth } from "@entities/auth";
 import { getRoleLabel } from "@entities/auth";
-import { Logout } from "@mui/icons-material";
+import Logout from "@mui/icons-material/Logout";
 import PersonIcon from "@mui/icons-material/Person";
 import SettingsIcon from "@mui/icons-material/Settings";
 import {

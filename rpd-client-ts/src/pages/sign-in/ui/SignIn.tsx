@@ -16,7 +16,8 @@ import {
   ListItemText,
   SvgIcon,
 } from "@mui/material";
-import { Visibility, VisibilityOff } from "@mui/icons-material";
+import Visibility from "@mui/icons-material/Visibility";
+import VisibilityOff from "@mui/icons-material/VisibilityOff";
 import { AuthContext } from "@entities/auth";
 import { signInSchema } from "../model/signInSchema.ts";
 import CheckIcon from "@mui/icons-material/Check";

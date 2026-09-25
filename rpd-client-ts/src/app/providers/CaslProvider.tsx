@@ -1,6 +1,6 @@
 import { FC, ReactNode } from "react";
+import { AbilityProvider } from "@casl/react";
 import { useAuth } from "@entities/auth";
-import { CaslContext } from "@shared/ability";
 
 type Props = {
   children: ReactNode;
@@ -9,9 +9,7 @@ type Props = {
 const CaslProvider: FC<Props> = ({ children }) => {
   const { ability } = useAuth();
 
-  return (
-    <CaslContext.Provider value={ability}>{children}</CaslContext.Provider>
-  );
+  return <AbilityProvider value={ability}>{children}</AbilityProvider>;
 };
 
 export default CaslProvider;

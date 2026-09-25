@@ -1,4 +1,4 @@
-import DeleteOutlineIcon from "@mui/icons-material/DeleteOutline";
+import DeleteOutlineIcon from "@mui/icons-material/DeleteOutlineOutlined";
 import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
 import {
   Accordion,
