@@ -37,7 +37,7 @@ const ScopeDisciplinePage: FC<ScopeDisciplinePageProps> = ({
     <Box>
       <PageTitleComment
         title="Объем дисциплины"
-        paddingBottom={2}
+        sx={{ pb: 2 }}
         templateField={TemplatePagesPath.DISCIPLINE_SCOPE}
       />
       <FieldChangeNotice

@@ -65,7 +65,7 @@ const JsonChangeValue: FC<JsonChangeValueTypes> = ({ elementName }) => {
         }}
       >
         {isEditing ? (
-          <Box p={1}>
+          <Box sx={{ p: 1 }}>
             <TextEditor
               value={changeableValue}
               saveContent={saveContent}

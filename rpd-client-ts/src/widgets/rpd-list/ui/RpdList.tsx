@@ -20,14 +20,19 @@ import { RedirectPath } from "@shared/enums.ts";
 import { useStore } from "@shared/hooks";
 import { FC } from "react";
 import { useNavigate, useParams } from "react-router-dom";
-import { RpdListItem } from "../model/types.ts";
+import { RpdListItem, RpdSelectionItem } from "../model/types.ts";
 import RpdListItemComponent from "./RpdListItem.tsx";
 
-interface RpdListProps {
-  RpdListItems: RpdListItem[];
-}
+type RpdListProps =
+  | { RpdListItems: RpdListItem[]; setChoise?: never; selectedId?: never }
+  | {
+      RpdListItems: RpdSelectionItem[];
+      setChoise: (id: string) => void;
+      selectedId: string;
+    };
 
-export const RpdList: FC<RpdListProps> = ({ RpdListItems }) => {
+export const RpdList: FC<RpdListProps> = (props) => {
+  const { RpdListItems } = props;
   const { jsonData, complectId } = useStore((state) => state);
   const navigate = useNavigate();
   const { id: templateId, page } = useParams();
@@ -47,7 +52,10 @@ export const RpdList: FC<RpdListProps> = ({ RpdListItems }) => {
             expandIcon={<ExpandMoreIcon />}
             aria-controls="panel1-content"
           >
-            <Typography fontSize={"14px"} fontWeight={"bold"} color={"primary"}>
+            <Typography
+              sx={{ fontSize: "14px", fontWeight: "bold" }}
+              color={"primary"}
+            >
               {String(jsonData.disciplins_name)}
             </Typography>
           </AccordionSummary>
@@ -55,7 +63,7 @@ export const RpdList: FC<RpdListProps> = ({ RpdListItems }) => {
             <ListItem disablePadding>
               <ListItemText>
                 <Typography
-                  fontSize={"14px"}
+                  sx={{ fontSize: "14px" }}
                   color="textSecondary"
                 >{`${jsonData.direction}, ${jsonData.profile}`}</Typography>
               </ListItemText>
@@ -63,7 +71,7 @@ export const RpdList: FC<RpdListProps> = ({ RpdListItems }) => {
             <ListItem disablePadding>
               <ListItemText>
                 <Typography
-                  fontSize={"14px"}
+                  sx={{ fontSize: "14px" }}
                   color="textSecondary"
                 >{`Уровень образования - ${jsonData.education_level}`}</Typography>
               </ListItemText>
@@ -71,7 +79,7 @@ export const RpdList: FC<RpdListProps> = ({ RpdListItems }) => {
             <ListItem disablePadding>
               <ListItemText>
                 <Typography
-                  fontSize={"14px"}
+                  sx={{ fontSize: "14px" }}
                   color="textSecondary"
                 >{`Форма обучения - ${jsonData.education_form}`}</Typography>
               </ListItemText>
@@ -79,7 +87,7 @@ export const RpdList: FC<RpdListProps> = ({ RpdListItems }) => {
             <ListItem disablePadding>
               <ListItemText>
                 <Typography
-                  fontSize={"14px"}
+                  sx={{ fontSize: "14px" }}
                   color="textSecondary"
                 >{`Год набора - ${jsonData.year}`}</Typography>
               </ListItemText>
@@ -107,66 +115,81 @@ export const RpdList: FC<RpdListProps> = ({ RpdListItems }) => {
         }}
       >
         <List dense disablePadding>
-          {RpdListItems.map((item) => (
-            <RpdListItemComponent
-              key={item.id}
-              item={item}
-              templateId={templateId}
-              templatePage={page}
-            />
-          ))}
+          {RpdListItems.map((item) =>
+            props.setChoise ? (
+              <RpdListItemComponent
+                key={item.id}
+                item={item}
+                onSelect={props.setChoise}
+                selectedId={props.selectedId}
+              />
+            ) : "path" in item ? (
+              <RpdListItemComponent
+                key={item.id}
+                item={item}
+                templateId={templateId}
+                templatePage={page}
+              />
+            ) : null
+          )}
         </List>
       </Box>
-      <Box
-        sx={{
-          flexShrink: 0,
-          width: "100%",
-        }}
-      >
-        <Divider sx={{ bgcolor: "#ffffff", height: 0 }} />
-        <List dense>
-          <Can I="get" a="rop_interface">
+      {!props.setChoise && (
+        <Box
+          sx={{
+            flexShrink: 0,
+            width: "100%",
+          }}
+        >
+          <Divider sx={{ bgcolor: "#ffffff", height: 0 }} />
+          <List dense>
+            <Can I="get" a="rop_interface">
+              <ListItem disableGutters disablePadding>
+                <ListItemButton
+                  onClick={() =>
+                    navigate(
+                      `${RedirectPath.TEMPLATES}/${templateId}/${TemplatePagesPath.TEST_PDF}`
+                    )
+                  }
+                  sx={{ py: 1 }}
+                >
+                  <ListItemIcon sx={{ pl: 2 }}>
+                    <DescriptionIcon sx={{ fontSize: "20px" }} />
+                  </ListItemIcon>
+                  <ListItemText
+                    primary={
+                      <Typography sx={{ fontSize: "14px" }}>
+                        Сформировать документ
+                      </Typography>
+                    }
+                  />
+                </ListItemButton>
+              </ListItem>
+            </Can>
             <ListItem disableGutters disablePadding>
               <ListItemButton
                 onClick={() =>
                   navigate(
-                    `${RedirectPath.TEMPLATES}/${templateId}/${TemplatePagesPath.TEST_PDF}`
+                    `${RedirectPath.COMPLECTS}/${jsonData?.complect_uuid ?? complectId}`
                   )
                 }
                 sx={{ py: 1 }}
               >
                 <ListItemIcon sx={{ pl: 2 }}>
-                  <DescriptionIcon sx={{ fontSize: "20px" }} />
+                  <ArrowBackIcon sx={{ fontSize: "20px" }} />
                 </ListItemIcon>
                 <ListItemText
                   primary={
-                    <Typography fontSize={"14px"}>
-                      Сформировать документ
+                    <Typography sx={{ fontSize: "14px" }}>
+                      Список РПД
                     </Typography>
                   }
                 />
               </ListItemButton>
             </ListItem>
-          </Can>
-          <ListItem disableGutters disablePadding>
-            <ListItemButton
-              onClick={() =>
-                navigate(
-                  `${RedirectPath.COMPLECTS}/${jsonData?.complect_uuid ?? complectId}`
-                )
-              }
-              sx={{ py: 1 }}
-            >
-              <ListItemIcon sx={{ pl: 2 }}>
-                <ArrowBackIcon sx={{ fontSize: "20px" }} />
-              </ListItemIcon>
-              <ListItemText
-                primary={<Typography fontSize={"14px"}>Список РПД</Typography>}
-              />
-            </ListItemButton>
-          </ListItem>
-        </List>
-      </Box>
+          </List>
+        </Box>
+      )}
     </Box>
   );
 };

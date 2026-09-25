@@ -76,7 +76,7 @@ export function AccountSettings() {
         </Box>
       </Box>
       <Box sx={{ pl: 2 }}>
-        <Box pb={0.25}>
+        <Box sx={{ pb: 0.25 }}>
           <IconButton color="inherit" aria-label="Открыть меню аккаунта">
             <PersonIcon sx={{ fontSize: "37.5px" }} />
           </IconButton>
@@ -101,7 +101,7 @@ export function AccountSettings() {
             <SettingsIcon />
           </ListItemIcon>
           <ListItemText>
-            <Typography variant="button" display="block" color="grey">
+            <Typography sx={{ display: "block" }} variant="button" color="grey">
               Настройки
             </Typography>
           </ListItemText>
@@ -124,7 +124,7 @@ export function AccountSettings() {
             <Logout />
           </ListItemIcon>
           <ListItemText>
-            <Typography variant="button" display="block" color="grey">
+            <Typography sx={{ display: "block" }} variant="button" color="grey">
               Выйти
             </Typography>
           </ListItemText>

@@ -4,7 +4,7 @@ import ChangeableCoverPage from "./ChangeableCoverPage.tsx";
 export function RpdCoverPage() {
   return (
     <Box>
-      <Box fontSize={"1.5rem"}>Титульный лист</Box>
+      <Box sx={{ fontSize: "1.5rem" }}>Титульный лист</Box>
       <Box sx={{ p: 1, border: "1px dashed grey", my: 1 }}>
         <ChangeableCoverPage title="uniName" />
       </Box>

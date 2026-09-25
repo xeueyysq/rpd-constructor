@@ -296,9 +296,11 @@ export function ImportFromComplectsDialog({
                                 <ListItemText
                                   primary={
                                     <Box
-                                      display="flex"
-                                      justifyContent="space-between"
-                                      gap={2}
+                                      sx={{
+                                        display: "flex",
+                                        justifyContent: "space-between",
+                                        gap: 2,
+                                      }}
                                     >
                                       <Box sx={{ minWidth: 0 }}>
                                         <Typography

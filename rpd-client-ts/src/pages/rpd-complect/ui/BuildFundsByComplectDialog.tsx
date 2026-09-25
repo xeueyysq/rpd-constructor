@@ -111,7 +111,7 @@ export const BuildFundsByComplectDialog: FC<
           Выберите компетенцию, вопросы которой нужно отразить в Word-документе
         </Typography>
         {isLoading ? (
-          <Box display="flex" alignItems="center" gap={1}>
+          <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
             <CircularProgress size={18} />
             <Typography color="text.secondary">
               Загрузка компетенций…
@@ -129,12 +129,16 @@ export const BuildFundsByComplectDialog: FC<
             value={selectedCompetence}
             onChange={(e) => setSelectedCompetence(e.target.value)}
             sx={{ width: "100%", maxWidth: 900 }}
-            SelectProps={{
-              MenuProps: {
-                PaperProps: {
-                  sx: {
-                    maxHeight: 320,
-                    maxWidth: 900,
+            slotProps={{
+              select: {
+                MenuProps: {
+                  slotProps: {
+                    paper: {
+                      sx: {
+                        maxHeight: 320,
+                        maxWidth: 900,
+                      },
+                    },
                   },
                 },
               },

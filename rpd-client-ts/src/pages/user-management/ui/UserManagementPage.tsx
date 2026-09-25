@@ -158,7 +158,7 @@ export const UserManagementPage: FC = () => {
         table.getState().rowSelection
       ).length;
       return (
-        <Box display={"flex"} gap={2} pl={2} alignItems={"center"}>
+        <Box sx={{ display: "flex", gap: 2, pl: 2, alignItems: "center" }}>
           <FormControl
             disabled={!selectedRowsCount}
             size="small"
@@ -193,7 +193,7 @@ export const UserManagementPage: FC = () => {
       );
     },
     renderToolbarInternalActions: () => (
-      <Box pr={1}>
+      <Box sx={{ pr: 1 }}>
         <Button variant="contained" onClick={handleOpen}>
           Добавить пользователя
         </Button>
@@ -206,7 +206,7 @@ export const UserManagementPage: FC = () => {
   return (
     <Box>
       <PageTitle title={"Управление пользователями"} />
-      <Box pt={3}>
+      <Box sx={{ pt: 3 }}>
         <MaterialReactTable table={table} />
       </Box>
       <WarningDeleteDialog

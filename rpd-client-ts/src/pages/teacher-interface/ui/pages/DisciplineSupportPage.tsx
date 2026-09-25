@@ -9,7 +9,7 @@ const DisciplineSupportPage: FC = () => {
     <Box>
       <PageTitleComment
         title="Перечень учебно-методического обеспечения по дисциплине"
-        paddingBottom={2}
+        sx={{ pb: 2 }}
         templateField={TemplatePagesPath.DISCIPLINE_SUPPORT}
       />
       <JsonChangeValue elementName="methodological_support_template" />

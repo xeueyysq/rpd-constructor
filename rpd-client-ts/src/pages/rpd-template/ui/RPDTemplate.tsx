@@ -15,24 +15,25 @@ export const RPDTemplate: FC = () => {
         justifyContent: "space-between",
       }}
     >
-      <Box minWidth={400} maxWidth={400} my={4} mr={2}>
+      <Box sx={{ minWidth: 400, maxWidth: 400, my: 4, mr: 2 }}>
         <Box
-          height={550}
-          py={1}
           sx={{
+            height: 550,
+            py: 1,
             position: "sticky",
             top: "20px",
             backgroundColor: "#fefefe",
           }}
         >
-          <RpdList RpdListItems={RpdListItems} setChoise={setChoise} />
+          <RpdList
+            RpdListItems={RpdListItems}
+            setChoise={setChoise}
+            selectedId={choise}
+          />
         </Box>
       </Box>
       <Box
-        my={4}
-        p={2}
-        ml={2}
-        sx={{ backgroundColor: "#fefefe", width: "100%" }}
+        sx={{ my: 4, p: 2, ml: 2, backgroundColor: "#fefefe", width: "100%" }}
       >
         {choise === "coverPage" && <RpdCoverPage />}
       </Box>

@@ -133,7 +133,7 @@ const AddBook: FC<AddBook> = ({ elementName }) => {
 
   return (
     <>
-      <Box pt={3}>
+      <Box sx={{ pt: 3 }}>
         <Button
           variant="outlined"
           onClick={handleOpenDialog}
@@ -155,7 +155,7 @@ const AddBook: FC<AddBook> = ({ elementName }) => {
                       alignItems: "center",
                     }}
                   >
-                    <Typography fontSize={"14px"}>{biblio}</Typography>
+                    <Typography sx={{ fontSize: "14px" }}>{biblio}</Typography>
                     <IconButton
                       color="error"
                       onClick={() => handleRemoveBook(biblio)}
@@ -188,7 +188,7 @@ const AddBook: FC<AddBook> = ({ elementName }) => {
             },
           }}
         />
-        <Box pt={1} display={"flex"} justifyContent={"flex-end"}>
+        <Box sx={{ pt: 1, display: "flex", justifyContent: "flex-end" }}>
           <Button variant="contained" onClick={handleAddManualBook}>
             Добавить книгу
           </Button>
@@ -206,7 +206,14 @@ const AddBook: FC<AddBook> = ({ elementName }) => {
       >
         <DialogTitle>Поиск книг в библиотечной системе</DialogTitle>
         <DialogContent>
-          <Box position="sticky" top={0} zIndex={2} bgcolor="background.paper">
+          <Box
+            sx={{
+              position: "sticky",
+              top: 0,
+              zIndex: 2,
+              bgcolor: "background.paper",
+            }}
+          >
             <TextField
               autoFocus
               margin="dense"
@@ -235,7 +242,7 @@ const AddBook: FC<AddBook> = ({ elementName }) => {
                 input: {
                   endAdornment: (
                     <InputAdornment position="end">
-                      <Box pb={1}>
+                      <Box sx={{ pb: 1 }}>
                         <IconButton onClick={handleFindBooks}>
                           <SearchIcon color="primary" />
                         </IconButton>

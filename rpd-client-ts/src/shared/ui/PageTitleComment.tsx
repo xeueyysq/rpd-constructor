@@ -13,7 +13,7 @@ type PageTitleCommentProps = BoxProps & {
 };
 
 export function PageTitleComment(props: PageTitleCommentProps) {
-  const { title, templateField } = props;
+  const { title, templateField, sx, ...boxProps } = props;
   const [isEdittedComment, setIsEdittedComment] = useState<boolean>(false);
   const { userRole } = useAuth((state) => state);
   const { jsonData } = useStore((state) => state);
@@ -38,7 +38,13 @@ export function PageTitleComment(props: PageTitleCommentProps) {
 
   if (userRole !== UserRole.TEACHER && !hasComment && !isEdittedComment)
     return (
-      <Box {...props} display={"flex"} gap={2} alignItems={"center"}>
+      <Box
+        {...boxProps}
+        sx={[
+          { display: "flex", gap: 2, alignItems: "center" },
+          ...(Array.isArray(sx) ? sx : sx ? [sx] : []),
+        ]}
+      >
         <PageTitle title={title} />
         <IconButton
           onClick={() => {
@@ -54,7 +60,7 @@ export function PageTitleComment(props: PageTitleCommentProps) {
 
   return (
     <Box>
-      <PageTitle {...props} title={title} />
+      <PageTitle {...boxProps} sx={sx} title={title} />
       <CommentChangeValue
         templateField={templateField}
         isEdittedComment={isEdittedComment}

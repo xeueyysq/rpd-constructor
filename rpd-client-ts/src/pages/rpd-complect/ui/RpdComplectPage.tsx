@@ -56,7 +56,7 @@ export function RpdComplectPage() {
         title={`${complectMeta.profile} ${complectMeta.year}`}
         backNavPath={RedirectPath.COMPLECTS}
       />
-      <Box pt={2}>
+      <Box sx={{ pt: 2 }}>
         <MaterialReactTable table={table} />
       </Box>
       {complectId ? (

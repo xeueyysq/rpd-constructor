@@ -9,7 +9,7 @@ const DisciplineEvaluationsFunds: FC = () => {
     <Box>
       <PageTitleComment
         title="Фонды оценочных средств по дисциплине"
-        paddingBottom={2}
+        sx={{ pb: 2 }}
         templateField={TemplatePagesPath.DISCIPLINE_EVALUATIONS_FUNDS}
       />
       <DisciplineEvaluationsFundsForm />

@@ -8,17 +8,26 @@ type PageTitleProps = BoxProps & {
 };
 
 export function PageTitle(props: PageTitleProps) {
-  const { title, backNavPath } = props;
+  const { title, backNavPath, sx, ...boxProps } = props;
   const navigate = useNavigate();
 
   return (
-    <Box {...props} display={"flex"} gap={1} alignItems={"center"}>
+    <Box
+      {...boxProps}
+      sx={[
+        { display: "flex", gap: 1, alignItems: "center" },
+        ...(Array.isArray(sx) ? sx : sx ? [sx] : []),
+      ]}
+    >
       {backNavPath && (
         <IconButton onClick={() => navigate(backNavPath)}>
           <ArrowBackRoundedIcon />
         </IconButton>
       )}
-      <Typography color={"primary"} fontSize={"1.25rem"} fontWeight={"bold"}>
+      <Typography
+        sx={{ fontSize: "1.25rem", fontWeight: "bold" }}
+        color={"primary"}
+      >
         {title}
       </Typography>
     </Box>

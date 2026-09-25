@@ -30,8 +30,7 @@
       "@widgets/*": ["./src/widgets/*"],
       "@features/*": ["./src/features/*"],
       "@entities/*": ["./src/entities/*"],
-      "@shared/*": ["./src/shared/*"],
-      "@mui/*": ["./node_modules/@mui/*"]
+      "@shared/*": ["./src/shared/*"]
     }
   },
   "include": ["src"],

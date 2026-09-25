@@ -17,13 +17,7 @@ export const ViewRpdComplect: FC = () => {
       }}
     >
       <Box
-        my={4}
-        p={2}
-        ml={2}
-        sx={{
-          backgroundColor: "#fefefe",
-          width: "100%",
-        }}
+        sx={{ my: 4, p: 2, ml: 2, backgroundColor: "#fefefe", width: "100%" }}
       >
         <Box sx={{ display: "flex", alignItems: "center", mb: 3 }}>
           <Button
@@ -34,9 +28,7 @@ export const ViewRpdComplect: FC = () => {
           >
             Назад к списку
           </Button>
-          <Box fontSize={"1.5rem"} sx={{ m: 0 }}>
-            Просмотр комплекта РПД
-          </Box>
+          <Box sx={{ fontSize: "1.5rem", m: 0 }}>Просмотр комплекта РПД</Box>
         </Box>
         <RpdComplectPage />
       </Box>

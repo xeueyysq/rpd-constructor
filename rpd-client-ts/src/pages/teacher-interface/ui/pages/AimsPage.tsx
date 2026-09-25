@@ -9,7 +9,7 @@ const AimsPage: FC = () => {
     <Box>
       <PageTitleComment
         title="Цели и задачи освоения дисциплины"
-        paddingBottom={2}
+        sx={{ pb: 2 }}
         templateField={TemplatePagesPath.AIMS_PAGE}
       />
       <JsonChangeValue elementName="goals" />

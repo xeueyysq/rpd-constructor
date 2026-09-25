@@ -180,8 +180,7 @@ const PlannedResultsPage: FC = () => {
     (state) => state.jsonData.disciplins_name
   ) as string;
   const initialData = useStore((state) => state.jsonData.competencies) as
-    | PlannedResultsData
-    | undefined;
+    PlannedResultsData | undefined;
   const { updateJsonData } = useStore();
   const [data, setData] = useState<PlannedResultsData | undefined>(initialData);
 
@@ -288,11 +287,13 @@ const PlannedResultsPage: FC = () => {
     <Box>
       <PageTitleComment
         title="Планируемые результаты обучения по дисциплине (модулю)"
-        paddingBottom={2}
+        sx={{ pb: 2 }}
         templateField={TemplatePagesPath.DISCIPLINE_PLANNED_RESULTS}
       />
       {!readOnly && (
-        <Box pt={2} display={"flex"} justifyContent="flex-end" gap={1}>
+        <Box
+          sx={{ pt: 2, display: "flex", justifyContent: "flex-end", gap: 1 }}
+        >
           <Button variant="contained" onClick={saveData}>
             Сохранить
           </Button>
