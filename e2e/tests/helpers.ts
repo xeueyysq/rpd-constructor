@@ -1,4 +1,8 @@
+import { readFileSync } from 'node:fs';
+import { parseEnv } from 'node:util';
 import { expect, type Page } from '@playwright/test';
+
+export const apiUrl = parseEnv(readFileSync(new URL('../e2e.env', import.meta.url), 'utf8')).API_URL!;
 
 // Совпадает с паролем в seed.sql.
 export const password = 'e2e-password';
@@ -8,11 +12,15 @@ export const disciplines = {
   unloaded: 'Сети для теста',
 };
 
-export async function signIn(page: Page, userName: 'admin' | 'rop' | 'teacher', userPassword = password) {
+export async function signInWithCredentials(page: Page, userName: string, userPassword: string) {
   await page.goto('/sign-in');
   await page.getByRole('textbox', { name: 'Имя пользователя' }).fill(userName);
   await page.getByLabel('Пароль').fill(userPassword);
   await page.getByRole('button', { name: 'Войти' }).click();
+}
+
+export async function signIn(page: Page, userName: 'admin' | 'rop' | 'teacher', userPassword = password) {
+  await signInWithCredentials(page, userName, userPassword);
   if (userPassword === password) {
     await expect(page).toHaveURL(userName === 'teacher' ? /\/templates$/ : /\/complects$/);
   }

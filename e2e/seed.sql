@@ -7,7 +7,8 @@ UPDATE users SET password = '$2b$08$19oXcVS2/xt8y7H73RhQ4uws75CgyFFw9QuRe9oxX/1c
   fullname = '{"surname":"Админов","name":"Тест","patronymic":"Тестович"}'::jsonb WHERE name = 'admin';
 INSERT INTO users (id, name, password, role, fullname) VALUES
   (10, 'teacher2', '$2b$08$19oXcVS2/xt8y7H73RhQ4uws75CgyFFw9QuRe9oxX/1cDhRqUcbza', 2, '{"surname":"Яковлева","name":"Тест","patronymic":"Тестовна"}'),
-  (11, 'nofio', '$2b$08$19oXcVS2/xt8y7H73RhQ4uws75CgyFFw9QuRe9oxX/1cDhRqUcbza', 2, NULL);
+  (11, 'nofio', '$2b$08$19oXcVS2/xt8y7H73RhQ4uws75CgyFFw9QuRe9oxX/1cDhRqUcbza', 2, NULL),
+  (12, 'retired', '$2b$08$19oXcVS2/xt8y7H73RhQ4uws75CgyFFw9QuRe9oxX/1cDhRqUcbza', 2, '{"surname":"Уходов","name":"Тест","patronymic":"Тестович"}');
 SELECT setval(pg_get_serial_sequence('users', 'id'), (SELECT max(id) FROM users));
 
 INSERT INTO rpd_complects (id, uuid, faculty, year, education_form, education_level, profile, direction) VALUES
@@ -26,6 +27,8 @@ INSERT INTO teacher_templates (id, user_id, template_id)
   SELECT 100, id, 100 FROM users WHERE name = 'teacher';
 INSERT INTO teacher_templates (id, user_id, template_id)
   SELECT 101, id, 101 FROM users WHERE name = 'teacher';
+INSERT INTO teacher_templates (id, user_id, template_id)
+  SELECT 102, id, 100 FROM users WHERE name = 'retired';
 INSERT INTO template_status (id, id_1c_template, id_profile_template, history) VALUES
   (100, 100, 100, '[{"date":"2025-01-01T00:00:00.000Z","status":"in_progress","user":"teacher"}]'::jsonb),
   (101, 101, 101, '[{"date":"2025-01-02T00:00:00.000Z","status":"ready","user":"teacher"}]'::jsonb),
@@ -40,7 +43,7 @@ SELECT setval(pg_get_serial_sequence('rpd_complects', 'id'), 100);
 SELECT setval(pg_get_serial_sequence('rpd_1c_exchange', 'id'), 102);
 SELECT setval(pg_get_serial_sequence('rpd_profile_templates', 'id'), 101);
 SELECT setval(pg_get_serial_sequence('template_status', 'id'), 102);
-SELECT setval(pg_get_serial_sequence('teacher_templates', 'id'), 101);
+SELECT setval(pg_get_serial_sequence('teacher_templates', 'id'), 102);
 SELECT setval(pg_get_serial_sequence('user_complect', 'id'), 100);
 SELECT setval(pg_get_serial_sequence('planned_results_sets', 'id'), 100);
 SELECT setval(pg_get_serial_sequence('planned_competencies', 'id'), 100);
