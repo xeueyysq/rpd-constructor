@@ -4,6 +4,7 @@ export interface UserRow {
   password: string;
   role: number;
   fullname: unknown | null;
+  is_active: boolean;
 }
 
 export interface RefreshSessionRow {

@@ -49,7 +49,7 @@ class TeacherTemplates {
 
         const userIdResult = await this.pool.query<{ id: number }>(
           `
-                SELECT id FROM users WHERE fullname = $1
+                SELECT id FROM users WHERE fullname = $1 AND is_active
             `,
           [nameParam]
         );

@@ -57,7 +57,7 @@ class Rpd1cExchange {
           fullname ->> 'patronymic'
         )) AS teacher
         FROM users
-        WHERE role = ANY($1::int[]) AND fullname IS NOT NULL
+        WHERE role = ANY($1::int[]) AND fullname IS NOT NULL AND is_active
         ORDER BY teacher
       `,
       [ASSIGNABLE_TEACHER_ROLES]
@@ -377,7 +377,7 @@ class Rpd1cExchange {
           `
             SELECT id
             FROM users
-            WHERE fullname = $1
+            WHERE fullname = $1 AND is_active
             LIMIT 1
           `,
           [fullnameJson]

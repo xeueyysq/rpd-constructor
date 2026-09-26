@@ -33,9 +33,6 @@ RUN bun install
 # Копирование остальных файлов приложения
 COPY . .
 
-# Пересборка bcrypt
-RUN npm rebuild bcrypt --build-from-source
-
 # Удаление временных зависимостей
 RUN apk del .build-deps
 

@@ -1,4 +1,5 @@
 import express from "express";
+import type { NextFunction, Request, Response } from "express";
 
 import { pool } from "./config/db.ts";
 import routes from "./app/routes/routes.ts";
@@ -10,6 +11,7 @@ import cookieParser from "cookie-parser";
 import Fingerprint from "./app/middleware/fingerprint.ts";
 import AuthRootRouter from "./app/routes/Auth.ts";
 import TokenService from "./app/services/Token.ts";
+import { ErrorUtils } from "./app/utils/Errors.ts";
 
 const { PORT, CLIENT_URL, API_URL } = process.env;
 
@@ -40,7 +42,7 @@ app.use(
       }
     },
     credentials: true,
-    methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
+    methods: ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
     allowedHeaders: [
       "Content-Type",
       "Authorization",
@@ -69,6 +71,11 @@ pool
 
     app.get("/resource/protected", TokenService.checkAccess, (_, res) => {
       res.status(200).json("Добро пожаловать! " + Date.now());
+    });
+
+    app.use((err: unknown, _req: Request, res: Response, _next: NextFunction) => {
+      void _next;
+      ErrorUtils.catchError(res, err);
     });
 
     app.listen(PORT, () => {

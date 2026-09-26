@@ -4,6 +4,8 @@ import generatePDF from "../pdf-generator/document-generator.ts";
 import generateWord from "../pdf-generator/word-generator.ts";
 import { pool } from "../../config/db.ts";
 import TokenService from "../services/Token.ts";
+import requireRole from "../middleware/requireRole.ts";
+import { USER_ROLES } from "../models/constants.ts";
 
 import RpdChangeableValuesController from "../controllers/rpdChangeableValuesController.ts";
 const rpdChangeableValuesController = new RpdChangeableValuesController(pool);
@@ -183,17 +185,11 @@ import findBooks from "../modules/findBooks.ts";
 router.post("/find-books", findBooks);
 
 import UsersController from "../controllers/usersController.ts";
-const usersController = new UsersController(pool);
-router.get("/get-users", usersController.findUsers.bind(usersController));
-router.post("/add-user", usersController.addUser.bind(usersController));
-router.post(
-  "/update-user-role",
-  usersController.updateUserRole.bind(usersController)
-);
-router.delete(
-  "/delete-user/:userId",
-  usersController.deleteUser.bind(usersController)
-);
+import UsersValidator from "../validators/Users.ts";
+router.get("/users", TokenService.checkAccess, requireRole(USER_ROLES.ADMIN), UsersController.list);
+router.post("/users", TokenService.checkAccess, requireRole(USER_ROLES.ADMIN), UsersValidator.create, UsersController.create);
+router.put("/users/:id", TokenService.checkAccess, requireRole(USER_ROLES.ADMIN), UsersValidator.update, UsersController.update);
+router.patch("/users", TokenService.checkAccess, requireRole(USER_ROLES.ADMIN), UsersValidator.setActive, UsersController.setActive);
 
 router.get("/generate-pdf", async (req, res) => {
   try {

@@ -24,37 +24,6 @@ class AuthController {
     }
   }
 
-  static async signUp(req: Request<ParamsDictionary, unknown, Record<string, unknown>>, res: Response) {
-    const { userName, password, role } = req.body as { userName: string; password: string; role: number };
-    const fingerprint = req.fingerprint!;
-
-    try {
-      const {
-        fullname,
-        role: createdRole,
-        accessToken,
-        refreshToken,
-        accessTokenExpiration,
-      } = await AuthService.signUp({
-        userName,
-        password,
-        role,
-        fingerprint,
-      });
-
-      res.cookie("refreshToken", refreshToken, COOKIE_SETTINGS.REFRESH_TOKEN);
-
-      return res.status(200).json({
-        fullname,
-        role: createdRole,
-        accessToken,
-        accessTokenExpiration,
-      });
-    } catch (err) {
-      return ErrorUtils.catchError(res, err);
-    }
-  }
-
   static async logOut(req: Request<ParamsDictionary, unknown, Record<string, unknown>>, res: Response) {
     const refreshToken = req.cookies.refreshToken;
     try {

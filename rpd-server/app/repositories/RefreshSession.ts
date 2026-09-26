@@ -28,6 +28,10 @@ class RefreshSessionRepository {
       refreshToken,
     ]);
   }
+
+  static async deleteByUserIds(ids: number[]) {
+    await pool.query("DELETE FROM refresh_sessions WHERE user_id = ANY($1::int[])", [ids]);
+  }
 }
 
 export default RefreshSessionRepository;

@@ -1,7 +1,7 @@
 import type { RequestFingerprint } from "../types/express.ts";
 import bcrypt from "bcryptjs";
 import TokenService from "./Token.ts";
-import { NotFound, Forbidden, Conflict, Unauthorized } from "../utils/Errors.ts";
+import { NotFound, Forbidden, Unauthorized } from "../utils/Errors.ts";
 import RefreshSessionRepository from "../repositories/RefreshSession.ts";
 import UserRepository from "../repositories/User.ts";
 import { ACCESS_TOKEN_EXPIRATION } from "../../constants.ts";
@@ -19,6 +19,10 @@ class AuthService {
       throw new Forbidden("Неверное имя или пароль");
     }
 
+    if (!userData.is_active) {
+      throw new Forbidden("Пользователь деактивирован");
+    }
+
     const payload = { role: userData.role, id: userData.id, userName };
 
     const accessToken = await TokenService.generateAccessToken(payload);
@@ -33,40 +37,6 @@ class AuthService {
     return {
       fullname: userData.fullname,
       role: userData.role,
-      accessToken,
-      refreshToken,
-      accessTokenExpiration: ACCESS_TOKEN_EXPIRATION,
-    };
-  }
-
-  static async signUp({ userName, password, fingerprint, role }: { userName: string; password: string; fingerprint: RequestFingerprint; role: number }) {
-    const userData = await UserRepository.getUserData(userName);
-    if (userData) {
-      throw new Conflict("Пользователь с таким именем уже существует");
-    }
-
-    const hashedPassword = bcrypt.hashSync(password, 8);
-    const createdUser = await UserRepository.createUser({
-      userName,
-      hashedPassword,
-      role,
-    });
-    const { id } = createdUser;
-
-    const payload = { userName, role, id };
-
-    const accessToken = await TokenService.generateAccessToken(payload);
-    const refreshToken = await TokenService.generateRefreshToken(payload);
-
-    await RefreshSessionRepository.createRefreshSession({
-      id,
-      refreshToken,
-      fingerprint,
-    });
-
-    return {
-      fullname: createdUser.fullname ?? null,
-      role: createdUser.role,
       accessToken,
       refreshToken,
       accessTokenExpiration: ACCESS_TOKEN_EXPIRATION,
@@ -104,12 +74,11 @@ class AuthService {
       throw new Forbidden(error);
     }
 
-    const {
-      id,
-      role,
-      name: userName,
-      fullname
-    } = (await UserRepository.getUserData(payload.userName))!;
+    const user = await UserRepository.getUserById(payload.id);
+    if (!user || !user.is_active) {
+      throw new Unauthorized("Пользователь не авторизован в системе");
+    }
+    const { id, role, name: userName, fullname } = user;
 
     const actualPayload = { id, userName, role };
 
