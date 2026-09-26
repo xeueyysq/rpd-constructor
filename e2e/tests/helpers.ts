@@ -19,10 +19,10 @@ export async function signInWithCredentials(page: Page, userName: string, userPa
   await page.getByRole('button', { name: 'Войти' }).click();
 }
 
-export async function signIn(page: Page, userName: 'admin' | 'rop' | 'teacher', userPassword = password) {
+export async function signIn(page: Page, userName: 'admin' | 'rop' | 'teacher' | 'teacher2', userPassword = password) {
   await signInWithCredentials(page, userName, userPassword);
   if (userPassword === password) {
-    await expect(page).toHaveURL(userName === 'teacher' ? /\/templates$/ : /\/complects$/);
+    await expect(page).toHaveURL(userName === 'teacher' || userName === 'teacher2' ? /\/templates$/ : /\/complects$/);
   }
 }
 
