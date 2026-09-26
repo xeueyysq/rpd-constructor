@@ -1,1 +1,0 @@
-export { WarningDeleteDialog } from "./ui";

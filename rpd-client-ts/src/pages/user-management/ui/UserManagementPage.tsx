@@ -1,111 +1,36 @@
-import {
-  Box,
-  Button,
-  FormControl,
-  InputLabel,
-  MenuItem,
-  OutlinedInput,
-  Select,
-} from "@mui/material";
-import { UserRole } from "@shared/ability";
-import { axiosBase } from "@shared/api";
+import { Alert, Box, Button, MenuItem } from "@mui/material";
+import { getRoleLabel } from "@entities/auth";
+import { useSetUsersActive, useUsers, type User } from "@entities/user";
 import {
   formatFullName,
   showErrorMessage,
   showSuccessMessage,
 } from "@shared/lib";
-import { Loader, PageTitle } from "@shared/ui";
-import { getRoleLabel } from "@entities/auth";
-import { WarningDeleteDialog } from "@widgets/dialogs";
-import axios from "axios";
+import { ConfirmActionDialog, Loader, PageTitle } from "@shared/ui";
 import {
   MaterialReactTable,
-  MRT_ColumnDef,
+  type MRT_ColumnDef,
   useMaterialReactTable,
 } from "material-react-table";
 import { MRT_Localization_RU } from "material-react-table/locales/ru";
-import { FC, useEffect, useMemo, useState } from "react";
-import type { User } from "../model/types";
-import { DialogAddUser } from "./DialogAddUser";
+import { useMemo, useState } from "react";
+import { UserFormDialog } from "./UserFormDialog";
 
-export const UserManagementPage: FC = () => {
-  const [users, setUsers] = useState<User[]>([]);
+export function UserManagementPage() {
+  const { data: users = [], isPending, isError } = useUsers();
+  const setUsersActive = useSetUsersActive();
   const [rowSelection, setRowSelection] = useState<Record<string, boolean>>({});
-  const [open, setOpen] = useState(false);
-  const [openDeleteConfirm, setOpenDeleteConfirm] = useState<boolean>(false);
-
-  const fetchUsers = async () => {
-    try {
-      const response = await axiosBase.get("get-users");
-      setUsers(response.data);
-    } catch (error) {
-      showErrorMessage("Ошибка при получении данных");
-      console.error(error);
-    }
-  };
-
-  useEffect(() => {
-    fetchUsers();
-  }, []);
-
-  const handleOpen = () => setOpen(true);
+  const [formOpen, setFormOpen] = useState(false);
+  const [editingUser, setEditingUser] = useState<User | null>(null);
+  const [confirmOpen, setConfirmOpen] = useState(false);
 
   const selectedIds = useMemo(
     () =>
-      Object.keys(rowSelection)
-        .filter((k) => rowSelection[k])
-        .map((k) => Number(k)),
+      Object.entries(rowSelection)
+        .filter(([, selected]) => selected)
+        .map(([id]) => Number(id)),
     [rowSelection]
   );
-
-  const deleteUsers = async () => {
-    try {
-      setOpenDeleteConfirm(false);
-      for (const userId of selectedIds) {
-        await axiosBase.delete(`delete-user/${userId}`);
-      }
-      showSuccessMessage("Пользователи успешно удалены");
-      setRowSelection({});
-      fetchUsers();
-    } catch (error) {
-      showErrorMessage("Ошибка при удалении пользователей");
-      console.error(error);
-    }
-  };
-
-  const updateUserRole = async (userId: number, newRole: UserRole) => {
-    try {
-      const user = users.find((u) => u.id === userId);
-
-      if (user && user.role === UserRole.ADMIN) {
-        showErrorMessage("Нельзя изменить роль администратора");
-        return;
-      }
-
-      await axiosBase.post("update-user-role", {
-        userId,
-        newRole,
-      });
-
-      fetchUsers();
-    } catch (error) {
-      if (axios.isAxiosError(error)) {
-        console.error("Axios error:", {
-          message: error.message,
-          status: error.response?.status,
-          data: error.response?.data,
-          config: {
-            url: error.config?.url,
-            baseURL: error.config?.baseURL,
-            method: error.config?.method,
-          },
-        });
-      }
-      showErrorMessage("Ошибка при обновлении роли пользователя");
-    }
-  };
-
-  const data = useMemo(() => users, [users]);
 
   const columns = useMemo<MRT_ColumnDef<User>[]>(
     () => [
@@ -120,92 +45,123 @@ export const UserManagementPage: FC = () => {
         header: "Роль",
         accessorFn: (row) => getRoleLabel(row.role),
       },
+      {
+        id: "status",
+        header: "Статус",
+        accessorFn: (row) => (row.is_active ? "Активен" : "Деактивирован"),
+      },
     ],
     []
   );
 
+  const deactivateUsers = async () => {
+    if (selectedIds.length === 0) return;
+    try {
+      await setUsersActive.mutateAsync({ ids: selectedIds, isActive: false });
+      showSuccessMessage("Пользователи деактивированы");
+      setRowSelection({});
+      setConfirmOpen(false);
+    } catch {
+      showErrorMessage("Не удалось деактивировать пользователей");
+    }
+  };
+
+  const activateUser = async (id: number) => {
+    try {
+      await setUsersActive.mutateAsync({ ids: [id], isActive: true });
+      showSuccessMessage("Пользователь активирован");
+    } catch {
+      showErrorMessage("Не удалось активировать пользователя");
+    }
+  };
+
   const table = useMaterialReactTable<User>({
     columns,
-    data,
+    data: users,
     localization: MRT_Localization_RU,
-    enableRowSelection: true,
+    enableRowSelection: (row) => row.original.is_active,
+    enableRowActions: true,
     onRowSelectionChange: setRowSelection,
     layoutMode: "grid",
     state: { rowSelection },
     getRowId: (row) => String(row.id),
-    muiTableProps: {
-      size: "small",
-      className: "table",
-    },
-    muiTableBodyCellProps: {
-      sx: {
-        py: 0.5,
-      },
-    },
+    muiTableProps: { size: "small", className: "table" },
+    muiTableBodyCellProps: { sx: { py: 0.5 } },
     positionToolbarAlertBanner: "none",
-    renderTopToolbarCustomActions: () => {
-      const selectedRowsCount = Object.values(
-        table.getState().rowSelection
-      ).length;
-      return (
-        <Box sx={{ display: "flex", gap: 2, pl: 2, alignItems: "center" }}>
-          <FormControl
-            disabled={!selectedRowsCount}
-            size="small"
-            sx={{ minWidth: 175 }}
-          >
-            <InputLabel size="small">Изменить роль</InputLabel>
-            <Select
-              label="Изменить роль"
-              input={<OutlinedInput label="Изменить роль" size="small" />}
-              defaultValue=""
-              onChange={(e) => {
-                selectedIds.forEach((userId) => {
-                  updateUserRole(userId, Number(e.target.value) as UserRole);
-                });
-                showSuccessMessage("Роль пользователя успешно обновлена");
-                setRowSelection({});
-              }}
-            >
-              <MenuItem value={UserRole.TEACHER}>Преподаватель</MenuItem>
-              <MenuItem value={UserRole.ROP}>РОП</MenuItem>
-            </Select>
-          </FormControl>
-          <Button
-            disabled={!selectedRowsCount}
-            color="error"
-            variant="outlined"
-            onClick={() => setOpenDeleteConfirm(true)}
-          >
-            Удалить
-          </Button>
-        </Box>
-      );
-    },
-    renderToolbarInternalActions: () => (
-      <Box sx={{ pr: 1 }}>
-        <Button variant="contained" onClick={handleOpen}>
+    renderTopToolbarCustomActions: () => (
+      <Box sx={{ display: "flex", gap: 2, pl: 2, alignItems: "center" }}>
+        <Button
+          variant="contained"
+          onClick={() => {
+            setEditingUser(null);
+            setFormOpen(true);
+          }}
+        >
           Добавить пользователя
+        </Button>
+        <Button
+          color="error"
+          variant="outlined"
+          disabled={selectedIds.length === 0 || setUsersActive.isPending}
+          onClick={() => setConfirmOpen(true)}
+        >
+          Деактивировать ({selectedIds.length})
         </Button>
       </Box>
     ),
+    renderRowActionMenuItems: ({ row, closeMenu }) => [
+      <MenuItem
+        key="edit"
+        onClick={() => {
+          closeMenu();
+          setEditingUser(row.original);
+          setFormOpen(true);
+        }}
+      >
+        Редактировать
+      </MenuItem>,
+      ...(!row.original.is_active
+        ? [
+            <MenuItem
+              key="activate"
+              onClick={() => {
+                closeMenu();
+                void activateUser(row.original.id);
+              }}
+            >
+              Активировать
+            </MenuItem>,
+          ]
+        : []),
+    ],
   });
 
-  if (!users) return <Loader />;
+  if (isPending) return <Loader />;
 
   return (
     <Box>
-      <PageTitle title={"Управление пользователями"} />
+      <PageTitle title="Управление пользователями" />
       <Box sx={{ pt: 3 }}>
-        <MaterialReactTable table={table} />
+        {isError ? (
+          <Alert severity="error">Не удалось загрузить пользователей</Alert>
+        ) : (
+          <MaterialReactTable table={table} />
+        )}
       </Box>
-      <WarningDeleteDialog
-        open={openDeleteConfirm}
-        setOpen={setOpenDeleteConfirm}
-        onAccept={deleteUsers}
-        description={"Вы уверены, что хотите удалить выбранных пользователей?"}
+      <ConfirmActionDialog
+        open={confirmOpen}
+        title="Деактивация пользователей"
+        description={`Деактивировать выбранных пользователей (${selectedIds.length})?`}
+        confirmText="Деактивировать"
+        confirmColor="error"
+        onConfirm={() => void deactivateUsers()}
+        onClose={() => setConfirmOpen(false)}
       />
-      <DialogAddUser open={open} setOpen={setOpen} fetchUsers={fetchUsers} />
+      <UserFormDialog
+        open={formOpen}
+        user={editingUser}
+        onClose={() => setFormOpen(false)}
+      />
     </Box>
   );
-};
+}
