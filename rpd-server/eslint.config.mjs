@@ -1,12 +1,23 @@
 import globals from "globals";
-import pluginJs from "@eslint/js";
+import js from "@eslint/js";
+import tsPlugin from "@typescript-eslint/eslint-plugin";
+import tsParser from "@typescript-eslint/parser";
 
-/** @type {import('eslint').Linter.Config[]} */
+const files = ["**/*.ts"];
+
 export default [
-  { ignores: ["node_modules/", "dist/", "build/"] },
+  { ignores: ["node_modules/**", "dist/**", "build/**"] },
+  { ...js.configs.recommended, files },
+  ...tsPlugin.configs["flat/recommended"].map((config) => ({ ...config, files })),
   {
-    files: ["**/*.js"],
-    languageOptions: { sourceType: "commonjs", globals: globals.node },
+    files,
+    languageOptions: { parser: tsParser, sourceType: "module", globals: globals.node },
+    rules: {
+      "@typescript-eslint/ban-ts-comment": ["error", { "ts-nocheck": "allow-with-description" }],
+    },
   },
-  pluginJs.configs.recommended,
+  {
+    files: ["app/pdf-generator/page-generator.ts"],
+    rules: { "prefer-const": "off" },
+  },
 ];

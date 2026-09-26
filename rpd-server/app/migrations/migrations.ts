@@ -1,0 +1,454 @@
+import { pool } from "../../config/db.ts";
+
+
+(async () => {
+  try {
+    console.log("Starting migrations...");
+
+    await pool.query(`
+      CREATE EXTENSION IF NOT EXISTS "pgcrypto";
+    `);
+
+    // Миграция для таблицы `rpd_complects`
+    await pool.query(`
+      CREATE TABLE IF NOT EXISTS rpd_complects (
+        id SERIAL PRIMARY KEY,
+        faculty VARCHAR(100),
+        year INTEGER,
+        education_form VARCHAR(100),
+        education_level VARCHAR(100),
+        profile VARCHAR(100),
+        direction VARCHAR(100)
+      )
+    `);
+
+    // Миграции для таблиц планируемых результатов
+    // ВАЖНО: rpd_complects должен существовать до создания planned_results_sets из-за FK
+    await pool.query(`
+      CREATE TABLE IF NOT EXISTS planned_results_sets (
+        id SERIAL PRIMARY KEY,
+        complect_id INT NOT NULL REFERENCES rpd_complects(id) ON DELETE CASCADE,
+        UNIQUE (complect_id)
+      )
+    `);
+
+    await pool.query(`
+      CREATE TABLE IF NOT EXISTS planned_competencies (
+        id SERIAL PRIMARY KEY,
+        set_id INT NOT NULL REFERENCES planned_results_sets(id) ON DELETE CASCADE,
+        competence TEXT NOT NULL
+      )
+    `);
+
+    await pool.query(`
+      CREATE TABLE IF NOT EXISTS planned_indicators (
+        id SERIAL PRIMARY KEY,
+        competence_id INT NOT NULL REFERENCES planned_competencies(id) ON DELETE CASCADE,
+        indicator TEXT NOT NULL,
+        UNIQUE (competence_id, indicator)
+      )
+    `);
+
+    await pool.query(`
+      CREATE TABLE IF NOT EXISTS planned_indicator_disciplines (
+        id SERIAL PRIMARY KEY,
+        indicator_id INT NOT NULL REFERENCES planned_indicators(id) ON DELETE CASCADE,
+        discipline TEXT NOT NULL,
+        UNIQUE (indicator_id, discipline)
+      )
+    `);
+
+    // Миграция для таблицы `rpd_profile_templates`
+    await pool.query(`
+      CREATE TABLE IF NOT EXISTS rpd_profile_templates (
+        id SERIAL PRIMARY KEY,
+        id_rpd_complect INT NOT NULL REFERENCES rpd_complects(id) ON DELETE CASCADE,
+        disciplins_name TEXT,
+        department TEXT,
+        teacher TEXT,
+        goals TEXT,
+        place TEXT,
+        semester INTEGER,
+        certification TEXT,
+        place_more_text TEXT,
+        competencies JSONB,
+        zet INTEGER,
+        content JSONB,
+        study_load JSONB,
+        content_more_text TEXT,
+        content_template_more_text TEXT,
+        methodological_support_template TEXT,
+        assessment_tools_template TEXT,
+        textbook TEXT[],
+        additional_textbook TEXT[],
+        professional_information_resources TEXT,
+        software TEXT,
+        logistics_template TEXT
+      );
+    `);
+
+    // Миграция для таблицы `rpd_1c_exchange`
+    await pool.query(`
+      CREATE TABLE IF NOT EXISTS rpd_1c_exchange (
+        id SERIAL PRIMARY KEY,
+        id_rpd_complect INT NOT NULL REFERENCES rpd_complects(id) ON DELETE CASCADE,
+        department TEXT,
+        discipline TEXT,
+        teachers TEXT[],
+        teacher TEXT,
+        zet INTEGER,
+        place TEXT,
+        record_type TEXT,
+        study_load JSONB,
+        semester INTEGER
+      );
+    `);
+
+    await pool.query(`
+      ALTER TABLE rpd_1c_exchange
+        ALTER COLUMN department TYPE TEXT,
+        ALTER COLUMN discipline TYPE TEXT,
+        ALTER COLUMN teacher TYPE TEXT,
+        ALTER COLUMN place TYPE TEXT;
+    `);
+
+    await pool.query(`
+      ALTER TABLE rpd_profile_templates
+        ALTER COLUMN disciplins_name TYPE TEXT,
+        ALTER COLUMN department TYPE TEXT,
+        ALTER COLUMN teacher TYPE TEXT;
+    `);
+
+    await pool.query(`
+      ALTER TABLE rpd_1c_exchange
+        ADD COLUMN IF NOT EXISTS control_load JSONB;
+    `);
+    await pool.query(`
+      ALTER TABLE rpd_1c_exchange
+        ADD COLUMN IF NOT EXISTS record_type TEXT;
+    `);
+    await pool.query(`
+      ALTER TABLE rpd_profile_templates
+        ADD COLUMN IF NOT EXISTS control_load JSONB;
+    `);
+
+    await pool.query(`
+      ALTER TABLE rpd_profile_templates
+        ADD COLUMN IF NOT EXISTS assessment_tools_questions JSONB;
+    `);
+
+    // Миграция для таблицы `rpd_changeable_values`
+    await pool.query(`
+      CREATE TABLE IF NOT EXISTS rpd_changeable_values (
+        id SERIAL PRIMARY KEY,
+        title VARCHAR(255),
+        value TEXT
+      );
+    `);
+
+    // Миграция для таблицы `users`
+    await pool.query(`
+      CREATE TABLE IF NOT EXISTS users (
+        id SERIAL PRIMARY KEY,
+        name VARCHAR(25) UNIQUE NOT NULL,
+        password VARCHAR(60) NOT NULL,
+        role SMALLINT NOT NULL,
+        fullname JSONB
+      );
+    `);
+
+    // Миграция для таблицы `refresh_sessions`
+    await pool.query(`
+      CREATE TABLE IF NOT EXISTS refresh_sessions (
+        id SERIAL PRIMARY KEY,
+        user_id INT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+        refresh_token VARCHAR(400) NOT NULL,
+        finger_print VARCHAR(32) NOT NULL
+      );
+    `);
+
+    // Миграция для таблицы `teacher_templates`
+    await pool.query(`
+      CREATE TABLE IF NOT EXISTS teacher_templates (
+        id SERIAL PRIMARY KEY,
+        user_id INT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+        template_id INT NOT NULL REFERENCES rpd_profile_templates(id) ON DELETE CASCADE
+      );
+    `);
+
+    // Миграция для таблицы `template_status`
+    await pool.query(`
+      CREATE TABLE IF NOT EXISTS template_status (
+        id SERIAL PRIMARY KEY,
+        id_1c_template INT REFERENCES rpd_1c_exchange(id) ON DELETE CASCADE,
+        id_profile_template INT REFERENCES rpd_profile_templates(id) ON DELETE CASCADE,
+        history JSONB
+      )
+    `);
+
+    // Миграция для таблицы `template_field_comment`
+    //TODO убрать у комментатара ключ
+    await pool.query(`
+      CREATE TABLE IF NOT EXISTS template_field_comment (
+        id SERIAL PRIMARY KEY,
+        id_1c_template INT REFERENCES rpd_1c_exchange(id) ON DELETE CASCADE,
+        commentator_id INT REFERENCES users(id) ON DELETE SET NULL,
+        template_field TEXT,
+        comment_text TEXT,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+      )
+    `);
+
+    // Уникальный индекс для UPSERT операции
+    await pool.query(`
+      CREATE UNIQUE INDEX IF NOT EXISTS idx_template_field_comment_unique 
+      ON template_field_comment(id_1c_template, template_field)
+    `);
+
+    // Функция для автоматического обновления updated_at
+    await pool.query(`
+      CREATE OR REPLACE FUNCTION update_updated_at_column()
+      RETURNS TRIGGER AS $$
+      BEGIN
+        NEW.updated_at = CURRENT_TIMESTAMP;
+        RETURN NEW;
+      END;
+      $$ language 'plpgsql';
+    `);
+
+    // Триггер для автоматического обновления updated_at при изменении записи
+    await pool.query(`
+      DROP TRIGGER IF EXISTS update_template_field_comment_updated_at ON template_field_comment;
+      CREATE TRIGGER update_template_field_comment_updated_at
+        BEFORE UPDATE ON template_field_comment
+        FOR EACH ROW
+        EXECUTE FUNCTION update_updated_at_column();
+    `);
+
+    // Добавить роли пользователя (идемпотентно)
+    await pool.query(`
+      INSERT INTO users (name, password, role, fullname)
+      VALUES (
+        'rop',
+        '$2a$08$sFjUzFJaMI/jCHYzolneXOuCMveOESatqTZTgn8P2rjQzSIet2Y76',
+        3,
+        '{
+          "name": "Иван",
+          "surname": "Иванов",
+          "patronymic": "Иванович"
+        }'
+      )
+      ON CONFLICT (name) DO NOTHING;
+
+      INSERT INTO users (name, password, role, fullname)
+      VALUES (
+        'teacher',
+        '$2a$08$sFjUzFJaMI/jCHYzolneXOuCMveOESatqTZTgn8P2rjQzSIet2Y76',
+        2,
+        '{
+          "name": "Татьяна",
+          "surname": "Беднякова",
+          "patronymic": "Михайловна"
+        }'
+      )
+      ON CONFLICT (name) DO NOTHING;
+
+      INSERT INTO users (name, password, role, fullname)
+      VALUES (
+        'admin',
+        '$2a$08$sFjUzFJaMI/jCHYzolneXOuCMveOESatqTZTgn8P2rjQzSIet2Y76',
+        1,
+        '{
+          "name": "Админ",
+          "surname": "Админов",
+          "patronymic": "Админович"
+        }'
+      )
+      ON CONFLICT (name) DO NOTHING;
+    `);
+
+    // Добавить изменяемые поля для админа (идемпотентно)
+    await pool.query(`
+      INSERT INTO rpd_changeable_values (title, value)
+      SELECT 'uniName', 'Государственное бюджетное образовательное учреждение</br>
+        высшего образования</br>
+        «Университет «Дубна»</br>
+        (государственный университет «Дубна»)'        
+      WHERE NOT EXISTS (
+        SELECT 1 FROM rpd_changeable_values WHERE title = 'uniName'
+      );
+
+      INSERT INTO rpd_changeable_values (title, value)
+      SELECT 'approvalField', 'УТВЕРЖДАЮ</br>
+        и.о. проректора по учебно-методической работе</br>
+        __________________/ Анисимова О.В.</br>
+        __________________202_ год</br>'        
+      WHERE NOT EXISTS (
+        SELECT 1 FROM rpd_changeable_values WHERE title = 'approvalField'
+      );
+    `);
+
+    await pool.query(`
+      CREATE TABLE IF NOT EXISTS user_complect (
+        id SERIAL PRIMARY KEY,
+        user_id INT REFERENCES users(id) ON DELETE CASCADE,
+        complect_id INT REFERENCES rpd_complects(id) ON DELETE CASCADE
+      )
+      `);
+
+    await pool.query(`
+      ALTER TABLE rpd_complects
+        ADD COLUMN IF NOT EXISTS uuid UUID DEFAULT gen_random_uuid();
+    `);
+
+    await pool.query(`
+      ALTER TABLE rpd_complects
+        ALTER COLUMN uuid SET NOT NULL;
+    `);
+
+    await pool.query(`
+      CREATE UNIQUE INDEX IF NOT EXISTS idx_rpd_complects_uuid
+        ON rpd_complects (uuid);
+    `);
+
+    await pool.query(`
+      CREATE UNIQUE INDEX IF NOT EXISTS idx_rpd_complects_business
+        ON rpd_complects (
+          faculty,
+          year,
+          education_form,
+          education_level,
+          profile,
+          direction
+        );
+    `);
+
+    await pool.query(`
+      CREATE UNIQUE INDEX IF NOT EXISTS idx_user_complect_unique
+        ON user_complect (user_id, complect_id);
+    `);
+
+    // Короткий публичный id для шаблонов (12 hex-символов)
+    await pool.query(`
+      ALTER TABLE rpd_profile_templates
+        ADD COLUMN IF NOT EXISTS public_id VARCHAR(12);
+    `);
+    await pool.query(`
+      UPDATE rpd_profile_templates
+        SET public_id = encode(gen_random_bytes(6), 'hex')
+        WHERE public_id IS NULL;
+    `);
+    await pool.query(`
+      ALTER TABLE rpd_profile_templates
+        ALTER COLUMN public_id SET NOT NULL;
+    `);
+    await pool.query(`
+      ALTER TABLE rpd_profile_templates
+        ALTER COLUMN public_id SET DEFAULT encode(gen_random_bytes(6), 'hex');
+    `);
+    await pool.query(`
+      CREATE UNIQUE INDEX IF NOT EXISTS idx_rpd_profile_templates_public_id
+        ON rpd_profile_templates (public_id);
+    `);
+
+    // Удаление дублей дисциплин 1С перед уникальным индексом (повторная выгрузка комплекта)
+    await pool.query(`
+      DELETE FROM template_status ts
+      USING rpd_1c_exchange dup, rpd_1c_exchange keep
+      WHERE dup.id > keep.id
+        AND dup.id_rpd_complect = keep.id_rpd_complect
+        AND dup.discipline = keep.discipline
+        AND dup.semester IS NOT DISTINCT FROM keep.semester
+        AND COALESCE(dup.record_type, '') = COALESCE(keep.record_type, '')
+        AND ts.id_1c_template = dup.id;
+    `);
+
+    await pool.query(`
+      DELETE FROM rpd_1c_exchange dup
+      USING rpd_1c_exchange keep
+      WHERE dup.id > keep.id
+        AND dup.id_rpd_complect = keep.id_rpd_complect
+        AND dup.discipline = keep.discipline
+        AND dup.semester IS NOT DISTINCT FROM keep.semester
+        AND COALESCE(dup.record_type, '') = COALESCE(keep.record_type, '');
+    `);
+
+    await pool.query(`
+      CREATE UNIQUE INDEX IF NOT EXISTS idx_rpd_1c_exchange_discipline_unique
+        ON rpd_1c_exchange (
+          id_rpd_complect,
+          discipline,
+          COALESCE(semester, -1),
+          COALESCE(record_type, '')
+        );
+    `);
+
+    await pool.query(`
+      CREATE TABLE IF NOT EXISTS spec_profiles_cache (
+        id SMALLINT PRIMARY KEY DEFAULT 1 CHECK (id = 1),
+        raw_payload JSONB NOT NULL,
+        tree_payload JSONB NOT NULL,
+        payload_hash TEXT NOT NULL,
+        synced_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+      );
+    `);
+
+    await pool.query(`
+      ALTER TABLE rpd_complects
+        ADD COLUMN IF NOT EXISTS last_synced_at TIMESTAMPTZ,
+        ADD COLUMN IF NOT EXISTS has_pending_changes BOOLEAN NOT NULL DEFAULT false;
+    `);
+
+    await pool.query(`
+      ALTER TABLE rpd_1c_exchange
+        ADD COLUMN IF NOT EXISTS removed_at TIMESTAMPTZ;
+    `);
+
+    await pool.query(`
+      CREATE TABLE IF NOT EXISTS complect_sync_log (
+        id SERIAL PRIMARY KEY,
+        complect_id INT NOT NULL REFERENCES rpd_complects(id) ON DELETE CASCADE,
+        user_id INT REFERENCES users(id) ON DELETE SET NULL,
+        source VARCHAR(16) NOT NULL CHECK (source IN ('1c', 'manual')),
+        created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+      );
+    `);
+
+    await pool.query(`
+      CREATE TABLE IF NOT EXISTS template_field_changes (
+        id SERIAL PRIMARY KEY,
+        sync_log_id INT NOT NULL REFERENCES complect_sync_log(id) ON DELETE CASCADE,
+        id_1c_exchange INT NOT NULL REFERENCES rpd_1c_exchange(id) ON DELETE CASCADE,
+        id_profile_template INT REFERENCES rpd_profile_templates(id) ON DELETE SET NULL,
+        field_key VARCHAR(64) NOT NULL,
+        old_value JSONB,
+        new_value JSONB,
+        applied_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+        acknowledged_at TIMESTAMPTZ
+      );
+    `);
+
+    await pool.query(`
+      CREATE INDEX IF NOT EXISTS idx_complect_sync_log_complect_id
+        ON complect_sync_log (complect_id);
+    `);
+
+    await pool.query(`
+      CREATE INDEX IF NOT EXISTS idx_template_field_changes_profile_template
+        ON template_field_changes (id_profile_template)
+        WHERE id_profile_template IS NOT NULL;
+    `);
+
+    await pool.query(`
+      CREATE INDEX IF NOT EXISTS idx_template_field_changes_unacknowledged
+        ON template_field_changes (id_profile_template, id_1c_exchange)
+        WHERE acknowledged_at IS NULL;
+    `);
+
+    console.log("Все миграции загружены успешно");
+  } catch (error) {
+    console.error("Ошибка загрузки миграций", error.stack);
+    process.exit(1); // Выход с ошибкой
+  }
+})();
