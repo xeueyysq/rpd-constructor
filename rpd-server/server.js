@@ -53,9 +53,6 @@ app.use(
   })
 );
 
-// OPTIONS-запросы для Preflight
-app.options("*", cors());
-
 app.use(fileUpload());
 
 app.use(
