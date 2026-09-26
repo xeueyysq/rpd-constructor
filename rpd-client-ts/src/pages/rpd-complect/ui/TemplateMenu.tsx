@@ -131,6 +131,7 @@ const TemplateMenu: FC<TemplateMenu> = ({
     <>
       <IconButton
         id="basic-button"
+        aria-label="Меню шаблона"
         aria-controls={open ? "basic-menu" : undefined}
         aria-haspopup="true"
         aria-expanded={open ? "true" : undefined}
