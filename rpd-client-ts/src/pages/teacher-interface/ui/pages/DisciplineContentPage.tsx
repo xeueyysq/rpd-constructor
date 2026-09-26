@@ -4,7 +4,11 @@ import { DisciplineContentTable } from "../changeable-elements/DisciplineContent
 import { TemplatePagesPath } from "@shared/enums";
 import { PageTitleComment } from "../PageTitleComment";
 
-export function DisciplineContentPage() {
+export function DisciplineContentPage({
+  canEditPlan = false,
+}: {
+  canEditPlan?: boolean;
+}) {
   return (
     <Box>
       <PageTitleComment
@@ -12,7 +16,7 @@ export function DisciplineContentPage() {
         sx={{ pb: 2 }}
         templateField={TemplatePagesPath.DISCIPLINE_CONTENT}
       />
-      <DisciplineContentTable />
+      <DisciplineContentTable canEditPlan={canEditPlan} />
       <PageTitleComment
         sx={{ py: 2, pt: 3 }}
         title="Содержание дисциплины"

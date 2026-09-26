@@ -35,10 +35,8 @@ export function EditableTableCell({
       <TextField
         type="number"
         slotProps={{
-          input: {
-            inputProps: {
-              min: 0,
-            },
+          htmlInput: {
+            min: 0,
           },
         }}
         onFocus={(e) => e.target.select()}

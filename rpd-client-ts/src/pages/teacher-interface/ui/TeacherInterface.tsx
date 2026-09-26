@@ -91,7 +91,9 @@ export function TeacherInterface() {
     [TemplatePagesPath.DISCIPLINE_SCOPE]: (
       <ScopeDisciplinePage readOnly={isTeacher} />
     ),
-    [TemplatePagesPath.DISCIPLINE_CONTENT]: <DisciplineContentPage />,
+    [TemplatePagesPath.DISCIPLINE_CONTENT]: (
+      <DisciplineContentPage canEditPlan={!isTeacher} />
+    ),
     [TemplatePagesPath.DISCIPLINE_SUPPORT]: <DisciplineSupportPage />,
     [TemplatePagesPath.DISCIPLINE_EVALUATIONS_FUNDS]: (
       <DisciplineEvaluationsFunds />

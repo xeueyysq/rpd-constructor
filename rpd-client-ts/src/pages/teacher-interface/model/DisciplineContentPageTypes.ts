@@ -30,8 +30,13 @@ export interface ObjectHours {
   lectures: number;
   seminars: number;
   control: number;
-  lect_and_sems: number;
+  contact: number;
   independent_work: number;
+}
+
+export interface StudyPlanHours extends ObjectHours {
+  has_total: boolean;
+  has_breakdown: boolean;
 }
 
 export interface DisciplineContentData {

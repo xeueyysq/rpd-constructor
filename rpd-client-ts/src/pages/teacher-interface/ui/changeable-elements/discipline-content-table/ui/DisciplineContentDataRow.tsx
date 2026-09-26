@@ -1,11 +1,8 @@
 import { Box, TableCell, TableRow, TextField } from "@mui/material";
 import { EditableTableCell } from "../../EditableTableCell";
-import {
-  ATTESTATION_ROW_ID,
-  DisciplineContentRow,
-  EditableRowKey,
-} from "../types";
-import { getRowHours } from "../utils";
+import { DisciplineContentRow, EditableRowKey } from "../types";
+import { ATTESTATION_ROW_ID } from "@pages/teacher-interface/model/useDisciplineContentData";
+import { getRowHours } from "@pages/teacher-interface/lib/hours";
 
 type DisciplineContentDataRowProps = {
   rowId: string;
@@ -71,7 +68,7 @@ export function DisciplineContentDataRow({
           textAlign: "center",
         }}
       >
-        {rowHours.total}
+        {rowHours.all}
       </TableCell>
       <EditableTableCell
         value={row.lectures}
@@ -81,11 +78,6 @@ export function DisciplineContentDataRow({
       <EditableTableCell
         value={row.seminars}
         onValueChange={(value) => onValueChange(rowId, "seminars", value)}
-        readOnly={readOnly}
-      />
-      <EditableTableCell
-        value={row.control ?? null}
-        onValueChange={(value) => onValueChange(rowId, "control", value)}
         readOnly={readOnly}
       />
       <TableCell
@@ -102,6 +94,11 @@ export function DisciplineContentDataRow({
           onValueChange(rowId, "independent_work", value)
         }
         readOnly={readOnly}
+      />
+      <EditableTableCell
+        value={row.control ?? null}
+        onValueChange={(value) => onValueChange(rowId, "control", value)}
+        readOnly={readOnly || rowId !== ATTESTATION_ROW_ID}
       />
     </TableRow>
   );
