@@ -1,6 +1,8 @@
 import type { RpdComplectRow, RpdProfileTemplateRow } from "../types/db.ts";
 import type { Pool } from "pg";
 import moment from "moment";
+import { patchStudyLoad } from "../modules/disciplineScope.ts";
+import { isEditableTemplateField } from "../validators/RpdProfileTemplates.ts";
 
 type AssessmentQuestionEntry = { id: string; text: string; correctAnswer?: string };
 type AssessmentCompetence = { openPool?: AssessmentQuestionEntry[]; closedPool?: AssessmentQuestionEntry[]; openQuestions?: unknown; closedQuestions?: unknown; selectedOpenIds?: string[]; selectedClosedIds?: string[] };
@@ -108,6 +110,7 @@ class RpdProfileTemplates {
   }
 
   async updateById(id: unknown, fieldToUpdate: string, value: unknown) {
+    if (!isEditableTemplateField(fieldToUpdate)) throw new Error("Недопустимое поле шаблона");
     const numericId = await this.resolveTemplateId(id);
     if (numericId == null) return null;
     const preparedValue =
@@ -122,6 +125,36 @@ class RpdProfileTemplates {
       [preparedValue, numericId]
     );
     return queryResult.rows[0];
+  }
+
+  async updateStudyLoad(id: unknown, hours: Partial<Record<"all" | "lectures" | "seminars" | "control" | "independent_work", number>> | undefined, zet: number | undefined) {
+    const numericId = await this.resolveTemplateId(id);
+    if (numericId == null) return null;
+    const client = await this.pool.connect();
+    try {
+      await client.query("BEGIN");
+      const current = await client.query<Pick<RpdProfileTemplateRow, "study_load">>(
+        "SELECT study_load FROM rpd_profile_templates WHERE id = $1 FOR UPDATE", [numericId]
+      );
+      if (!current.rows[0]) {
+        await client.query("COMMIT");
+        return null;
+      }
+      const studyLoad = hours ? patchStudyLoad(current.rows[0].study_load, hours) : current.rows[0].study_load;
+      const result = await client.query<Pick<RpdProfileTemplateRow, "study_load" | "control_load" | "zet">>(
+        zet === undefined
+          ? "UPDATE rpd_profile_templates SET study_load = $1 WHERE id = $2 RETURNING study_load, control_load, zet"
+          : "UPDATE rpd_profile_templates SET study_load = $1, zet = $3 WHERE id = $2 RETURNING study_load, control_load, zet",
+        zet === undefined ? [JSON.stringify(studyLoad), numericId] : [JSON.stringify(studyLoad), numericId, zet]
+      );
+      await client.query("COMMIT");
+      return result.rows[0] ?? null;
+    } catch (error) {
+      await client.query("ROLLBACK");
+      throw error;
+    } finally {
+      client.release();
+    }
   }
 
   async upsetTemplateComment(templateId: unknown, commentatorId: unknown, field: unknown, value: unknown) {
@@ -322,6 +355,7 @@ class RpdProfileTemplates {
   }
 
   async copyTemplateData(sourceTemplateId: unknown, targetTemplateId: unknown, fieldToCopy: string) {
+    if (!isEditableTemplateField(fieldToCopy)) throw new Error("Недопустимое поле шаблона");
     try {
       const sourceId = await this.resolveTemplateId(sourceTemplateId);
       const targetId = await this.resolveTemplateId(targetTemplateId);

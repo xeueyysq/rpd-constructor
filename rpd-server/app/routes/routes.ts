@@ -6,6 +6,7 @@ import { pool } from "../../config/db.ts";
 import TokenService from "../services/Token.ts";
 import requireRole from "../middleware/requireRole.ts";
 import { USER_ROLES } from "../models/constants.ts";
+import RpdProfileTemplatesValidator from "../validators/RpdProfileTemplates.ts";
 
 import RpdChangeableValuesController from "../controllers/rpdChangeableValuesController.ts";
 const rpdChangeableValuesController = new RpdChangeableValuesController(pool);
@@ -34,7 +35,15 @@ router.post(
 );
 router.put(
   "/update-json-value/:id",
+  TokenService.checkAccess,
   rpdProfileTemplatesController.updateById.bind(rpdProfileTemplatesController)
+);
+router.put(
+  "/rpd-profile-templates/:id/study-load",
+  TokenService.checkAccess,
+  requireRole(USER_ROLES.ROP, USER_ROLES.ADMIN),
+  RpdProfileTemplatesValidator.studyLoad,
+  rpdProfileTemplatesController.updateStudyLoad.bind(rpdProfileTemplatesController)
 );
 router.put(
   "/upset-template-comment/:id",

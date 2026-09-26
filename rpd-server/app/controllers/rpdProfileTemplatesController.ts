@@ -3,6 +3,8 @@ import { errorMessage } from "../utils/Errors.ts";
 import type { Pool } from "pg";
 import type { Request, Response } from "express";
 import { getUnacknowledgedFieldChanges } from "../modules/complectSync.ts";
+import { getStudyPlanHours } from "../modules/disciplineScope.ts";
+import { isEditableTemplateField } from "../validators/RpdProfileTemplates.ts";
 import RpdProfileTemplates from "../models/rpd_profile_templates.ts";
 import {
   AlignmentType,
@@ -264,7 +266,7 @@ class RpdProfileTemplatesController {
         return res.status(404).json({ message: "Шаблон не найден" });
       }
       const fieldChanges = await getUnacknowledgedFieldChanges(value.id);
-      res.json({ ...value, fieldChanges });
+      res.json({ ...value, fieldChanges, study_plan_hours: getStudyPlanHours(value.study_load, value.control_load) });
     } catch (err) {
       res.status(500).json({ message: errorMessage(err) });
     }
@@ -272,6 +274,9 @@ class RpdProfileTemplatesController {
 
   async updateById(req: Request<ParamsDictionary, unknown, Record<string, unknown>>, res: Response) {
     try {
+      if (!isEditableTemplateField(req.body.fieldToUpdate)) {
+        return res.status(400).json({ message: "Недопустимое поле шаблона" });
+      }
       const updatedItem = await this.model.updateById(
         req.params.id,
         req.body.fieldToUpdate as string,
@@ -284,6 +289,13 @@ class RpdProfileTemplatesController {
     } catch (err) {
       res.status(500).json({ message: errorMessage(err) });
     }
+  }
+
+  async updateStudyLoad(req: Request<ParamsDictionary, unknown, { hours?: Partial<Record<"all" | "lectures" | "seminars" | "control" | "independent_work", number>>; zet?: number }>, res: Response) {
+    const updated = await this.model.updateStudyLoad(req.params.id, req.body.hours, req.body.zet);
+    if (!updated) return res.status(404).json({ message: "Шаблон не найден" });
+    return res.json({ study_load: updated.study_load, zet: updated.zet,
+      study_plan_hours: getStudyPlanHours(updated.study_load, updated.control_load) });
   }
 
   async upsetTemplateComment(req: Request<ParamsDictionary, unknown, Record<string, unknown>>, res: Response) {
@@ -382,6 +394,9 @@ class RpdProfileTemplatesController {
         return res.status(400).json({
           message: "Нет необходимых параметров",
         });
+      }
+      if (!isEditableTemplateField(fieldToCopy)) {
+        return res.status(400).json({ message: "Недопустимое поле шаблона" });
       }
 
       const result = await this.model.copyTemplateData(
