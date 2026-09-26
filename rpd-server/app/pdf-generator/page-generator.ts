@@ -2,6 +2,7 @@ import { pool } from "../../config/db.ts";
 import RpdChangeableValues from "../models/rpd_changeable_values.ts";
 import RpdProfileTemplates from "../models/rpd_profile_templates.ts";
 import RpdComplects from "../models/rpd_complects.ts";
+import { getContentRowHours, getStudyPlanHours, sumContentHours } from "../modules/disciplineScope.ts";
 
 // Общий инлайн-стилизованный HTML для PDF (puppeteer) и Word (@turbodocx/html-to-docx).
 // Особенности конвертера html->docx (см. memory turbodocx-html-to-docx-quirks):
@@ -14,6 +15,10 @@ const CELL_STYLE = "border:1px solid black; padding:3px; vertical-align:top;";
 const HEAD_CELL_STYLE = `${CELL_STYLE} font-weight:600; text-align:center;`;
 const TABLE_STYLE =
   "width:100%; border-collapse:collapse; margin:20px 0; font-size:16px;";
+
+function formatHours(value: number) {
+  return String(value).replace(".", ",");
+}
 
 // Нормализуем кривые/закрывающие <br> к <br/>, который корректно понимают оба рендера.
 function normalizeBr(value: unknown) {
@@ -141,33 +146,68 @@ async function generateApprovalPage(id: unknown) {
   return approvalPageFragment;
 }
 
-function contentResultFunc(data: Record<string, { lectures?: unknown; seminars?: unknown; independent_work?: unknown }> | null) {
-  const summ = {
-    result: 0,
-    lectures: 0,
-    seminars: 0,
-    lect_and_sems: 0,
-    independent_work: 0,
-  };
+export function buildContentTableHtml(content: unknown, { forWord = false } = {}) {
+  const rows = Array.isArray(content) ? content
+    : content !== null && typeof content === "object" ? Object.values(content) : [];
+  const contentTableRows = rows.map((row) => {
+    const value = row !== null && typeof row === "object" && !Array.isArray(row)
+      ? row as Record<string, unknown> : {};
+    const hours = getContentRowHours(row);
+    return `
+              <tr>
+                  <td style="${CELL_STYLE}">${value.theme || ""}</td>
+                  <td style="${CELL_STYLE}">${formatHours(hours.total)}</td>
+                  <td style="${CELL_STYLE}">${formatHours(hours.lectures)}</td>
+                  <td style="${CELL_STYLE}">${formatHours(hours.seminars)}</td>
+                  <td style="${CELL_STYLE}">${formatHours(hours.contact)}</td>
+                  <td style="${CELL_STYLE}">${formatHours(hours.independent_work)}</td>
+                  <td style="${CELL_STYLE}">${formatHours(hours.control)}</td>
+              </tr>
+          `;
+  }).join("");
+  const total = sumContentHours(content);
 
-  if (!data) {
-    return summ;
-  }
+  // В Word после colspan вместо rowspan нужны обычные ячейки и заполнители.
+  const independentHeader = forWord
+    ? `<th style="${HEAD_CELL_STYLE}">Самостоятельная работа обучающегося</th>`
+    : `<th style="${HEAD_CELL_STYLE}" rowspan="2">Самостоятельная работа обучающегося</th>`;
+  const controlHeader = forWord
+    ? `<th style="${HEAD_CELL_STYLE}">Контроль</th>`
+    : `<th style="${HEAD_CELL_STYLE}" rowspan="2">Контроль</th>`;
+  const headerFillers = forWord
+    ? `<th style="${HEAD_CELL_STYLE}"></th><th style="${HEAD_CELL_STYLE}"></th>`
+    : "";
 
-  Object.keys(data).forEach((value) => {
-    const item = data[value] || {};
-    const lectures = Number(item.lectures) || 0;
-    const seminars = Number(item.seminars) || 0;
-    const independentWork = Number(item.independent_work) || 0;
-
-    summ.result += lectures + seminars + independentWork;
-    summ.lectures += lectures;
-    summ.seminars += seminars;
-    summ.lect_and_sems += lectures + seminars;
-    summ.independent_work += independentWork;
-  });
-
-  return summ;
+  return `<table style="${TABLE_STYLE}">
+                <tbody>
+                    <tr>
+                        <th style="${HEAD_CELL_STYLE}" rowspan="3">Наименование разделов и тем дисциплины</th>
+                        <th style="${HEAD_CELL_STYLE}" rowspan="3">Всего(академ. часы)</th>
+                        <th style="${HEAD_CELL_STYLE}" colspan="5">в том числе:</th>
+                    </tr>
+                    <tr>
+                        <th style="${HEAD_CELL_STYLE}" colspan="3">Контактная работа (работа во взаимодействии с преподавателем)</th>
+                        ${independentHeader}
+                        ${controlHeader}
+                    </tr>
+                    <tr>
+                        <th style="${HEAD_CELL_STYLE}">Лекции</th>
+                        <th style="${HEAD_CELL_STYLE}">Практические (семинарские) занятия</th>
+                        <th style="${HEAD_CELL_STYLE}"><b>Всего</b></th>
+                        ${headerFillers}
+                    </tr>
+                    ${contentTableRows}
+                    <tr>
+                        <td style="${CELL_STYLE}"><b>Итого за семестр / курс</b></td>
+                        <td style="${CELL_STYLE}"><b>${formatHours(total.total)}</b></td>
+                        <td style="${CELL_STYLE}"><b>${formatHours(total.lectures)}</b></td>
+                        <td style="${CELL_STYLE}"><b>${formatHours(total.seminars)}</b></td>
+                        <td style="${CELL_STYLE}"><b>${formatHours(total.contact)}</b></td>
+                        <td style="${CELL_STYLE}"><b>${formatHours(total.independent_work)}</b></td>
+                        <td style="${CELL_STYLE}"><b>${formatHours(total.control)}</b></td>
+                    </tr>
+                </tbody>
+            </table>`;
 }
 
 async function generateContentPage(id: unknown, { forWord = false } = {}) {
@@ -187,7 +227,8 @@ async function generateContentPage(id: unknown, { forWord = false } = {}) {
     return "";
   }
 
-  const contentResult = contentResultFunc(jsonData.content as Record<string, { lectures?: unknown; seminars?: unknown; independent_work?: unknown }> | null);
+  const contentResult = sumContentHours(jsonData.content);
+  const studyPlanHours = getStudyPlanHours(jsonData.study_load, jsonData.control_load);
 
   const competenciesContent = jsonData.competencies
     ? Object.keys(jsonData.competencies as Record<string, unknown>)
@@ -214,40 +255,6 @@ async function generateContentPage(id: unknown, { forWord = false } = {}) {
           `;
         })
         .join("")
-    : "";
-
-  const contentTableRows = jsonData.content
-    ? Object.keys(jsonData.content as Record<string, unknown>)
-        .map((row) => {
-          const value = (jsonData.content as Record<string, { lectures?: unknown; seminars?: unknown; independent_work?: unknown; theme?: string }>)[row] || {};
-          const lectures = Number(value.lectures) || 0;
-          const seminars = Number(value.seminars) || 0;
-          const independentWork = Number(value.independent_work) || 0;
-          return `
-              <tr>
-                  <td style="${CELL_STYLE}">${value.theme || ""}</td>
-                  <td style="${CELL_STYLE}">${
-            lectures + seminars + independentWork
-          }</td>
-                  <td style="${CELL_STYLE}">${lectures}</td>
-                  <td style="${CELL_STYLE}">${seminars}</td>
-                  <td style="${CELL_STYLE}">${lectures + seminars}</td>
-                  <td style="${CELL_STYLE}">${independentWork}</td>
-              </tr>
-          `;
-        })
-        .join("")
-    : "";
-
-  // "Самостоятельная работа" в шапке таблицы объёма. В PDF — вертикальное
-  // объединение (rowspan=2). html-to-docx ломает rowspan для колонок, идущих
-  // после colspan, поэтому для Word используем обычную ячейку + пустую ячейку
-  // снизу. См. memory turbodocx-html-to-docx-quirks.
-  const independentHeaderRow1 = forWord
-    ? `<th style="${HEAD_CELL_STYLE}">Самостоятельная работа обучающегося</th>`
-    : `<th style="${HEAD_CELL_STYLE}" rowspan="2">Самостоятельная работа обучающегося</th>`;
-  const independentHeaderFiller = forWord
-    ? `<th style="${HEAD_CELL_STYLE}"></th>`
     : "";
 
   const textbookList = Array.isArray(jsonData.textbook)
@@ -300,47 +307,10 @@ async function generateContentPage(id: unknown, { forWord = false } = {}) {
             <div class="content-page-content" style="${contentStyle}"><p style="text-indent:30px;">Объем дисциплины составляет ${
     jsonData.zet || ""
   } зачетных единиц, всего ${
-    contentResult.result
+    formatHours(studyPlanHours.has_total ? studyPlanHours.all : contentResult.total)
   } академических часов.</p></div>
             ${title("5. Содержание дисциплины")}
-            <table style="${TABLE_STYLE}">
-                <tbody>
-                    <tr>
-                        <th style="${HEAD_CELL_STYLE}" rowspan="3">Наименование разделов и тем дисциплины</th>
-                        <th style="${HEAD_CELL_STYLE}" rowspan="3">Всего(академ. часы)</th>
-                        <th style="${HEAD_CELL_STYLE}" colspan="4">в том числе:</th>
-                    </tr>
-                    <tr>
-                        <th style="${HEAD_CELL_STYLE}" colspan="3">Контактная работа (работа во взаимодействии с преподавателем)</th>
-                        ${independentHeaderRow1}
-                    </tr>
-                    <tr>
-                        <th style="${HEAD_CELL_STYLE}">Лекции</th>
-                        <th style="${HEAD_CELL_STYLE}">Практические (семинарские) занятия</th>
-                        <th style="${HEAD_CELL_STYLE}"><b>Всего</b></th>
-                        ${independentHeaderFiller}
-                    </tr>
-                    ${contentTableRows}
-                    <tr>
-                        <td style="${CELL_STYLE}"><b>Итого за семестр / курс</b></td>
-                        <td style="${CELL_STYLE}"><b>${
-    contentResult.result
-  }</b></td>
-                        <td style="${CELL_STYLE}"><b>${
-    contentResult.lectures
-  }</b></td>
-                        <td style="${CELL_STYLE}"><b>${
-    contentResult.seminars
-  }</b></td>
-                        <td style="${CELL_STYLE}"><b>${
-    contentResult.lect_and_sems
-  }</b></td>
-                        <td style="${CELL_STYLE}"><b>${
-    contentResult.independent_work
-  }</b></td>
-                    </tr>
-                </tbody>
-            </table>
+            ${buildContentTableHtml(jsonData.content, { forWord })}
             ${title("Содержание дисциплины")}
             <div class="content-page-content" style="${contentStyle}">${
     jsonData.content_more_text || ""
