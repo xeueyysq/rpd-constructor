@@ -1,13 +1,19 @@
-// @ts-nocheck: типизация существующего кода — следующий пакет
+import type { Rpd1cExchangeRow } from "../types/db.ts";
+import type { Pool } from "pg";
 import moment from "moment";
 import { ASSIGNABLE_TEACHER_ROLES } from "./constants.ts";
 
+type ResultRow = { competence_id: number; competence: string; indicator_id: number; indicator: string; discipline: string | null };
+type ResultEntry = { competence: string; indicator: string; disciplines: string[] };
+type RpdTemplateListRow = Pick<Rpd1cExchangeRow, "id" | "discipline" | "teachers" | "teacher" | "semester" | "removed_at"> & { id_profile_template: number | null; profile_template_public_id: string | null; status: unknown; sync_status: string; last_change_summary: string[]; sync_changed_at: Date | null; has_profile_template: boolean };
+
 class Rpd1cExchange {
-  constructor(pool) {
+  pool: Pool;
+  constructor(pool: Pool) {
     this.pool = pool;
   }
 
-  normalizeTeachers(teachers) {
+  normalizeTeachers(teachers: unknown) {
     const list = Array.isArray(teachers)
       ? teachers
       : teachers
@@ -20,7 +26,7 @@ class Rpd1cExchange {
     ];
   }
 
-  splitTeacherString(teacher) {
+  splitTeacherString(teacher: unknown) {
     if (typeof teacher !== "string" || !teacher.trim()) return [];
     return teacher
       .split(",")
@@ -28,8 +34,8 @@ class Rpd1cExchange {
       .filter(Boolean);
   }
 
-  mergeTeacherLists(...lists) {
-    const merged = [];
+  mergeTeacherLists(...lists: unknown[]) {
+    const merged: string[] = [];
     for (const list of lists) {
       if (!Array.isArray(list)) continue;
       for (const teacher of list) {
@@ -42,7 +48,7 @@ class Rpd1cExchange {
   }
 
   async getAssignableTeachers() {
-    const { rows } = await this.pool.query(
+    const { rows } = await this.pool.query<{ teacher: string }>(
       `
         SELECT trim(concat_ws(
           ' ',
@@ -60,7 +66,7 @@ class Rpd1cExchange {
     return [...new Set(rows.map((row) => row.teacher).filter(Boolean))];
   }
 
-  teacherNameToFullnameJson(teacher) {
+  teacherNameToFullnameJson(teacher: unknown) {
     const parts =
       typeof teacher === "string" ? teacher.trim().split(/\s+/) : [];
     return {
@@ -70,7 +76,7 @@ class Rpd1cExchange {
     };
   }
 
-  async setResultsData(data, complectId) {
+  async setResultsData(data: unknown, complectId: unknown) {
     if (!complectId) {
       throw new Error("Не указан идентификатор комплекта");
     }
@@ -84,7 +90,7 @@ class Rpd1cExchange {
     try {
       await client.query("BEGIN");
 
-      const { rows: setRows } = await client.query(
+      const { rows: setRows } = await client.query<{ id: number }>(
         `
           INSERT INTO planned_results_sets (complect_id)
           VALUES ($1)
@@ -109,7 +115,7 @@ class Rpd1cExchange {
         [setId]
       );
 
-      const competenciesMap = new Map();
+      const competenciesMap = new Map<string, { id?: number; indicators: Map<string, { id?: number }> }>();
 
       for (const row of data) {
         if (!row) continue;
@@ -129,7 +135,7 @@ class Rpd1cExchange {
         let competenceRecord = competenciesMap.get(competenceText);
 
         if (!competenceRecord) {
-          const { rows: competenceRows } = await client.query(
+          const { rows: competenceRows } = await client.query<{ id: number }>(
             `
               INSERT INTO planned_competencies (set_id, competence)
               VALUES ($1, $2)
@@ -155,7 +161,7 @@ class Rpd1cExchange {
         let indicatorRecord = competenceRecord.indicators.get(indicatorText);
 
         if (!indicatorRecord) {
-          const { rows: indicatorRows } = await client.query(
+          const { rows: indicatorRows } = await client.query<{ id: number }>(
             `
               INSERT INTO planned_indicators (competence_id, indicator)
               VALUES ($1, $2)
@@ -175,8 +181,8 @@ class Rpd1cExchange {
         const uniqueDisciplines = [
           ...new Set(
             disciplines
-              .filter((discipline) => typeof discipline === "string")
-              .map((discipline) => discipline.trim())
+              .filter((discipline: unknown): discipline is string => typeof discipline === "string")
+              .map((discipline: string) => discipline.trim())
               .filter(Boolean)
           ),
         ];
@@ -203,13 +209,13 @@ class Rpd1cExchange {
     }
   }
 
-  async getResultsData(complectId) {
+  async getResultsData(complectId: unknown) {
     if (!complectId) {
       throw new Error("Не указан идентификатор комплекта");
     }
 
     try {
-      const { rows } = await this.pool.query(
+      const { rows } = await this.pool.query<ResultRow>(
         `
           SELECT 
             c.id AS competence_id,
@@ -227,8 +233,8 @@ class Rpd1cExchange {
         [complectId]
       );
 
-      const indicatorsMap = new Map();
-      const orderedResults = [];
+      const indicatorsMap = new Map<number, ResultEntry>();
+      const orderedResults: ResultEntry[] = [];
 
       for (const row of rows) {
         if (!indicatorsMap.has(row.indicator_id)) {
@@ -242,7 +248,7 @@ class Rpd1cExchange {
         }
 
         if (row.discipline) {
-          indicatorsMap.get(row.indicator_id).disciplines.push(row.discipline);
+          indicatorsMap.get(row.indicator_id)!.disciplines.push(row.discipline);
         }
       }
 
@@ -253,10 +259,10 @@ class Rpd1cExchange {
     }
   }
 
-  async findRpd(complectId) {
+  async findRpd(complectId: unknown) {
     try {
       const [queryResult, assignableTeachers] = await Promise.all([
-        this.pool.query(
+        this.pool.query<RpdTemplateListRow>(
           `
         SELECT r.id, r.discipline, r.teachers, r.teacher,
         r.semester, r.removed_at,
@@ -319,7 +325,7 @@ class Rpd1cExchange {
     }
   }
 
-  async createTemplate(id_1c, complectId, teacher, year, discipline, userName) {
+  async createTemplate(id_1c: unknown, complectId: unknown, teacher: unknown, year: unknown, discipline: unknown, userName: unknown) {
     const teachers = this.normalizeTeachers(teacher);
     if (!id_1c) throw new Error("Не указан id_1c");
     if (!complectId) throw new Error("Не указан complectId");
@@ -329,7 +335,7 @@ class Rpd1cExchange {
     try {
       await client.query("BEGIN");
 
-      const { rows: statusRows } = await client.query(
+      const { rows: statusRows } = await client.query<{ id_profile_template: number | null }>(
         `
           SELECT id_profile_template
           FROM template_status
@@ -344,7 +350,7 @@ class Rpd1cExchange {
         return { result: "record exists" };
       }
 
-      const templateData = await client.query(
+      const templateData = await client.query<Rpd1cExchangeRow>(
         `
           SELECT * FROM rpd_1c_exchange
           WHERE id = $1
@@ -367,7 +373,7 @@ class Rpd1cExchange {
           continue;
         }
 
-        const { rows: userRows } = await client.query(
+        const { rows: userRows } = await client.query<{ id: number }>(
           `
             SELECT id
             FROM users
@@ -390,7 +396,7 @@ class Rpd1cExchange {
       const competencies = {};
       const teacherString = teachers.join(", ");
 
-      const queryResult = await client.query(
+      const queryResult = await client.query<{ id: number }>(
         `
           INSERT INTO rpd_profile_templates (
             id_rpd_complect,

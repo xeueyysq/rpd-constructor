@@ -6,7 +6,6 @@ const app = express();
 import cors from "cors";
 import fileUpload from "express-fileupload";
 
-
 import cookieParser from "cookie-parser";
 import Fingerprint from "./app/middleware/fingerprint.ts";
 import AuthRootRouter from "./app/routes/Auth.ts";

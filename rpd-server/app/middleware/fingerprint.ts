@@ -1,10 +1,15 @@
-// @ts-nocheck: типизация существующего кода — следующий пакет
+import type { Request, Response, NextFunction } from "express";
+import type { RequestFingerprint } from "../types/express.ts";
 import async from "async";
 import murmurhash3js from "murmurhash3js";
 import traverse from "traverse";
 import { UAParser } from "ua-parser-js";
 
-function useragent(next) {
+type FingerprintNext = (err: Error | null, obj?: Record<string, unknown>) => void;
+type FingerprintParameter = (this: FingerprintContext, next: FingerprintNext, req?: Request, res?: Response) => void;
+type FingerprintContext = { req: Request; parameters: FingerprintParameter[] };
+
+function useragent(this: FingerprintContext, next: FingerprintNext) {
   const raw = String(this.req.headers["user-agent"] || "").slice(0, 512);
   const agent = new UAParser(raw).getResult();
   const browserVersion = agent.browser.version || "";
@@ -29,7 +34,7 @@ function useragent(next) {
   });
 }
 
-function acceptHeaders(next) {
+function acceptHeaders(this: FingerprintContext, next: FingerprintNext) {
   next(null, {
     acceptHeaders: {
       accept: this.req.headers.accept,
@@ -38,28 +43,28 @@ function acceptHeaders(next) {
   });
 }
 
-function fingerprintMiddleware(setting) {
+function fingerprintMiddleware(setting: { parameters?: FingerprintParameter[] } = {}) {
   const config = Object.assign(
     {
       parameters: [useragent, acceptHeaders],
     },
     setting
-  );
+  ) as FingerprintContext;
 
   for (let i = 0; i < config.parameters.length; i++) {
     config.parameters[i] = config.parameters[i].bind(config);
   }
 
-  return (req, res, next) => {
-    const components = {};
+  return (req: Request, res: Response, next: NextFunction) => {
+    const components: Record<string, unknown> = {};
     config.req = req;
-    const fingerprint = { hash: null };
+    const fingerprint: RequestFingerprint = { hash: null, components };
 
     async.eachLimit(
       config.parameters,
       1,
       (parameter, callback) => {
-        parameter((err, obj) => {
+        parameter.call(config, (err, obj) => {
           if (obj) {
             for (const key in obj) {
               components[key] = obj[key];
@@ -70,7 +75,7 @@ function fingerprintMiddleware(setting) {
       },
       (err) => {
         if (!err) {
-          const leaves = traverse(components).reduce(function (acc, x) {
+          const leaves: unknown[] = traverse(components).reduce(function (this: traverse.TraverseContext, acc: unknown[], x: unknown) {
             if (this.isLeaf) {
               acc.push(x);
             }

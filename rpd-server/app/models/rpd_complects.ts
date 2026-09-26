@@ -1,14 +1,19 @@
-// @ts-nocheck: типизация существующего кода — следующий пакет
+import type { RpdComplectRow } from "../types/db.ts";
+import type { Pool } from "pg";
 import { exchange1C } from "../modules/1cExchange.ts";
 
+export type ComplectCriteria = { faculty: string; year: number; formEducation: string; levelEducation: string; profile: string; directionOfStudy: string };
+type ComplectListRow = Pick<RpdComplectRow, "id" | "uuid" | "faculty" | "year" | "profile"> & { formEducation: string | null; levelEducation: string | null; directionOfStudy: string | null; lastSyncedAt: Date | null; hasPendingChanges: boolean };
+
 class RpdComplects {
-  constructor(pool) {
+  pool: Pool;
+  constructor(pool: Pool) {
     this.pool = pool;
   }
 
-  async findRpdComplect(data, userId) {
+  async findRpdComplect(data: ComplectCriteria, userId: number | undefined) {
     try {
-      const result = await this.pool.query(
+      const result = await this.pool.query<{ id: number }>(
         `
                 SELECT rc.id 
                 FROM rpd_complects rc
@@ -36,13 +41,13 @@ class RpdComplects {
       return resultId;
     } catch (error) {
       console.log(error);
-      throw new Error(error, { cause: error });
+      throw new Error(String(error), { cause: error });
     }
   }
 
-  async findRpdComplectMeta(complect_id) {
+  async findRpdComplectMeta(complect_id: unknown) {
     try {
-      const result = await this.pool.query(
+      const result = await this.pool.query<RpdComplectRow>(
         `
           SELECT *
           FROM rpd_complects
@@ -55,13 +60,13 @@ class RpdComplects {
       return result.rows[0];
     } catch (error) {
       console.log(error);
-      throw new Error(error, { cause: error });
+      throw new Error(String(error), { cause: error });
     }
   }
 
-  async findRpdComplectData(template_id) {
+  async findRpdComplectData(template_id: unknown) {
     try {
-      const result = await this.pool.query(
+      const result = await this.pool.query<RpdComplectRow>(
         `
                 SELECT * FROM rpd_complects
                 WHERE ID = (
@@ -73,11 +78,11 @@ class RpdComplects {
       return result.rows[0];
     } catch (error) {
       console.log(error);
-      throw new Error(error, { cause: error });
+      throw new Error(String(error), { cause: error });
     }
   }
 
-  async createRpdComplect({ data, userId }) {
+  async createRpdComplect({ data, userId }: { data: { faculty: string; year: number; formEducation: string; levelEducation: string; profile: string; directionOfStudy: string }; userId: number | undefined }) {
     try {
       const apiData = {
         faculty: data.faculty,
@@ -97,7 +102,7 @@ class RpdComplects {
 
   async getAllRpdComplects() {
     try {
-      const result = await this.pool.query(`
+      const result = await this.pool.query<ComplectListRow>(`
             SELECT id,
                    uuid,
                    faculty,
@@ -114,13 +119,13 @@ class RpdComplects {
       return result.rows;
     } catch (error) {
       console.log(error);
-      throw new Error(error, { cause: error });
+      throw new Error(String(error), { cause: error });
     }
   }
 
-  async getRopComplects(userId) {
+  async getRopComplects(userId: number) {
     try {
-      const result = await this.pool.query(
+      const result = await this.pool.query<ComplectListRow>(
         `
             SELECT rc.id,
                     rc.uuid,
@@ -142,11 +147,11 @@ class RpdComplects {
       return result.rows;
     } catch (error) {
       console.log(error);
-      throw new Error(error, { cause: error });
+      throw new Error(String(error), { cause: error });
     }
   }
 
-  async deleteRpdComplect(ids) {
+  async deleteRpdComplect(ids: unknown) {
     try {
       const idStrings = Array.isArray(ids) ? ids.map((x) => String(x)) : [];
       if (idStrings.length === 0) {
@@ -163,7 +168,7 @@ class RpdComplects {
       return result;
     } catch (error) {
       console.error(error);
-      throw new Error(error, { cause: error });
+      throw new Error(String(error), { cause: error });
     }
   }
 }

@@ -1,3 +1,4 @@
+import type { Request, Response } from "express";
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import bcrypt from "bcryptjs";
@@ -10,7 +11,7 @@ import TokenService from "../app/services/Token.ts";
 
 test("регистрация возвращает данные созданного пользователя", async (t) => {
   t.mock.method(UserRepository, "getUserData", async () => null);
-  t.mock.method(UserRepository, "createUser", async ({ userName, hashedPassword, role }) => {
+  t.mock.method(UserRepository, "createUser", async ({ userName, hashedPassword, role }: { userName: string; hashedPassword: string; role: number }) => {
     assert.equal(userName, "test-user");
     assert.equal(role, 2);
     assert.equal(bcrypt.compareSync("password", hashedPassword), true);
@@ -18,7 +19,7 @@ test("регистрация возвращает данные созданно�
   });
   t.mock.method(TokenService, "generateAccessToken", async () => "access-token");
   t.mock.method(TokenService, "generateRefreshToken", async () => "refresh-token");
-  t.mock.method(RefreshSessionRepository, "createRefreshSession", async ({ id, refreshToken }) => {
+  t.mock.method(RefreshSessionRepository, "createRefreshSession", async ({ id, refreshToken }: { id: number; refreshToken: string }) => {
     assert.equal(id, 42);
     assert.equal(refreshToken, "refresh-token");
   });
@@ -27,7 +28,7 @@ test("регистрация возвращает данные созданно�
     userName: "test-user",
     password: "password",
     role: 2,
-    fingerprint: { hash: "fingerprint" },
+    fingerprint: { hash: "fingerprint", components: {} },
   });
 
   assert.equal(result.fullname, null);
@@ -48,19 +49,19 @@ test("контроллер регистрации отвечает данным�
   let responseBody;
   const response = {
     cookie: () => {},
-    status(status) {
+    status(status: number) {
       assert.equal(status, 200);
       return this;
     },
-    json(body) {
+    json(body: unknown) {
       responseBody = body;
       return this;
     },
   };
 
   await AuthController.signUp(
-    { body: { userName: "test-user", password: "password", role: 3 }, fingerprint: {} },
-    response
+    { body: { userName: "test-user", password: "password", role: 3 }, fingerprint: { hash: null, components: {} } } as Request,
+    response as unknown as Response
   );
 
   assert.deepEqual(responseBody, {

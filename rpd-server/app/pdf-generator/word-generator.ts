@@ -1,4 +1,3 @@
-// @ts-nocheck: типизация существующего кода — следующий пакет
 import HTMLtoDOCX from "@turbodocx/html-to-docx";
 import JSZip from "jszip";
 import {
@@ -25,7 +24,7 @@ const MARGINS = {
 // html-to-docx выставляет невалидный w:gridSpan="0" на объединённых по вертикали
 // ячейках (vMerge continue), из-за чего Word схлопывает колонку в ноль ширины.
 // Удаляем такие атрибуты прямо в document.xml. См. memory turbodocx-html-to-docx-quirks.
-async function stripInvalidGridSpan(buffer) {
+async function stripInvalidGridSpan(buffer: Buffer) {
   const zip = await JSZip.loadAsync(buffer);
   const docFile = zip.file("word/document.xml");
   if (!docFile) return buffer;
@@ -38,7 +37,7 @@ async function stripInvalidGridSpan(buffer) {
   return zip.generateAsync({ type: "nodebuffer", compression: "DEFLATE" });
 }
 
-async function generateWord(id) {
+async function generateWord(id: unknown) {
   const htmlCoverPage = await generateCoverPage(id);
   const htmlApprovalPage = await generateApprovalPage(id);
   const htmlContentPage = await generateContentPage(id, { forWord: true });
@@ -62,7 +61,7 @@ async function generateWord(id) {
   });
 
   // В Node html-to-docx может вернуть Buffer или ArrayBuffer — нормализуем.
-  const buffer = Buffer.isBuffer(result) ? result : Buffer.from(result);
+  const buffer = Buffer.isBuffer(result) ? result : result instanceof Blob ? Buffer.from(await result.arrayBuffer()) : Buffer.from(result);
   return stripInvalidGridSpan(buffer);
 }
 

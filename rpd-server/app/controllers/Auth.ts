@@ -1,11 +1,13 @@
+import type { ParamsDictionary } from "express-serve-static-core";
+import type { Request, Response } from "express";
 import AuthService from "../services/Auth.ts";
 import { ErrorUtils } from "../utils/Errors.ts";
 import { COOKIE_SETTINGS } from "../../constants.ts";
 
 class AuthController {
-  static async signIn(req, res) {
-    const { userName, password } = req.body;
-    const { fingerprint } = req;
+  static async signIn(req: Request<ParamsDictionary, unknown, Record<string, unknown>>, res: Response) {
+    const { userName, password } = req.body as { userName: string; password: string };
+    const fingerprint = req.fingerprint!;
     try {
       const { fullname, role, accessToken, refreshToken, accessTokenExpiration } =
         await AuthService.signIn({
@@ -22,9 +24,9 @@ class AuthController {
     }
   }
 
-  static async signUp(req, res) {
-    const { userName, password, role } = req.body;
-    const { fingerprint } = req;
+  static async signUp(req: Request<ParamsDictionary, unknown, Record<string, unknown>>, res: Response) {
+    const { userName, password, role } = req.body as { userName: string; password: string; role: number };
+    const fingerprint = req.fingerprint!;
 
     try {
       const {
@@ -53,7 +55,7 @@ class AuthController {
     }
   }
 
-  static async logOut(req, res) {
+  static async logOut(req: Request<ParamsDictionary, unknown, Record<string, unknown>>, res: Response) {
     const refreshToken = req.cookies.refreshToken;
     try {
       await AuthService.logOut(refreshToken);
@@ -66,8 +68,8 @@ class AuthController {
     }
   }
 
-  static async refresh(req, res) {
-    const { fingerprint } = req;
+  static async refresh(req: Request<ParamsDictionary, unknown, Record<string, unknown>>, res: Response) {
+    const fingerprint = req.fingerprint!;
     const currentRefreshToken = req.cookies.refreshToken;
 
     try {

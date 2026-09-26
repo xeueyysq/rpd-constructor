@@ -1,25 +1,26 @@
-// @ts-nocheck: типизация существующего кода — следующий пакет
+import type { Pool } from "pg";
 class RpdChangeableValues {
-  constructor(pool) {
+  pool: Pool;
+  constructor(pool: Pool) {
     this.pool = pool;
   }
 
-  async getChangeableValue(title) {
+  async getChangeableValue(title: unknown) {
     try {
-      const queryResult = await this.pool.query(
+      const queryResult = await this.pool.query<{ id: number; title: string | null; value: string | null }>(
         "SELECT * FROM rpd_changeable_values WHERE title = $1",
         [title]
       );
       return queryResult.rows[0];
     } catch (err) {
-      console.err(err);
+      console.error(err);
       throw err;
     }
   }
 
-  async updateChangeableValue(id, value) {
+  async updateChangeableValue(id: unknown, value: unknown) {
     try {
-      const queryResult = await this.pool.query(
+      const queryResult = await this.pool.query<{ id: number; title: string | null; value: string | null }>(
         "UPDATE rpd_changeable_values SET value = $1 WHERE id = $2 RETURNING *",
         [value, id]
       );

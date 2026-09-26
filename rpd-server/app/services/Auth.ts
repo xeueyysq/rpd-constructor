@@ -1,4 +1,4 @@
-// @ts-nocheck: типизация существующего кода — следующий пакет
+import type { RequestFingerprint } from "../types/express.ts";
 import bcrypt from "bcryptjs";
 import TokenService from "./Token.ts";
 import { NotFound, Forbidden, Conflict, Unauthorized } from "../utils/Errors.ts";
@@ -7,7 +7,7 @@ import UserRepository from "../repositories/User.ts";
 import { ACCESS_TOKEN_EXPIRATION } from "../../constants.ts";
 
 class AuthService {
-  static async signIn({ userName, password, fingerprint }) {
+  static async signIn({ userName, password, fingerprint }: { userName: string; password: string; fingerprint: RequestFingerprint }) {
     const userData = await UserRepository.getUserData(userName);
     if (!userData) {
       throw new NotFound("Пользователь не найден");
@@ -39,7 +39,7 @@ class AuthService {
     };
   }
 
-  static async signUp({ userName, password, fingerprint, role }) {
+  static async signUp({ userName, password, fingerprint, role }: { userName: string; password: string; fingerprint: RequestFingerprint; role: number }) {
     const userData = await UserRepository.getUserData(userName);
     if (userData) {
       throw new Conflict("Пользователь с таким именем уже существует");
@@ -73,11 +73,11 @@ class AuthService {
     };
   }
 
-  static async logOut(refreshToken) {
+  static async logOut(refreshToken: string) {
     await RefreshSessionRepository.deleteRefreshSession(refreshToken);
   }
 
-  static async refresh({ fingerprint, currentRefreshToken }) {
+  static async refresh({ fingerprint, currentRefreshToken }: { fingerprint: RequestFingerprint; currentRefreshToken: string }) {
     if (!currentRefreshToken) {
       throw new Unauthorized("Пользователь не авторизован в системе");
     }
@@ -109,7 +109,7 @@ class AuthService {
       role,
       name: userName,
       fullname
-    } = await UserRepository.getUserData(payload.userName);
+    } = (await UserRepository.getUserData(payload.userName))!;
 
     const actualPayload = { id, userName, role };
 

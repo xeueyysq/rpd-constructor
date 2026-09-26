@@ -6,7 +6,7 @@ const SEMINARS_LABELS = ["практич", "семинар", "лаб"];
 const INDEPENDENT_LABELS = ["срс", "самостоят"];
 const CONTROL_LABELS = ["контрол", "экзам", "зач", "аттест"];
 
-function toNumberSafe(value) {
+function toNumberSafe(value: unknown) {
   if (typeof value === "number") {
     return Number.isFinite(value) ? value : 0;
   }
@@ -22,15 +22,15 @@ function toNumberSafe(value) {
   return Number.isFinite(parsed) ? parsed : 0;
 }
 
-function normalizeLabel(value) {
+function normalizeLabel(value: unknown) {
   return String(value).trim().toLowerCase();
 }
 
-function includesAny(value, needles) {
-  return needles.some((needle) => value.includes(needle));
+function includesAny(value: string, needles: string[]) {
+  return needles.some((needle: string) => value.includes(needle));
 }
 
-function getStudyLoadCategory(label) {
+function getStudyLoadCategory(label: string) {
   if (!label) return "unknown";
   if (includesAny(label, TOTAL_LABELS)) return "total";
   if (includesAny(label, LECTURES_LABELS)) return "lectures";
@@ -40,13 +40,13 @@ function getStudyLoadCategory(label) {
   return "unknown";
 }
 
-function getRecordValue(record, key) {
+function getRecordValue(record: Record<string, unknown>, key: string) {
   return Object.prototype.hasOwnProperty.call(record, key)
     ? record[key]
     : undefined;
 }
 
-function normalizeStudyLoad(studyLoad) {
+function normalizeStudyLoad(studyLoad: unknown) {
   if (!studyLoad) return [];
 
   if (Array.isArray(studyLoad)) {
@@ -93,7 +93,7 @@ function normalizeStudyLoad(studyLoad) {
   return [];
 }
 
-function extractTotalAcademicHours(studyLoad) {
+function extractTotalAcademicHours(studyLoad: unknown) {
   const dataHours = normalizeStudyLoad(studyLoad);
   if (!dataHours.length) return null;
 
@@ -152,12 +152,12 @@ function extractTotalAcademicHours(studyLoad) {
   return Number.isFinite(all) && all > 0 ? Number(all) : null;
 }
 
-function computeZetFromHours(hours) {
-  if (!Number.isFinite(hours) || hours <= 0) return null;
+function computeZetFromHours(hours: number | null) {
+  if (hours === null || !Number.isFinite(hours) || hours <= 0) return null;
   return Math.round(hours / ZET_HOURS_DIVISOR);
 }
 
-function resolveZetFromStudyLoad(studyLoad, fallbackZets) {
+function resolveZetFromStudyLoad(studyLoad: unknown, fallbackZets: unknown) {
   const totalHours = extractTotalAcademicHours(studyLoad);
   const computedZet = computeZetFromHours(totalHours);
   if (computedZet !== null) return computedZet;

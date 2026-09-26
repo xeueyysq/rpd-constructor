@@ -1,4 +1,5 @@
-// @ts-nocheck: типизация существующего кода — следующий пакет
+import type { PoolClient } from "pg";
+import type { Rpd1cExchangeRow, RpdComplectRow } from "../types/db.ts";
 import moment from "moment";
 import { pool } from "../../config/db.ts";
 import { fetchUpLink } from "./1cExchange.ts";
@@ -16,7 +17,7 @@ const SYNC_FIELDS = [
   "teachers",
 ];
 
-const TEMPLATE_FIELD_MAP = {
+const TEMPLATE_FIELD_MAP: Record<string, string> = {
   discipline: "disciplins_name",
   department: "department",
   semester: "semester",
@@ -30,7 +31,35 @@ const TEMPLATE_SYNC_FIELDS = new Set(Object.keys(TEMPLATE_FIELD_MAP));
 
 const NEW_DISCIPLINE_MARKER = "__new__";
 
-const parseJsonField = (value) => {
+type LocalRow = {
+  id: number;
+  id_rpd_complect: number;
+  department: string;
+  discipline: string;
+  teachers: string[];
+  zet: number | null;
+  place: string;
+  record_type: string;
+  study_load: unknown;
+  control_load: unknown;
+  semester: number | null;
+  removed_at: Date | null;
+  id_profile_template: number | null;
+  [key: string]: unknown;
+};
+type IncomingRow = ReturnType<typeof normalizeDisciplineFrom1c> & Record<string, unknown>;
+type FieldChange = { field: string; old: unknown; new: unknown };
+type DiffResult = {
+  new: { key: string; incoming: IncomingRow; fields: FieldChange[] }[];
+  updated: { id_1c: number; key: string; local: LocalRow; incoming: IncomingRow; fields: FieldChange[]; hasProfileTemplate: boolean }[];
+  removed: { id_1c: number; key: string; local: LocalRow; hasProfileTemplate: boolean }[];
+  unchanged: { id_1c: number; key: string; local: LocalRow; incoming: IncomingRow; hasProfileTemplate: boolean }[];
+};
+type Selection = { action: string; id_1c?: number; incoming?: IncomingRow; fields?: string[] };
+type FieldChangeInput = { syncLogId: number; id1c: number; idProfileTemplate: number | null; fieldKey: string; oldValue: unknown; newValue: unknown };
+
+
+const parseJsonField = (value: unknown) => {
   if (value == null) return value;
   if (typeof value === "object") return value;
   if (typeof value === "string") {
@@ -43,7 +72,7 @@ const parseJsonField = (value) => {
   return value;
 };
 
-const normalizeLocalRow = (row) => ({
+const normalizeLocalRow = (row: Rpd1cExchangeRow & { id_profile_template: number | null }): LocalRow => ({
   id: row.id,
   id_rpd_complect: row.id_rpd_complect,
   department: row.department ?? "",
@@ -59,12 +88,12 @@ const normalizeLocalRow = (row) => ({
   id_profile_template: row.id_profile_template ?? null,
 });
 
-const matchDisciplineKey = (row) =>
+const matchDisciplineKey = (row: { discipline: string; semester: number | null; record_type: string }) =>
   `${(row.discipline || "").trim()}|${row.semester ?? ""}|${row.record_type ?? ""}`;
 
-const valuesEqual = (a, b) => stableSerialize(a) === stableSerialize(b);
+const valuesEqual = (a: unknown, b: unknown) => stableSerialize(a) === stableSerialize(b);
 
-const deriveCertification = (controlLoad) => {
+const deriveCertification = (controlLoad: unknown) => {
   if (
     !controlLoad ||
     typeof controlLoad !== "object" ||
@@ -76,7 +105,7 @@ const deriveCertification = (controlLoad) => {
   return keys.length > 0 ? keys[0] : null;
 };
 
-const buildComplectApiData = (complectMeta) => ({
+const buildComplectApiData = (complectMeta: RpdComplectRow) => ({
   faculty: complectMeta.faculty,
   year: complectMeta.year,
   educationForm: complectMeta.education_form,
@@ -85,8 +114,8 @@ const buildComplectApiData = (complectMeta) => ({
   direction: complectMeta.direction,
 });
 
-const loadLocalDisciplines = async (complectId) => {
-  const { rows } = await pool.query(
+const loadLocalDisciplines = async (complectId: number) => {
+  const { rows } = await pool.query<Rpd1cExchangeRow & { id_profile_template: number | null } & Record<string, unknown>>(
     `
       SELECT
         r.id,
@@ -113,17 +142,17 @@ const loadLocalDisciplines = async (complectId) => {
   return rows.map(normalizeLocalRow);
 };
 
-const incomingFrom1cList = (disciplines) =>
+const incomingFrom1cList = (disciplines: unknown[]) =>
   disciplines
     .map((disc) => {
       const normalized = normalizeDisciplineFrom1c(disc);
       if (!normalized.discipline) return null;
-      return normalized;
+      return normalized as IncomingRow;
     })
-    .filter(Boolean);
+    .filter((row): row is IncomingRow => row !== null);
 
-const diffFields = (localRow, incomingRow) => {
-  const changes = [];
+const diffFields = (localRow: Record<string, unknown>, incomingRow: Record<string, unknown>) => {
+  const changes: FieldChange[] = [];
   for (const field of SYNC_FIELDS) {
     const oldValue = localRow[field];
     const newValue = incomingRow[field];
@@ -134,14 +163,14 @@ const diffFields = (localRow, incomingRow) => {
   return changes;
 };
 
-const diffDisciplines = (localRows, incomingRows) => {
+const diffDisciplines = (localRows: LocalRow[], incomingRows: IncomingRow[]) => {
   const activeLocal = localRows.filter((row) => !row.removed_at);
   const localByKey = new Map(activeLocal.map((row) => [matchDisciplineKey(row), row]));
   const incomingByKey = new Map(
     incomingRows.map((row) => [matchDisciplineKey(row), row])
   );
 
-  const result = {
+  const result: DiffResult = {
     new: [],
     updated: [],
     removed: [],
@@ -198,8 +227,8 @@ const diffDisciplines = (localRows, incomingRows) => {
   return result;
 };
 
-const preview1cSync = async (complectId) => {
-  const { rows: complectRows } = await pool.query(
+const preview1cSync = async (complectId: unknown) => {
+  const { rows: complectRows } = await pool.query<RpdComplectRow & Record<string, unknown>>(
     `
       SELECT *
       FROM rpd_complects
@@ -210,7 +239,7 @@ const preview1cSync = async (complectId) => {
   );
   const complectMeta = complectRows[0];
   if (!complectMeta) {
-    const error = new Error("Комплект не найден");
+    const error = new Error("Комплект не найден") as Error & { statusCode?: number };
     error.statusCode = 404;
     throw error;
   }
@@ -237,8 +266,8 @@ const preview1cSync = async (complectId) => {
   };
 };
 
-const insertStatusHistory = async (client, templateId) => {
-  const { rows: existing } = await client.query(
+const insertStatusHistory = async (client: PoolClient, templateId: number) => {
+  const { rows: existing } = await client.query<{ id: number }>(
     `
       SELECT id
       FROM template_status
@@ -268,7 +297,7 @@ const insertStatusHistory = async (client, templateId) => {
 };
 
 const recordFieldChange = async (
-  client,
+  client: PoolClient,
   {
     syncLogId,
     id1c,
@@ -276,7 +305,7 @@ const recordFieldChange = async (
     fieldKey,
     oldValue,
     newValue,
-  }
+  }: FieldChangeInput
 ) => {
   await client.query(
     `
@@ -301,7 +330,7 @@ const recordFieldChange = async (
 };
 
 const syncTemplateFields = async (
-  client,
+  client: PoolClient,
   {
     syncLogId,
     id1c,
@@ -309,7 +338,7 @@ const syncTemplateFields = async (
     localRow,
     incomingRow,
     fieldsToApply,
-  }
+  }: { syncLogId: number; id1c: number; idProfileTemplate: number | null; localRow: LocalRow; incomingRow: IncomingRow; fieldsToApply: string[] }
 ) => {
   if (!idProfileTemplate || !fieldsToApply.length) return;
 
@@ -370,8 +399,8 @@ const syncTemplateFields = async (
   );
 };
 
-const applySync = async ({ complectId, selections, userId }) => {
-  const { rows: complectRows } = await pool.query(
+const applySync = async ({ complectId, selections, userId }: { complectId: unknown; selections?: unknown; userId?: number }) => {
+  const { rows: complectRows } = await pool.query<{ id: number }>(
     `
       SELECT id
       FROM rpd_complects
@@ -382,7 +411,7 @@ const applySync = async ({ complectId, selections, userId }) => {
   );
   const numericComplectId = complectRows[0]?.id;
   if (!numericComplectId) {
-    const error = new Error("Комплект не найден");
+    const error = new Error("Комплект не найден") as Error & { statusCode?: number };
     error.statusCode = 404;
     throw error;
   }
@@ -391,7 +420,7 @@ const applySync = async ({ complectId, selections, userId }) => {
   try {
     await client.query("BEGIN");
 
-    const { rows: syncLogRows } = await client.query(
+    const { rows: syncLogRows } = await client.query<{ id: number }>(
       `
         INSERT INTO complect_sync_log (complect_id, user_id, source)
         VALUES ($1, $2, $3)
@@ -404,7 +433,7 @@ const applySync = async ({ complectId, selections, userId }) => {
     const localRows = await loadLocalDisciplines(numericComplectId);
     const localById = new Map(localRows.map((row) => [row.id, row]));
 
-    for (const selection of selections || []) {
+    for (const selection of (selections || []) as Selection[]) {
       const action = selection.action;
       const fields =
         Array.isArray(selection.fields) && selection.fields.length
@@ -415,7 +444,7 @@ const applySync = async ({ complectId, selections, userId }) => {
         const incoming = selection.incoming;
         if (!incoming?.discipline) continue;
 
-        const { rows: inserted } = await client.query(
+        const { rows: inserted } = await client.query<{ id: number }>(
           `
             INSERT INTO rpd_1c_exchange (
               id_rpd_complect,
@@ -485,7 +514,7 @@ const applySync = async ({ complectId, selections, userId }) => {
           `,
           [id1c, numericComplectId]
         );
-        const local = localById.get(id1c);
+        const local = localById.get(id1c!);
         await recordFieldChange(client, {
           syncLogId,
           id1c,
@@ -500,7 +529,7 @@ const applySync = async ({ complectId, selections, userId }) => {
       if (action === "update") {
         const id1c = selection.id_1c;
         const incoming = selection.incoming;
-        const local = localById.get(id1c);
+        const local = localById.get(id1c!);
         if (!id1c || !incoming || !local) continue;
 
         const exchangeUpdates = [];
@@ -606,8 +635,8 @@ const applySync = async ({ complectId, selections, userId }) => {
   }
 };
 
-const getUnacknowledgedFieldChanges = async (profileTemplateId) => {
-  const { rows } = await pool.query(
+const getUnacknowledgedFieldChanges = async (profileTemplateId: unknown) => {
+  const { rows } = await pool.query<{ field_key: string; old_value: unknown | null; new_value: unknown | null; id: number }>(
     `
       SELECT field_key, old_value, new_value, id
       FROM template_field_changes
@@ -627,10 +656,10 @@ const getUnacknowledgedFieldChanges = async (profileTemplateId) => {
   }));
 };
 
-const acknowledgeFieldChanges = async (profileTemplateId, changeIds) => {
+const acknowledgeFieldChanges = async (profileTemplateId: unknown, changeIds: unknown) => {
   const numericId = Number(profileTemplateId);
   if (!Number.isFinite(numericId)) {
-    const error = new Error("Некорректный идентификатор шаблона");
+    const error = new Error("Некорректный идентификатор шаблона") as Error & { statusCode?: number };
     error.statusCode = 400;
     throw error;
   }
@@ -658,7 +687,7 @@ const acknowledgeFieldChanges = async (profileTemplateId, changeIds) => {
     );
   }
 
-  const { rows } = await pool.query(
+  const { rows } = await pool.query<{ remaining: number }>(
     `
       SELECT COUNT(*)::int AS remaining
       FROM template_field_changes

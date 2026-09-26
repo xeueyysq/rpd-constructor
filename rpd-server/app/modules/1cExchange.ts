@@ -1,4 +1,4 @@
-// @ts-nocheck: типизация существующего кода — следующий пакет
+import type { Pool } from "pg";
 import { pool } from "../../config/db.ts";
 import axios from "axios";
 import moment from "moment";
@@ -10,12 +10,19 @@ const apiUrl = "https://1c-api.uni-dubna.ru/v1/api/persons/reports";
 const CACHE_ROW_ID = 1;
 const SPEC_PROFILES_TIMEOUT_MS = 5000;
 
-const isRetryable1cError = (error) => {
-  if (!error || error.statusCode) {
+type ApiData = { faculty: string | null; year: number | null; educationForm: string | null; educationLevel: string | null; profile: string | null; direction: string | null };
+type ServiceError = Error & { statusCode?: number };
+function errorDetails(error: unknown): { statusCode?: unknown; code?: unknown; response?: { status?: number } } {
+  return error && typeof error === "object" ? error as { statusCode?: unknown; code?: unknown; response?: { status?: number } } : {};
+}
+
+const isRetryable1cError = (error: unknown) => {
+  const details = errorDetails(error);
+  if (!error || details.statusCode) {
     return false;
   }
 
-  const status = error.response?.status;
+  const status = details.response?.status;
   if (typeof status === "number") {
     return status >= 500 || status === 429;
   }
@@ -23,7 +30,7 @@ const isRetryable1cError = (error) => {
   return true;
 };
 
-const requestWithSingleRetry = async (requestFn, requestName) => {
+const requestWithSingleRetry = async <T>(requestFn: () => Promise<T>, requestName: string) => {
   try {
     return await requestFn();
   } catch (error) {
@@ -31,12 +38,12 @@ const requestWithSingleRetry = async (requestFn, requestName) => {
       throw error;
     }
 
-    console.warn(`${requestName} failed, retrying once...`, error.message);
+    console.warn(`${requestName} failed, retrying once...`, error instanceof Error ? error.message : String(error));
     return await requestFn();
   }
 };
 
-async function exchange1C(apiData, { userId } = {}) {
+async function exchange1C(apiData: ApiData, { userId }: { userId?: number } = {}) {
   try {
     const disciplines = await fetchUpLink(apiData);
     const RpdComplectId = await createRpdComplect(apiData);
@@ -51,32 +58,32 @@ async function exchange1C(apiData, { userId } = {}) {
   }
 }
 
-const fetchUpLink = async (apiData) => {
+const fetchUpLink = async (apiData: ApiData) => {
   try {
     const url = `${apiUrl}/GetDisciplinesByPlan`;
 
     const response = await requestWithSingleRetry(
       () =>
-        axios.post(url, mapApiDataFor1c(apiData), {
+        axios.post<unknown>(url, mapApiDataFor1c(apiData), {
           timeout: 30000,
         }),
       "GetDisciplinesByPlan"
     );
 
-    if (!response.data?.length) {
-      const error = new Error("По данному комплекту нет данных от 1С");
+    if (!(response.data as { length?: number } | null)?.length) {
+      const error = new Error("По данному комплекту нет данных от 1С") as ServiceError;
       error.statusCode = 422;
       throw error;
     }
 
-    return response.data;
+    return response.data as unknown[];
   } catch (error) {
     throw handle1cError(error);
   }
 };
 
-const createRpdComplect = async (apiData) => {
-  const { rows } = await pool.query(
+const createRpdComplect = async (apiData: ApiData) => {
+  const { rows } = await pool.query<{ id: number }>(
     `
     INSERT INTO rpd_complects (
       faculty,
@@ -118,7 +125,7 @@ const createRpdComplect = async (apiData) => {
   return RpdComplectId;
 };
 
-const processDisciplines = async (disciplines, RpdComplectId) => {
+const processDisciplines = async (disciplines: unknown[], RpdComplectId: number) => {
   const recordsLength = disciplines.length;
   console.log(`Всего дисциплин из запроса - ${recordsLength}`);
 
@@ -154,14 +161,14 @@ const processDisciplines = async (disciplines, RpdComplectId) => {
   await Promise.all(promises);
 };
 
-const insertDiscipline = async (data) => {
+const insertDiscipline = async (data: { RpdComplectId: number; division: string; discipline: string; teachers: string[]; zets: number | null; place: string; record_type: string; study_load: unknown; control_load: unknown; semester: number | null }) => {
   const discipline = (data.discipline || "").trim();
   if (!discipline) return null;
 
   const recordType = data.record_type ?? "";
   const semester = data.semester ?? null;
 
-  const { rows: existing } = await pool.query(
+  const { rows: existing } = await pool.query<{ id: number }>(
     `
       SELECT id
       FROM rpd_1c_exchange
@@ -176,7 +183,7 @@ const insertDiscipline = async (data) => {
 
   if (existing[0]?.id) return null;
 
-  const { rows } = await pool.query(
+  const { rows } = await pool.query<{ id: number }>(
     `
     INSERT INTO rpd_1c_exchange (
       id_rpd_complect,
@@ -211,8 +218,8 @@ const insertDiscipline = async (data) => {
   return rows[0]?.id ?? null;
 };
 
-const insertStatusHistory = async (templateId) => {
-  const { rows: existing } = await pool.query(
+const insertStatusHistory = async (templateId: number) => {
+  const { rows: existing } = await pool.query<{ id: number }>(
     `
       SELECT id
       FROM template_status
@@ -241,7 +248,7 @@ const insertStatusHistory = async (templateId) => {
   );
 };
 
-const insertUserComplectId = async (userId, complectId) => {
+const insertUserComplectId = async (userId: number, complectId: number) => {
   await pool.query(
     `
     INSERT INTO user_complect (user_id, complect_id)
@@ -251,12 +258,13 @@ const insertUserComplectId = async (userId, complectId) => {
   );
 };
 
-const handle1cError = (error) => {
-  if (error.statusCode) {
+const handle1cError = (error: unknown) => {
+  const details = errorDetails(error);
+  if (details.statusCode) {
     return error;
   }
-  if (error.code === "ECONNABORTED" || error.response?.status === 504) {
-    const serviceError = new Error("Сервис 1С временно недоступен");
+  if (details.code === "ECONNABORTED" || details.response?.status === 504) {
+    const serviceError = new Error("Сервис 1С временно недоступен") as ServiceError;
     serviceError.statusCode = 503;
     return serviceError;
   }
@@ -266,12 +274,12 @@ const handle1cError = (error) => {
 const fetchAllSpecProfiles = async () => {
   try {
     const url = `${apiUrl}/GetAllSpecProfiles`;
-    const response = await axios.get(url, {
+    const response = await axios.get<unknown>(url, {
       timeout: SPEC_PROFILES_TIMEOUT_MS,
     });
 
     if (!Array.isArray(response.data)) {
-      const error = new Error("Некорректный ответ 1С по профилям");
+      const error = new Error("Некорректный ответ 1С по профилям") as ServiceError;
       error.statusCode = 502;
       throw error;
     }
@@ -282,8 +290,8 @@ const fetchAllSpecProfiles = async () => {
   }
 };
 
-const readCachedSpecProfiles = async (dbPool) => {
-  const { rows } = await dbPool.query(
+const readCachedSpecProfiles = async (dbPool: Pool) => {
+  const { rows } = await dbPool.query<{ tree_payload: unknown }>(
     `
       SELECT tree_payload
       FROM spec_profiles_cache
@@ -296,7 +304,7 @@ const readCachedSpecProfiles = async (dbPool) => {
   return rows[0]?.tree_payload ?? null;
 };
 
-const upsertSpecProfilesCache = async (dbPool, rawPayload, treePayload, payloadHash) => {
+const upsertSpecProfilesCache = async (dbPool: Pool, rawPayload: unknown, treePayload: unknown, payloadHash: string) => {
   await dbPool.query(
     `
       INSERT INTO spec_profiles_cache (
@@ -316,13 +324,13 @@ const upsertSpecProfilesCache = async (dbPool, rawPayload, treePayload, payloadH
   );
 };
 
-const syncAndGetSpecProfiles = async (dbPool) => {
+const syncAndGetSpecProfiles = async (dbPool: Pool) => {
   try {
     const rawPayload = await fetchAllSpecProfiles();
     const tree = merge1cIntoReferenceTree(rawPayload);
     const payloadHash = hashPayload(tree);
 
-    const { rows } = await dbPool.query(
+    const { rows } = await dbPool.query<{ payload_hash: string }>(
       `
         SELECT payload_hash
         FROM spec_profiles_cache
@@ -338,10 +346,10 @@ const syncAndGetSpecProfiles = async (dbPool) => {
 
     return { tree, source: "1c" };
   } catch (error) {
-    if (error?.response?.status === 504 || error?.code === "ECONNABORTED") {
+    if (errorDetails(error).response?.status === 504 || errorDetails(error).code === "ECONNABORTED") {
       console.warn("GetAllSpecProfiles timeout/504, using cache or fallback");
     } else {
-      console.warn("GetAllSpecProfiles failed, using cache or fallback:", error.message);
+      console.warn("GetAllSpecProfiles failed, using cache or fallback:", error instanceof Error ? error.message : String(error));
     }
 
     const cachedTree = await readCachedSpecProfiles(dbPool);

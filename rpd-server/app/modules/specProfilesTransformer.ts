@@ -12,15 +12,18 @@ import {
   setLeaf,
 } from "./specProfilesMapping.ts";
 
-const merge1cIntoReferenceTree = (raw1c) => {
+type RawSpecProfile = { specialisation?: { code?: string; name?: string }; profiles?: { name?: string; chair?: { name?: string } }[] };
+
+const merge1cIntoReferenceTree = (raw1c: unknown) => {
   const referenceTree = loadReferenceTree();
   const indexes = buildReferenceIndexes(referenceTree);
   const tree = deepClone(referenceTree);
-  const items = Array.isArray(raw1c) ? raw1c : [];
+  const items: unknown[] = Array.isArray(raw1c) ? raw1c : [];
 
   for (const item of items) {
-    const specialisation = item?.specialisation;
-    const profiles = Array.isArray(item?.profiles) ? item.profiles : [];
+    const entry = item && typeof item === "object" ? item as RawSpecProfile : null;
+    const specialisation = entry?.specialisation;
+    const profiles = Array.isArray(entry?.profiles) ? entry.profiles : [];
 
     if (!specialisation?.code) {
       continue;

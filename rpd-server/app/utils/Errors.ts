@@ -1,51 +1,66 @@
-// @ts-nocheck: типизация существующего кода — следующий пакет
+import type { Response } from "express";
+
 class WebError {
-  constructor(status, error) {
+  status: number;
+  error: unknown;
+  constructor(status: number, error?: unknown) {
     this.status = status;
     this.error = error;
   }
 }
 
 class Unprocessable extends WebError {
-  constructor(error) {
+  constructor(error?: unknown) {
     super(422, error);
   }
 }
 
 class Conflict extends WebError {
-  constructor(error) {
+  constructor(error?: unknown) {
     super(409, error);
   }
 }
 
 class NotFound extends WebError {
-  constructor(error) {
+  constructor(error?: unknown) {
     console.log(error);
     super(404, error);
   }
 }
 
 class Forbidden extends WebError {
-  constructor(error) {
+  constructor(error?: unknown) {
     super(403, error);
   }
 }
 
 class Unauthorized extends WebError {
-  constructor(error) {
+  constructor(error?: unknown) {
     super(401, error);
   }
 }
 
+function errorMessage(error: unknown): string {
+  return error && typeof error === "object" && "message" in error ? error.message as string : String(error);
+}
+
+function errorStatusCode(error: unknown): number | undefined {
+  if (error && typeof error === "object" && "statusCode" in error && typeof error.statusCode === "number") return error.statusCode;
+  return undefined;
+}
+
 class ErrorUtils {
-  static catchError(res, error) {
+  static catchError(res: Response, error: unknown) {
     console.log(error);
-    return res.status(error.status || 500).json(error);
+    const status = error && typeof error === "object" && "status" in error ? error.status as number : undefined;
+    return res.status(status || 500).json(error);
   }
 }
 
 export {
-  ErrorUtils, 
+  ErrorUtils,
+  errorMessage,
+  errorStatusCode,
   NotFound, 
   Forbidden, 
   Conflict, 

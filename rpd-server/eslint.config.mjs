@@ -12,12 +12,6 @@ export default [
   {
     files,
     languageOptions: { parser: tsParser, sourceType: "module", globals: globals.node },
-    rules: {
-      "@typescript-eslint/ban-ts-comment": ["error", { "ts-nocheck": "allow-with-description" }],
-    },
-  },
-  {
-    files: ["app/pdf-generator/page-generator.ts"],
-    rules: { "prefer-const": "off" },
+    rules: { "@typescript-eslint/no-explicit-any": "error" },
   },
 ];

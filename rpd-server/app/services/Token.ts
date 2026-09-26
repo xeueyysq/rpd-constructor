@@ -1,32 +1,31 @@
-// @ts-nocheck: типизация существующего кода — следующий пакет
+import type { Request, Response, NextFunction } from "express";
+import type { UserClaims } from "../types/express.ts";
 import jwt from "jsonwebtoken";
 
 import { Forbidden, Unauthorized } from "../utils/Errors.ts";
 
-
-
 class TokenService {
-  static async generateAccessToken(payload) {
-    return await jwt.sign(payload, process.env.ACCESS_TOKEN_SECRET, {
+  static async generateAccessToken(payload: UserClaims) {
+    return await jwt.sign(payload, process.env.ACCESS_TOKEN_SECRET!, {
       expiresIn: "30m",
     });
   }
 
-  static async generateRefreshToken(payload) {
-    return await jwt.sign(payload, process.env.REFRESH_TOKEN_SECRET, {
+  static async generateRefreshToken(payload: UserClaims) {
+    return await jwt.sign(payload, process.env.REFRESH_TOKEN_SECRET!, {
       expiresIn: "15d",
     });
   }
 
-  static async verifyAccessToken(accessToken) {
-    return await jwt.verify(accessToken, process.env.ACCESS_TOKEN_SECRET);
+  static async verifyAccessToken(accessToken: string) {
+    return await jwt.verify(accessToken, process.env.ACCESS_TOKEN_SECRET!) as UserClaims;
   }
 
-  static async verifyRefreshToken(refreshToken) {
-    return await jwt.verify(refreshToken, process.env.REFRESH_TOKEN_SECRET);
+  static async verifyRefreshToken(refreshToken: string) {
+    return await jwt.verify(refreshToken, process.env.REFRESH_TOKEN_SECRET!) as UserClaims;
   }
 
-  static async checkAccess(req, _, next) {
+  static async checkAccess(req: Request, _: Response, next: NextFunction) {
     const authHeader = req.headers.authorization;
     const token = authHeader?.split(" ")?.[1];
 

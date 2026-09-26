@@ -1,4 +1,7 @@
-// @ts-nocheck: типизация существующего кода — следующий пакет
+import type { ParamsDictionary } from "express-serve-static-core";
+import { errorMessage } from "../utils/Errors.ts";
+import type { Pool } from "pg";
+import type { Request, Response } from "express";
 import { getUnacknowledgedFieldChanges } from "../modules/complectSync.ts";
 import RpdProfileTemplates from "../models/rpd_profile_templates.ts";
 import {
@@ -44,7 +47,11 @@ const SP = {
   defaultLine: 276,
 };
 
-function text(value, options = {}) {
+type TextOptions = { size?: number; bold?: boolean; alignment?: (typeof AlignmentType)[keyof typeof AlignmentType]; before?: number; after?: number; line?: number; lineRule?: (typeof LineRuleType)[keyof typeof LineRuleType] };
+type AssessmentQuestion = { text?: string; answer?: string; discipline?: string | null };
+type AssessmentFundsData = { directions: { direction: string | null; profile: string | null; disciplines: string[] }[]; openQuestions: AssessmentQuestion[]; closedQuestions: AssessmentQuestion[]; competence: string };
+
+function text(value: string, options: TextOptions = {}) {
   return new TextRun({
     text: value ?? "",
     font: "Times New Roman",
@@ -53,7 +60,7 @@ function text(value, options = {}) {
   });
 }
 
-function paragraph(value, options = {}) {
+function paragraph(value: string, options: TextOptions = {}) {
   return new Paragraph({
     alignment: options.alignment,
     spacing: {
@@ -66,7 +73,7 @@ function paragraph(value, options = {}) {
   });
 }
 
-function spacerParagraph(before, after) {
+function spacerParagraph(before: number, after: number) {
   return new Paragraph({
     spacing: {
       before,
@@ -84,7 +91,7 @@ function spacerParagraph(before, after) {
   });
 }
 
-function cell(children, width, options = {}) {
+function cell(children: string | Paragraph[], width: number, options: TextOptions = {}) {
   return new TableCell({
     width: { size: width, type: WidthType.DXA },
     margins: { top: 80, bottom: 80, left: 120, right: 120 },
@@ -98,7 +105,7 @@ function cell(children, width, options = {}) {
   });
 }
 
-function buildAssessmentFundsDoc(data) {
+function buildAssessmentFundsDoc(data: AssessmentFundsData) {
   const directionRows = data.directions.length
     ? data.directions
     : [{ direction: "", profile: "", disciplines: [] }];
@@ -140,7 +147,7 @@ function buildAssessmentFundsDoc(data) {
     ],
   });
 
-  const questionHeader = (firstColumnTitle) =>
+  const questionHeader = (firstColumnTitle: string) =>
     new TableRow({
       children: [
         cell("№", QUESTIONS_COLUMNS.number),
@@ -153,7 +160,7 @@ function buildAssessmentFundsDoc(data) {
       ],
     });
 
-  const questionRow = (idx, question) =>
+  const questionRow = (idx: number, question: AssessmentQuestion | undefined) =>
     new TableRow({
       children: [
         cell(`${idx}.`, QUESTIONS_COLUMNS.number),
@@ -244,11 +251,12 @@ function buildAssessmentFundsDoc(data) {
 }
 
 class RpdProfileTemplatesController {
-  constructor(pool) {
+  model: RpdProfileTemplates;
+  constructor(pool: Pool) {
     this.model = new RpdProfileTemplates(pool);
   }
 
-  async getJsonProfile(req, res) {
+  async getJsonProfile(req: Request<ParamsDictionary, unknown, Record<string, unknown>>, res: Response) {
     try {
       const { id } = req.body;
       const value = await this.model.getJsonProfile(id);
@@ -258,15 +266,15 @@ class RpdProfileTemplatesController {
       const fieldChanges = await getUnacknowledgedFieldChanges(value.id);
       res.json({ ...value, fieldChanges });
     } catch (err) {
-      res.status(500).json({ message: err.message });
+      res.status(500).json({ message: errorMessage(err) });
     }
   }
 
-  async updateById(req, res) {
+  async updateById(req: Request<ParamsDictionary, unknown, Record<string, unknown>>, res: Response) {
     try {
       const updatedItem = await this.model.updateById(
         req.params.id,
-        req.body.fieldToUpdate,
+        req.body.fieldToUpdate as string,
         req.body.value
       );
       if (!updatedItem) {
@@ -274,11 +282,11 @@ class RpdProfileTemplatesController {
       }
       res.json(updatedItem);
     } catch (err) {
-      res.status(500).json({ message: err.message });
+      res.status(500).json({ message: errorMessage(err) });
     }
   }
 
-  async upsetTemplateComment(req, res) {
+  async upsetTemplateComment(req: Request<ParamsDictionary, unknown, Record<string, unknown>>, res: Response) {
     try {
       const commentatorId = req.user?.id;
       if (!commentatorId) {
@@ -293,7 +301,7 @@ class RpdProfileTemplatesController {
       const updatedItem = await this.model.upsetTemplateComment(
         req.params.id,
         commentatorId,
-        field,
+        field as string,
         value
       );
 
@@ -303,12 +311,12 @@ class RpdProfileTemplatesController {
 
       res.json(updatedItem);
     } catch (error) {
-      res.status(500).json({ message: error.message });
+      res.status(500).json({ message: errorMessage(error) });
       console.error(error);
     }
   }
 
-  async deleteTemplateComment(req, res) {
+  async deleteTemplateComment(req: Request<ParamsDictionary, unknown, Record<string, unknown>>, res: Response) {
     try {
       const deleteResult = await this.model.deleteTemplateComment(
         req.params.id
@@ -322,12 +330,12 @@ class RpdProfileTemplatesController {
 
       res.status(204).send();
     } catch (error) {
-      res.status(500).json({ message: error.message });
+      res.status(500).json({ message: errorMessage(error) });
       console.error(error);
     }
   }
 
-  async findByCriteria(req, res) {
+  async findByCriteria(req: Request<ParamsDictionary, unknown, Record<string, unknown>>, res: Response) {
     try {
       const {
         faculty,
@@ -347,11 +355,11 @@ class RpdProfileTemplatesController {
       );
       res.json(records);
     } catch (err) {
-      res.status(500).json({ message: err.message });
+      res.status(500).json({ message: errorMessage(err) });
     }
   }
 
-  async findOrCreate(req, res) {
+  async findOrCreate(req: Request<ParamsDictionary, unknown, Record<string, unknown>>, res: Response) {
     try {
       const { disciplinsName, id, year, userName } = req.body;
       const record = await this.model.findOrCreateByDisciplineAndYear(
@@ -362,11 +370,11 @@ class RpdProfileTemplatesController {
       );
       res.json(record);
     } catch (err) {
-      res.status(500).json({ message: err.message });
+      res.status(500).json({ message: errorMessage(err) });
     }
   }
 
-  async copyTemplateData(req, res) {
+  async copyTemplateData(req: Request<ParamsDictionary, unknown, Record<string, unknown>>, res: Response) {
     try {
       const { sourceTemplateId, targetTemplateId, fieldToCopy } = req.body;
 
@@ -379,17 +387,17 @@ class RpdProfileTemplatesController {
       const result = await this.model.copyTemplateData(
         sourceTemplateId,
         targetTemplateId,
-        fieldToCopy
+        fieldToCopy as string
       );
 
       res.json(result);
     } catch (err) {
       console.error("Ошибка контроллера:", err);
-      res.status(500).json({ message: err.message });
+      res.status(500).json({ message: errorMessage(err) });
     }
   }
 
-  async copyTemplateContent(req, res) {
+  async copyTemplateContent(req: Request<ParamsDictionary, unknown, Record<string, unknown>>, res: Response) {
     try {
       const { sourceTemplateId, targetTemplateId } = req.body;
 
@@ -415,11 +423,11 @@ class RpdProfileTemplatesController {
       res.json(result);
     } catch (err) {
       console.error("Ошибка контроллера:", err);
-      res.status(500).json({ message: err.message });
+      res.status(500).json({ message: errorMessage(err) });
     }
   }
 
-  async getChangeableValues(req, res) {
+  async getChangeableValues(req: Request<ParamsDictionary, unknown, Record<string, unknown>>, res: Response) {
     try {
       const { ids, rowName } = req.query;
       console.log(ids, rowName);
@@ -435,11 +443,11 @@ class RpdProfileTemplatesController {
       res.json(result);
     } catch (error) {
       console.error(error);
-      res.status(500).json({ message: error.message });
+      res.status(500).json({ message: errorMessage(error) });
     }
   }
 
-  async generateAssessmentFundsDocx(req, res) {
+  async generateAssessmentFundsDocx(req: Request<ParamsDictionary, unknown, Record<string, unknown>>, res: Response) {
     try {
       const { complectId, competence } = req.body;
       if (!complectId || !competence) {
@@ -448,7 +456,7 @@ class RpdProfileTemplatesController {
 
       const data = await this.model.getAssessmentFundsDocumentData(
         complectId,
-        competence
+        competence as string
       );
 
       if (!data) {
@@ -470,7 +478,7 @@ class RpdProfileTemplatesController {
       res.send(buffer);
     } catch (error) {
       console.error(error);
-      res.status(500).json({ message: error.message });
+      res.status(500).json({ message: errorMessage(error) });
     }
   }
 }

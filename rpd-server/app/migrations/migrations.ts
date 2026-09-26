@@ -1,6 +1,5 @@
 import { pool } from "../../config/db.ts";
 
-
 (async () => {
   try {
     console.log("Starting migrations...");
@@ -448,7 +447,7 @@ import { pool } from "../../config/db.ts";
 
     console.log("Все миграции загружены успешно");
   } catch (error) {
-    console.error("Ошибка загрузки миграций", error.stack);
+    console.error("Ошибка загрузки миграций", error && typeof error === "object" && "stack" in error ? error.stack : undefined);
     process.exit(1); // Выход с ошибкой
   }
 })();

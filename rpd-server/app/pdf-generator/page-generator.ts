@@ -16,14 +16,14 @@ const TABLE_STYLE =
   "width:100%; border-collapse:collapse; margin:20px 0; font-size:16px;";
 
 // Нормализуем кривые/закрывающие <br> к <br/>, который корректно понимают оба рендера.
-function normalizeBr(value) {
+function normalizeBr(value: unknown) {
   if (value == null) return "";
   return String(value).replace(/<\s*\/?\s*br\s*\/?\s*>/gi, "<br/>");
 }
 
 // @font-face нельзя задать инлайн, поэтому он остаётся в <head> — нужен только
 // для PDF (puppeteer). html-to-docx этот блок игнорирует и берёт шрифт из опций.
-function wrapHtml(bodyContent) {
+function wrapHtml(bodyContent: string) {
   return `<!DOCTYPE html>
     <html lang="ru">
     <head>
@@ -41,7 +41,7 @@ function wrapHtml(bodyContent) {
     </html>`;
 }
 
-async function generateCoverPage(id) {
+async function generateCoverPage(id: unknown) {
   //data
   let uniName = null;
   let approvalField = null;
@@ -66,39 +66,39 @@ async function generateCoverPage(id) {
   const coverPageFragment = `
         <div class="page" style="${PAGE_STYLE}">
             <p style="${center} font-size:16px; font-weight:600;">${normalizeBr(
-    uniName.value
+    uniName!.value
   )}</p>
             <p style="${center} font-size:16px; margin-top:20px;">${
-    complectData.faculty
-  }<br/>${jsonData.department}</p>
+    complectData!.faculty
+  }<br/>${jsonData!.department}</p>
             <p style="text-align:right; font-size:16px; margin:60px 0;">${normalizeBr(
-              approvalField.value
+              approvalField!.value
             )}</p>
             <p style="${center} font-size:20px; margin-top:20px;"><b>Рабочая программа дисциплины</b></p>
             <p style="${center} font-size:20px; margin-top:20px;">${
-    jsonData.disciplins_name
+    jsonData!.disciplins_name
   }</p>
             <p style="${subtitle}">Направление подготовки<br/><span style="${subtitleName}"><u>${
-    jsonData.direction
+    jsonData!.direction
   }</u></span></p>
             <p style="${subtitle}">Уровень высшего образования<br/><span style="${subtitleName}"><u>${
-    jsonData.education_level
+    jsonData!.education_level
   }</u></span></p>
             <p style="${subtitle}">Направленность (профиль) программы<br/><span style="${subtitleName}"><u>${
-    complectData.profile
+    complectData!.profile
   }</u></span></p>
             <p style="${subtitle}">Форма(ы) обучения<br/><span style="${subtitleName}"><u>${
-    complectData.education_form
+    complectData!.education_form
   }</u></span></p>
             <p style="${center} font-size:16px; margin-top:100px;">Дубна, ${
-    complectData.year
+    complectData!.year
   }</p>
         </div>`;
 
   return coverPageFragment;
 }
 
-async function generateApprovalPage(id) {
+async function generateApprovalPage(id: unknown) {
   //data
   let jsonData = null;
 
@@ -114,13 +114,13 @@ async function generateApprovalPage(id) {
   const approvalPageFragment = `
         <div class="page" style="${PAGE_STYLE}">
             <p style="margin:0;">Преподаватель (преподаватели):</p>
-            <p style="margin:0;">${jsonData.teacher || ""}</p>
+            <p style="margin:0;">${jsonData!.teacher || ""}</p>
             <p style="margin:0;">________________________________________________________</p>
             <p style="${caption}"><i>Фамилия И.О., должность, ученая степень (при наличии),<br/>ученое звание (при наличии), кафедра</i></p>
             <p style="margin:20px 0 0 0;">_______________</p>
             <p style="${caption}"><i>подпись</i></p>
             <p style="${line}">Рабочая программа разработана в соответствии с требованиями ФГОС ВО по направлению подготовки высшего образования</p>
-            <p style="margin:20px 0 0 0;">${jsonData.direction || ""}</p>
+            <p style="margin:20px 0 0 0;">${jsonData!.direction || ""}</p>
             <p style="margin:0;">______________________________________________________________________________</p>
             <p style="${caption}"><i>(код и наименование направления подготовки (специальности))</i></p>
             <p style="${line}">Программа рассмотрена на заседании кафедры</p>
@@ -141,8 +141,8 @@ async function generateApprovalPage(id) {
   return approvalPageFragment;
 }
 
-function contentResultFunc(data) {
-  let summ = {
+function contentResultFunc(data: Record<string, { lectures?: unknown; seminars?: unknown; independent_work?: unknown }> | null) {
+  const summ = {
     result: 0,
     lectures: 0,
     seminars: 0,
@@ -170,7 +170,7 @@ function contentResultFunc(data) {
   return summ;
 }
 
-async function generateContentPage(id, { forWord = false } = {}) {
+async function generateContentPage(id: unknown, { forWord = false } = {}) {
   //data
   let jsonData = null;
   let cource = null;
@@ -187,16 +187,16 @@ async function generateContentPage(id, { forWord = false } = {}) {
     return "";
   }
 
-  const contentResult = contentResultFunc(jsonData.content);
+  const contentResult = contentResultFunc(jsonData.content as Record<string, { lectures?: unknown; seminars?: unknown; independent_work?: unknown }> | null);
 
   const competenciesContent = jsonData.competencies
-    ? Object.keys(jsonData.competencies)
+    ? Object.keys(jsonData.competencies as Record<string, unknown>)
         .map((row) => {
-          const value = jsonData.competencies[row] || {};
+          const value = (jsonData.competencies as Record<string, { results: string; competence?: string; indicator?: string }>)[row] || {};
           console.log(value);
-          let results = value.results;
+          let results: unknown = value.results;
           try {
-            results = JSON.parse(results);
+            results = JSON.parse(results as string);
           } catch {
             // Если не JSON, оставляем как строку
           }
@@ -206,9 +206,9 @@ async function generateContentPage(id, { forWord = false } = {}) {
                   <td style="${CELL_STYLE}">${value.competence || ""}</td>
                   <td style="${CELL_STYLE}">${value.indicator || ""}</td>
                   <td style="${CELL_STYLE}">
-                  <u>Знать:</u><br/>${results["know"] || ""}<br/>
-                  <u>Уметь:</u><br/>${results["beAble"] || ""}<br/>
-                  <u>Владеть:</u><br/>${results["own"] || ""}
+                  <u>Знать:</u><br/>${(results as Record<string, unknown>)["know"] || ""}<br/>
+                  <u>Уметь:</u><br/>${(results as Record<string, unknown>)["beAble"] || ""}<br/>
+                  <u>Владеть:</u><br/>${(results as Record<string, unknown>)["own"] || ""}
                   </td>
               </tr>
           `;
@@ -217,9 +217,9 @@ async function generateContentPage(id, { forWord = false } = {}) {
     : "";
 
   const contentTableRows = jsonData.content
-    ? Object.keys(jsonData.content)
+    ? Object.keys(jsonData.content as Record<string, unknown>)
         .map((row) => {
-          const value = jsonData.content[row] || {};
+          const value = (jsonData.content as Record<string, { lectures?: unknown; seminars?: unknown; independent_work?: unknown; theme?: string }>)[row] || {};
           const lectures = Number(value.lectures) || 0;
           const seminars = Number(value.seminars) || 0;
           const independentWork = Number(value.independent_work) || 0;
@@ -251,18 +251,18 @@ async function generateContentPage(id, { forWord = false } = {}) {
     : "";
 
   const textbookList = Array.isArray(jsonData.textbook)
-    ? jsonData.textbook.map((row) => `<li>${row || ""}</li>`).join("")
+    ? jsonData.textbook.map((row: unknown) => `<li>${row || ""}</li>`).join("")
     : "";
 
   const additionalTextbookList = Array.isArray(jsonData.additional_textbook)
     ? jsonData.additional_textbook
-        .map((row) => `<li>${row || ""}</li>`)
+        .map((row: unknown) => `<li>${row || ""}</li>`)
         .join("")
     : "";
 
   const titleStyle = "text-indent:20px; font-size:16px; margin:16px 0 0 0;";
   const contentStyle = "font-size:16px; text-align:justify;";
-  const title = (text, extra = "") =>
+  const title = (text: string, extra = "") =>
     `<p style="${titleStyle} ${extra}"><b>${text}</b></p>`;
 
   const contentPageFragment = `
@@ -275,7 +275,7 @@ async function generateContentPage(id, { forWord = false } = {}) {
             <div class="content-page-content" style="${contentStyle}"><p style="text-indent:30px;">Дисциплина «${
     jsonData.disciplins_name || ""
   }» относится к ${jsonData.place || ""} учебного плана направления ${
-    jsonData.direction_of_study || ""
+    (jsonData as typeof jsonData & { direction_of_study?: string }).direction_of_study || ""
   }.</p></div>
             <div class="content-page-content" style="${contentStyle}"><p style="text-indent:30px;">Дисциплина преподается в ${
     jsonData.semester || ""

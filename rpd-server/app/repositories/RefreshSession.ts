@@ -1,8 +1,10 @@
+import type { RefreshSessionRow } from "../types/db.ts";
+import type { RequestFingerprint } from "../types/express.ts";
 import { pool } from "../../config/db.ts";
 
 class RefreshSessionRepository {
-  static async getRefreshSession(refreshToken) {
-    const response = await pool.query(
+  static async getRefreshSession(refreshToken: string) {
+    const response = await pool.query<RefreshSessionRow>(
       "SELECT * FROM refresh_sessions WHERE refresh_token=$1",
       [refreshToken]
     );
@@ -14,14 +16,14 @@ class RefreshSessionRepository {
     return response.rows[0];
   }
 
-  static async createRefreshSession({ id, refreshToken, fingerprint }) {
+  static async createRefreshSession({ id, refreshToken, fingerprint }: { id: number; refreshToken: string; fingerprint: RequestFingerprint }) {
     await pool.query(
       "INSERT INTO refresh_sessions (user_id, refresh_token, finger_print) VALUES ($1, $2, $3) RETURNING *",
       [id, refreshToken, fingerprint.hash]
     );
   }
 
-  static async deleteRefreshSession(refreshToken) {
+  static async deleteRefreshSession(refreshToken: string) {
     await pool.query("DELETE FROM refresh_sessions WHERE refresh_token=$1", [
       refreshToken,
     ]);

@@ -1,12 +1,16 @@
-// @ts-nocheck: типизация существующего кода — следующий пакет
+import type { ParamsDictionary } from "express-serve-static-core";
+import { errorMessage } from "../utils/Errors.ts";
+import type { Pool } from "pg";
+import type { Request, Response } from "express";
 import RpdChangeableValues from "../models/rpd_changeable_values.ts";
 
 class RpdChangeableValuesController {
-  constructor(pool) {
+  model: RpdChangeableValues;
+  constructor(pool: Pool) {
     this.model = new RpdChangeableValues(pool);
   }
 
-  async getChangeableValues(req, res) {
+  async getChangeableValues(req: Request<ParamsDictionary, unknown, Record<string, unknown>>, res: Response) {
     try {
       const value = await this.model.getChangeableValue(req.query.title);
       if (!value) {
@@ -14,11 +18,11 @@ class RpdChangeableValuesController {
       }
       res.json(value);
     } catch (err) {
-      res.status(500).json({ message: err.message });
+      res.status(500).json({ message: errorMessage(err) });
     }
   }
 
-  async updateChangeableValue(req, res) {
+  async updateChangeableValue(req: Request<ParamsDictionary, unknown, Record<string, unknown>>, res: Response) {
     try {
       const updatedValue = await this.model.updateChangeableValue(req.params.id, req.body.value);
       if (!updatedValue) {
@@ -26,7 +30,7 @@ class RpdChangeableValuesController {
       }
       res.json(updatedValue);
     } catch (err) {
-      res.status(400).json({ message: err.message });
+      res.status(400).json({ message: errorMessage(err) });
     }
   }
 }

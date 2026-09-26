@@ -1,4 +1,3 @@
-// @ts-nocheck: типизация существующего кода — следующий пакет
 import puppeteer from "puppeteer";
 import {
   wrapHtml,
@@ -9,7 +8,7 @@ import {
 
 const PAGE_BREAK = '<div style="page-break-after: always;"></div>';
 
-async function buildHtml(id) {
+async function buildHtml(id: unknown) {
   const htmlCoverPage = await generateCoverPage(id);
   const htmlApprovalPage = await generateApprovalPage(id);
   const htmlContentPage = await generateContentPage(id);
@@ -21,7 +20,7 @@ async function buildHtml(id) {
   return wrapHtml(body);
 }
 
-async function createPDF(fullHtml) {
+async function createPDF(fullHtml: string) {
   const browser = await puppeteer.launch({
     args: [
       "--no-sandbox",
@@ -34,11 +33,12 @@ async function createPDF(fullHtml) {
       "--disable-dev-tools",
       "--no-zygote",
     ],
-    headless: "new",
+    headless: true,
   });
   const page = await browser.newPage();
 
   await page.setContent(fullHtml, {
+    // @ts-expect-error: Puppeteer runtime still accepts networkidle0 for setContent; its declaration excludes it.
     waitUntil: "networkidle0",
   });
 
@@ -57,7 +57,7 @@ async function createPDF(fullHtml) {
   return pdf;
 }
 
-async function generatePDF(id) {
+async function generatePDF(id: unknown) {
   const fullHtml = await buildHtml(id);
   const pdfBuffer = await createPDF(fullHtml);
   return pdfBuffer;

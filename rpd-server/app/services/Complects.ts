@@ -1,7 +1,8 @@
+import type { Pool } from "pg";
 import RpdComplects from "../models/rpd_complects.ts";
 import Rpd1cExchange from "../models/rpd_1c_exchange.ts";
 
-async function findRpd(pool, complectId) {
+async function findRpd(pool: Pool, complectId: unknown) {
   const rpdComplects = new RpdComplects(pool);
   const rpd1cExchange = new Rpd1cExchange(pool);
 

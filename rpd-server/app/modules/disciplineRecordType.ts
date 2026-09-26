@@ -1,4 +1,4 @@
-const placeFromRecordType = (recordType) => {
+const placeFromRecordType = (recordType: unknown) => {
   if (typeof recordType !== "string") return "";
 
   const normalized = recordType.trim();

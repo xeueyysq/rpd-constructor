@@ -1,12 +1,15 @@
-// @ts-nocheck: типизация существующего кода — следующий пакет
+import type { Pool } from "pg";
 import moment from "moment";
 
+type TeacherTemplateListRow = { id: number; public_id: string; disciplins_name: string | null; faculty: string | null; direction: string | null; profile: string | null; education_level: string | null; education_form: string | null; year: number | null; status: unknown };
+
 class TeacherTemplates {
-  constructor(pool) {
+  pool: Pool;
+  constructor(pool: Pool) {
     this.pool = pool;
   }
 
-  normalizeTeachers(teacher, teachers) {
+  normalizeTeachers(teacher: unknown, teachers: unknown) {
     if (Array.isArray(teachers)) {
       return [
         ...new Set(
@@ -27,7 +30,7 @@ class TeacherTemplates {
     ];
   }
 
-  async bindTemplateWithTeacher(id, teacher, userName, teachers) {
+  async bindTemplateWithTeacher(id: unknown, teacher: unknown, userName: string, teachers: unknown) {
     try {
       const selectedTeachers = this.normalizeTeachers(teacher, teachers);
       if (!selectedTeachers.length) return "UserNotFound";
@@ -44,7 +47,7 @@ class TeacherTemplates {
           patronymic: fullname[2],
         };
 
-        const userIdResult = await this.pool.query(
+        const userIdResult = await this.pool.query<{ id: number }>(
           `
                 SELECT id FROM users WHERE fullname = $1
             `,
@@ -57,7 +60,7 @@ class TeacherTemplates {
         }
         const userId = userIdResult.rows[0].id;
 
-        const teacherTemplateRowResult = await this.pool.query(
+        const teacherTemplateRowResult = await this.pool.query<{ id: number }>(
           `
                 SELECT id from teacher_templates 
                 WHERE user_id = $1 and template_id = $2
@@ -112,7 +115,7 @@ class TeacherTemplates {
     }
   }
 
-  async findTeacherTemplates(userName) {
+  async findTeacherTemplates(userName: string) {
     try {
       const fullname = userName.split(" ");
       const nameParam = {
@@ -121,7 +124,7 @@ class TeacherTemplates {
         patronymic: fullname[2],
       };
 
-      const userIdResult = await this.pool.query(
+      const userIdResult = await this.pool.query<{ id: number }>(
         `
                 SELECT id FROM users WHERE fullname = $1
             `,
@@ -131,7 +134,7 @@ class TeacherTemplates {
       if (!userIdResult.rows[0]) return "UserNotFound";
       const userId = userIdResult.rows[0].id;
 
-      const result = await this.pool.query(
+      const result = await this.pool.query<TeacherTemplateListRow>(
         `
                 SELECT rpt.id, rpt.public_id, rpt.disciplins_name, rc.faculty,
                 rc.direction, rc.profile, rc.education_level,
@@ -163,7 +166,7 @@ class TeacherTemplates {
     }
   }
 
-  async setTemplateStatus(id, userName, status) {
+  async setTemplateStatus(id: unknown, userName: string, status: string) {
     try {
       const statusLog = {
         date: moment().format(),

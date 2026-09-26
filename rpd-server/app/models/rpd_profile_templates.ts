@@ -1,8 +1,14 @@
-// @ts-nocheck: типизация существующего кода — следующий пакет
+import type { RpdComplectRow, RpdProfileTemplateRow } from "../types/db.ts";
+import type { Pool } from "pg";
 import moment from "moment";
 
+type AssessmentQuestionEntry = { id: string; text: string; correctAnswer?: string };
+type AssessmentCompetence = { openPool?: AssessmentQuestionEntry[]; closedPool?: AssessmentQuestionEntry[]; openQuestions?: unknown; closedQuestions?: unknown; selectedOpenIds?: string[]; selectedClosedIds?: string[] };
+type AssessmentFundsJson = { competencies?: Record<string, AssessmentCompetence> };
+
 class RpdProfileTemplates {
-  constructor(pool) {
+  pool: Pool;
+  constructor(pool: Pool) {
     this.pool = pool;
   }
 
@@ -32,7 +38,7 @@ class RpdProfileTemplates {
     "logistics_template",
   ];
 
-  mergeFieldValue(fieldName, targetValue, sourceValue) {
+  mergeFieldValue(fieldName: string, targetValue: unknown, sourceValue: unknown) {
     if (RpdProfileTemplates.JSONB_FIELDS.has(fieldName)) {
       return sourceValue;
     }
@@ -56,9 +62,9 @@ class RpdProfileTemplates {
     return `${targetString}${RpdProfileTemplates.TEXT_APPEND_SEPARATOR}${sourceValue}`;
   }
 
-  async resolveTemplateId(identifier) {
+  async resolveTemplateId(identifier: unknown) {
     if (identifier == null || identifier === "") return null;
-    const { rows } = await this.pool.query(
+    const { rows } = await this.pool.query<{ id: number }>(
       `
       SELECT id FROM rpd_profile_templates
       WHERE id::text = $1::text OR public_id = $1
@@ -69,10 +75,10 @@ class RpdProfileTemplates {
     return rows[0]?.id ?? null;
   }
 
-  async getJsonProfile(id) {
+  async getJsonProfile(id: unknown) {
     const numericId = await this.resolveTemplateId(id);
     if (numericId == null) return null;
-    const queryResult = await this.pool.query(
+    const queryResult = await this.pool.query<RpdProfileTemplateRow & Pick<RpdComplectRow, "faculty" | "direction" | "profile" | "education_level" | "education_form" | "year"> & { complect_uuid: string; comments: unknown }>(
       `
       SELECT
         rpt.*,
@@ -101,7 +107,7 @@ class RpdProfileTemplates {
     return queryResult.rows[0];
   }
 
-  async updateById(id, fieldToUpdate, value) {
+  async updateById(id: unknown, fieldToUpdate: string, value: unknown) {
     const numericId = await this.resolveTemplateId(id);
     if (numericId == null) return null;
     const preparedValue =
@@ -111,14 +117,14 @@ class RpdProfileTemplates {
         ? JSON.stringify(value)
         : value;
 
-    const queryResult = await this.pool.query(
+    const queryResult = await this.pool.query<RpdProfileTemplateRow>(
       `UPDATE rpd_profile_templates SET ${fieldToUpdate} = $1 WHERE id = $2 RETURNING *`,
       [preparedValue, numericId]
     );
     return queryResult.rows[0];
   }
 
-  async upsetTemplateComment(templateId, commentatorId, field, value) {
+  async upsetTemplateComment(templateId: unknown, commentatorId: unknown, field: unknown, value: unknown) {
     const numericTemplateId = await this.resolveTemplateId(templateId);
     if (numericTemplateId == null) return null;
     const preparedValue =
@@ -128,7 +134,7 @@ class RpdProfileTemplates {
           ? value
           : JSON.stringify(value);
 
-    const queryResult = await this.pool.query(
+    const queryResult = await this.pool.query<Record<string, unknown>>(
       `INSERT INTO template_field_comment (
         id_1c_template,
         commentator_id,
@@ -148,7 +154,7 @@ class RpdProfileTemplates {
     return queryResult.rows[0];
   }
 
-  async deleteTemplateComment(commentId) {
+  async deleteTemplateComment(commentId: unknown) {
     const queryResult = await this.pool.query(
       `DELETE FROM template_field_comment WHERE id = $1 RETURNING *`,
       [commentId]
@@ -157,14 +163,14 @@ class RpdProfileTemplates {
   }
 
   async findByCriteria(
-    faculty,
-    levelEducation,
-    directionOfStudy,
-    profile,
-    formEducation,
-    year
+    faculty: unknown,
+    levelEducation: unknown,
+    directionOfStudy: unknown,
+    profile: unknown,
+    formEducation: unknown,
+    year: unknown
   ) {
-    const queryResult = await this.pool.query(
+    const queryResult = await this.pool.query<{ id: number; disciplins_name: string | null; teacher: string | null; status: unknown }>(
       `
       SELECT id, disciplins_name, teacher, (
         SELECT status FROM 
@@ -190,13 +196,13 @@ class RpdProfileTemplates {
   }
 
   async findOrCreateByDisciplineAndYear(
-    disciplinsName,
-    id,
-    currentYear,
-    userName
+    disciplinsName: unknown,
+    id: unknown,
+    currentYear: unknown,
+    userName: unknown
   ) {
     try {
-      const searchResult = await this.pool.query(
+      const searchResult = await this.pool.query<Pick<RpdProfileTemplateRow, "id">>(
         `
             SELECT * FROM rpd_profile_templates
             WHERE disciplins_name = $1 AND year = $2
@@ -204,7 +210,7 @@ class RpdProfileTemplates {
         [disciplinsName, currentYear]
       );
 
-      if (searchResult.rowCount > 0) {
+      if ((searchResult.rowCount ?? 0) > 0) {
         return {
           status: "record exists",
           data: searchResult.rows[0].id,
@@ -212,7 +218,7 @@ class RpdProfileTemplates {
       } else {
         const numericId = await this.resolveTemplateId(id);
         if (numericId == null) throw new Error("Existing record not found");
-        const existingRecordResult = await this.pool.query(
+        const existingRecordResult = await this.pool.query<RpdProfileTemplateRow & Record<string, unknown>>(
           `
               SELECT * FROM rpd_profile_templates WHERE id = $1
             `,
@@ -223,7 +229,7 @@ class RpdProfileTemplates {
           throw new Error("Existing record not found");
         }
 
-        const addingRecord = await this.pool.query(
+        const addingRecord = await this.pool.query<RpdProfileTemplateRow>(
           `
           INSERT INTO rpd_profile_templates (
             disciplins_name, 
@@ -315,18 +321,18 @@ class RpdProfileTemplates {
     }
   }
 
-  async copyTemplateData(sourceTemplateId, targetTemplateId, fieldToCopy) {
+  async copyTemplateData(sourceTemplateId: unknown, targetTemplateId: unknown, fieldToCopy: string) {
     try {
       const sourceId = await this.resolveTemplateId(sourceTemplateId);
       const targetId = await this.resolveTemplateId(targetTemplateId);
       if (sourceId == null || targetId == null) {
         throw new Error("Шаблон не найден");
       }
-      const sourceTemplateResult = await this.pool.query(
+      const sourceTemplateResult = await this.pool.query<Record<string, unknown>>(
         `SELECT ${fieldToCopy} FROM rpd_profile_templates WHERE id = $1`,
         [sourceId]
       );
-      const targetTemplateResult = await this.pool.query(
+      const targetTemplateResult = await this.pool.query<Record<string, unknown>>(
         `SELECT ${fieldToCopy} FROM rpd_profile_templates WHERE id = $1`,
         [targetId]
       );
@@ -341,7 +347,7 @@ class RpdProfileTemplates {
         targetValue,
         sourceValue
       );
-      const updateResult = await this.pool.query(
+      const updateResult = await this.pool.query<RpdProfileTemplateRow>(
         `UPDATE rpd_profile_templates SET ${fieldToCopy} = $1 WHERE id = $2 RETURNING *`,
         [nextValue, targetId]
       );
@@ -357,14 +363,14 @@ class RpdProfileTemplates {
     }
   }
 
-  async copyTemplateContent(sourceTemplateId, targetTemplateId) {
+  async copyTemplateContent(sourceTemplateId: unknown, targetTemplateId: unknown) {
     try {
       const sourceId = await this.resolveTemplateId(sourceTemplateId);
       const targetId = await this.resolveTemplateId(targetTemplateId);
       if (sourceId == null || targetId == null) {
         throw new Error("Шаблон не найден");
       }
-      const { rows: columnRows } = await this.pool.query(
+      const { rows: columnRows } = await this.pool.query<{ column_name: string }>(
         `
           SELECT column_name
           FROM information_schema.columns
@@ -384,11 +390,11 @@ class RpdProfileTemplates {
         };
       }
 
-      const { rows: sourceRows } = await this.pool.query(
+      const { rows: sourceRows } = await this.pool.query<Record<string, unknown>>(
         `SELECT ${fields.join(", ")} FROM rpd_profile_templates WHERE id = $1`,
         [sourceId]
       );
-      const { rows: targetRows } = await this.pool.query(
+      const { rows: targetRows } = await this.pool.query<Record<string, unknown>>(
         `SELECT ${fields.join(", ")} FROM rpd_profile_templates WHERE id = $1`,
         [targetId]
       );
@@ -409,7 +415,7 @@ class RpdProfileTemplates {
         .map((f, idx) => `${f} = $${idx + 1}`)
         .join(", ");
 
-      const queryResult = await this.pool.query(
+      const queryResult = await this.pool.query<RpdProfileTemplateRow>(
         `
           UPDATE rpd_profile_templates
           SET ${setClause}
@@ -437,7 +443,7 @@ class RpdProfileTemplates {
     }
   }
 
-  async getChangeableValues(ids, rowName) {
+  async getChangeableValues(ids: unknown, rowName: unknown) {
     try {
       const idList = Array.isArray(ids) ? ids : [ids];
       const numericIds = [];
@@ -446,7 +452,7 @@ class RpdProfileTemplates {
         if (n != null) numericIds.push(n);
       }
       if (numericIds.length === 0) return [];
-      const queryResult = await this.pool.query(
+      const queryResult = await this.pool.query<Pick<RpdProfileTemplateRow, "id" | "public_id"> & Record<string, unknown>>(
         `SELECT ${rowName}, id, public_id FROM rpd_profile_templates WHERE id = ANY($1)`,
         [numericIds]
       );
@@ -457,8 +463,8 @@ class RpdProfileTemplates {
     }
   }
 
-  async getAssessmentFundsDocumentData(complectId, competence) {
-    const complectResult = await this.pool.query(
+  async getAssessmentFundsDocumentData(complectId: unknown, competence: string) {
+    const complectResult = await this.pool.query<RpdComplectRow>(
       `
         SELECT *
         FROM rpd_complects
@@ -470,7 +476,7 @@ class RpdProfileTemplates {
     const complect = complectResult.rows[0];
     if (!complect?.id) return null;
 
-    const directionsResult = await this.pool.query(
+    const directionsResult = await this.pool.query<{ direction: string | null; profile: string | null; disciplines: string[] }>(
       `
         SELECT
           rc.direction,
@@ -488,7 +494,7 @@ class RpdProfileTemplates {
       [competence]
     );
 
-    const questionsResult = await this.pool.query(
+    const questionsResult = await this.pool.query<Pick<RpdProfileTemplateRow, "disciplins_name" | "assessment_tools_questions">>(
       `
         SELECT disciplins_name, assessment_tools_questions
         FROM rpd_profile_templates
@@ -500,7 +506,7 @@ class RpdProfileTemplates {
 
     const openQuestions = [];
     const closedQuestions = [];
-    const parseLegacyQuestions = (value) =>
+    const parseLegacyQuestions = (value: unknown): AssessmentQuestionEntry[] =>
       typeof value === "string"
         ? value
             .split(/\r?\n+/)
@@ -510,7 +516,8 @@ class RpdProfileTemplates {
         : [];
 
     for (const row of questionsResult.rows) {
-      const funds = row.assessment_tools_questions ?? {};
+      const fundsValue: unknown = row.assessment_tools_questions;
+      const funds = fundsValue && typeof fundsValue === "object" && !Array.isArray(fundsValue) ? fundsValue as AssessmentFundsJson : {};
       const item = funds?.competencies?.[competence];
       if (!item) continue;
 
@@ -525,12 +532,12 @@ class RpdProfileTemplates {
       const selectedOpen = new Set(
         Array.isArray(item.selectedOpenIds)
           ? item.selectedOpenIds
-          : openPool.map((question) => question.id)
+          : openPool.map((question: { id: string }) => question.id)
       );
       const selectedClosed = new Set(
         Array.isArray(item.selectedClosedIds)
           ? item.selectedClosedIds
-          : closedPool.map((question) => question.id)
+          : closedPool.map((question: { id: string }) => question.id)
       );
 
       for (const question of openPool) {

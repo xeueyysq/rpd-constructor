@@ -1,4 +1,7 @@
-// @ts-nocheck: типизация существующего кода — следующий пакет
+import type { ParamsDictionary } from "express-serve-static-core";
+import { errorMessage, errorStatusCode } from "../utils/Errors.ts";
+import type { Pool } from "pg";
+import type { Request, Response } from "express";
 import {
   preview1cSync,
   applySync,
@@ -6,11 +9,12 @@ import {
 } from "../modules/complectSync.ts";
 
 class ComplectSyncController {
-  constructor(pool) {
+  pool: Pool;
+  constructor(pool: Pool) {
     this.pool = pool;
   }
 
-  async preview(req, res) {
+  async preview(req: Request<ParamsDictionary, unknown, Record<string, unknown>>, res: Response) {
     try {
       const { complectId } = req.body;
       if (!complectId) {
@@ -21,12 +25,12 @@ class ComplectSyncController {
       const result = await preview1cSync(complectId);
       res.json(result);
     } catch (error) {
-      const status = error.statusCode || 500;
-      res.status(status).json({ message: error.message });
+      const status = errorStatusCode(error) || 500;
+      res.status(status).json({ message: errorMessage(error) });
     }
   }
 
-  async apply(req, res) {
+  async apply(req: Request<ParamsDictionary, unknown, Record<string, unknown>>, res: Response) {
     try {
       const { complectId, selections } = req.body;
       if (!complectId) {
@@ -41,12 +45,12 @@ class ComplectSyncController {
       });
       res.json(result);
     } catch (error) {
-      const status = error.statusCode || 500;
-      res.status(status).json({ message: error.message });
+      const status = errorStatusCode(error) || 500;
+      res.status(status).json({ message: errorMessage(error) });
     }
   }
 
-  async acknowledgeFieldChanges(req, res) {
+  async acknowledgeFieldChanges(req: Request<ParamsDictionary, unknown, Record<string, unknown>>, res: Response) {
     try {
       const { profileTemplateId, changeIds } = req.body;
       if (!profileTemplateId) {
@@ -58,8 +62,8 @@ class ComplectSyncController {
       );
       res.json(result);
     } catch (error) {
-      const status = error.statusCode || 500;
-      res.status(status).json({ message: error.message });
+      const status = errorStatusCode(error) || 500;
+      res.status(status).json({ message: errorMessage(error) });
     }
   }
 }

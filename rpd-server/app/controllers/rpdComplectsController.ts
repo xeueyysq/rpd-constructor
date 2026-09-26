@@ -1,41 +1,46 @@
-// @ts-nocheck: типизация существующего кода — следующий пакет
+import type { ParamsDictionary } from "express-serve-static-core";
+import { errorMessage, errorStatusCode } from "../utils/Errors.ts";
+import type { Pool } from "pg";
+import type { Request, Response } from "express";
 import RpdComplects from "../models/rpd_complects.ts";
+import type { ComplectCriteria } from "../models/rpd_complects.ts";
 import { USER_ROLE } from "../../constants.ts";
 
 class RpdComplectsController {
-  constructor(pool) {
+  model: RpdComplects;
+  constructor(pool: Pool) {
     this.model = new RpdComplects(pool);
   }
 
-  async findRpdComplect(req, res) {
+  async findRpdComplect(req: Request<ParamsDictionary, unknown, Record<string, unknown>>, res: Response) {
     try {
       const { data } = req.body;
       const userId = req.user?.id;
-      const record = await this.model.findRpdComplect(data, userId);
+      const record = await this.model.findRpdComplect(data as ComplectCriteria, userId);
       res.json(record);
     } catch (error) {
-      res.status(500).json({ message: error.message });
+      res.status(500).json({ message: errorMessage(error) });
     }
   }
 
-  async createRpdComplect(req, res) {
+  async createRpdComplect(req: Request<ParamsDictionary, unknown, Record<string, unknown>>, res: Response) {
     try {
       const { data } = req.body;
       const userId = req.user?.id;
-      const record = await this.model.createRpdComplect({ data, userId });
+      const record = await this.model.createRpdComplect({ data: data as ComplectCriteria, userId });
       res.json(record);
     } catch (error) {
-      const errorCode = error.statusCode || 500;
+      const errorCode = errorStatusCode(error) || 500;
       res.status(errorCode).json({
-        message: error.message,
+        message: errorMessage(error),
         code: errorCode,
       });
     }
   }
 
-  async getRpdComplects(req, res) {
+  async getRpdComplects(req: Request<ParamsDictionary, unknown, Record<string, unknown>>, res: Response) {
     try {
-      const currentUser = req.user;
+      const currentUser = req.user!;
       let records = undefined;
 
       if (currentUser.role === USER_ROLE.ADMIN)
@@ -44,19 +49,19 @@ class RpdComplectsController {
 
       res.json(records);
     } catch (error) {
-      res.status(500).json({ message: error.message });
+      res.status(500).json({ message: errorMessage(error) });
     }
   }
 
-  async deleteRbdComplect(req, res) {
+  async deleteRbdComplect(req: Request<ParamsDictionary, unknown, Record<string, unknown>>, res: Response) {
     try {
       const ids = req.body;
       const records = await this.model.deleteRpdComplect(ids);
       res.json(records);
     } catch (error) {
-      const errorCode = error.statusCode || 500;
+      const errorCode = errorStatusCode(error) || 500;
       res.status(errorCode).json({
-        message: error.message,
+        message: errorMessage(error),
         code: errorCode,
       });
     }

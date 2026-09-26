@@ -1,4 +1,4 @@
-// @ts-nocheck: типизация существующего кода — следующий пакет
+import type { Request, Response, NextFunction } from "express";
 import validateRequest from "../utils/ValidateRequest.ts";
 import * as Yup from "yup";
 
@@ -38,19 +38,19 @@ const logoutSchema = Yup.object({
 });
 
 class AuthValidator {
-  static async signIn(req, res, next) {
+  static async signIn(req: Request, res: Response, next: NextFunction) {
     return validateRequest(req, res, next, signInSchema);
   }
 
-  static async signUp(req, res, next) {
+  static async signUp(req: Request, res: Response, next: NextFunction) {
     return validateRequest(req, res, next, signUpSchema);
   }
 
-  static async logOut(req, res, next) {
+  static async logOut(req: Request, res: Response, next: NextFunction) {
     return validateRequest(req, res, next, logoutSchema);
   }
 
-  static async refresh(req, res, next) {
+  static async refresh(req: Request, res: Response, next: NextFunction) {
     return validateRequest(req, res, next);
   }
 }
