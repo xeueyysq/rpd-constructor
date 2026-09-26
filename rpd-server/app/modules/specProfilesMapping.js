@@ -29,22 +29,6 @@ const normalizeCode = (code) => normalizeWhitespace(code).split(/\s+/)[0] || "";
 
 const pathKey = (institute, level) => `${institute}\u0000${level}`;
 
-const isYearLeaves = (node) => {
-  if (!node || typeof node !== "object" || Array.isArray(node)) {
-    return false;
-  }
-
-  const keys = Object.keys(node);
-  if (!keys.length) {
-    return false;
-  }
-
-  return keys.every((key) => {
-    const numericKey = Number(key);
-    return Number.isInteger(numericKey) && typeof node[key] === "number";
-  });
-};
-
 const deepClone = (value) => JSON.parse(JSON.stringify(value));
 
 const stableSerialize = (value) => {
@@ -278,7 +262,6 @@ module.exports = {
   buildYearLeaves,
   deepClone,
   hashPayload,
-  isYearLeaves,
   loadReferenceTree,
   mapApiDataFor1c,
   normalizeCode,

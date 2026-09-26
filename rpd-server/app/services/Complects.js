@@ -1,11 +1,6 @@
 const RpdComplects = require("../models/rpd_complects");
 const Rpd1cExchange = require("../models/rpd_1c_exchange");
 
-async function findRpdComplect(pool, complectId) {
-  const rpdComplects = new RpdComplects(pool);
-  return await rpdComplects.findRpdComplectMeta(complectId);
-}
-
 async function findRpd(pool, complectId) {
   const rpdComplects = new RpdComplects(pool);
   const rpd1cExchange = new Rpd1cExchange(pool);
@@ -24,4 +19,4 @@ async function findRpd(pool, complectId) {
   };
 }
 
-module.exports = { findRpdComplect, findRpd };
+module.exports = { findRpd };
