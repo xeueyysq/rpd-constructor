@@ -5,6 +5,7 @@ import { pool } from "../../config/db.ts";
 import { fetchUpLink } from "./1cExchange.ts";
 import { normalizeDisciplineFrom1c } from "./normalizeDisciplineFrom1c.ts";
 import { stableSerialize } from "./specProfilesMapping.ts";
+import { fieldEditsSet } from "./fieldEdits.ts";
 import TemplateAccess from "../services/TemplateAccess.ts";
 import type { UserClaims } from "../types/express.d.ts";
 import { NotFound, Unprocessable } from "../utils/Errors.ts";
@@ -313,6 +314,7 @@ const syncTemplateFields = async (
 
   const updates = [];
   const values = [];
+  const editedFields: string[] = [];
   let paramIndex = 1;
 
   for (const field of fieldsToApply) {
@@ -321,6 +323,7 @@ const syncTemplateFields = async (
     const newValue = incomingRow[field];
     const oldValue = localRow[field];
     updates.push(`${templateField} = $${paramIndex}`);
+    editedFields.push(templateField);
     values.push(
       field === "study_load" || field === "control_load"
         ? JSON.stringify(newValue ?? {})
@@ -342,6 +345,7 @@ const syncTemplateFields = async (
     const certification = deriveCertification(incomingRow.control_load);
     if (certification) {
       updates.push(`certification = $${paramIndex}`);
+      editedFields.push("certification");
       values.push(certification);
       paramIndex += 1;
       await recordFieldChange(client, {
@@ -357,12 +361,12 @@ const syncTemplateFields = async (
 
   if (!updates.length) return;
 
-  values.push(idProfileTemplate);
+  values.push(null, editedFields, idProfileTemplate);
   await client.query(
     `
       UPDATE rpd_profile_templates
-      SET ${updates.join(", ")}
-      WHERE id = $${paramIndex}
+      SET ${updates.join(", ")}, ${fieldEditsSet(paramIndex, paramIndex + 1)}
+      WHERE id = $${paramIndex + 2}
     `,
     values
   );

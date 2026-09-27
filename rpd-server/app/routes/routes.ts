@@ -9,7 +9,8 @@ import { USER_ROLES } from "../models/constants.ts";
 import RpdProfileTemplatesValidator from "../validators/RpdProfileTemplates.ts";
 import TemplateWorkflowController from "../controllers/templateWorkflowController.ts";
 import validateWorkflow from "../validators/TemplateWorkflow.ts";
-import { complectAuthorization, templateAuthorization } from "../middleware/templateAuthorization.ts";
+import { complectAuthorization, resolveTemplate, templateAuthorization } from "../middleware/templateAuthorization.ts";
+import TemplatePresence from "../services/TemplatePresence.ts";
 import TemplateAccess from "../services/TemplateAccess.ts";
 import { NotFound } from "../utils/Errors.ts";
 import { replaceComplectOwner } from "../services/ComplectOwnership.ts";
@@ -25,6 +26,11 @@ const byComment: express.RequestHandler = async (req, _res, next) => {
 
 router.get("/templates/:id/workflow", TokenService.checkAccess, TemplateWorkflowController.get);
 router.post("/templates/:id/workflow", TokenService.checkAccess, validateWorkflow, TemplateWorkflowController.post);
+const templatePresence = new TemplatePresence(pool);
+router.post("/templates/:id/presence", TokenService.checkAccess, template((req) => req.params.id, "read"), async (req, res) => {
+  const id = await resolveTemplate(pool, req.params.id);
+  res.json(await templatePresence.touch(id, TemplateAccess.actor(req.user).id));
+});
 router.get("/my-templates", TokenService.checkAccess, TemplateWorkflowController.myTemplates);
 router.get("/assignable-teachers", TokenService.checkAccess, requireRole(USER_ROLES.ADMIN, USER_ROLES.ROP), TemplateWorkflowController.assignableTeachers);
 

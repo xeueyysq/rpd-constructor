@@ -275,29 +275,18 @@ class RpdProfileTemplatesController {
   }
 
   async updateById(req: Request<ParamsDictionary, unknown, Record<string, unknown>>, res: Response) {
-    try {
-      if (!isEditableTemplateField(req.body.fieldToUpdate)) {
-        return res.status(400).json({ message: "Недопустимое поле шаблона" });
-      }
-      const updatedItem = await this.model.updateById(
-        req.params.id,
-        req.body.fieldToUpdate as string,
-        req.body.value
-      );
-      if (!updatedItem) {
-        return res.status(404).json({ message: "Item not found" });
-      }
-      res.json(updatedItem);
-    } catch (err) {
-      res.status(500).json({ message: errorMessage(err) });
+    const { fieldToUpdate, value, baseAt } = req.body ?? {};
+    if (!isEditableTemplateField(fieldToUpdate) || !(baseAt === null || typeof baseAt === "string")) {
+      throw new Unprocessable("Укажите допустимое поле и baseAt");
     }
+    res.json(await this.model.updateById(req.params.id, fieldToUpdate, value, baseAt, TemplateAccess.actor(req.user).id));
   }
 
   async updateStudyLoad(req: Request<ParamsDictionary, unknown, { hours?: Partial<Record<"all" | "lectures" | "seminars" | "control" | "independent_work", number>>; zet?: number }>, res: Response) {
-    const updated = await this.model.updateStudyLoad(req.params.id, req.body.hours, req.body.zet);
+    const updated = await this.model.updateStudyLoad(req.params.id, req.body.hours, req.body.zet, TemplateAccess.actor(req.user).id);
     if (!updated) return res.status(404).json({ message: "Шаблон не найден" });
     return res.json({ study_load: updated.study_load, zet: updated.zet,
-      study_plan_hours: getStudyPlanHours(updated.study_load, updated.control_load) });
+      study_plan_hours: getStudyPlanHours(updated.study_load, updated.control_load), edits: updated.edits });
   }
 
   async upsetTemplateComment(req: Request<ParamsDictionary, unknown, Record<string, unknown>>, res: Response) {
@@ -365,7 +354,8 @@ class RpdProfileTemplatesController {
       const result = await this.model.copyTemplateData(
         sourceTemplateId,
         targetTemplateId,
-        fieldToCopy as string
+        fieldToCopy as string,
+        TemplateAccess.actor(req.user).id
       );
 
       res.json(result);
@@ -395,7 +385,8 @@ class RpdProfileTemplatesController {
 
       const result = await this.model.copyTemplateContent(
         sourceTemplateId,
-        targetTemplateId
+        targetTemplateId,
+        TemplateAccess.actor(req.user).id
       );
 
       res.json(result);

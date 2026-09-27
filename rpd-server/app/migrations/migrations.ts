@@ -192,7 +192,8 @@ async function migrateTeacherWorkflow() {
         additional_textbook TEXT[],
         professional_information_resources TEXT,
         software TEXT,
-        logistics_template TEXT
+        logistics_template TEXT,
+        field_edits JSONB NOT NULL DEFAULT '{}'::jsonb
       );
     `);
 
@@ -236,6 +237,10 @@ async function migrateTeacherWorkflow() {
     await pool.query(`
       ALTER TABLE rpd_profile_templates
         ADD COLUMN IF NOT EXISTS control_load JSONB;
+    `);
+    await pool.query(`
+      ALTER TABLE rpd_profile_templates
+        ADD COLUMN IF NOT EXISTS field_edits JSONB NOT NULL DEFAULT '{}'::jsonb;
     `);
 
     await pool.query(`

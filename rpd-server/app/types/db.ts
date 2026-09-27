@@ -65,4 +65,5 @@ export interface RpdProfileTemplateRow {
   professional_information_resources: string | null;
   software: string | null;
   logistics_template: string | null;
+  field_edits: Record<string, { userId: number | null; at: string }>;
 }
