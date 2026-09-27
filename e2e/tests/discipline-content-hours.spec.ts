@@ -32,8 +32,14 @@ test('преподаватель сохраняет содержание без 
   const theme = page.getByRole('table', { name: 'Содержание дисциплины' })
     .getByRole('row').filter({ hasText: 'Тема 1' }).getByRole('textbox').first();
   await theme.fill('Тема 1 уточнена');
-  await page.getByRole('button', { name: 'Сохранить изменения' }).click();
-  await expect(page.getByText('Данные успешно сохранены')).toBeVisible();
+  const saved = page.waitForResponse((response) =>
+    response.request().method() === 'PUT' &&
+    response.url().includes('/api/update-json-value/103') && response.ok());
+  await page.getByRole('button', { name: 'Правила заполнения таблицы' }).click();
+  await saved;
+  await expect(page.getByText(/Сохранено в \d{2}:\d{2}/)).toBeVisible();
+  await expect(page.getByRole('button', { name: 'Сохранить изменения' })).toHaveCount(0);
+  await expect(page.getByText('Данные успешно сохранены')).toHaveCount(0);
   await page.getByRole('button', { name: 'Конструктор РПД' }).click();
   await expect(page).toHaveURL(/\/templates$/);
   await page.getByRole('row').filter({ hasText: discipline }).getByRole('button', { name: 'Открыть' }).click();
@@ -55,8 +61,14 @@ test('РОП редактирует часы плана и видит сохра
   const independentWork = totalRow(page).getByRole('cell').nth(5).getByRole('spinbutton');
   await expect(independentWork).toHaveValue('31');
   await independentWork.fill('32');
-  await page.getByRole('button', { name: 'Сохранить изменения' }).click();
-  await expect(page.getByText('Данные успешно сохранены')).toBeVisible();
+  const saved = page.waitForResponse((response) =>
+    response.request().method() === 'PUT' &&
+    response.url().includes('/api/rpd-profile-templates/103/study-load') && response.ok());
+  await page.getByRole('button', { name: 'Правила заполнения таблицы' }).click();
+  await saved;
+  await expect(page.getByText(/Сохранено в \d{2}:\d{2}/)).toBeVisible();
+  await expect(page.getByRole('button', { name: 'Сохранить изменения' })).toHaveCount(0);
+  await expect(page.getByText('Данные успешно сохранены')).toHaveCount(0);
   await page.getByRole('button', { name: 'Конструктор РПД' }).click();
   await expect(page).toHaveURL(/\/complects$/);
   await openComplect(page);

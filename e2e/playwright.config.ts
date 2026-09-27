@@ -29,7 +29,7 @@ export default defineConfig({
     {
       command: `bun run dev --host localhost --port ${new URL(clientUrl).port} --strictPort`,
       cwd: '../rpd-client-ts',
-      env: { ...serverEnv, VITE_API_URL: e2eEnv.VITE_API_URL! },
+      env: { ...serverEnv, VITE_API_URL: e2eEnv.VITE_API_URL!, VITE_PRESENCE_INTERVAL_MS: '1500' },
       url: clientUrl,
       reuseExistingServer: false,
       timeout: 60_000,

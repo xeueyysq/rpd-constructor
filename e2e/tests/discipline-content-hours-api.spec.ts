@@ -14,16 +14,16 @@ async function tokenFor(request: APIRequestContext, userName: string) {
 test('часы плана защищены токеном и ролью, содержание доступно преподавателю', async ({ page, request }) => {
   await signIn(page, 'teacher2');
   const anonymous = await request.put(`${apiUrl}/api/update-json-value/103`, {
-    data: { fieldToUpdate: 'content', value: {} },
+    data: { fieldToUpdate: 'content', value: {}, baseAt: null },
   });
   expect(anonymous.status()).toBe(401);
 
   const headers = { Authorization: `Bearer ${await tokenFor(request, 'teacher2')}` };
   const forbiddenField = await request.put(`${apiUrl}/api/update-json-value/103`, {
     headers,
-    data: { fieldToUpdate: 'study_load', value: {} },
+    data: { fieldToUpdate: 'study_load', value: {}, baseAt: null },
   });
-  expect(forbiddenField.status()).toBe(400);
+  expect(forbiddenField.status()).toBe(422);
 
   const forbiddenRole = await request.put(`${apiUrl}/api/rpd-profile-templates/103/study-load`, {
     headers,
@@ -32,9 +32,15 @@ test('часы плана защищены токеном и ролью, сод�
   expect(forbiddenRole.status()).toBe(403);
 
   // Копия шаблона не пересекается с UI-сценарием, который сохраняет содержание 103.
+  const profile = await request.post(`${apiUrl}/api/rpd-profile-templates`, {
+    headers,
+    data: { id: 104 },
+  });
+  expect(profile.status()).toBe(200);
+  const baseAt = (await profile.json()).field_edits?.content?.at ?? null;
   const content = await request.put(`${apiUrl}/api/update-json-value/104`, {
     headers,
-    data: { fieldToUpdate: 'content', value: { '0': { theme: 'Проверка сохранения' } } },
+    data: { fieldToUpdate: 'content', value: { '0': { theme: 'Проверка сохранения' } }, baseAt },
   });
   expect(content.status()).toBe(200);
 });

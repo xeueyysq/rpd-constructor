@@ -61,6 +61,12 @@ test.describe('права второго РОП на отдельном комп
 test('непривязанный преподаватель не читает workflow и PDF и не редактирует JSON', async ({ page, request }) => {
   await signIn(page, 'teacher3');
   const headers = await headersFor(request, 'teacher3');
+  const ownerHeaders = await headersFor(request, 'rop');
+  const profile = await request.post(`${apiUrl}/api/rpd-profile-templates`, {
+    headers: ownerHeaders, data: { id: 108 },
+  });
+  expect(profile.status()).toBe(200);
+  const baseAt = (await profile.json()).field_edits?.content?.at ?? null;
   const responses = [
     await request.get(`${apiUrl}/api/templates/108/workflow`, { headers }),
     await request.post(`${apiUrl}/api/templates/108/workflow`, {
@@ -68,7 +74,7 @@ test('непривязанный преподаватель не читает wo
     }),
     await request.get(`${apiUrl}/api/generate-pdf?id=108`, { headers }),
     await request.put(`${apiUrl}/api/update-json-value/108`, {
-      headers, data: { fieldToUpdate: 'content', value: {} },
+      headers, data: { fieldToUpdate: 'content', value: {}, baseAt },
     }),
   ];
   for (const response of responses) expect(response.status()).toBe(403);
