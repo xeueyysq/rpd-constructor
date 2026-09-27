@@ -1,5 +1,5 @@
 import { expect, test, type APIRequestContext, type Page } from '@playwright/test';
-import { apiUrl, disciplines, password, showAllRows, signIn, signInWithCredentials } from './helpers';
+import { apiUrl, disciplines, password, showAllRows, signIn, signInWithCredentials } from '../helpers';
 
 function uniqueLogin() {
   return `u${Date.now().toString(36)}${Math.random().toString(36).slice(2, 8)}`;

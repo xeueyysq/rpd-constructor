@@ -1,5 +1,5 @@
 import { expect, test, type Page } from '@playwright/test';
-import { openComplect, signIn } from './helpers';
+import { openComplect, signIn } from '../helpers';
 
 test.describe.configure({ mode: 'serial' });
 

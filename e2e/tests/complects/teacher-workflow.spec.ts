@@ -1,5 +1,5 @@
 import { expect, test, type Page } from '@playwright/test';
-import { disciplines, openComplect, showAllRows, signIn, signInWithCredentials, password } from './helpers';
+import { disciplines, openComplect, showAllRows, signIn, signInWithCredentials, password } from '../helpers';
 
 test.describe('состав и готовность отдельной РПД', () => {
   test.describe.configure({ mode: 'serial' });

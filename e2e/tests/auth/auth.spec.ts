@@ -1,5 +1,5 @@
 import { expect, test } from '@playwright/test';
-import { signIn } from './helpers';
+import { signIn } from '../helpers';
 
 for (const role of ['admin', 'rop', 'teacher'] as const) {
   test(`${role} входит через форму`, async ({ page }) => {

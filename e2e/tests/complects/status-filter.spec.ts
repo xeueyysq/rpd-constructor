@@ -1,5 +1,5 @@
 import { expect, test } from '@playwright/test';
-import { disciplines, filterColumn, openComplect, signIn } from './helpers';
+import { disciplines, filterColumn, openComplect, signIn } from '../helpers';
 
 test('фильтр статуса в комплекте', async ({ page }) => {
   await signIn(page, 'admin');

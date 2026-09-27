@@ -1,5 +1,5 @@
 import { expect, request as playwrightRequest, test, type APIRequestContext } from '@playwright/test';
-import { apiUrl, password, signIn } from './helpers';
+import { apiUrl, password, signIn } from '../helpers';
 
 function userPayload(name: string, role = 2) {
   return {

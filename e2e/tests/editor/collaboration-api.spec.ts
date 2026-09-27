@@ -1,5 +1,5 @@
 import { expect, test, type APIRequestContext } from '@playwright/test';
-import { apiUrl, password, signIn } from './helpers';
+import { apiUrl, password, signIn } from '../helpers';
 
 test.describe('API совместного редактирования', () => {
   test.describe.configure({ mode: 'serial' });

@@ -1,5 +1,5 @@
 import { expect, test } from '@playwright/test';
-import { openComplect, signIn } from './helpers';
+import { openComplect, signIn } from '../helpers';
 
 test('кнопка ФОС находится в комплекте и открывает компетенцию', async ({ page }) => {
   await signIn(page, 'admin');

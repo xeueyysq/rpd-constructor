@@ -1,5 +1,5 @@
 import { expect, test } from '@playwright/test';
-import { disciplines, openComplect, signIn } from './helpers';
+import { disciplines, openComplect, signIn } from '../helpers';
 
 test('преподаватель открывает шаблон и возвращается к списку через меню', async ({ page }) => {
   await signIn(page, 'teacher');

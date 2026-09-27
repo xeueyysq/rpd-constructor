@@ -1,5 +1,5 @@
 import { expect, test, type APIRequestContext } from '@playwright/test';
-import { apiUrl, complects, password, signIn } from './helpers';
+import { apiUrl, complects, password, signIn } from '../helpers';
 
 async function headersFor(request: APIRequestContext, userName: string) {
   const response = await request.post(`${apiUrl}/auth/sign-in`, {

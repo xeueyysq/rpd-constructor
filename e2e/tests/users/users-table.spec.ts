@@ -1,5 +1,5 @@
 import { expect, test } from '@playwright/test';
-import { filterColumn, showAllRows, signIn } from './helpers';
+import { filterColumn, showAllRows, signIn } from '../helpers';
 
 async function openUsers(page: import('@playwright/test').Page) {
   await signIn(page, 'admin');

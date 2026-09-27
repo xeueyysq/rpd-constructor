@@ -69,6 +69,27 @@ bun run db:down    # остановить тестовую БД
 
 В seed есть пользователи `admin`, `rop`, `teacher`, `teacher2` и `nofio` (без ФИО) с паролем `e2e-password`. Отчёт последнего прогона открывает `bunx playwright show-report`.
 
+### Какие сценарии запускать
+
+Сценарии разложены по папкам `e2e/tests/<группа>/`. После фичи или фикса запускайте группу своей области, а перед PR или `but land` — весь набор (`bun run test:e2e`). Каждая команда заново сбрасывает БД (около 15 с), поэтому группа проходит примерно за 20–50 с, а весь набор — около полутора минут.
+
+| Что менялось | Команда |
+| --- | --- |
+| Вход, токены, refresh (`Auth`, `Token`, `entities/auth`, `pages/sign-in`) | `bun run test:e2e:auth` |
+| Пользователи и их активность (`usersController`, `services/User`, `pages/user-management`) | `bun run test:e2e:users` |
+| Комплекты, назначение преподавателей, статусы и отметки, изменения 1С, права РОП, PDF/DOCX, ФОС (`TemplateWorkflow`, `TemplateAccess`, `Complects`, `pdf-generator`, `pages/rpd-complect*`, `pages/teacher-interface-templates`, `features/assign-teachers`, `template-workflow`, `complect-sync`) | `bun run test:e2e:complects` |
+| Редактор РПД: открытие, сохранение по blur, совместная работа, часы (`rpd_profile_templates`, `fieldEdits`, `TemplatePresence`, `pages/teacher-interface`, `entities/template`, `features/discipline-evaluations-funds`) | `bun run test:e2e:editor` |
+| Общее: `seed.sql`, `tests/helpers.ts`, миграции, `shared/api`, маршрутизация, `playwright.config.ts` | `bun run test:e2e` |
+
+Если изменение задевает несколько областей, запустите несколько групп подряд или весь набор. Точечно:
+
+```bash
+bun run test:e2e tests/editor/collaboration.spec.ts   # один файл
+bun run test:e2e tests/editor -g "конфликт"           # тесты группы по части названия
+```
+
+Новый сценарий кладите в папку своей области. Если область новая, заведите папку и скрипт `test:e2e:<группа>` в `e2e/package.json` и добавьте строку в таблицу выше.
+
 ## Развёртывание
 
 `rpd-server/docker-compose.yml` собирает клиент (nginx, порты 8080 и 443), сервер (порт 8000) и `postgres:16`. Серверу нужен `rpd-server/.env`. Пересборку и перезапуск выполняет `rpd-server/docker.sh`.

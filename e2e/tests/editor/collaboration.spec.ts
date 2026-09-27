@@ -1,5 +1,5 @@
 import { expect, test, type Page } from '@playwright/test';
-import { signIn } from './helpers';
+import { signIn } from '../helpers';
 
 test.describe('совместное редактирование шаблона', () => {
   test.describe.configure({ mode: 'serial' });
