@@ -1,79 +1,14 @@
 import type { Rpd1cExchangeRow } from "../types/db.ts";
 import type { Pool } from "pg";
-import moment from "moment";
-import { ASSIGNABLE_TEACHER_ROLES } from "./constants.ts";
 
 type ResultRow = { competence_id: number; competence: string; indicator_id: number; indicator: string; discipline: string | null };
 type ResultEntry = { competence: string; indicator: string; disciplines: string[] };
-type RpdTemplateListRow = Pick<Rpd1cExchangeRow, "id" | "discipline" | "teachers" | "teacher" | "semester" | "removed_at"> & { id_profile_template: number | null; profile_template_public_id: string | null; status: unknown; sync_status: string; last_change_summary: string[]; sync_changed_at: Date | null; has_profile_template: boolean };
+type RpdTemplateListRow = Pick<Rpd1cExchangeRow, "id" | "discipline" | "teachers" | "semester" | "removed_at"> & { id_profile_template: number | null; profile_template_public_id: string | null; status: string | null; sync_status: string; last_change_summary: string[]; sync_changed_at: Date | null; has_profile_template: boolean };
 
 class Rpd1cExchange {
   pool: Pool;
   constructor(pool: Pool) {
     this.pool = pool;
-  }
-
-  normalizeTeachers(teachers: unknown) {
-    const list = Array.isArray(teachers)
-      ? teachers
-      : teachers
-        ? [teachers]
-        : [];
-    return [
-      ...new Set(
-        list.map((t) => (typeof t === "string" ? t.trim() : "")).filter(Boolean)
-      ),
-    ];
-  }
-
-  splitTeacherString(teacher: unknown) {
-    if (typeof teacher !== "string" || !teacher.trim()) return [];
-    return teacher
-      .split(",")
-      .map((value) => value.trim())
-      .filter(Boolean);
-  }
-
-  mergeTeacherLists(...lists: unknown[]) {
-    const merged: string[] = [];
-    for (const list of lists) {
-      if (!Array.isArray(list)) continue;
-      for (const teacher of list) {
-        if (typeof teacher !== "string") continue;
-        const normalized = teacher.trim();
-        if (normalized) merged.push(normalized);
-      }
-    }
-    return [...new Set(merged)];
-  }
-
-  async getAssignableTeachers() {
-    const { rows } = await this.pool.query<{ teacher: string }>(
-      `
-        SELECT trim(concat_ws(
-          ' ',
-          fullname ->> 'surname',
-          fullname ->> 'name',
-          fullname ->> 'patronymic'
-        )) AS teacher
-        FROM users
-        WHERE role = ANY($1::int[]) AND fullname IS NOT NULL AND is_active
-        ORDER BY teacher
-      `,
-      [ASSIGNABLE_TEACHER_ROLES]
-    );
-
-    return [...new Set(rows.map((row) => row.teacher).filter(Boolean))];
-  }
-
-  teacherNameToFullnameJson(teacher: unknown) {
-    const parts =
-      typeof teacher === "string" ? teacher.trim().split(/\s+/) : [];
-    return {
-      surname: parts[0],
-      name: parts[1],
-      patronymic: parts[2],
-    };
   }
 
   async setResultsData(data: unknown, complectId: unknown) {
@@ -261,22 +196,11 @@ class Rpd1cExchange {
 
   async findRpd(complectId: unknown) {
     try {
-      const [queryResult, assignableTeachers] = await Promise.all([
-        this.pool.query<RpdTemplateListRow>(
+      const queryResult = await this.pool.query<RpdTemplateListRow>(
           `
-        SELECT r.id, r.discipline, r.teachers, r.teacher,
+        SELECT r.id, r.discipline, r.teachers,
         r.semester, r.removed_at,
-        ts.id_profile_template, rpt.public_id AS profile_template_public_id, (
-          SELECT status
-          FROM jsonb_array_elements((
-            SELECT history
-            FROM template_status
-            WHERE id_1c_template = r.id
-            LIMIT 1
-          )) AS elem(status)
-          ORDER BY elem DESC
-          LIMIT 1
-        ),
+        ts.id_profile_template, rpt.public_id AS profile_template_public_id, ts.current_status AS status,
         CASE
           WHEN r.removed_at IS NOT NULL THEN 'removed'
           WHEN COALESCE(ch.is_new, false) THEN 'new'
@@ -303,9 +227,7 @@ class Rpd1cExchange {
         WHERE r.id_rpd_complect = $1
           AND NULLIF(TRIM(r.discipline), '') IS NOT NULL`,
           [complectId]
-        ),
-        this.getAssignableTeachers(),
-      ]);
+        );
 
       return queryResult.rows.map((row) => ({
         ...row,
@@ -313,11 +235,6 @@ class Rpd1cExchange {
         syncChangedAt: row.sync_changed_at ?? row.removed_at ?? null,
         lastChangeSummary: row.last_change_summary ?? [],
         hasProfileTemplate: row.has_profile_template,
-        teachers: this.mergeTeacherLists(
-          row.teachers,
-          this.splitTeacherString(row.teacher),
-          assignableTeachers
-        ),
       }));
     } catch (err) {
       console.error(err);
@@ -325,147 +242,7 @@ class Rpd1cExchange {
     }
   }
 
-  async createTemplate(id_1c: unknown, complectId: unknown, teacher: unknown, year: unknown, discipline: unknown, userName: unknown) {
-    const teachers = this.normalizeTeachers(teacher);
-    if (!id_1c) throw new Error("Не указан id_1c");
-    if (!complectId) throw new Error("Не указан complectId");
-    if (!discipline) throw new Error("Не указана дисциплина");
 
-    const client = await this.pool.connect();
-    try {
-      await client.query("BEGIN");
-
-      const { rows: statusRows } = await client.query<{ id_profile_template: number | null }>(
-        `
-          SELECT id_profile_template
-          FROM template_status
-          WHERE id_1c_template = $1
-          LIMIT 1
-        `,
-        [id_1c]
-      );
-
-      if (statusRows[0]?.id_profile_template) {
-        await client.query("ROLLBACK");
-        return { result: "record exists" };
-      }
-
-      const templateData = await client.query<Rpd1cExchangeRow>(
-        `
-          SELECT * FROM rpd_1c_exchange
-          WHERE id = $1
-        `,
-        [id_1c]
-      );
-
-      const resultData = templateData.rows[0];
-      if (!resultData) throw new Error("Шаблон 1С не найден");
-
-      const missingTeachers = [];
-      for (const currentTeacher of teachers) {
-        const fullnameJson = this.teacherNameToFullnameJson(currentTeacher);
-        if (
-          !fullnameJson?.surname ||
-          !fullnameJson?.name ||
-          !fullnameJson?.patronymic
-        ) {
-          missingTeachers.push(currentTeacher);
-          continue;
-        }
-
-        const { rows: userRows } = await client.query<{ id: number }>(
-          `
-            SELECT id
-            FROM users
-            WHERE fullname = $1 AND is_active
-            LIMIT 1
-          `,
-          [fullnameJson]
-        );
-
-        if (!userRows[0]?.id) {
-          missingTeachers.push(currentTeacher);
-        }
-      }
-
-      if (missingTeachers.length) {
-        await client.query("ROLLBACK");
-        return { result: "missing_teachers", missingTeachers };
-      }
-
-      const competencies = {};
-      const teacherString = teachers.join(", ");
-
-      const queryResult = await client.query<{ id: number }>(
-        `
-          INSERT INTO rpd_profile_templates (
-            id_rpd_complect,
-            disciplins_name,
-            department,
-            teacher,
-            place,
-            semester,
-            competencies,
-            zet,
-            study_load,
-            control_load
-          ) VALUES (
-            $1, $2, $3, $4, $5, $6, $7, $8, $9, $10
-          ) RETURNING id
-        `,
-        [
-          complectId,
-          discipline,
-          resultData.department,
-          teacherString,
-          resultData.place,
-          resultData.semester,
-          competencies,
-          resultData.zet,
-          JSON.stringify(resultData.study_load),
-          JSON.stringify(resultData.control_load ?? {}),
-        ]
-      );
-
-      const idProfileTemplate = queryResult.rows[0]?.id;
-      if (!idProfileTemplate)
-        throw new Error("Не удалось создать шаблон профиля");
-
-      await client.query(
-        `
-          UPDATE rpd_1c_exchange
-          SET teacher = $1
-          WHERE id = $2
-        `,
-        [teacherString, id_1c]
-      );
-
-      const status = {
-        date: moment().format(),
-        status: "created",
-        user: userName,
-      };
-
-      await client.query(
-        `
-          UPDATE template_status
-          SET history = COALESCE(history, '[]'::jsonb) || $1::jsonb,
-              id_profile_template = $2
-          WHERE id_1c_template = $3
-        `,
-        [JSON.stringify([status]), idProfileTemplate, id_1c]
-      );
-
-      await client.query("COMMIT");
-      return { result: "template created" };
-    } catch (error) {
-      await client.query("ROLLBACK");
-      console.log(error);
-      throw error;
-    } finally {
-      client.release();
-    }
-  }
 }
 
 export default Rpd1cExchange;

@@ -1,7 +1,7 @@
 import type { Pool } from "pg";
 import { pool } from "../../config/db.ts";
 import axios from "axios";
-import moment from "moment";
+import { insertUnloadedStatus } from "./templateStatusHistory.ts";
 import { normalizeDisciplineFrom1c } from "./normalizeDisciplineFrom1c.ts";
 import { mapApiDataFor1c, hashPayload, loadReferenceTree } from "./specProfilesMapping.ts";
 import { merge1cIntoReferenceTree } from "./specProfilesTransformer.ts";
@@ -154,7 +154,7 @@ const processDisciplines = async (disciplines: unknown[], RpdComplectId: number)
     });
 
     if (insertedId) {
-      await insertStatusHistory(insertedId);
+      await insertUnloadedStatus(pool, insertedId);
     }
   });
 
@@ -216,36 +216,6 @@ const insertDiscipline = async (data: { RpdComplectId: number; division: string;
   );
 
   return rows[0]?.id ?? null;
-};
-
-const insertStatusHistory = async (templateId: number) => {
-  const { rows: existing } = await pool.query<{ id: number }>(
-    `
-      SELECT id
-      FROM template_status
-      WHERE id_1c_template = $1
-      LIMIT 1
-    `,
-    [templateId]
-  );
-
-  if (existing.length) return;
-
-  const history = [
-    {
-      date: moment().format(),
-      status: "unloaded",
-      user: "Система",
-    },
-  ];
-
-  await pool.query(
-    `
-    INSERT INTO template_status (id_1c_template, history) 
-    VALUES ($1, $2)
-    `,
-    [templateId, JSON.stringify(history)]
-  );
 };
 
 const insertUserComplectId = async (userId: number, complectId: number) => {

@@ -30,7 +30,6 @@ export interface Rpd1cExchangeRow {
   department: string | null;
   discipline: string | null;
   teachers: string[] | null;
-  teacher: string | null;
   zet: number | null;
   place: string | null;
   record_type: string | null;
@@ -46,7 +45,6 @@ export interface RpdProfileTemplateRow {
   id_rpd_complect: number;
   disciplins_name: string | null;
   department: string | null;
-  teacher: string | null;
   goals: string | null;
   place: string | null;
   semester: number | null;

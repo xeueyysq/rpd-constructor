@@ -347,45 +347,6 @@ class RpdProfileTemplatesController {
     }
   }
 
-  async findByCriteria(req: Request<ParamsDictionary, unknown, Record<string, unknown>>, res: Response) {
-    try {
-      const {
-        faculty,
-        levelEducation,
-        directionOfStudy,
-        profile,
-        formEducation,
-        year,
-      } = req.query;
-      const records = await this.model.findByCriteria(
-        faculty,
-        levelEducation,
-        directionOfStudy,
-        profile,
-        formEducation,
-        year
-      );
-      res.json(records);
-    } catch (err) {
-      res.status(500).json({ message: errorMessage(err) });
-    }
-  }
-
-  async findOrCreate(req: Request<ParamsDictionary, unknown, Record<string, unknown>>, res: Response) {
-    try {
-      const { disciplinsName, id, year, userName } = req.body;
-      const record = await this.model.findOrCreateByDisciplineAndYear(
-        disciplinsName,
-        id,
-        year,
-        userName
-      );
-      res.json(record);
-    } catch (err) {
-      res.status(500).json({ message: errorMessage(err) });
-    }
-  }
-
   async copyTemplateData(req: Request<ParamsDictionary, unknown, Record<string, unknown>>, res: Response) {
     try {
       const { sourceTemplateId, targetTemplateId, fieldToCopy } = req.body;

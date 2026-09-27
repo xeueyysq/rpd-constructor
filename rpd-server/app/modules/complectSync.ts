@@ -1,6 +1,6 @@
 import type { PoolClient } from "pg";
 import type { Rpd1cExchangeRow, RpdComplectRow } from "../types/db.ts";
-import moment from "moment";
+import { insertUnloadedStatus } from "./templateStatusHistory.ts";
 import { pool } from "../../config/db.ts";
 import { fetchUpLink } from "./1cExchange.ts";
 import { normalizeDisciplineFrom1c } from "./normalizeDisciplineFrom1c.ts";
@@ -266,36 +266,6 @@ const preview1cSync = async (complectId: unknown) => {
   };
 };
 
-const insertStatusHistory = async (client: PoolClient, templateId: number) => {
-  const { rows: existing } = await client.query<{ id: number }>(
-    `
-      SELECT id
-      FROM template_status
-      WHERE id_1c_template = $1
-      LIMIT 1
-    `,
-    [templateId]
-  );
-
-  if (existing.length) return;
-
-  const history = [
-    {
-      date: moment().format(),
-      status: "unloaded",
-      user: "Система",
-    },
-  ];
-
-  await client.query(
-    `
-      INSERT INTO template_status (id_1c_template, history)
-      VALUES ($1, $2)
-    `,
-    [templateId, JSON.stringify(history)]
-  );
-};
-
 const recordFieldChange = async (
   client: PoolClient,
   {
@@ -491,7 +461,7 @@ const applySync = async ({ complectId, selections, userId }: { complectId: unkno
         );
 
         const id1c = inserted[0].id;
-        await insertStatusHistory(client, id1c);
+        await insertUnloadedStatus(client, id1c);
         await recordFieldChange(client, {
           syncLogId,
           id1c,

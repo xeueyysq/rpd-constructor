@@ -71,7 +71,7 @@ class RpdComplects {
                 SELECT * FROM rpd_complects
                 WHERE ID = (
                     SELECT id_rpd_complect FROM rpd_profile_templates
-                    WHERE id = $1
+                    WHERE id::text = $1 OR public_id = $1
                 )`,
         [template_id]
       );

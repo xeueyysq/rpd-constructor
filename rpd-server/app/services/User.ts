@@ -2,6 +2,9 @@ import bcrypt from "bcryptjs";
 import UserRepository, { type Fullname } from "../repositories/User.ts";
 import RefreshSessionRepository from "../repositories/RefreshSession.ts";
 import { Conflict, NotFound } from "../utils/Errors.ts";
+import { pool } from "../../config/db.ts";
+import TemplateWorkflow from "./TemplateWorkflow.ts";
+import { USER_ROLES } from "../models/constants.ts";
 
 type UserInput = { name: string; role: number; fullname: Fullname };
 export type CreateUserInput = UserInput & { password: string };
@@ -60,7 +63,19 @@ class UserService {
   }
 
   static async setActive(ids: number[], isActive: boolean) {
-    const updatedIds = await UserRepository.setActive(ids, isActive);
+    const client = await pool.connect();
+    let updatedIds: number[];
+    try {
+      await client.query("BEGIN");
+      const { rows } = await client.query<{ id: number }>("UPDATE users SET is_active=$2 WHERE id=ANY($1::int[]) AND role<>$3 RETURNING id", [ids, isActive, USER_ROLES.ADMIN]);
+      updatedIds = rows.map((row) => row.id);
+      const workflow = new TemplateWorkflow(pool);
+      for (const id of updatedIds) await workflow.recomputeForUser(client, id);
+      await client.query("COMMIT");
+    } catch (error) {
+      await client.query("ROLLBACK");
+      throw error;
+    } finally { client.release(); }
     if (!isActive && updatedIds.length) {
       await RefreshSessionRepository.deleteByUserIds(updatedIds);
     }

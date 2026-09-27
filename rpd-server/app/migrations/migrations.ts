@@ -1,4 +1,115 @@
 import { pool } from "../../config/db.ts";
+import { deriveStatus, type TemplateStatus } from "../modules/templateWorkflow.ts";
+import { matchTeacherNames, splitNames } from "../modules/teacherNames.ts";
+
+type StatusRow = { id: number; id_1c_template: number | null; id_profile_template: number | null; history: unknown; current_status: string | null };
+const statusCodes = new Set(["unloaded", "created", "on_teacher", "in_progress", "ready", "on_refinement"]);
+
+function historyEvents(value: unknown, id: number): Record<string, unknown>[] {
+  if (value == null) return [];
+  if (!Array.isArray(value) || value.some((entry) => !entry || typeof entry !== "object" || Array.isArray(entry))) throw new Error(`Некорректная история template_status ${id}`);
+  return value as Record<string, unknown>[];
+}
+
+function legacyState(status: string | null): string {
+  return status === "ready" ? "done" : status === "in_progress" ? "in_progress" : "assigned";
+}
+
+async function migrateTeacherWorkflow() {
+  const client = await pool.connect();
+  try {
+    await client.query("BEGIN");
+    const { rows: stateColumn } = await client.query<{ exists: boolean }>("SELECT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema='public' AND table_name='teacher_templates' AND column_name='state') AS exists");
+    const stateIsNew = !stateColumn[0]?.exists;
+    await client.query("ALTER TABLE teacher_templates ADD COLUMN IF NOT EXISTS state TEXT NOT NULL DEFAULT 'assigned', ADD COLUMN IF NOT EXISTS updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()");
+    await client.query("ALTER TABLE teacher_templates DROP CONSTRAINT IF EXISTS teacher_templates_state_check");
+    await client.query("ALTER TABLE teacher_templates ADD CONSTRAINT teacher_templates_state_check CHECK (state IN ('assigned','in_progress','done'))");
+    await client.query("DELETE FROM teacher_templates dup USING teacher_templates keep WHERE dup.user_id=keep.user_id AND dup.template_id=keep.template_id AND dup.id>keep.id");
+    await client.query("CREATE UNIQUE INDEX IF NOT EXISTS idx_teacher_templates_pair ON teacher_templates(user_id,template_id)");
+    await client.query("ALTER TABLE template_status ADD COLUMN IF NOT EXISTS current_status TEXT");
+
+    const { rows: allStatuses } = await client.query<StatusRow>(`SELECT id,id_1c_template,id_profile_template,history,current_status FROM template_status
+      WHERE id_1c_template IN (SELECT id_1c_template FROM template_status WHERE id_1c_template IS NOT NULL GROUP BY id_1c_template HAVING COUNT(*) > 1)
+         OR id_profile_template IN (SELECT id_profile_template FROM template_status WHERE id_profile_template IS NOT NULL GROUP BY id_profile_template HAVING COUNT(*) > 1)
+      ORDER BY id FOR UPDATE`);
+    const groups: StatusRow[][] = [];
+    for (const row of allStatuses) {
+      const matching = groups.filter((group) => group.some((item) => row.id_1c_template !== null && item.id_1c_template === row.id_1c_template || row.id_profile_template !== null && item.id_profile_template === row.id_profile_template));
+      const combined = [row, ...matching.flat()];
+      for (const group of matching) groups.splice(groups.indexOf(group), 1);
+      groups.push(combined);
+    }
+    for (const group of groups) {
+      const oneC = [...new Set(group.map((row) => row.id_1c_template).filter((id): id is number => id !== null))];
+      const profiles = [...new Set(group.map((row) => row.id_profile_template).filter((id): id is number => id !== null))];
+      if (oneC.length > 1 || profiles.length > 1) throw new Error(`Конфликт ссылок template_status ID: ${group.map((row) => row.id).join(", ")}`);
+      const ordered = group.sort((a, b) => a.id - b.id);
+      const events = ordered.flatMap((row) => historyEvents(row.history, row.id));
+      if (ordered.length > 1) events.sort((a, b) => {
+        const first = typeof a.date === "string" ? Date.parse(a.date) : NaN;
+        const second = typeof b.date === "string" ? Date.parse(b.date) : NaN;
+        return Number.isFinite(first) && Number.isFinite(second) ? first - second : String(a.date ?? "").localeCompare(String(b.date ?? ""));
+      });
+      const keep = ordered[0];
+      if (ordered.length > 1) await client.query("DELETE FROM template_status WHERE id = ANY($1::int[])", [ordered.slice(1).map((row) => row.id)]);
+      const last = events.at(-1)?.status;
+      if (last !== undefined && (typeof last !== "string" || !statusCodes.has(last))) throw new Error(`Неизвестный статус template_status ${keep.id}: ${String(last)}`);
+      const status = typeof last === "string" && statusCodes.has(last) ? last : profiles.length ? "created" : "unloaded";
+      if (last === undefined) events.push({ date: new Date().toISOString(), status, action: "migration", user: "Система" });
+      await client.query("UPDATE template_status SET id_1c_template=$1,id_profile_template=$2,history=$3::jsonb,current_status=$4 WHERE id=$5", [oneC[0] ?? null, profiles[0] ?? null, JSON.stringify(events), status, keep.id]);
+    }
+    const { rows: invalidHistory } = await client.query<{ id: number }>("SELECT id FROM template_status WHERE current_status IS NULL AND history IS NOT NULL AND jsonb_typeof(history)<>'array' LIMIT 1");
+    if (invalidHistory[0]) throw new Error(`Некорректная история template_status ${invalidHistory[0].id}`);
+    const { rows: invalidEvents } = await client.query<{ id: number }>("SELECT ts.id FROM template_status ts CROSS JOIN LATERAL jsonb_array_elements(ts.history) AS item(value) WHERE ts.current_status IS NULL AND jsonb_typeof(item.value)<>'object' LIMIT 1");
+    if (invalidEvents[0]) throw new Error(`Некорректная история template_status ${invalidEvents[0].id}`);
+    const { rows: invalidStatuses } = await client.query<{ id: number; status: string }>(`SELECT id,history->-1->>'status' AS status FROM template_status
+      WHERE current_status IS NULL AND history->-1->>'status' IS NOT NULL
+        AND history->-1->>'status' <> ALL($1::text[])`, [[...statusCodes]]);
+    if (invalidStatuses.length) throw new Error(`Неизвестный статус template_status ${invalidStatuses[0].id}: ${invalidStatuses[0].status}`);
+    await client.query(`UPDATE template_status SET
+      current_status=COALESCE(history->-1->>'status', CASE WHEN id_profile_template IS NOT NULL THEN 'created' ELSE 'unloaded' END),
+      history=CASE WHEN jsonb_typeof(history)='array' AND jsonb_array_length(history)>0 THEN history
+        ELSE jsonb_build_array(jsonb_build_object('date',NOW(),'status',CASE WHEN id_profile_template IS NOT NULL THEN 'created' ELSE 'unloaded' END,'action','migration','user','Система')) END
+      WHERE current_status IS NULL`);
+    await client.query("CREATE UNIQUE INDEX IF NOT EXISTS idx_template_status_profile ON template_status(id_profile_template) WHERE id_profile_template IS NOT NULL");
+    await client.query("CREATE UNIQUE INDEX IF NOT EXISTS idx_template_status_1c ON template_status(id_1c_template) WHERE id_1c_template IS NOT NULL");
+    await client.query("INSERT INTO template_status(id_profile_template,history,current_status) SELECT rpt.id,$1::jsonb,'created' FROM rpd_profile_templates rpt WHERE NOT EXISTS (SELECT 1 FROM template_status ts WHERE ts.id_profile_template=rpt.id)", [JSON.stringify([{ date: new Date().toISOString(), status: "created", action: "migration", user: "Система" }])]);
+    if (stateIsNew) await client.query("UPDATE teacher_templates tt SET state=CASE ts.current_status WHEN 'ready' THEN 'done' WHEN 'in_progress' THEN 'in_progress' ELSE 'assigned' END FROM template_status ts WHERE ts.id_profile_template=tt.template_id");
+
+    const { rows: teacherColumn } = await client.query<{ exists: boolean }>("SELECT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema='public' AND table_name='rpd_profile_templates' AND column_name='teacher') AS exists");
+    const { rows: exchangeTeacherColumn } = await client.query<{ exists: boolean }>("SELECT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema='public' AND table_name='rpd_1c_exchange' AND column_name='teacher') AS exists");
+    if (teacherColumn[0]?.exists || exchangeTeacherColumn[0]?.exists) {
+      const { rows: users } = await client.query<{ id: number; fullname: unknown }>("SELECT id,fullname FROM users WHERE role=ANY($1::int[])", [[2, 3]]);
+      const profileTeacher = teacherColumn[0]?.exists ? "rpt.teacher" : "NULL::text";
+      const exchangeTeacher = exchangeTeacherColumn[0]?.exists ? "r.teacher" : "NULL::text";
+      const { rows: legacy } = await client.query<{ id: number; profile_teacher: string | null; exchange_teacher: string | null; status: string | null }>(`SELECT rpt.id,${profileTeacher} AS profile_teacher,${exchangeTeacher} AS exchange_teacher,ts.current_status AS status FROM rpd_profile_templates rpt LEFT JOIN template_status ts ON ts.id_profile_template=rpt.id LEFT JOIN rpd_1c_exchange r ON r.id=ts.id_1c_template`);
+      for (const row of legacy) {
+        const names = splitNames([row.profile_teacher, row.exchange_teacher]);
+        for (const match of matchTeacherNames(names, users)) {
+          if (match.userId === null) {
+            console.warn(`Не сопоставлен преподаватель: шаблон ${row.id}, ФИО «${match.name}»${match.ambiguous ? " (неоднозначно)" : ""}`);
+            continue;
+          }
+          await client.query("INSERT INTO teacher_templates(user_id,template_id,state) VALUES($1,$2,$3) ON CONFLICT(user_id,template_id) DO NOTHING", [match.userId, row.id, legacyState(row.status)]);
+        }
+      }
+    }
+    const { rows: templates } = await client.query<{ id: number; current_status: TemplateStatus }>("SELECT id_profile_template AS id,current_status FROM template_status WHERE id_profile_template IS NOT NULL");
+    for (const template of templates) {
+      const { rows: participants } = await client.query<{ userId: number; state: "assigned" | "in_progress" | "done"; isActive: boolean }>("SELECT tt.user_id AS \"userId\",tt.state,u.is_active AS \"isActive\" FROM teacher_templates tt JOIN users u ON u.id=tt.user_id WHERE tt.template_id=$1", [template.id]);
+      const next = deriveStatus(template.current_status, participants);
+      if (next !== template.current_status) await client.query("UPDATE template_status SET current_status=$1,history=COALESCE(history,'[]'::jsonb)||$2::jsonb WHERE id_profile_template=$3", [next, JSON.stringify([{ date: new Date().toISOString(), status: next, action: "migration", user: "Система" }]), template.id]);
+    }
+    await client.query("ALTER TABLE rpd_profile_templates DROP COLUMN IF EXISTS teacher");
+    await client.query("ALTER TABLE rpd_1c_exchange DROP COLUMN IF EXISTS teacher");
+    await client.query("COMMIT");
+  } catch (error) {
+    await client.query("ROLLBACK");
+    throw error;
+  } finally {
+    client.release();
+  }
+}
 
 (async () => {
   try {
@@ -64,7 +175,6 @@ import { pool } from "../../config/db.ts";
         id_rpd_complect INT NOT NULL REFERENCES rpd_complects(id) ON DELETE CASCADE,
         disciplins_name TEXT,
         department TEXT,
-        teacher TEXT,
         goals TEXT,
         place TEXT,
         semester INTEGER,
@@ -94,7 +204,6 @@ import { pool } from "../../config/db.ts";
         department TEXT,
         discipline TEXT,
         teachers TEXT[],
-        teacher TEXT,
         zet INTEGER,
         place TEXT,
         record_type TEXT,
@@ -107,15 +216,13 @@ import { pool } from "../../config/db.ts";
       ALTER TABLE rpd_1c_exchange
         ALTER COLUMN department TYPE TEXT,
         ALTER COLUMN discipline TYPE TEXT,
-        ALTER COLUMN teacher TYPE TEXT,
         ALTER COLUMN place TYPE TEXT;
     `);
 
     await pool.query(`
       ALTER TABLE rpd_profile_templates
         ALTER COLUMN disciplins_name TYPE TEXT,
-        ALTER COLUMN department TYPE TEXT,
-        ALTER COLUMN teacher TYPE TEXT;
+        ALTER COLUMN department TYPE TEXT;
     `);
 
     await pool.query(`
@@ -353,10 +460,26 @@ import { pool } from "../../config/db.ts";
     `);
 
     // Удаление дублей дисциплин 1С перед уникальным индексом (повторная выгрузка комплекта)
+    const { rows: conflictingExchanges } = await pool.query<{ ids: number[] }>(`
+      SELECT array_agg(r.id ORDER BY r.id) AS ids
+      FROM rpd_1c_exchange r LEFT JOIN template_status ts ON ts.id_1c_template=r.id
+      WHERE r.discipline IS NOT NULL
+      GROUP BY r.id_rpd_complect,r.discipline,r.semester,COALESCE(r.record_type,'')
+      HAVING COUNT(DISTINCT ts.id_profile_template)>1
+      LIMIT 1
+    `);
+    if (conflictingExchanges[0]) throw new Error(`Конфликт связей дисциплин 1С ID: ${conflictingExchanges[0].ids.join(", ")}`);
     await pool.query(`
-      DELETE FROM template_status ts
-      USING rpd_1c_exchange dup, rpd_1c_exchange keep
+      UPDATE template_status ts SET id_1c_template = keep.id
+      FROM rpd_1c_exchange dup, rpd_1c_exchange keep
       WHERE dup.id > keep.id
+        AND keep.id = (
+          SELECT MIN(candidate.id) FROM rpd_1c_exchange candidate
+          WHERE candidate.id_rpd_complect=dup.id_rpd_complect
+            AND candidate.discipline=dup.discipline
+            AND candidate.semester IS NOT DISTINCT FROM dup.semester
+            AND COALESCE(candidate.record_type,'')=COALESCE(dup.record_type,'')
+        )
         AND dup.id_rpd_complect = keep.id_rpd_complect
         AND dup.discipline = keep.discipline
         AND dup.semester IS NOT DISTINCT FROM keep.semester
@@ -445,6 +568,8 @@ import { pool } from "../../config/db.ts";
         ON template_field_changes (id_profile_template, id_1c_exchange)
         WHERE acknowledged_at IS NULL;
     `);
+
+    await migrateTeacherWorkflow();
 
     console.log("Все миграции загружены успешно");
   } catch (error) {

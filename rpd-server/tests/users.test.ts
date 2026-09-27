@@ -13,6 +13,9 @@ import UserService from "../app/services/User.ts";
 import TokenService from "../app/services/Token.ts";
 import { Conflict, Forbidden, NotFound, Unauthorized } from "../app/utils/Errors.ts";
 import UsersValidator from "../app/validators/Users.ts";
+import { pool } from "../config/db.ts";
+import TemplateWorkflow from "../app/services/TemplateWorkflow.ts";
+import type { PoolClient } from "pg";
 
 const fullname = { surname: "Иванов", name: "Иван", patronymic: "" };
 const user = { id: 42, name: "teacher", role: USER_ROLES.TEACHER, fullname, is_active: true };
@@ -116,13 +119,24 @@ test("UserService.update отвечает 404 для отсутствующег�
 });
 
 test("UserService.setActive отзывает сессии только при деактивации", async (t) => {
-  t.mock.method(UserRepository, "setActive", async () => [42]);
+  const queries: string[] = [];
+  const client = {
+    query: async (sql: string) => {
+      queries.push(sql);
+      return { rows: sql.startsWith("UPDATE users") ? [{ id: 42 }] : [] };
+    },
+    release: () => {},
+  };
+  t.mock.method(pool, "connect", async () => client as unknown as PoolClient);
+  const recompute = t.mock.method(TemplateWorkflow.prototype, "recomputeForUser", async () => {});
   const revoke = t.mock.method(RefreshSessionRepository, "deleteByUserIds", async () => {});
 
   assert.deepEqual(await UserService.setActive([1, 42], false), { updated: 1 });
   assert.deepEqual(revoke.mock.calls[0]?.arguments[0], [42]);
   assert.deepEqual(await UserService.setActive([42], true), { updated: 1 });
   assert.equal(revoke.mock.callCount(), 1);
+  assert.equal(recompute.mock.callCount(), 2);
+  assert.equal(queries.filter((sql) => sql === "COMMIT").length, 2);
 });
 
 test("AuthService.signIn отклоняет неактивного пользователя после проверки пароля", async (t) => {

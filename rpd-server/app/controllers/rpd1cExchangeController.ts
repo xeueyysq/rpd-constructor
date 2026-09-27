@@ -5,6 +5,9 @@ import type { Request, Response } from "express";
 import Rpd1cExchange from "../models/rpd_1c_exchange.ts";
 import RpdComplects from "../models/rpd_complects.ts";
 import { findRpd } from "../services/Complects.ts";
+import TemplateAccess from "../services/TemplateAccess.ts";
+import TemplateWorkflow from "../services/TemplateWorkflow.ts";
+import { Unprocessable } from "../utils/Errors.ts";
 
 class Rpd1cExchangeController {
   pool: Pool;
@@ -71,56 +74,14 @@ class Rpd1cExchangeController {
   }
 
   async findRpd(req: Request<ParamsDictionary, unknown, Record<string, unknown>>, res: Response) {
-    try {
-      const { complectId } = req.body;
-      const records = await findRpd(this.model.pool, complectId);
-      res.json(records);
-    } catch (err) {
-      res.status(500).json({ message: errorMessage(err) });
-    }
+    const { complectId } = req.body;
+    res.json(await findRpd(this.model.pool, complectId, TemplateAccess.actor(req.user)));
   }
 
   async createTemplate(req: Request<ParamsDictionary, unknown, Record<string, unknown>>, res: Response) {
-    try {
-      const { id_1c, complectId, teachers, teacher, year, discipline, userName } = req.body;
-
-      if (!complectId) {
-        return res
-          .status(400)
-          .json({ result: "validation_error", message: "Не указан complectId" });
-      }
-
-      const complectMeta = await this.complectsModel.findRpdComplectMeta(
-        complectId
-      );
-      if (!complectMeta?.id) {
-        return res
-          .status(404)
-          .json({ message: "Комплект не найден" });
-      }
-
-      const record = await this.model.createTemplate(
-        id_1c,
-        complectMeta.id,
-        Array.isArray(teachers) ? teachers : teacher,
-        year,
-        discipline,
-        userName
-      );
-      res.json(record);
-    } catch (err) {
-      const validationErrors = [
-        "Не указан id_1c",
-        "Не указан complectId",
-        "Не указана дисциплина",
-        "Шаблон 1С не найден",
-      ];
-      const isValidation = validationErrors.some((msg) => errorMessage(err) === msg);
-      if (isValidation) {
-        return res.status(400).json({ result: "validation_error", message: errorMessage(err) });
-      }
-      res.status(500).json({ message: errorMessage(err) });
-    }
+    const { id_1c, complectId, teacherIds } = req.body;
+    if (typeof id_1c !== "number" || !Number.isSafeInteger(id_1c) || id_1c <= 0 || typeof complectId !== "number" || !Number.isSafeInteger(complectId) || complectId <= 0 || teacherIds !== undefined && (!Array.isArray(teacherIds) || teacherIds.some((id) => typeof id !== "number" || !Number.isSafeInteger(id) || id <= 0))) throw new Unprocessable("Некорректные параметры создания");
+    res.json(await new TemplateWorkflow(this.pool).createFrom1c(id_1c, complectId, TemplateAccess.actor(req.user), (teacherIds as number[] | undefined) ?? []));
   }
 }
 

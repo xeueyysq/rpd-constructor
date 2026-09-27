@@ -7,6 +7,13 @@ import TokenService from "../services/Token.ts";
 import requireRole from "../middleware/requireRole.ts";
 import { USER_ROLES } from "../models/constants.ts";
 import RpdProfileTemplatesValidator from "../validators/RpdProfileTemplates.ts";
+import TemplateWorkflowController from "../controllers/templateWorkflowController.ts";
+import validateWorkflow from "../validators/TemplateWorkflow.ts";
+
+router.get("/templates/:id/workflow", TokenService.checkAccess, TemplateWorkflowController.get);
+router.post("/templates/:id/workflow", TokenService.checkAccess, validateWorkflow, TemplateWorkflowController.post);
+router.get("/my-templates", TokenService.checkAccess, TemplateWorkflowController.myTemplates);
+router.get("/assignable-teachers", TokenService.checkAccess, requireRole(USER_ROLES.ADMIN, USER_ROLES.ROP), TemplateWorkflowController.assignableTeachers);
 
 import RpdChangeableValuesController from "../controllers/rpdChangeableValuesController.ts";
 const rpdChangeableValuesController = new RpdChangeableValuesController(pool);
@@ -59,16 +66,6 @@ router.delete(
     rpdProfileTemplatesController
   )
 );
-router.get(
-  "/find-by-criteria",
-  rpdProfileTemplatesController.findByCriteria.bind(
-    rpdProfileTemplatesController
-  )
-);
-router.post(
-  "/find-or-create-profile-template",
-  rpdProfileTemplatesController.findOrCreate.bind(rpdProfileTemplatesController)
-);
 router.post(
   "/copy-template-data",
   rpdProfileTemplatesController.copyTemplateData.bind(
@@ -111,35 +108,17 @@ router.post(
 );
 router.post(
   "/find-rpd",
+  TokenService.checkAccess,
   rpd1cExchangeController.findRpd.bind(rpd1cExchangeController)
 );
 router.post(
   "/create-profile-template-from-1c",
+  TokenService.checkAccess,
   rpd1cExchangeController.createTemplate.bind(rpd1cExchangeController)
 );
 router.get(
   "/get-results-data",
   rpd1cExchangeController.getResultsData.bind(rpd1cExchangeController)
-);
-
-import TeacherTemplatesController from "../controllers/teacherTemplatesController.ts";
-const teacherTemplatesController = new TeacherTemplatesController(pool);
-
-router.post(
-  "/send-template-to-teacher",
-  teacherTemplatesController.bindTemplateWithTeacher.bind(
-    teacherTemplatesController
-  )
-);
-router.post(
-  "/find-teacher-templates",
-  teacherTemplatesController.findTeacherTemplates.bind(
-    teacherTemplatesController
-  )
-);
-router.post(
-  "/set-template-status",
-  teacherTemplatesController.setTemplateStatus.bind(teacherTemplatesController)
 );
 
 import RpdComplectsController from "../controllers/rpdComplectsController.ts";

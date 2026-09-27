@@ -35,26 +35,17 @@ async function createPDF(fullHtml: string) {
     ],
     headless: true,
   });
-  const page = await browser.newPage();
-
-  await page.setContent(fullHtml, {
-    // @ts-expect-error: Puppeteer runtime still accepts networkidle0 for setContent; its declaration excludes it.
-    waitUntil: "networkidle0",
-  });
-
-  const pdf = await page.pdf({
-    format: "A4",
-    printBackground: true,
-    margin: {
-      top: "20mm",
-      bottom: "20mm",
-      left: "30mm",
-      right: "10mm",
-    },
-  });
-
-  await browser.close();
-  return pdf;
+  try {
+    const page = await browser.newPage();
+    await page.setContent(fullHtml, { waitUntil: "load" });
+    return await page.pdf({
+      format: "A4",
+      printBackground: true,
+      margin: { top: "20mm", bottom: "20mm", left: "30mm", right: "10mm" },
+    });
+  } finally {
+    await browser.close();
+  }
 }
 
 async function generatePDF(id: unknown) {

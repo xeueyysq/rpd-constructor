@@ -3,6 +3,20 @@ import RpdChangeableValues from "../models/rpd_changeable_values.ts";
 import RpdProfileTemplates from "../models/rpd_profile_templates.ts";
 import RpdComplects from "../models/rpd_complects.ts";
 import { getContentRowHours, getStudyPlanHours, sumContentHours } from "../modules/disciplineScope.ts";
+import { formatShortName } from "../modules/teacherNames.ts";
+
+function escapeHtml(value: string): string {
+  return value.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;").replace(/'/g, "&#39;");
+}
+
+export function renderTeacherBlocks(teachers: { fullname: string }[], caption: string): string {
+  return (teachers.length ? teachers : [{ fullname: "" }]).map((teacher) => `
+            <p style="margin:0;">${escapeHtml(formatShortName(teacher.fullname))}</p>
+            <p style="margin:0;">________________________________________________________</p>
+            <p style="${caption}"><i>Фамилия И.О., должность, ученая степень (при наличии),<br/>ученое звание (при наличии), кафедра</i></p>
+            <p style="margin:20px 0 0 0;">_______________</p>
+            <p style="${caption}"><i>подпись</i></p>`).join("");
+}
 
 // Общий инлайн-стилизованный HTML для PDF (puppeteer) и Word (@turbodocx/html-to-docx).
 // Особенности конвертера html->docx (см. memory turbodocx-html-to-docx-quirks):
@@ -115,15 +129,12 @@ async function generateApprovalPage(id: unknown) {
 
   const caption = "text-align:center; font-size:12px; margin:0;";
   const line = "margin:20px 0 0 0;";
+  const teacherBlocks = renderTeacherBlocks(jsonData?.teachers ?? [], caption);
 
   const approvalPageFragment = `
         <div class="page" style="${PAGE_STYLE}">
             <p style="margin:0;">Преподаватель (преподаватели):</p>
-            <p style="margin:0;">${jsonData!.teacher || ""}</p>
-            <p style="margin:0;">________________________________________________________</p>
-            <p style="${caption}"><i>Фамилия И.О., должность, ученая степень (при наличии),<br/>ученое звание (при наличии), кафедра</i></p>
-            <p style="margin:20px 0 0 0;">_______________</p>
-            <p style="${caption}"><i>подпись</i></p>
+            ${teacherBlocks}
             <p style="${line}">Рабочая программа разработана в соответствии с требованиями ФГОС ВО по направлению подготовки высшего образования</p>
             <p style="margin:20px 0 0 0;">${jsonData!.direction || ""}</p>
             <p style="margin:0;">______________________________________________________________________________</p>
@@ -282,7 +293,7 @@ async function generateContentPage(id: unknown, { forWord = false } = {}) {
             <div class="content-page-content" style="${contentStyle}"><p style="text-indent:30px;">Дисциплина «${
     jsonData.disciplins_name || ""
   }» относится к ${jsonData.place || ""} учебного плана направления ${
-    (jsonData as typeof jsonData & { direction_of_study?: string }).direction_of_study || ""
+    jsonData.direction || ""
   }.</p></div>
             <div class="content-page-content" style="${contentStyle}"><p style="text-indent:30px;">Дисциплина преподается в ${
     jsonData.semester || ""

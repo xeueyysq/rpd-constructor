@@ -1,8 +1,8 @@
 import type { RpdComplectRow, RpdProfileTemplateRow } from "../types/db.ts";
 import type { Pool } from "pg";
-import moment from "moment";
 import { patchStudyLoad } from "../modules/disciplineScope.ts";
 import { isEditableTemplateField } from "../validators/RpdProfileTemplates.ts";
+import { fullnameText } from "../modules/teacherNames.ts";
 
 type AssessmentQuestionEntry = { id: string; text: string; correctAnswer?: string };
 type AssessmentCompetence = { openPool?: AssessmentQuestionEntry[]; closedPool?: AssessmentQuestionEntry[]; openQuestions?: unknown; closedQuestions?: unknown; selectedOpenIds?: string[]; selectedClosedIds?: string[] };
@@ -106,7 +106,14 @@ class RpdProfileTemplates {
     `,
       [numericId]
     );
-    return queryResult.rows[0];
+    const profile = queryResult.rows[0];
+    if (!profile) return null;
+    const { rows: teachers } = await this.pool.query<{ userId: number; fullname: unknown; isActive: boolean }>(`
+      SELECT u.id AS "userId",u.fullname,u.is_active AS "isActive"
+      FROM teacher_templates tt JOIN users u ON u.id=tt.user_id
+      WHERE tt.template_id=$1 ORDER BY tt.id
+    `, [numericId]);
+    return { ...profile, teachers: teachers.map((teacher) => ({ userId: teacher.userId, fullname: fullnameText(teacher.fullname), isActive: teacher.isActive })) };
   }
 
   async updateById(id: unknown, fieldToUpdate: string, value: unknown) {
@@ -193,165 +200,6 @@ class RpdProfileTemplates {
       [commentId]
     );
     return queryResult.rowCount;
-  }
-
-  async findByCriteria(
-    faculty: unknown,
-    levelEducation: unknown,
-    directionOfStudy: unknown,
-    profile: unknown,
-    formEducation: unknown,
-    year: unknown
-  ) {
-    const queryResult = await this.pool.query<{ id: number; disciplins_name: string | null; teacher: string | null; status: unknown }>(
-      `
-      SELECT id, disciplins_name, teacher, (
-        SELECT status FROM 
-        jsonb_array_elements((
-          SELECT history 
-          FROM template_status 
-          WHERE id_profile_template = rpd_profile_templates.id
-          LIMIT 1
-        )) AS elem(status)
-        ORDER BY elem DESC
-        LIMIT 1
-      )
-      FROM rpd_profile_templates
-      WHERE faculty = $1 
-      AND level_education = $2 
-      AND direction_of_study = $3
-      AND profile = $4 
-      AND form_education = $5 
-      AND year = $6`,
-      [faculty, levelEducation, directionOfStudy, profile, formEducation, year]
-    );
-    return queryResult.rows;
-  }
-
-  async findOrCreateByDisciplineAndYear(
-    disciplinsName: unknown,
-    id: unknown,
-    currentYear: unknown,
-    userName: unknown
-  ) {
-    try {
-      const searchResult = await this.pool.query<Pick<RpdProfileTemplateRow, "id">>(
-        `
-            SELECT * FROM rpd_profile_templates
-            WHERE disciplins_name = $1 AND year = $2
-          `,
-        [disciplinsName, currentYear]
-      );
-
-      if ((searchResult.rowCount ?? 0) > 0) {
-        return {
-          status: "record exists",
-          data: searchResult.rows[0].id,
-        };
-      } else {
-        const numericId = await this.resolveTemplateId(id);
-        if (numericId == null) throw new Error("Existing record not found");
-        const existingRecordResult = await this.pool.query<RpdProfileTemplateRow & Record<string, unknown>>(
-          `
-              SELECT * FROM rpd_profile_templates WHERE id = $1
-            `,
-          [numericId]
-        );
-        const existingRecord = existingRecordResult.rows[0];
-        if (!existingRecord) {
-          throw new Error("Existing record not found");
-        }
-
-        const addingRecord = await this.pool.query<RpdProfileTemplateRow>(
-          `
-          INSERT INTO rpd_profile_templates (
-            disciplins_name, 
-            year, 
-            faculty, 
-            department, 
-            direction_of_study, 
-            profile,
-            level_education, 
-            form_education, 
-            teacher, 
-            protocol, 
-            goals, 
-            place,
-            semester, 
-            certification, 
-            place_more_text, 
-            competencies, 
-            zet, 
-            content,
-            content_more_text, 
-            content_template_more_text, 
-            methodological_support_template,
-            assessment_tools_template, 
-            assessment_tools_questions,
-            textbook, 
-            additional_textbook, 
-            professional_information_resources,
-            software, 
-            logistics_template
-          ) VALUES (
-            $1, $2, $3, $4, $5, $6, $7, $8,
-            $9, $10, $11, $12, $13, $14,
-            $15, $16, $17, $18, $19, $20,
-            $21, $22, $23, $24, $25, $26, $27, $28
-          ) RETURNING id
-          `,
-          [
-            disciplinsName,
-            currentYear,
-            existingRecord.faculty,
-            existingRecord.department,
-            existingRecord.direction_of_study,
-            existingRecord.profile,
-            existingRecord.level_education,
-            existingRecord.form_education,
-            existingRecord.teacher,
-            existingRecord.protocol,
-            existingRecord.goals,
-            existingRecord.place,
-            existingRecord.semester,
-            existingRecord.certification,
-            existingRecord.place_more_text,
-            existingRecord.competencies,
-            existingRecord.zet,
-            existingRecord.content,
-            existingRecord.content_more_text,
-            existingRecord.content_template_more_text,
-            existingRecord.methodological_support_template,
-            existingRecord.assessment_tools_template,
-            existingRecord.assessment_tools_questions,
-            existingRecord.textbook,
-            existingRecord.additional_textbook,
-            existingRecord.professional_information_resources,
-            existingRecord.software,
-            existingRecord.logistics_template,
-          ]
-        );
-
-        const insertedId = addingRecord.rows[0].id;
-        const history = [
-          {
-            date: moment().format(),
-            status: "created",
-            user: userName,
-          },
-        ];
-
-        await this.pool.query(`
-          INSERT INTO template_status (id_profile_template, history) 
-          VALUES (${JSON.stringify(insertedId)}, '${JSON.stringify(history)}')
-        `);
-
-        return "template created";
-      }
-    } catch (error) {
-      console.log(error);
-      throw error;
-    }
   }
 
   async copyTemplateData(sourceTemplateId: unknown, targetTemplateId: unknown, fieldToCopy: string) {
