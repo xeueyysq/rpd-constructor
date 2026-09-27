@@ -11,6 +11,13 @@ function ResourceSupportPage() {
         title="Ресурсное обеспечение"
         sx={{ pb: 2 }}
         templateField={TemplatePagesPath.RESOURCE_SUPPORT}
+        fields={[
+          "textbook",
+          "additional_textbook",
+          "professional_information_resources",
+          "software",
+          "logistics_template",
+        ]}
       />
       <Tg sx={{ fontWeight: "bold", pt: 2, pb: 1 }}>Перечень литературы</Tg>
 

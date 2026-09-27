@@ -166,6 +166,7 @@ export const RpdComplectsList: FC = () => {
   const table = useMaterialReactTable<ComplectData>({
     columns: generalColumns,
     data: userRole === UserRole.ADMIN ? complects : sortedComplectsByYear,
+    getRowId: (row) => String(row.id),
     localization: MRT_Localization_RU,
     enableFilters: false,
     enableSorting: false,

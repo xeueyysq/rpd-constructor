@@ -1,10 +1,15 @@
 import { Box } from "@mui/material";
 import { useAuth } from "@entities/auth";
+import {
+  TemplateCollabBar,
+  useTemplatePresence,
+  useTemplateSync,
+} from "@entities/template";
 import { axiosBase } from "@shared/api";
 import { UserRole } from "@shared/ability";
 import { useStore } from "@shared/hooks";
 import { showErrorMessage } from "@shared/lib/showMessage.ts";
-import { useCallback, useEffect } from "react";
+import { useEffect } from "react";
 import { useParams } from "react-router-dom";
 import { TemplatePagesPath } from "@shared/enums";
 import AimsPage from "./pages/AimsPage.tsx";
@@ -27,28 +32,40 @@ export function TeacherInterface() {
   const userRole = useAuth((state) => state.userRole);
   const isTeacher = userRole === UserRole.TEACHER;
   const { id: templateId, page = TemplatePagesPath.COVER_PAGE } = useParams();
-
-  const uploadTemplateData = useCallback(async () => {
-    try {
-      const response = await axiosBase.post("rpd-profile-templates", {
-        id: templateId,
-      });
-      setJsonData({
-        ...response.data,
-        certification:
-          response.data.certification || response.data.derived_certification,
-      });
-      setComplectId(response.data.id_rpd_complect);
-    } catch (error) {
-      showErrorMessage("Ошибка при получении данных");
-      console.error(error);
-    }
-  }, [setJsonData, templateId, setComplectId]);
+  const activeTemplateId =
+    String(jsonData?.id) === templateId || jsonData?.public_id === templateId
+      ? Number(jsonData.id)
+      : undefined;
+  const { data: presence } = useTemplatePresence(activeTemplateId);
 
   useEffect(() => {
-    uploadTemplateData();
+    useTemplateSync.getState().reset();
+    setJsonData({});
+    let active = true;
+    const uploadTemplateData = async () => {
+      try {
+        const response = await axiosBase.post("rpd-profile-templates", {
+          id: templateId,
+        });
+        if (!active) return;
+        setJsonData({
+          ...response.data,
+          certification:
+            response.data.certification || response.data.derived_certification,
+        });
+        setComplectId(response.data.id_rpd_complect);
+      } catch (error) {
+        if (!active) return;
+        showErrorMessage("Ошибка при получении данных");
+        console.error(error);
+      }
+    };
+    void uploadTemplateData();
     if (!useStore.getState().isDrawerOpen) toggleDrawer();
-  }, [templateId]);
+    return () => {
+      active = false;
+    };
+  }, [templateId, setJsonData, setComplectId, toggleDrawer]);
 
   const pageMap: Record<string, JSX.Element> = {
     [TemplatePagesPath.COVER_PAGE]: <CoverPage />,
@@ -72,11 +89,12 @@ export function TeacherInterface() {
     [TemplatePagesPath.TEST_PDF]: <TestPdf />,
   };
 
-  if (!jsonData?.id) return <Loader />;
+  if (!activeTemplateId) return <Loader />;
 
   return (
     <Box>
       <Box sx={{ backgroundColor: "#ffffff", p: 3, minHeight: "100vh" }}>
+        <TemplateCollabBar presence={presence} />
         {pageMap[page]}
       </Box>
     </Box>

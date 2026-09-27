@@ -1,4 +1,5 @@
 import { useAuth } from "@entities/auth";
+import { FieldEditLabel } from "@entities/template";
 import AddCommentIcon from "@mui/icons-material/AddComment";
 import { Box, BoxProps, IconButton } from "@mui/material";
 import { CommentChangeValue } from "./changeable-elements/CommentChangeValue";
@@ -10,10 +11,11 @@ import { PageTitle } from "@shared/ui";
 type PageTitleCommentProps = BoxProps & {
   title: string;
   templateField: string;
+  fields?: string[];
 };
 
 export function PageTitleComment(props: PageTitleCommentProps) {
-  const { title, templateField, sx, ...boxProps } = props;
+  const { title, templateField, fields, sx, ...boxProps } = props;
   const [isEdittedComment, setIsEdittedComment] = useState<boolean>(false);
   const { userRole } = useAuth((state) => state);
   const { jsonData } = useStore((state) => state);
@@ -45,7 +47,10 @@ export function PageTitleComment(props: PageTitleCommentProps) {
           ...(Array.isArray(sx) ? sx : sx ? [sx] : []),
         ]}
       >
-        <PageTitle title={title} />
+        <Box>
+          <PageTitle title={title} />
+          {fields && <FieldEditLabel fields={fields} />}
+        </Box>
         <IconButton
           onClick={() => {
             setIsEdittedComment(true);
@@ -61,6 +66,7 @@ export function PageTitleComment(props: PageTitleCommentProps) {
   return (
     <Box>
       <PageTitle {...boxProps} sx={sx} title={title} />
+      {fields && <FieldEditLabel fields={fields} />}
       <CommentChangeValue
         templateField={templateField}
         isEdittedComment={isEdittedComment}

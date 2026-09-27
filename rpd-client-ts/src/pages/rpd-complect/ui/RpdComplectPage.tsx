@@ -36,6 +36,7 @@ export function RpdComplectPage() {
     ...complectTableOptions,
     columns,
     data: filteredData,
+    getRowId: (row) => String(row.id),
     renderTopToolbarCustomActions: () => (
       <ComplectTableHeader
         id={complectId}

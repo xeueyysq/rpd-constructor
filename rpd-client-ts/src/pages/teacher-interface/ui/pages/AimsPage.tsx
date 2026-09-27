@@ -11,6 +11,7 @@ const AimsPage: FC = () => {
         title="Цели и задачи освоения дисциплины"
         sx={{ pb: 2 }}
         templateField={TemplatePagesPath.AIMS_PAGE}
+        fields={["goals"]}
       />
       <JsonChangeValue elementName="goals" />
     </Box>

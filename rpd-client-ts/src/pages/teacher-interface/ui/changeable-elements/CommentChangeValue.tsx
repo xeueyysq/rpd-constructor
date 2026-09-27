@@ -1,4 +1,5 @@
 import { useAuth } from "@entities/auth";
+import { useTemplateSync } from "@entities/template";
 import {
   Box,
   Button,
@@ -12,7 +13,7 @@ import {
 import { UserRole } from "@shared/ability";
 import { axiosBase } from "@shared/api";
 import { useStore } from "@shared/hooks";
-import { showErrorMessage, showSuccessMessage } from "@shared/lib";
+import { showErrorMessage } from "@shared/lib";
 import { useMemo, useState } from "react";
 import TextEditor from "./TextEditor.tsx";
 import MoreHorizIcon from "@mui/icons-material/MoreHoriz";
@@ -82,21 +83,23 @@ export function CommentChangeValue({
         })
       : "—";
 
-  const saveComment = async (htmlValue: string) => {
+  const saveComment = async (htmlValue: string, changed: boolean) => {
+    if (!changed) {
+      setIsEdittedComment(false);
+      return;
+    }
     if (!templateId) {
       showErrorMessage("Шаблон не загружен");
       return;
     }
     try {
-      const { data } = await axiosBase.put(
-        `upset-template-comment/${templateId}`,
-        {
+      const { data } = await useTemplateSync.getState().track(
+        axiosBase.put(`upset-template-comment/${templateId}`, {
           field: templateField,
           value: htmlValue,
-        }
+        })
       );
 
-      showSuccessMessage("Данные успешно сохранены");
       updateJsonComment(templateField, data ?? htmlValue);
       setIsEdittedComment(false);
     } catch (error) {
@@ -115,7 +118,6 @@ export function CommentChangeValue({
       await axiosBase.delete(`delete-template-comment/${commentId}`);
       updateJsonComment(templateField, undefined);
       setIsEdittedComment(false);
-      showSuccessMessage("Комментарий удален");
     } catch (error) {
       showErrorMessage("Ошибка сохранения данных");
       console.error(error);
@@ -231,7 +233,7 @@ export function CommentChangeValue({
         <Box sx={{ p: 2 }}>
           <TextEditor
             value={commentText ?? ""}
-            saveContent={saveComment}
+            onBlur={saveComment}
             setIsEditing={setIsEdittedComment}
             isComment={true}
           />

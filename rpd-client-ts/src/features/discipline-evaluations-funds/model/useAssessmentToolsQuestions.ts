@@ -1,9 +1,11 @@
 import { axiosBase } from "@shared/api";
-import { useStore } from "@shared/hooks/useStore.tsx";
 import {
-  showErrorMessage,
-  showSuccessMessage,
-} from "@shared/lib/showMessage.ts";
+  sameValue,
+  useTemplateSync,
+  useUpdateTemplateField,
+} from "@entities/template";
+import { useStore } from "@shared/hooks/useStore.tsx";
+import { showErrorMessage } from "@shared/lib/showMessage.ts";
 import { useEffect, useMemo, useRef, useState } from "react";
 import {
   AssessmentToolsQuestionsData,
@@ -57,7 +59,7 @@ type UseAssessmentToolsQuestionsResult = {
     kind: "open" | "closed",
     id: string
   ) => void;
-  saveFundsData: () => Promise<void>;
+  saveFundsData: () => void;
 };
 
 function newQuestionId(): string {
@@ -101,7 +103,10 @@ export const useAssessmentToolsQuestions =
     const storedFunds = useStore(
       (state) => state.jsonData.assessment_tools_questions
     ) as AssessmentToolsQuestionsData | undefined;
-    const { updateJsonData } = useStore();
+    const saveField = useUpdateTemplateField();
+    const dirtyFunds = useTemplateSync((state) =>
+      Boolean(state.dirty.assessment_tools_questions)
+    );
     const complectId = useStore((state) => state.complectId);
 
     const complectIdRef = useRef(complectId);
@@ -232,6 +237,11 @@ export const useAssessmentToolsQuestions =
     const [fundsData, setFundsData] = useState<AssessmentToolsQuestionsData>(
       () => normalizeFunds(storedFunds, competenceGroups)
     );
+    const fundsDataRef = useRef(fundsData);
+
+    useEffect(() => {
+      fundsDataRef.current = fundsData;
+    }, [fundsData]);
 
     const templateIdRef = useRef(templateId);
     useEffect(() => {
@@ -239,10 +249,11 @@ export const useAssessmentToolsQuestions =
       templateIdRef.current = templateId;
 
       setFundsData((prev) => {
+        if (dirtyFunds && !templateChanged) return prev;
         const base = templateChanged ? storedFunds : (storedFunds ?? prev);
         return normalizeFunds(base, competenceGroups);
       });
-    }, [storedFunds, competenceGroups, templateId]);
+    }, [storedFunds, competenceGroups, templateId, dirtyFunds]);
 
     useEffect(() => {
       setFundsData((prev) => {
@@ -291,8 +302,33 @@ export const useAssessmentToolsQuestions =
       });
     }, [maxSelectableByCompetence, complectId, competenceGroups]);
 
+    const saveFundsData = (next = fundsDataRef.current) => {
+      const stored = useStore.getState().jsonData.assessment_tools_questions as
+        AssessmentToolsQuestionsData | undefined;
+      if (sameValue(next, normalizeFunds(stored, competenceGroups))) {
+        useTemplateSync.getState().clearDirty("assessment_tools_questions");
+        return;
+      }
+      void saveField("assessment_tools_questions", next);
+    };
+
+    const changeFunds = (
+      update: (
+        previous: AssessmentToolsQuestionsData
+      ) => AssessmentToolsQuestionsData,
+      immediate = false
+    ) => {
+      const previous = fundsDataRef.current;
+      const next = update(previous);
+      if (next === previous) return;
+      fundsDataRef.current = next;
+      setFundsData(next);
+      useTemplateSync.getState().markDirty("assessment_tools_questions");
+      if (immediate) saveFundsData(next);
+    };
+
     const handleControlQuestionsChange = (value: string) => {
-      setFundsData((prev) => ({
+      changeFunds((prev) => ({
         ...prev,
         controlQuestions: value,
       }));
@@ -303,7 +339,7 @@ export const useAssessmentToolsQuestions =
       field: "openQuestions" | "closedQuestions",
       value: string
     ) => {
-      setFundsData((prev) => {
+      changeFunds((prev) => {
         const prevCompetence = prev.competencies[competence] ?? {
           openQuestions: "",
           closedQuestions: "",
@@ -333,7 +369,7 @@ export const useAssessmentToolsQuestions =
     ) => {
       const initialText = (text ?? "").trim();
 
-      setFundsData((prev) => {
+      changeFunds((prev) => {
         const prevCompetence = prev.competencies[competence] ?? {
           openQuestions: "",
           closedQuestions: "",
@@ -383,7 +419,7 @@ export const useAssessmentToolsQuestions =
             },
           },
         };
-      });
+      }, true);
     };
 
     const toggleSelectedQuestion = (
@@ -400,7 +436,7 @@ export const useAssessmentToolsQuestions =
         return;
       }
 
-      setFundsData((prev) => {
+      changeFunds((prev) => {
         const prevCompetence = prev.competencies[competence];
         if (!prevCompetence) return prev;
 
@@ -442,7 +478,7 @@ export const useAssessmentToolsQuestions =
             },
           },
         };
-      });
+      }, true);
     };
 
     const updateCorrectAnswer = (
@@ -453,7 +489,7 @@ export const useAssessmentToolsQuestions =
     ) => {
       const poolKey = kind === "open" ? "openPool" : "closedPool";
 
-      setFundsData((prev) => {
+      changeFunds((prev) => {
         const prevCompetence = prev.competencies[competence];
         if (!prevCompetence) return prev;
 
@@ -490,7 +526,7 @@ export const useAssessmentToolsQuestions =
     ) => {
       const poolKey = kind === "open" ? "openPool" : "closedPool";
 
-      setFundsData((prev) => {
+      changeFunds((prev) => {
         const prevCompetence = prev.competencies[competence];
         if (!prevCompetence) return prev;
 
@@ -528,7 +564,7 @@ export const useAssessmentToolsQuestions =
       const selectedKey =
         kind === "open" ? "selectedOpenIds" : "selectedClosedIds";
 
-      setFundsData((prev) => {
+      changeFunds((prev) => {
         const prevCompetence = prev.competencies[competence];
         if (!prevCompetence) return prev;
 
@@ -557,24 +593,7 @@ export const useAssessmentToolsQuestions =
             },
           },
         };
-      });
-    };
-
-    const saveFundsData = async () => {
-      if (!templateId) return;
-
-      try {
-        await axiosBase.put(`update-json-value/${templateId}`, {
-          fieldToUpdate: "assessment_tools_questions",
-          value: fundsData,
-        });
-
-        updateJsonData("assessment_tools_questions", fundsData);
-        showSuccessMessage("Данные успешно сохранены");
-      } catch (error) {
-        showErrorMessage("Ошибка сохранения данных");
-        console.error(error);
-      }
+      }, true);
     };
 
     return {

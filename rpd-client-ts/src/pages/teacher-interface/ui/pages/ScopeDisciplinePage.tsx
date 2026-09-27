@@ -1,10 +1,4 @@
-import {
-  Box,
-  Button,
-  TextField,
-  Typography as Tg,
-  useTheme,
-} from "@mui/material";
+import { Box, TextField, Typography as Tg, useTheme } from "@mui/material";
 import type { Theme } from "@mui/material/styles";
 import { useScopeDisciplineForm } from "@pages/teacher-interface/model/useScopeDisciplineForm";
 import { TemplatePagesPath } from "@shared/enums";
@@ -38,6 +32,7 @@ const ScopeDisciplinePage: FC<ScopeDisciplinePageProps> = ({
         title="Объем дисциплины"
         sx={{ pb: 2 }}
         templateField={TemplatePagesPath.DISCIPLINE_SCOPE}
+        fields={["zet", "study_load"]}
       />
       <FieldChangeNotice fieldKey="zet" changes={fieldChanges} />
       <FieldChangeNotice fieldKey="study_load" changes={fieldChanges} />
@@ -58,6 +53,7 @@ const ScopeDisciplinePage: FC<ScopeDisciplinePageProps> = ({
             value={creditUnits}
             placeholder="?"
             onChange={(e) => setCreditUnits(e.target.value)}
+            onBlur={() => void save("zet")}
             disabled={readOnly}
             sx={{
               width: 80,
@@ -84,6 +80,7 @@ const ScopeDisciplinePage: FC<ScopeDisciplinePageProps> = ({
             value={academicHours}
             placeholder="?"
             onChange={(e) => setAcademicHours(e.target.value)}
+            onBlur={() => void save("study_load")}
             disabled={readOnly}
             sx={{
               width: 80,
@@ -96,14 +93,6 @@ const ScopeDisciplinePage: FC<ScopeDisciplinePageProps> = ({
         </Tg>
         академических часа(ов)
       </Tg>
-
-      {!readOnly && (
-        <Box sx={{ pt: 1 }}>
-          <Button variant="contained" onClick={save}>
-            Сохранить
-          </Button>
-        </Box>
-      )}
     </Box>
   );
 };

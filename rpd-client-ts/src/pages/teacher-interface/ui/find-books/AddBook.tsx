@@ -16,7 +16,7 @@ import {
   Typography,
 } from "@mui/material";
 import { useStore } from "@shared/hooks";
-import { showErrorMessage, showSuccessMessage } from "@shared/lib";
+import { useUpdateTemplateField } from "@entities/template";
 import { axiosBase } from "@shared/api";
 import { BooksMetaList } from "./BooksMetaList.tsx";
 import { motion } from "framer-motion";
@@ -43,14 +43,17 @@ const AddBook: FC<AddBook> = ({ elementName }) => {
   const [manualInput, setManualInput] = useState<string>("");
   const [isLoadingBooks, setIsLoadingBooks] = useState<boolean>(false);
 
-  const jsonData = useStore.getState().jsonData[elementName];
-  const [booksData, setBooksData] = useState<BookData[] | null>(jsonData);
+  const [booksData, setBooksData] = useState<BookData[] | null>(null);
 
-  const elementValue: string[] =
-    useStore.getState().jsonData[elementName] || [];
-  const [addedBooks, setAddedBooks] = useState<string[]>(elementValue);
+  const elementValue = useStore((state) => state.jsonData[elementName]) as
+    string[] | undefined;
+  const updateJsonData = useStore((state) => state.updateJsonData);
+  const save = useUpdateTemplateField();
 
-  const { updateJsonData } = useStore();
+  const saveBooks = (next: string[]) => {
+    updateJsonData(elementName, next);
+    void save(elementName, next);
+  };
 
   const handleOpenDialog = () => {
     setOpen(true);
@@ -93,27 +96,11 @@ const AddBook: FC<AddBook> = ({ elementName }) => {
     }
   };
 
-  const saveContent = async (htmlValue: string[]) => {
-    const templateId = useStore.getState().jsonData.id;
-
-    try {
-      await axiosBase.put(`update-json-value/${templateId}`, {
-        fieldToUpdate: elementName,
-        value: htmlValue,
-      });
-
-      updateJsonData(elementName, htmlValue);
-      setAddedBooks(htmlValue);
-      showSuccessMessage("Данные успешно сохранены");
-    } catch (error) {
-      showErrorMessage("Ошибка сохранения данных");
-      console.error(error);
-    }
-  };
-
   const handleAddBooksToList = (biblios: string[]) => {
     //TODO добавить фильтр на добавление книг
-    saveContent([...addedBooks, ...biblios]);
+    const current =
+      (useStore.getState().jsonData[elementName] as string[] | undefined) ?? [];
+    saveBooks([...current, ...biblios]);
   };
 
   const handleAddManualBook = () => {
@@ -121,14 +108,16 @@ const AddBook: FC<AddBook> = ({ elementName }) => {
       return;
     }
 
-    const newBooks = [...addedBooks, manualInput];
-    saveContent(newBooks);
+    const current =
+      (useStore.getState().jsonData[elementName] as string[] | undefined) ?? [];
+    saveBooks([...current, manualInput]);
     setManualInput("");
   };
 
   const handleRemoveBook = (biblioToRemove: string) => {
-    const newBooks = addedBooks.filter((biblio) => biblio !== biblioToRemove);
-    saveContent(newBooks);
+    const current =
+      (useStore.getState().jsonData[elementName] as string[] | undefined) ?? [];
+    saveBooks(current.filter((biblio) => biblio !== biblioToRemove));
   };
 
   return (

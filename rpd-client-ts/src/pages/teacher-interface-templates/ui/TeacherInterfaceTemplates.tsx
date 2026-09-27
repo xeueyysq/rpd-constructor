@@ -77,6 +77,7 @@ export function TeacherInterfaceTemplates() {
   const table = useMaterialReactTable<MyTemplate>({
     columns,
     data: data ?? [],
+    getRowId: (row) => String(row.id),
     localization: MRT_Localization_RU,
     enableColumnResizing: true,
     layoutMode: "grid",

@@ -1,9 +1,10 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import type {
   DisciplineContentData,
   StudyPlanHours,
 } from "./DisciplineContentPageTypes";
 import { sumContentHours } from "../lib/hours";
+import { useTemplateSync } from "@entities/template";
 
 export const ATTESTATION_ROW_ID = "__attestation__";
 
@@ -30,10 +31,15 @@ export function useDisciplineContentData(
   );
   const [data, setData] = useState<DisciplineContentData>(initialData);
   const [nextId, setNextId] = useState(() => getNextId(initialData));
+  const dirty = useTemplateSync((state) => Boolean(state.dirty.content));
+  const templateIdRef = useRef(templateId);
   useEffect(() => {
+    const templateChanged = templateIdRef.current !== templateId;
+    templateIdRef.current = templateId;
+    if (dirty && !templateChanged) return;
     setData(initialData);
     setNextId(getNextId(initialData));
-  }, [initialData, templateId]);
+  }, [initialData, templateId, dirty]);
   const rowIds = useMemo(
     () =>
       [
@@ -67,12 +73,25 @@ export function useManualPlan(
   const [touched, setTouched] = useState<Partial<Record<EditableHour, true>>>(
     {}
   );
+  const valuesRef = useRef(plan);
+  const touchedRef = useRef(touched);
+  const templateIdRef = useRef(templateId);
   useEffect(() => {
-    setValues(plan);
-    setTouched({});
+    if (templateIdRef.current !== templateId) {
+      templateIdRef.current = templateId;
+      touchedRef.current = {};
+      setTouched({});
+    }
+    const next = { ...plan };
+    for (const key of Object.keys(touchedRef.current) as EditableHour[])
+      next[key] = valuesRef.current[key];
+    next.contact = next.lectures + next.seminars;
+    valuesRef.current = next;
+    setValues(next);
   }, [plan, templateId]);
   const change = (key: EditableHour, value: number) => {
-    setValues((previous) => ({
+    const previous = valuesRef.current;
+    const next = {
       ...previous,
       [key]: value,
       contact:
@@ -81,11 +100,19 @@ export function useManualPlan(
           : key === "seminars"
             ? previous.lectures + value
             : previous.contact,
-    }));
-    setTouched((previous) => ({ ...previous, [key]: true }));
+    };
+    valuesRef.current = next;
+    setValues(next);
+    touchedRef.current = { ...touchedRef.current, [key]: true };
+    setTouched(touchedRef.current);
   };
-  const patch = Object.fromEntries(
-    (Object.keys(touched) as EditableHour[]).map((key) => [key, values[key]])
-  ) as Partial<Pick<StudyPlanHours, EditableHour>>;
-  return { values, touched, change, patch, reset: () => setTouched({}) };
+  const settle = (key: EditableHour, value: number) => {
+    if (valuesRef.current[key] !== value) return false;
+    const next = { ...touchedRef.current };
+    delete next[key];
+    touchedRef.current = next;
+    setTouched(next);
+    return Object.keys(next).length === 0;
+  };
+  return { values, touched, change, settle };
 }

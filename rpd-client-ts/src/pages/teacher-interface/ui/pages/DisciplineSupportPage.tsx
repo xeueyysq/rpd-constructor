@@ -11,6 +11,7 @@ const DisciplineSupportPage: FC = () => {
         title="Перечень учебно-методического обеспечения по дисциплине"
         sx={{ pb: 2 }}
         templateField={TemplatePagesPath.DISCIPLINE_SUPPORT}
+        fields={["methodological_support_template"]}
       />
       <JsonChangeValue elementName="methodological_support_template" />
     </Box>

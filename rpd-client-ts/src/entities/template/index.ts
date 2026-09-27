@@ -17,3 +17,15 @@ export type {
 } from "./model/workflow";
 export type { TemplateConstructorType } from "./model/TemplateConstructorTypes";
 export { TemplateStatusEnum, statusConfig } from "./model/templateStatusCodes";
+export type {
+  FieldEdit,
+  FieldEdits,
+  UpdateTemplateFieldResponse,
+  TemplatePresenceResponse,
+} from "./model/fieldEdits";
+export { useTemplateSync } from "./model/templateSync";
+export { sameValue } from "./lib/sameValue";
+export { useUpdateTemplateField } from "./api/updateTemplateField";
+export { useTemplatePresence } from "./api/presence";
+export { TemplateCollabBar } from "./ui/TemplateCollabBar";
+export { FieldEditLabel } from "./ui/FieldEditLabel";

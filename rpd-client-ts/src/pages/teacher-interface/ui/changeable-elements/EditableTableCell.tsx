@@ -3,12 +3,14 @@ import { TableCell, TextField } from "@mui/material";
 interface IEditableTableCell {
   value: number | null;
   onValueChange: (value: number) => void;
+  onBlur: () => void;
   readOnly: boolean;
 }
 
 export function EditableTableCell({
   value: fieldValue,
   onValueChange,
+  onBlur,
   readOnly,
 }: IEditableTableCell) {
   if (readOnly)
@@ -41,7 +43,6 @@ export function EditableTableCell({
         }}
         onFocus={(e) => e.target.select()}
         fullWidth
-        autoFocus
         sx={{
           fontSize: "14px !important",
           "& .MuiInputBase-input": {
@@ -63,6 +64,7 @@ export function EditableTableCell({
         }}
         value={fieldValue}
         onChange={(e) => onValueChange(Number(e.target.value))}
+        onBlur={onBlur}
       />
     </TableCell>
   );

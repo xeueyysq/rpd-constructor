@@ -1,8 +1,7 @@
 import { FC, useEffect, useState } from "react";
 import { MenuItem, Select, SelectChangeEvent, useTheme } from "@mui/material";
+import { useUpdateTemplateField } from "@entities/template";
 import { useStore } from "@shared/hooks";
-import { showErrorMessage, showSuccessMessage } from "@shared/lib";
-import { axiosBase } from "@shared/api";
 
 interface SelectorProps {
   certification: string;
@@ -14,33 +13,21 @@ const CertificationSelector: FC<SelectorProps> = ({
   readOnly = false,
 }) => {
   const theme = useTheme();
-  const templateId = useStore((state) => state.jsonData.id);
   const storeCertification = useStore((state) => state.jsonData.certification);
-  const updateJsonData = useStore((state) => state.updateJsonData);
+  const save = useUpdateTemplateField();
   const [valueCertification, setValueCertification] = useState<string>(
     certification || storeCertification || ""
   );
 
   useEffect(() => {
     setValueCertification(certification || storeCertification || "");
-  }, [certification, storeCertification, templateId]);
+  }, [certification, storeCertification]);
 
   const handleChange = async (event: SelectChangeEvent<string>) => {
     const value = event.target.value;
 
-    try {
-      await axiosBase.put(`update-json-value/${templateId}`, {
-        fieldToUpdate: "certification",
-        value: value,
-      });
-
-      showSuccessMessage("Данные успешно сохранены");
-      updateJsonData("certification", value);
-      setValueCertification(value);
-    } catch (error) {
-      showErrorMessage("Ошибка сохранения данных");
-      console.error(error);
-    }
+    setValueCertification(value);
+    await save("certification", value);
   };
 
   return (

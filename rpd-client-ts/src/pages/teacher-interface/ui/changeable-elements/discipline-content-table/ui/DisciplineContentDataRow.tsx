@@ -14,6 +14,7 @@ type DisciplineContentDataRowProps = {
     key: EditableRowKey,
     value: string | number | null
   ) => void;
+  onBlur: () => void;
 };
 
 export function DisciplineContentDataRow({
@@ -22,6 +23,7 @@ export function DisciplineContentDataRow({
   readOnly,
   attestationTheme,
   onValueChange,
+  onBlur,
 }: DisciplineContentDataRowProps) {
   const rowHours = getRowHours(row);
 
@@ -57,6 +59,7 @@ export function DisciplineContentDataRow({
             multiline
             value={row.theme}
             onChange={(e) => onValueChange(rowId, "theme", e.target.value)}
+            onBlur={onBlur}
             disabled={readOnly}
             fullWidth
           />
@@ -73,11 +76,13 @@ export function DisciplineContentDataRow({
       <EditableTableCell
         value={row.lectures}
         onValueChange={(value) => onValueChange(rowId, "lectures", value)}
+        onBlur={onBlur}
         readOnly={readOnly}
       />
       <EditableTableCell
         value={row.seminars}
         onValueChange={(value) => onValueChange(rowId, "seminars", value)}
+        onBlur={onBlur}
         readOnly={readOnly}
       />
       <TableCell
@@ -93,11 +98,13 @@ export function DisciplineContentDataRow({
         onValueChange={(value) =>
           onValueChange(rowId, "independent_work", value)
         }
+        onBlur={onBlur}
         readOnly={readOnly}
       />
       <EditableTableCell
         value={row.control ?? null}
         onValueChange={(value) => onValueChange(rowId, "control", value)}
+        onBlur={onBlur}
         readOnly={readOnly || rowId !== ATTESTATION_ROW_ID}
       />
     </TableRow>

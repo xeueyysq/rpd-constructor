@@ -52,6 +52,7 @@ const DisciplinePlace: FC<DisciplinePlaceProps> = ({ readOnly = false }) => {
         title="Место дисциплины в структуре ОПОП"
         sx={{ pb: 2 }}
         templateField={TemplatePagesPath.DISCIPLINE_PLACE}
+        fields={["certification", "place_more_text"]}
       />
       <FieldChangeNotice fieldKey="semester" changes={fieldChanges} />
       <FieldChangeNotice fieldKey="place" changes={fieldChanges} />

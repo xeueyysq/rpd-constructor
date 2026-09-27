@@ -2,7 +2,6 @@ import { InfoOutlined } from "@mui/icons-material";
 import {
   Box,
   Button,
-  ButtonGroup,
   IconButton,
   Paper,
   Table,
@@ -31,12 +30,16 @@ import {
   isComparableHour,
   parseHours,
 } from "@pages/teacher-interface/lib/hours";
+import { saveStudyPlan } from "@pages/teacher-interface/api/studyPlan";
+import { normalizeContent } from "@pages/teacher-interface/lib/normalizeContent";
 import {
-  saveDisciplineContent,
-  saveStudyPlan,
-} from "@pages/teacher-interface/api/studyPlan";
+  sameValue,
+  useTemplateSync,
+  useUpdateTemplateField,
+  type FieldEdits,
+} from "@entities/template";
 import { useStore } from "@shared/hooks";
-import { showErrorMessage, showSuccessMessage } from "@shared/lib";
+import { showErrorMessage } from "@shared/lib";
 import { useEffect } from "react";
 import { ExportFromTemplates } from "./ExportFromTemplates";
 import type {
@@ -64,7 +67,7 @@ const emptyPlan: StudyPlanHours = {
   has_total: false,
   has_breakdown: false,
 };
-const helpText = `Контактная работа = Лекции + Практические занятия (включая лабораторные). Всего = Контактная работа + Самостоятельная работа + Контроль. Контроль — часы промежуточной аттестации, вносятся в строку аттестации. Слева — сумма по темам, считается автоматически. Справа — данные учебного плана 1С: их меняют только РОП и администратор. Красный — сумма не совпадает с учебным планом, зелёный — совпадает. Сохранить можно и при расхождении.`;
+const helpText = `Контактная работа = Лекции + Практические занятия (включая лабораторные). Всего = Контактная работа + Самостоятельная работа + Контроль. Контроль — часы промежуточной аттестации, вносятся в строку аттестации. Слева — сумма по темам, считается автоматически. Справа — данные учебного плана 1С: их меняют только РОП и администратор. Красный — сумма не совпадает с учебным планом, зелёный — совпадает. Изменения сохраняются при выходе из ячейки.`;
 
 export function DisciplineContentTable({
   readOnly = false,
@@ -74,6 +77,7 @@ export function DisciplineContentTable({
   const theme = useTheme();
   const jsonData = useStore((state) => state.jsonData);
   const updateJsonData = useStore((state) => state.updateJsonData);
+  const saveField = useUpdateTemplateField();
   const plan =
     (jsonData?.study_plan_hours as StudyPlanHours | undefined) ?? emptyPlan;
   const { data, setData, nextId, setNextId, rowIds, summ } =
@@ -112,12 +116,14 @@ export function DisciplineContentTable({
     key: EditableRowKey,
     value: string | number | null
   ) => {
+    useTemplateSync.getState().markDirty("content");
     setData((previous) => ({
       ...previous,
       [rowId]: { ...previous[rowId], [key]: value },
     }));
   };
   const addRow = () => {
+    useTemplateSync.getState().markDirty("content");
     setNextId((previous) => previous + 1);
     setData((previous) => ({
       ...previous,
@@ -133,32 +139,45 @@ export function DisciplineContentTable({
       },
     }));
   };
-  const save = async () => {
-    if (!jsonData.id) return;
-    const content = Object.fromEntries(
-      Object.entries(data).filter(
-        ([, row]) =>
-          row.theme ||
-          row.lectures ||
-          row.seminars ||
-          row.control ||
-          row.independent_work
-      )
-    ) as DisciplineContentData;
+  const saveContent = () => {
+    const content = normalizeContent(data);
+    const stored = normalizeContent(
+      useStore.getState().jsonData.content as DisciplineContentData | undefined
+    );
+    if (sameValue(content, stored)) {
+      useTemplateSync.getState().clearDirty("content");
+      return;
+    }
+    void saveField("content", content);
+  };
+
+  const savePlanHour = async (key: Exclude<keyof ObjectHours, "contact">) => {
+    const value = manual.values[key];
+    const current = useStore.getState().jsonData.study_plan_hours as
+      StudyPlanHours | undefined;
+    if (value === (current?.[key] ?? 0)) {
+      if (manual.settle(key, value))
+        useTemplateSync.getState().clearDirty("study_load");
+      return;
+    }
+    const templateId = jsonData.id;
+    if (!templateId) return;
     try {
-      await saveDisciplineContent(jsonData.id, content);
-      updateJsonData("content", content);
-      if (canEdit && Object.keys(manual.patch).length) {
-        const updated = await saveStudyPlan(jsonData.id, {
-          hours: manual.patch,
-        });
+      const updated = await useTemplateSync
+        .getState()
+        .track(saveStudyPlan(templateId, { hours: { [key]: value } }));
+      if (useStore.getState().jsonData.id === templateId) {
         updateJsonData("study_load", updated.study_load);
         updateJsonData("zet", updated.zet);
         updateJsonData("study_plan_hours", updated.study_plan_hours);
-        manual.reset();
+        updateJsonData("field_edits", {
+          ...(useStore.getState().jsonData.field_edits as
+            FieldEdits | undefined),
+          ...updated.edits,
+        });
+        if (manual.settle(key, value))
+          useTemplateSync.getState().clearDirty("study_load");
       }
-      setData(content);
-      showSuccessMessage("Данные успешно сохранены");
     } catch (error) {
       showErrorMessage("Ошибка сохранения данных");
       console.error(error);
@@ -186,6 +205,7 @@ export function DisciplineContentTable({
                   readOnly={readOnly}
                   attestationTheme={attestationTheme}
                   onValueChange={changeRow}
+                  onBlur={saveContent}
                 />
               ))}
               <TableRow>
@@ -244,10 +264,18 @@ export function DisciplineContentTable({
                                 : planned
                             }
                             placeholder="—"
-                            onChange={(event) =>
+                            onChange={(event) => {
+                              useTemplateSync
+                                .getState()
+                                .markDirty("study_load");
                               manual.change(
                                 key as Exclude<keyof ObjectHours, "contact">,
                                 parseHours(event.target.value)
+                              );
+                            }}
+                            onBlur={() =>
+                              void savePlanHour(
+                                key as Exclude<keyof ObjectHours, "contact">
                               )
                             }
                             slotProps={{ htmlInput: { min: 0 } }}
@@ -288,12 +316,9 @@ export function DisciplineContentTable({
         </Box>
       )}
       {!readOnly && (
-        <ButtonGroup variant="outlined">
-          <Button onClick={addRow}>Добавить строку</Button>
-          <Button variant="contained" onClick={save}>
-            Сохранить изменения
-          </Button>
-        </ButtonGroup>
+        <Button variant="outlined" onClick={addRow}>
+          Добавить строку
+        </Button>
       )}
     </Box>
   );

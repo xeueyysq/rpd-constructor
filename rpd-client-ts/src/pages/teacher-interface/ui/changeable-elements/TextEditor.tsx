@@ -19,7 +19,7 @@ import {
   focusOnEditor,
 } from "contenido";
 
-import { IconButton, Box, Button, ButtonGroup } from "@mui/material";
+import { IconButton, Box, Button } from "@mui/material";
 import FormatBoldIcon from "@mui/icons-material/FormatBold";
 import FormatItalicIcon from "@mui/icons-material/FormatItalic";
 import FormatUnderlinedIcon from "@mui/icons-material/FormatUnderlined";
@@ -28,21 +28,21 @@ import FormatListNumberedIcon from "@mui/icons-material/FormatListNumbered";
 
 interface TestEditor {
   value: string;
-  saveContent: (htmlValue: string) => Promise<void>;
+  onBlur: (htmlValue: string, changed: boolean) => Promise<void>;
   setIsEditing: (value: boolean) => void;
   isComment?: boolean;
 }
 
 const TextEditor: FC<TestEditor> = ({
   value,
-  saveContent,
+  onBlur,
   setIsEditing,
   isComment,
 }) => {
-  const content = stateFromHTML(value);
-  const [editorState, setEditorState] = useState(
-    EditorState.createWithContent(content)
+  const [editorState, setEditorState] = useState(() =>
+    EditorState.createWithContent(stateFromHTML(value))
   );
+  const originalHtml = useRef(stateToHTML(editorState.getCurrentContent()));
   const editorRef = useRef<DraftEditor>(null);
   // contenido ожидает ненулевой ref, хотя React заполняет его только после монтирования.
   const contenidoEditorRef = editorRef as RefObject<DraftEditor>;
@@ -81,11 +81,6 @@ const TextEditor: FC<TestEditor> = ({
       icon: <FormatListBulletedIcon />,
     },
   ];
-
-  const handleSaveClick = async () => {
-    const htmlValue = stateToHTML(editorState.getCurrentContent());
-    saveContent(htmlValue);
-  };
 
   return (
     <>
@@ -141,23 +136,23 @@ const TextEditor: FC<TestEditor> = ({
         <Editor
           editorState={editorState}
           onChange={setEditorState}
+          onBlur={() => {
+            const html = stateToHTML(editorState.getCurrentContent());
+            void onBlur(html, html !== originalHtml.current);
+          }}
           handleKeyCommand={shortcutHandler(setEditorState)}
           keyBindingFn={getDefaultKeyBindingFn}
           editorRef={contenidoEditorRef}
         />
       </Box>
-      <ButtonGroup
+      <Button
         color={isComment ? "warning" : undefined}
         variant="outlined"
-        aria-label="Basic button group"
+        onMouseDown={(event) => event.preventDefault()}
+        onClick={() => setIsEditing(false)}
       >
-        <Button variant="contained" onClick={handleSaveClick}>
-          {isComment ? "Сохранить комментарий" : "Сохранить изменения"}
-        </Button>
-        <Button variant="outlined" onClick={() => setIsEditing(false)}>
-          Отменить
-        </Button>
-      </ButtonGroup>
+        Отменить
+      </Button>
     </>
   );
 };

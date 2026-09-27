@@ -11,6 +11,7 @@ const DisciplineEvaluationsFunds: FC = () => {
         title="Фонды оценочных средств по дисциплине"
         sx={{ pb: 2 }}
         templateField={TemplatePagesPath.DISCIPLINE_EVALUATIONS_FUNDS}
+        fields={["assessment_tools_questions"]}
       />
       <DisciplineEvaluationsFundsForm />
     </Box>

@@ -15,12 +15,14 @@ export function DisciplineContentPage({
         title="Содержание дисциплины"
         sx={{ pb: 2 }}
         templateField={TemplatePagesPath.DISCIPLINE_CONTENT}
+        fields={["content", "study_load"]}
       />
       <DisciplineContentTable canEditPlan={canEditPlan} />
       <PageTitleComment
         sx={{ py: 2, pt: 3 }}
         title="Содержание дисциплины"
         templateField={`${TemplatePagesPath.DISCIPLINE_CONTENT}_1`}
+        fields={["content_more_text", "content_template_more_text"]}
       />
       <JsonChangeValue elementName="content_more_text" />
       <Box sx={{ pt: 1 }}>

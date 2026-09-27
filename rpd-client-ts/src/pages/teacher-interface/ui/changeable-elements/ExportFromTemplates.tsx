@@ -11,9 +11,14 @@ import {
 } from "@mui/material";
 import { DataDialogBox } from "../DataDialogBox";
 import { useState } from "react";
-import { useMyTemplates } from "@entities/template";
+import {
+  useMyTemplates,
+  useTemplateSync,
+  type FieldEdits,
+  type FieldEdit,
+} from "@entities/template";
 import { useStore } from "@shared/hooks";
-import { showErrorMessage, showSuccessMessage } from "@shared/lib";
+import { showErrorMessage } from "@shared/lib";
 import { axiosBase } from "@shared/api";
 import { JsonChangeValueTypes } from "@pages/teacher-interface/model/DisciplineContentPageTypes";
 import { DisciplineContentData } from "@pages/teacher-interface/model/DisciplineContentPageTypes";
@@ -22,7 +27,7 @@ export function ExportFromTemplates({
   elementName,
   setChangeableValue,
 }: JsonChangeValueTypes & {
-  setChangeableValue: (value: string | DisciplineContentData) => void;
+  setChangeableValue?: (value: string | DisciplineContentData) => void;
 }) {
   const [openFromYearDialog, setOpenFromYearDialog] = useState<boolean>(false);
   const [openFromDirectionDialog, setOpenFromDirectionDialog] =
@@ -69,23 +74,43 @@ export function ExportFromTemplates({
     fieldToCopy: string
   ) => {
     const currentTemplateId = jsonData.id;
+    const sync = useTemplateSync.getState();
+    const wasDirty = Boolean(sync.dirty[fieldToCopy]);
+    sync.markDirty(fieldToCopy);
 
     try {
-      const response = await axiosBase.post("/copy-template-data", {
-        sourceTemplateId,
-        targetTemplateId: currentTemplateId,
-        fieldToCopy,
-        appendParagraph: true,
-      });
+      const response = await useTemplateSync.getState().track(
+        axiosBase.post<{
+          success: boolean;
+          value: string | DisciplineContentData;
+          edit: FieldEdit;
+        }>("/copy-template-data", {
+          sourceTemplateId,
+          targetTemplateId: currentTemplateId,
+          fieldToCopy,
+          appendParagraph: true,
+        })
+      );
 
-      if (response.data.success) {
-        showSuccessMessage("Данные успешно скопированы");
-        updateJsonData(fieldToCopy, response.data.targetTemplate[fieldToCopy]);
-        setChangeableValue(response.data.targetTemplate[fieldToCopy]);
+      if (
+        response.data.success &&
+        useStore.getState().jsonData.id === currentTemplateId
+      ) {
+        updateJsonData(fieldToCopy, response.data.value);
+        updateJsonData("field_edits", {
+          ...(useStore.getState().jsonData.field_edits as
+            FieldEdits | undefined),
+          [fieldToCopy]: response.data.edit,
+        });
+        setChangeableValue?.(response.data.value);
       }
     } catch (error) {
       showErrorMessage("Ошибка при копировании данных");
       console.error(error);
+    } finally {
+      if (!wasDirty && useStore.getState().jsonData.id === currentTemplateId) {
+        useTemplateSync.getState().clearDirty(fieldToCopy);
+      }
     }
   };
 
