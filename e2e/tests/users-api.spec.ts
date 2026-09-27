@@ -1,5 +1,5 @@
 import { expect, request as playwrightRequest, test, type APIRequestContext } from '@playwright/test';
-import { apiUrl, password } from './helpers';
+import { apiUrl, password, signIn } from './helpers';
 
 function userPayload(name: string, role = 2) {
   return {
@@ -18,7 +18,8 @@ async function accessToken(request: APIRequestContext, userName: string) {
   return (await response.json()).accessToken as string;
 }
 
-test('маршруты пользователей требуют токен и роль администратора', async ({ request }) => {
+test('маршруты пользователей требуют токен и роль администратора', async ({ page, request }) => {
+  await signIn(page, 'rop');
   const anonymous = await request.get(`${apiUrl}/api/users`);
   expect(anonymous.status()).toBe(401);
 
@@ -35,12 +36,14 @@ test('маршруты пользователей требуют токен и �
   }
 });
 
-test('публичная регистрация удалена', async ({ request }) => {
+test('публичная регистрация удалена', async ({ page, request }) => {
+  await signIn(page, 'admin');
   const response = await request.post(`${apiUrl}/auth/sign-up`, { data: userPayload('unuseduser') });
   expect(response.status()).toBe(404);
 });
 
-test('админ получает безопасный список и ошибки валидации', async ({ request }) => {
+test('админ получает безопасный список и ошибки валидации', async ({ page, request }) => {
+  await signIn(page, 'admin');
   const token = await accessToken(request, 'admin');
   const headers = { Authorization: `Bearer ${token}` };
 
@@ -72,7 +75,8 @@ test('админ получает безопасный список и ошиб�
   }
 });
 
-test('refresh деактивированного пользователя возвращает 401', async ({ request }) => {
+test('refresh деактивированного пользователя возвращает 401', async ({ page, request }) => {
+  await signIn(page, 'admin');
   const token = await accessToken(request, 'admin');
   const headers = { Authorization: `Bearer ${token}` };
   const name = `u${Date.now().toString(36)}${Math.random().toString(36).slice(2, 8)}`;

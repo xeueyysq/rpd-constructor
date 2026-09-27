@@ -12,6 +12,8 @@ export default defineConfig({
   testDir: './tests',
   fullyParallel: true,
   forbidOnly: !!process.env.CI,
+  // Vite в dev может долго компилировать ленивые страницы при первом переходе.
+  expect: { timeout: 15_000 },
   reporter: [['list'], ['html', { open: 'never' }]],
   use: { baseURL: clientUrl, trace: 'retain-on-failure' },
   projects: [{ name: 'chromium', use: { ...devices['Desktop Chrome'] } }],

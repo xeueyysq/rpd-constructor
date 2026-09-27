@@ -17,8 +17,7 @@ function totalRow(page: Page) {
 
 test('преподаватель сохраняет содержание без изменения плана 1С', async ({ page }) => {
   await signIn(page, 'teacher2');
-  await page.getByRole('row').filter({ hasText: discipline }).getByRole('button').click();
-  await page.getByRole('menuitem', { name: 'Открыть' }).click();
+  await page.getByRole('row').filter({ hasText: discipline }).getByRole('button', { name: 'Открыть' }).click();
   await openContent(page);
 
   const total = totalRow(page);
@@ -37,8 +36,7 @@ test('преподаватель сохраняет содержание без 
   await expect(page.getByText('Данные успешно сохранены')).toBeVisible();
   await page.getByRole('button', { name: 'Конструктор РПД' }).click();
   await expect(page).toHaveURL(/\/templates$/);
-  await page.getByRole('row').filter({ hasText: discipline }).getByRole('button').click();
-  await page.getByRole('menuitem', { name: 'Открыть' }).click();
+  await page.getByRole('row').filter({ hasText: discipline }).getByRole('button', { name: 'Открыть' }).click();
   await openContent(page);
   await expect(page.getByRole('table', { name: 'Содержание дисциплины' })).toBeVisible();
   await expect(page.getByRole('table', { name: 'Содержание дисциплины' })).toContainText('Тема 1 уточнена');

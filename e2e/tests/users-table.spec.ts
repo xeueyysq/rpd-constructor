@@ -1,9 +1,10 @@
 import { expect, test } from '@playwright/test';
-import { filterColumn, signIn } from './helpers';
+import { filterColumn, showAllRows, signIn } from './helpers';
 
 async function openUsers(page: import('@playwright/test').Page) {
   await signIn(page, 'admin');
   await page.getByText('Пользователи', { exact: true }).click();
+  await showAllRows(page);
   await expect(page.getByRole('row').filter({ hasText: 'teacher2' })).toBeVisible();
 }
 

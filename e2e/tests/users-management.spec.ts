@@ -1,5 +1,5 @@
 import { expect, test, type APIRequestContext, type Page } from '@playwright/test';
-import { apiUrl, disciplines, password, signIn, signInWithCredentials } from './helpers';
+import { apiUrl, disciplines, password, showAllRows, signIn, signInWithCredentials } from './helpers';
 
 function uniqueLogin() {
   return `u${Date.now().toString(36)}${Math.random().toString(36).slice(2, 8)}`;
@@ -13,6 +13,7 @@ async function openUsers(page: Page) {
   await signIn(page, 'admin');
   await page.getByText('Пользователи', { exact: true }).click();
   await expect(page.getByText('Управление пользователями', { exact: true })).toBeVisible();
+  await showAllRows(page);
 }
 
 async function adminToken(request: APIRequestContext) {

@@ -1,5 +1,7 @@
 import { expect, test, type APIRequestContext } from '@playwright/test';
-import { apiUrl, password } from './helpers';
+import { apiUrl, password, signIn } from './helpers';
+
+test.describe.configure({ mode: 'serial' });
 
 async function tokenFor(request: APIRequestContext, userName: string) {
   const response = await request.post(`${apiUrl}/auth/sign-in`, {
@@ -9,7 +11,8 @@ async function tokenFor(request: APIRequestContext, userName: string) {
   return (await response.json()).accessToken as string;
 }
 
-test('часы плана защищены токеном и ролью, содержание доступно преподавателю', async ({ request }) => {
+test('часы плана защищены токеном и ролью, содержание доступно преподавателю', async ({ page, request }) => {
+  await signIn(page, 'teacher2');
   const anonymous = await request.put(`${apiUrl}/api/update-json-value/103`, {
     data: { fieldToUpdate: 'content', value: {} },
   });
@@ -36,7 +39,8 @@ test('часы плана защищены токеном и ролью, сод�
   expect(content.status()).toBe(200);
 });
 
-test('РОП точечно меняет лекции, сохраняя объект 1С и неизвестные записи', async ({ request }) => {
+test('РОП точечно меняет лекции, сохраняя объект 1С и неизвестные записи', async ({ page, request }) => {
+  await signIn(page, 'rop');
   const headers = { Authorization: `Bearer ${await tokenFor(request, 'rop')}` };
   const response = await request.put(`${apiUrl}/api/rpd-profile-templates/104/study-load`, {
     headers,
