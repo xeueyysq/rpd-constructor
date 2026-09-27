@@ -5,3 +5,5 @@ export {
   useUpdateUser,
   useSetUsersActive,
 } from "./model/queries";
+export { useAssignableTeachers } from "./model/queries";
+export type { AssignableTeacher } from "./api/users";

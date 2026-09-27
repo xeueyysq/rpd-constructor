@@ -30,8 +30,7 @@ const ScopeDisciplinePage: FC<ScopeDisciplinePageProps> = ({
   const theme = useTheme();
   const { creditUnits, setCreditUnits, academicHours, setAcademicHours, save } =
     useScopeDisciplineForm();
-  const { fieldChanges, handleAcknowledge, isAcknowledging } =
-    useFieldChanges();
+  const { fieldChanges } = useFieldChanges();
 
   return (
     <Box>
@@ -40,18 +39,8 @@ const ScopeDisciplinePage: FC<ScopeDisciplinePageProps> = ({
         sx={{ pb: 2 }}
         templateField={TemplatePagesPath.DISCIPLINE_SCOPE}
       />
-      <FieldChangeNotice
-        fieldKey="zet"
-        changes={fieldChanges}
-        onAcknowledge={handleAcknowledge}
-        isAcknowledging={isAcknowledging}
-      />
-      <FieldChangeNotice
-        fieldKey="study_load"
-        changes={fieldChanges}
-        onAcknowledge={handleAcknowledge}
-        isAcknowledging={isAcknowledging}
-      />
+      <FieldChangeNotice fieldKey="zet" changes={fieldChanges} />
+      <FieldChangeNotice fieldKey="study_load" changes={fieldChanges} />
       <Tg sx={{ py: 2 }}>
         Объем дисциплины составляет
         <Tg

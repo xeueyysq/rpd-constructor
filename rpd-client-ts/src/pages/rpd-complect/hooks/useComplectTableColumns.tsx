@@ -1,201 +1,116 @@
-import {
-  getTemplateStatusLabel,
-  TemplateStatus,
-  TemplateStatusEnum,
-} from "@entities/template";
-import {
-  Autocomplete,
-  Box,
-  Button,
-  Divider,
-  ListItemButton,
-  TextField,
-  Tooltip,
-} from "@mui/material";
-import { getFieldLabel } from "@features/complect-sync";
+import { getTemplateStatusLabel, TemplateStatus } from "@entities/template";
+import { AssignTeachers } from "@features/assign-teachers";
+import { ExchangeChanges } from "@features/complect-sync";
+import { TemplateWorkflowActions } from "@features/template-workflow";
+import { Box, Button } from "@mui/material";
 import type { MRT_ColumnDef } from "material-react-table";
-import { forwardRef, useMemo } from "react";
-import { StatusWithDate } from "@shared/ui";
+import { useMemo } from "react";
 import TemplateMenu from "../ui/TemplateMenu";
-import type { DisciplineSyncStatus, TemplateData } from "../types";
-import type { SelectedTeachersMap } from "./useComplectData";
+import type { TemplateData } from "../types";
 
-const SYNC_STATUS_LABEL: Record<DisciplineSyncStatus, string> = {
-  new: "Новая",
-  updated: "Обновлено",
-  removed: "Удалена из плана",
-  unchanged: "",
-};
-
-function parseTeacherString(teacher: string | undefined): string[] {
-  if (!teacher?.trim()) return [];
-  return teacher
-    .split(",")
-    .map((t) => t.trim())
-    .filter(Boolean);
-}
-
-type UseComplectTableColumnsParams = {
-  selectedTeachers: SelectedTeachersMap;
-  onTeachersChange: (templateId: number, value: string[]) => void;
-  onCreateTemplate: (id: number, discipline: string) => Promise<void>;
+type Params = {
+  selectedTeacherIds: Record<number, number[]>;
+  onSelectedTeacherIdsChange: (exchangeId: number, ids: number[]) => void;
+  onCreateTemplate: (id: number) => Promise<void>;
   onFetchData: () => Promise<void>;
 };
 
 export function useComplectTableColumns({
-  selectedTeachers,
-  onTeachersChange,
+  selectedTeacherIds,
+  onSelectedTeacherIdsChange,
   onCreateTemplate,
   onFetchData,
-}: UseComplectTableColumnsParams): MRT_ColumnDef<TemplateData>[] {
+}: Params): MRT_ColumnDef<TemplateData>[] {
   return useMemo(
     () => [
+      { accessorKey: "discipline", header: "Дисциплина" },
+      { accessorKey: "semester", header: "Семестр", size: 100 },
       {
-        accessorKey: "discipline",
-        header: "Дисциплина",
-      },
-      {
-        accessorKey: "semester",
-        header: "Семестр",
-        size: 100,
-      },
-      {
-        accessorKey: "teacher",
-        header: "Преподаватель",
-        Cell: ({ row }) => {
-          const templateId = row.original.id;
-          const teachersList = row.original.teachers;
-          const ListboxComponent = useMemo(
-            () =>
-              forwardRef<HTMLUListElement, React.HTMLAttributes<HTMLElement>>(
-                function TeacherListbox(props, ref) {
-                  return (
-                    <ul {...props} ref={ref}>
-                      <li
-                        key="add-all"
-                        style={{ listStyle: "none", padding: 0 }}
-                      >
-                        <ListItemButton
-                          component="div"
-                          onMouseDown={(e) => e.preventDefault()}
-                          onClick={() =>
-                            onTeachersChange(templateId, [...teachersList])
-                          }
-                          sx={{ py: 1.25, px: 2 }}
-                        >
-                          Добавить всех
-                        </ListItemButton>
-                      </li>
-                      <li
-                        key="divider"
-                        style={{ listStyle: "none", padding: 0 }}
-                        aria-hidden
-                      >
-                        <Divider sx={{ my: 1 }} />
-                      </li>
-                      {props.children}
-                    </ul>
-                  );
-                }
-              ),
-            [templateId, teachersList, onTeachersChange]
-          );
-          return (
-            <Box sx={{ width: "100%" }}>
-              <Autocomplete
-                id={`select-${row.original.id}`}
-                multiple
-                value={
-                  selectedTeachers[row.original.id] ??
-                  parseTeacherString(row.original.teacher)
-                }
-                onChange={(_, value) =>
-                  onTeachersChange(row.original.id, value)
-                }
-                fullWidth
-                renderInput={(params) => (
-                  <TextField
-                    label="Преподаватель"
-                    variant="standard"
-                    {...params}
-                  />
-                )}
-                options={row.original.teachers}
-                slots={{ listbox: ListboxComponent }}
-              />
-            </Box>
-          );
-        },
+        id: "participants",
+        header: "Преподаватели",
+        accessorFn: (row) =>
+          row.participants.map((part) => part.fullname).join(", "),
+        Cell: ({ row }) => (
+          <AssignTeachers
+            templateId={row.original.id_profile_template}
+            status={row.original.status}
+            participants={row.original.participants}
+            hints={row.original.teacherHints}
+            canEditTeachers={row.original.canEditTeachers}
+            selectedIds={selectedTeacherIds[row.original.id] ?? []}
+            onSelectedIdsChange={(ids) =>
+              onSelectedTeacherIdsChange(row.original.id, ids)
+            }
+            onRefresh={onFetchData}
+          />
+        ),
       },
       {
         id: "status",
         header: "Статус",
-        accessorFn: (row) =>
-          [
-            getTemplateStatusLabel(row.status?.status),
-            SYNC_STATUS_LABEL[row.syncStatus ?? "unchanged"],
-          ]
-            .filter(Boolean)
-            .join(" "),
-        Cell: ({ row }) => {
-          const syncStatus = row.original.syncStatus ?? "unchanged";
-          const summary = row.original.lastChangeSummary ?? [];
-          const tooltip =
-            summary.length > 0
-              ? summary.map((field) => getFieldLabel(field)).join(", ")
-              : SYNC_STATUS_LABEL[syncStatus];
-
-          return (
-            <Box>
-              <TemplateStatus status={row.original.status} />
-              {syncStatus !== "unchanged" ? (
-                <Tooltip title={tooltip}>
-                  <Box sx={{ mt: 1 }}>
-                    <StatusWithDate
-                      label={SYNC_STATUS_LABEL[syncStatus]}
-                      date={row.original.syncChangedAt}
-                    />
-                  </Box>
-                </Tooltip>
-              ) : null}
-            </Box>
-          );
-        },
+        accessorFn: (row) => getTemplateStatusLabel(row.status),
+        Cell: ({ row }) => (
+          <TemplateStatus
+            status={row.original.status}
+            progress={
+              row.original.id_profile_template
+                ? row.original.progress
+                : undefined
+            }
+            participants={row.original.participants}
+          />
+        ),
       },
       {
-        accessorKey: "choise",
-        header: "Действие",
-        size: 100,
+        id: "sync",
+        header: "1С",
         enableSorting: false,
         enableColumnFilter: false,
-        enableGlobalFilter: false,
+        Cell: ({ row }) => (
+          <ExchangeChanges
+            exchangeId={row.original.id}
+            pendingChanges={row.original.pendingChanges}
+            onAcknowledged={onFetchData}
+          />
+        ),
+      },
+      {
+        id: "actions",
+        header: "Действия",
+        enableSorting: false,
+        enableColumnFilter: false,
         Cell: ({ row }) => (
           <Box>
-            {row.original.status?.status === TemplateStatusEnum.UNLOADED ? (
+            {row.original.id_profile_template ? (
+              <>
+                <TemplateMenu
+                  id={row.original.id_profile_template}
+                  publicId={row.original.profile_template_public_id}
+                  fetchData={onFetchData}
+                />
+                <TemplateWorkflowActions
+                  templateId={row.original.id_profile_template}
+                  allowedActions={row.original.allowedActions}
+                  onChanged={onFetchData}
+                />
+              </>
+            ) : (
               <Button
                 variant="contained"
-                onClick={() =>
-                  onCreateTemplate(row.original.id, row.original.discipline)
-                }
+                onClick={() => void onCreateTemplate(row.original.id)}
               >
                 Создать
               </Button>
-            ) : (
-              <TemplateMenu
-                id={row.original.id_profile_template}
-                publicId={row.original.profile_template_public_id}
-                teacher={(
-                  selectedTeachers[row.original.id] ??
-                  parseTeacherString(row.original.teacher)
-                ).join(", ")}
-                status={row.original.status?.status ?? ""}
-                fetchData={onFetchData}
-              />
             )}
           </Box>
         ),
       },
     ],
-    [selectedTeachers, onTeachersChange, onCreateTemplate, onFetchData]
+    [
+      selectedTeacherIds,
+      onSelectedTeacherIdsChange,
+      onCreateTemplate,
+      onFetchData,
+    ]
   );
 }

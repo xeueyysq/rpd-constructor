@@ -17,23 +17,21 @@ export function RpdComplectPage() {
   const { id: complectId } = useParams();
   const navigate = useNavigate();
   const [openBuildFunds, setOpenBuildFunds] = useState(false);
-
   const {
     complectMeta,
-    selectedTeachers,
+    selectedTeacherIds,
+    setSelectedTeacherIds,
     filteredData,
     fetchComplectData,
-    handleTeachersChange,
     createTemplateData,
   } = useComplectData(complectId);
-
   const columns = useComplectTableColumns({
-    selectedTeachers,
-    onTeachersChange: handleTeachersChange,
+    selectedTeacherIds,
+    onSelectedTeacherIdsChange: (id, ids) =>
+      setSelectedTeacherIds((previous) => ({ ...previous, [id]: ids })),
     onCreateTemplate: createTemplateData,
     onFetchData: fetchComplectData,
   });
-
   const table = useMaterialReactTable<TemplateData>({
     ...complectTableOptions,
     columns,
@@ -47,9 +45,7 @@ export function RpdComplectPage() {
       />
     ),
   });
-
   if (!complectMeta) return <Loader />;
-
   return (
     <Box>
       <PageTitle

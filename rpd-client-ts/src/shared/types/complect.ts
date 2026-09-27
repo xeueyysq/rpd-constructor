@@ -9,4 +9,5 @@ export type ComplectData = {
   year: number | string;
   lastSyncedAt?: string | null;
   hasPendingChanges?: boolean;
+  owner?: { userId: number; fullname: string }[];
 };

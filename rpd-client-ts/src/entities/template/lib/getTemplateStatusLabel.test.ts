@@ -3,7 +3,7 @@ import { getTemplateStatusLabel } from "./getTemplateStatusLabel";
 
 describe("getTemplateStatusLabel", () => {
   it("возвращает русскую метку известного статуса", () => {
-    expect(getTemplateStatusLabel("in_progress")).toBe("Взят в работу");
+    expect(getTemplateStatusLabel("in_progress")).toBe("В работе");
   });
 
   it("сохраняет неизвестный код", () => {

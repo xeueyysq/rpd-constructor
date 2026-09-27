@@ -1,22 +1,26 @@
 import type { ComplectData } from "@shared/types/complect";
-
-export interface TemplateStatusObject {
-  date: string;
-  status: string;
-  user: string;
-}
+import type {
+  TemplateParticipant,
+  TemplateStatusCode,
+  WorkflowAction,
+} from "@entities/template";
+import type { TeacherHint } from "@features/assign-teachers";
 
 export type DisciplineSyncStatus = "new" | "updated" | "removed" | "unchanged";
 
 export interface TemplateData {
   id: number;
-  id_profile_template: number;
+  id_profile_template: number | null;
   profile_template_public_id?: string;
   discipline: string;
-  teachers: string[];
-  teacher: string;
   semester: number;
-  status: TemplateStatusObject;
+  status: TemplateStatusCode;
+  participants: TemplateParticipant[];
+  progress: { done: number; total: number };
+  allowedActions: WorkflowAction[];
+  canEditTeachers: boolean;
+  teacherHints: TeacherHint[];
+  pendingChanges: { count: number; lastAppliedAt: string | null };
   syncStatus?: DisciplineSyncStatus;
   syncChangedAt?: string | null;
   lastChangeSummary?: string[];
@@ -24,18 +28,4 @@ export interface TemplateData {
   removed_at?: string | null;
 }
 
-export type ComplectMeta = ComplectData & {
-  templates: TemplateData[];
-};
-
-export interface CreateTemplateDataParams {
-  id_1c: number;
-  complectId: string | undefined;
-  teachers: string[];
-  year: string | undefined;
-  discipline: string;
-  userName: string | undefined;
-}
-
-export type CreateTemplateResponse =
-  string | { result: string; missingTeachers?: string[] };
+export type ComplectMeta = ComplectData & { templates: TemplateData[] };

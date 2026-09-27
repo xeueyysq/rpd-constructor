@@ -29,3 +29,15 @@ export async function setUsersActive(
   });
   return data;
 }
+
+export interface AssignableTeacher {
+  id: number;
+  fullname: string;
+}
+
+export async function getAssignableTeachers(): Promise<AssignableTeacher[]> {
+  const { data } = await axiosBase.get<AssignableTeacher[]>(
+    "assignable-teachers"
+  );
+  return data;
+}

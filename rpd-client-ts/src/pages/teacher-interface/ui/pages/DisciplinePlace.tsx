@@ -15,8 +15,7 @@ type DisciplinePlaceProps = {
 
 const DisciplinePlace: FC<DisciplinePlaceProps> = ({ readOnly = false }) => {
   const data = useStore((state) => state.jsonData);
-  const { fieldChanges, handleAcknowledge, isAcknowledging } =
-    useFieldChanges();
+  const { fieldChanges } = useFieldChanges();
 
   const certificationFromControlLoad =
     (data.control_load && Object.keys(data.control_load || {})[0]) || "";
@@ -54,30 +53,10 @@ const DisciplinePlace: FC<DisciplinePlaceProps> = ({ readOnly = false }) => {
         sx={{ pb: 2 }}
         templateField={TemplatePagesPath.DISCIPLINE_PLACE}
       />
-      <FieldChangeNotice
-        fieldKey="semester"
-        changes={fieldChanges}
-        onAcknowledge={handleAcknowledge}
-        isAcknowledging={isAcknowledging}
-      />
-      <FieldChangeNotice
-        fieldKey="place"
-        changes={fieldChanges}
-        onAcknowledge={handleAcknowledge}
-        isAcknowledging={isAcknowledging}
-      />
-      <FieldChangeNotice
-        fieldKey="certification"
-        changes={fieldChanges}
-        onAcknowledge={handleAcknowledge}
-        isAcknowledging={isAcknowledging}
-      />
-      <FieldChangeNotice
-        fieldKey="control_load"
-        changes={fieldChanges}
-        onAcknowledge={handleAcknowledge}
-        isAcknowledging={isAcknowledging}
-      />
+      <FieldChangeNotice fieldKey="semester" changes={fieldChanges} />
+      <FieldChangeNotice fieldKey="place" changes={fieldChanges} />
+      <FieldChangeNotice fieldKey="certification" changes={fieldChanges} />
+      <FieldChangeNotice fieldKey="control_load" changes={fieldChanges} />
       {Object.keys(data).length ? (
         <Tg sx={{ py: 2 }}>
           Дисциплина

@@ -1,5 +1,11 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { createUser, getUsers, setUsersActive, updateUser } from "../api/users";
+import {
+  createUser,
+  getUsers,
+  getAssignableTeachers,
+  setUsersActive,
+  updateUser,
+} from "../api/users";
 import type { UserPayload } from "./types";
 
 const usersQueryKey = ["users"] as const;
@@ -31,5 +37,12 @@ export function useSetUsersActive() {
     mutationFn: ({ ids, isActive }: { ids: number[]; isActive: boolean }) =>
       setUsersActive(ids, isActive),
     onSuccess: () => queryClient.invalidateQueries({ queryKey: usersQueryKey }),
+  });
+}
+
+export function useAssignableTeachers() {
+  return useQuery({
+    queryKey: ["assignable-teachers"],
+    queryFn: getAssignableTeachers,
   });
 }

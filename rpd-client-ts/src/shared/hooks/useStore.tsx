@@ -17,28 +17,6 @@ export interface SelectedTemplateData {
   year: string | undefined;
 }
 
-export interface SelectTeacherParams {
-  id: number;
-  teacher: string;
-  userName: string | undefined;
-}
-
-interface CreateByCriteria {
-  faculty?: string | undefined;
-  year?: string | undefined;
-}
-
-interface TabState {
-  isEnabled: boolean;
-}
-
-interface TeacherTemplate {
-  id: number | undefined;
-  public_id?: string;
-  text: string | undefined;
-  year: number | undefined;
-}
-
 export type PlannedResultsFilters = {
   profile: string;
   formEducation: string;
@@ -48,13 +26,9 @@ export type PlannedResultsFilters = {
 interface StoreState {
   jsonData: JsonData;
   selectedTemplateData: SelectedTemplateData;
-  createByCriteria: CreateByCriteria;
   complectId: number | undefined;
   plannedResultsFilters: PlannedResultsFilters;
-  tabs: Record<string, TabState>;
   managerPage: string;
-  templatePage: string;
-  teacherTemplates: TeacherTemplate[];
   isDrawerOpen: boolean;
   setJsonData: (data: JsonData) => void;
   updateJsonData: (key: string, value: JsonValue) => void;
@@ -67,17 +41,9 @@ interface StoreState {
     formEducation: string | undefined,
     year: string | undefined
   ) => void;
-  setCreateByCriteria: (
-    faculty?: string | undefined,
-    year?: string | undefined
-  ) => void;
   setComplectId: (id: number) => void;
   setPlannedResultsFilters: (filters: PlannedResultsFilters) => void;
-  setTabState: (tabId: string, isEnabled: boolean) => void;
-  deInitializeTabs: () => void;
   setManagerPage: (page: string) => void;
-  setTemplatePage: (templatePage: string) => void;
-  setTeacherTemplates: (templates: TeacherTemplate[]) => void;
   toggleDrawer: () => void;
 }
 
@@ -93,16 +59,6 @@ export const useStore = create<StoreState>()(
       formEducation: undefined,
       year: undefined,
     },
-    createByCriteria: {
-      faculty: undefined,
-      year: undefined,
-    },
-    tabs: {
-      selectData: { isEnabled: true },
-      workingType: { isEnabled: false },
-      createTemplateFromExchange: { isEnabled: false },
-      changeTemplate: { isEnabled: false },
-    },
     managerPage: "selectData",
     complectId: undefined,
     plannedResultsFilters: {
@@ -110,8 +66,6 @@ export const useStore = create<StoreState>()(
       formEducation: "",
       year: null,
     },
-    templatePage: "coverPage",
-    teacherTemplates: [],
     isDrawerOpen: true,
     setJsonData: (data) => {
       set((state) => {
@@ -186,12 +140,6 @@ export const useStore = create<StoreState>()(
         }
       });
     },
-    setCreateByCriteria: (faculty, year) => {
-      set((state) => {
-        if (faculty) state.createByCriteria.faculty = faculty;
-        if (year) state.createByCriteria.year = year;
-      });
-    },
     setComplectId: (id) => {
       set((state) => {
         state.complectId = id;
@@ -202,33 +150,9 @@ export const useStore = create<StoreState>()(
         state.plannedResultsFilters = filters;
       });
     },
-    setTabState: (tabId, isEnabled) => {
-      set((state) => {
-        if (state.tabs[tabId]) {
-          state.tabs[tabId].isEnabled = isEnabled;
-        }
-      });
-    },
-    deInitializeTabs: () => {
-      set((state) => {
-        state.tabs.workingType.isEnabled = false;
-        state.tabs.createTemplateFromExchange.isEnabled = false;
-        state.tabs.changeTemplate.isEnabled = false;
-      });
-    },
     setManagerPage: (page) => {
       set((state) => {
         state.managerPage = page;
-      });
-    },
-    setTemplatePage: (templatePage) => {
-      set((state) => {
-        state.templatePage = templatePage;
-      });
-    },
-    setTeacherTemplates: (templates) => {
-      set((state) => {
-        state.teacherTemplates = templates;
       });
     },
     toggleDrawer: () => {

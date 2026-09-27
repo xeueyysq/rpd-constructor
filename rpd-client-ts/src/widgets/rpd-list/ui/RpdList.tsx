@@ -14,7 +14,8 @@ import {
   ListItemText,
   Typography,
 } from "@mui/material";
-import { Can } from "@shared/ability";
+import { Can, UserRole } from "@shared/ability";
+import { useAuth } from "@entities/auth";
 import { RedirectPath, TemplatePagesPath } from "@shared/enums";
 import { useStore } from "@shared/hooks";
 import { FC } from "react";
@@ -33,6 +34,7 @@ type RpdListProps =
 export const RpdList: FC<RpdListProps> = (props) => {
   const { RpdListItems } = props;
   const { jsonData, complectId } = useStore((state) => state);
+  const userRole = useAuth((state) => state.userRole);
   const navigate = useNavigate();
   const { id: templateId, page } = useParams();
   return (
@@ -169,7 +171,9 @@ export const RpdList: FC<RpdListProps> = (props) => {
               <ListItemButton
                 onClick={() =>
                   navigate(
-                    `${RedirectPath.COMPLECTS}/${jsonData?.complect_uuid ?? complectId}`
+                    userRole === UserRole.TEACHER
+                      ? RedirectPath.TEMPLATES
+                      : `${RedirectPath.COMPLECTS}/${jsonData?.complect_uuid ?? complectId}`
                   )
                 }
                 sx={{ py: 1 }}

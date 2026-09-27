@@ -23,11 +23,13 @@ import {
 import { MRT_Localization_RU } from "material-react-table/locales/ru";
 import { FC, useCallback, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
+import { AssignOwnerDialog } from "./AssignOwnerDialog";
 
 export const RpdComplectsList: FC = () => {
   const { setComplectId } = useStore();
   const navigate = useNavigate();
   const [rowSelection, setRowSelection] = useState<Record<string, boolean>>({});
+  const [selectedOwnerId, setSelectedOwnerId] = useState<number | null>(null);
   const userRole = useAuth.getState().userRole;
   const { complects, isLoading } = useRpdComplectsQuery();
 
@@ -63,6 +65,31 @@ export const RpdComplectsList: FC = () => {
   const generalColumns = useMemo<MRT_ColumnDef<ComplectData>[]>(
     () => [
       ...(userRole === UserRole.ADMIN ? adminColumns : []),
+      ...(userRole === UserRole.ADMIN
+        ? [
+            {
+              id: "owner",
+              header: "Владелец",
+              accessorFn: (row: ComplectData) =>
+                row.owner?.map((owner) => owner.fullname).join(", ") ?? "",
+              Cell: ({ row }: { row: { original: ComplectData } }) => (
+                <Box>
+                  <Box>
+                    {row.original.owner
+                      ?.map((owner) => owner.fullname)
+                      .join(", ") || "Не назначен"}
+                  </Box>
+                  <Button
+                    size="small"
+                    onClick={() => setSelectedOwnerId(row.original.id)}
+                  >
+                    Назначить РОП
+                  </Button>
+                </Box>
+              ),
+            } as MRT_ColumnDef<ComplectData>,
+          ]
+        : []),
       {
         accessorKey: "profile",
         header: "Профиль",
@@ -133,7 +160,7 @@ export const RpdComplectsList: FC = () => {
         ),
       },
     ],
-    [handleViewComplect, navigate]
+    [handleViewComplect, navigate, userRole]
   );
 
   const table = useMaterialReactTable<ComplectData>({
@@ -195,6 +222,12 @@ export const RpdComplectsList: FC = () => {
       <Box sx={{ pt: 2 }}>
         <MaterialReactTable table={table} />
       </Box>
+      {selectedOwnerId !== null ? (
+        <AssignOwnerDialog
+          complectId={selectedOwnerId}
+          onClose={() => setSelectedOwnerId(null)}
+        />
+      ) : null}
     </Box>
   );
 };
