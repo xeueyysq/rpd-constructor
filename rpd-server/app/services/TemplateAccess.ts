@@ -11,6 +11,11 @@ export default class TemplateAccess {
     return actor;
   }
 
+  static async assertActive(db: Database, actor: UserClaims): Promise<void> {
+    const { rows } = await db.query<{ active: boolean }>("SELECT EXISTS(SELECT 1 FROM users WHERE id=$1 AND is_active) AS active", [actor.id]);
+    if (!rows[0]?.active) throw new Forbidden("Пользователь неактивен");
+  }
+
   static async assertComplect(db: Database, actor: UserClaims, complectId: number, mode: "manage" = "manage"): Promise<void> {
     void mode;
     const { rows } = await db.query<{ exists: boolean; owner: boolean; active: boolean }>(`

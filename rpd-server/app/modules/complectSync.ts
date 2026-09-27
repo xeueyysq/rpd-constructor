@@ -5,6 +5,9 @@ import { pool } from "../../config/db.ts";
 import { fetchUpLink } from "./1cExchange.ts";
 import { normalizeDisciplineFrom1c } from "./normalizeDisciplineFrom1c.ts";
 import { stableSerialize } from "./specProfilesMapping.ts";
+import TemplateAccess from "../services/TemplateAccess.ts";
+import type { UserClaims } from "../types/express.d.ts";
+import { NotFound, Unprocessable } from "../utils/Errors.ts";
 
 const SYNC_FIELDS = [
   "discipline",
@@ -238,11 +241,7 @@ const preview1cSync = async (complectId: unknown) => {
     [String(complectId)]
   );
   const complectMeta = complectRows[0];
-  if (!complectMeta) {
-    const error = new Error("Комплект не найден") as Error & { statusCode?: number };
-    error.statusCode = 404;
-    throw error;
-  }
+  if (!complectMeta) throw new NotFound("Комплект не найден");
 
   const incomingRaw = await fetchUpLink(buildComplectApiData(complectMeta));
   const incoming = incomingFrom1cList(incomingRaw);
@@ -369,7 +368,9 @@ const syncTemplateFields = async (
   );
 };
 
-const applySync = async ({ complectId, selections, userId }: { complectId: unknown; selections?: unknown; userId?: number }) => {
+const hasSyncSelections = (selections: unknown): selections is Selection[] => Array.isArray(selections) && selections.length > 0;
+
+const applySync = async ({ complectId, selections, actor }: { complectId: unknown; selections?: unknown; actor: UserClaims }) => {
   const { rows: complectRows } = await pool.query<{ id: number }>(
     `
       SELECT id
@@ -380,15 +381,18 @@ const applySync = async ({ complectId, selections, userId }: { complectId: unkno
     [String(complectId)]
   );
   const numericComplectId = complectRows[0]?.id;
-  if (!numericComplectId) {
-    const error = new Error("Комплект не найден") as Error & { statusCode?: number };
-    error.statusCode = 404;
-    throw error;
+  if (!numericComplectId) throw new NotFound("Комплект не найден");
+  if (selections !== undefined && !Array.isArray(selections)) throw new Unprocessable("Некорректный список изменений");
+  if (!hasSyncSelections(selections)) {
+    await TemplateAccess.assertComplect(pool, actor, numericComplectId);
+    return { complectId: numericComplectId, syncLogId: null };
   }
 
   const client = await pool.connect();
   try {
     await client.query("BEGIN");
+    await client.query("SELECT id FROM rpd_complects WHERE id=$1 FOR UPDATE", [numericComplectId]);
+    await TemplateAccess.assertComplect(client, actor, numericComplectId);
 
     const { rows: syncLogRows } = await client.query<{ id: number }>(
       `
@@ -396,7 +400,7 @@ const applySync = async ({ complectId, selections, userId }: { complectId: unkno
         VALUES ($1, $2, $3)
         RETURNING id
       `,
-      [numericComplectId, userId ?? null, "1c"]
+      [numericComplectId, actor.id, "1c"]
     );
     const syncLogId = syncLogRows[0].id;
 
@@ -701,6 +705,7 @@ export {
   diffDisciplines,
   preview1cSync,
   applySync,
+  hasSyncSelections,
   getUnacknowledgedFieldChanges,
   acknowledgeFieldChanges,
   deriveCertification,

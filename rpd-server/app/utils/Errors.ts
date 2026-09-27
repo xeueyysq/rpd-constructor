@@ -52,7 +52,10 @@ function errorStatusCode(error: unknown): number | undefined {
 class ErrorUtils {
   static catchError(res: Response, error: unknown) {
     console.log(error);
-    const status = error && typeof error === "object" && "status" in error ? error.status as number : undefined;
+    const status = error && typeof error === "object"
+      ? "status" in error && typeof error.status === "number" ? error.status
+        : "statusCode" in error && typeof error.statusCode === "number" ? error.statusCode : undefined
+      : undefined;
     return res.status(status || 500).json(error);
   }
 }

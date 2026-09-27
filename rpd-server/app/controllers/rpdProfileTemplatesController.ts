@@ -3,9 +3,11 @@ import { errorMessage } from "../utils/Errors.ts";
 import type { Pool } from "pg";
 import type { Request, Response } from "express";
 import { getUnacknowledgedFieldChanges } from "../modules/complectSync.ts";
-import { getStudyPlanHours } from "../modules/disciplineScope.ts";
+import { deriveCertification, getStudyPlanHours } from "../modules/disciplineScope.ts";
 import { isEditableTemplateField } from "../validators/RpdProfileTemplates.ts";
 import RpdProfileTemplates from "../models/rpd_profile_templates.ts";
+import TemplateAccess from "../services/TemplateAccess.ts";
+import { Unprocessable } from "../utils/Errors.ts";
 import {
   AlignmentType,
   BorderStyle,
@@ -266,7 +268,7 @@ class RpdProfileTemplatesController {
         return res.status(404).json({ message: "Шаблон не найден" });
       }
       const fieldChanges = await getUnacknowledgedFieldChanges(value.id);
-      res.json({ ...value, fieldChanges, study_plan_hours: getStudyPlanHours(value.study_load, value.control_load) });
+      res.json({ ...value, fieldChanges, study_plan_hours: getStudyPlanHours(value.study_load, value.control_load), derived_certification: deriveCertification(value.study_load, value.control_load) });
     } catch (err) {
       res.status(500).json({ message: errorMessage(err) });
     }
@@ -404,23 +406,10 @@ class RpdProfileTemplatesController {
   }
 
   async getChangeableValues(req: Request<ParamsDictionary, unknown, Record<string, unknown>>, res: Response) {
-    try {
       const { ids, rowName } = req.query;
-      console.log(ids, rowName);
-
-      if (!ids || !rowName) {
-        return res.status(400).json({
-          message: "Нет необходимых параметров",
-        });
-      }
-
-      const result = await this.model.getChangeableValues(ids, rowName);
-
+      if (!ids || !rowName) throw new Unprocessable("Укажите ids и rowName");
+      const result = await this.model.getChangeableValues(ids, rowName, TemplateAccess.actor(req.user));
       res.json(result);
-    } catch (error) {
-      console.error(error);
-      res.status(500).json({ message: errorMessage(error) });
-    }
   }
 
   async generateAssessmentFundsDocx(req: Request<ParamsDictionary, unknown, Record<string, unknown>>, res: Response) {

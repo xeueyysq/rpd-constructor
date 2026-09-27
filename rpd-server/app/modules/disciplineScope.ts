@@ -61,6 +61,17 @@ function normalizeStudyLoad(studyLoad: unknown) {
     .filter(({ name, id }) => name || id);
 }
 
+function deriveCertification(studyLoad: unknown, controlLoad: unknown): string | null {
+  for (const entry of entriesOf(studyLoad)) {
+    const name = entry.name.toLowerCase();
+    if (name.includes("экзам")) return "Экзамен";
+    if (name.includes("зач") && name.includes("оцен")) return "Зачет с оценкой";
+    if (name.includes("зач")) return "Зачет";
+  }
+  if (isRecord(controlLoad)) return Object.keys(controlLoad)[0] ?? null;
+  return null;
+}
+
 function getStudyPlanHours(studyLoad: unknown, controlLoad: unknown) {
   const sums = { lectures: 0, seminars: 0, control: 0, independent_work: 0 };
   const totals: number[] = [];
@@ -168,5 +179,5 @@ function resolveZetFromStudyLoad(studyLoad: unknown, fallbackZets: unknown) {
   return Number.isFinite(fallback) ? fallback : null;
 }
 
-export { ZET_HOURS_DIVISOR, parseHours, normalizeStudyLoad, getStudyPlanHours, patchStudyLoad,
+export { ZET_HOURS_DIVISOR, parseHours, normalizeStudyLoad, deriveCertification, getStudyPlanHours, patchStudyLoad,
   getContentRowHours, sumContentHours, extractTotalAcademicHours, computeZetFromHours, resolveZetFromStudyLoad };

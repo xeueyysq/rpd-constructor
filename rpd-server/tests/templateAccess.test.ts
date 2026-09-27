@@ -22,3 +22,12 @@ test("чужой и деактивированный пользователь н
   await assert.rejects(TemplateAccess.assertTemplate(database({ exists: true, owner: false, participant: true, active: false }), actor(USER_ROLES.TEACHER), 10, "read"), { status: 403 });
   await assert.rejects(TemplateAccess.assertTemplate(database({ exists: false, owner: false, participant: false, active: true }), actor(USER_ROLES.ADMIN), 10, "read"), { status: 404 });
 });
+
+test("управление комплектом: admin и ROP-владелец", async () => {
+  const complectDb = (owner: boolean, active = true) => ({ query: async () => ({ rows: [{ exists: true, owner, active }] }) }) as unknown as Pool;
+  await TemplateAccess.assertComplect(complectDb(false), actor(USER_ROLES.ADMIN), 2);
+  await TemplateAccess.assertComplect(complectDb(true), actor(USER_ROLES.ROP), 2);
+  await assert.rejects(TemplateAccess.assertComplect(complectDb(false), actor(USER_ROLES.ROP), 2), { status: 403 });
+  await assert.rejects(TemplateAccess.assertComplect(complectDb(true), actor(USER_ROLES.TEACHER), 2), { status: 403 });
+  await assert.rejects(TemplateAccess.assertComplect(complectDb(true, false), actor(USER_ROLES.ADMIN), 2), { status: 403 });
+});

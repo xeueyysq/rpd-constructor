@@ -1,6 +1,7 @@
 import type { RpdComplectRow } from "../types/db.ts";
 import type { Pool } from "pg";
 import { exchange1C } from "../modules/1cExchange.ts";
+import type { UserClaims } from "../types/express.d.ts";
 
 export type ComplectCriteria = { faculty: string; year: number; formEducation: string; levelEducation: string; profile: string; directionOfStudy: string };
 type ComplectListRow = Pick<RpdComplectRow, "id" | "uuid" | "faculty" | "year" | "profile"> & { formEducation: string | null; levelEducation: string | null; directionOfStudy: string | null; lastSyncedAt: Date | null; hasPendingChanges: boolean };
@@ -12,19 +13,19 @@ class RpdComplects {
   }
 
   async findRpdComplect(data: ComplectCriteria, userId: number | undefined) {
-    try {
       const result = await this.pool.query<{ id: number }>(
         `
                 SELECT rc.id 
                 FROM rpd_complects rc
-                INNER JOIN user_complect uc ON uc.complect_id = rc.id
+                LEFT JOIN user_complect uc ON uc.complect_id = rc.id
                 WHERE rc.faculty = $1
                 AND rc.year = $2
                 AND rc.education_form = $3
                 AND rc.education_level = $4
                 AND rc.profile = $5
                 AND rc.direction = $6
-                AND uc.user_id = $7
+                AND ($7::int IS NULL OR uc.user_id = $7)
+                LIMIT 1
             `,
         [
           data.faculty,
@@ -39,10 +40,6 @@ class RpdComplects {
       const resultId = result.rows[0];
       if (!resultId) return "NotFound";
       return resultId;
-    } catch (error) {
-      console.log(error);
-      throw new Error(String(error), { cause: error });
-    }
   }
 
   async findRpdComplectMeta(complect_id: unknown) {
@@ -82,7 +79,7 @@ class RpdComplects {
     }
   }
 
-  async createRpdComplect({ data, userId }: { data: { faculty: string; year: number; formEducation: string; levelEducation: string; profile: string; directionOfStudy: string }; userId: number | undefined }) {
+  async createRpdComplect({ data, actor }: { data: { faculty: string; year: number; formEducation: string; levelEducation: string; profile: string; directionOfStudy: string }; actor: UserClaims }) {
     try {
       const apiData = {
         faculty: data.faculty,
@@ -92,7 +89,7 @@ class RpdComplects {
         profile: data.profile,
         direction: data.directionOfStudy,
       };
-      const RpdComplectId = await exchange1C(apiData, { userId });
+      const RpdComplectId = await exchange1C(apiData, { actor });
       return RpdComplectId;
     } catch (error) {
       console.error(error);
@@ -112,7 +109,9 @@ class RpdComplects {
                    profile,
                    direction as "directionOfStudy",
                    last_synced_at as "lastSyncedAt",
-                   has_pending_changes as "hasPendingChanges"
+                   has_pending_changes as "hasPendingChanges",
+                   COALESCE((SELECT jsonb_agg(jsonb_build_object('userId', u.id, 'fullname', trim(concat_ws(' ',u.fullname->>'surname',u.fullname->>'name',u.fullname->>'patronymic'))) ORDER BY u.id)
+                     FROM user_complect uc JOIN users u ON u.id=uc.user_id WHERE uc.complect_id=rpd_complects.id), '[]'::jsonb) AS owner
             FROM rpd_complects
             ORDER BY id DESC
         `);

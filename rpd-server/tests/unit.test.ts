@@ -12,6 +12,13 @@ import * as spec from "../app/modules/specProfilesMapping.ts";
 import { normalizeDisciplineFrom1c } from "../app/modules/normalizeDisciplineFrom1c.ts";
 
 describe("Пересчёт часов и ЗЕТ (disciplineScope)", () => {
+  test("выводит форму аттестации из меток и затем из контроля", () => {
+    assert.equal(scope.deriveCertification([{ name: "Экзамен", id: "36" }], { "Зачет": 1 }), "Экзамен");
+    assert.equal(scope.deriveCertification([{ name: "Зачет с оценкой" }], {}), "Зачет с оценкой");
+    assert.equal(scope.deriveCertification({ "Зачет": 4 }, {}), "Зачет");
+    assert.equal(scope.deriveCertification([], { "Экзамен": 1 }), "Экзамен");
+    assert.equal(scope.deriveCertification([], {}), null);
+  });
   test("извлекает суммарную учебную нагрузку из учебного плана", () => {
     assert.equal(scope.extractTotalAcademicHours({ "Лекции": 30, "Практика": 20, "Всего": 50 }), 50);
   });
@@ -37,6 +44,14 @@ describe("Определение части учебного плана (discipl
 });
 
 describe("Сравнение данных при синхронизации с 1С (complectSync)", () => {
+  test("пустой выбор не запускает применение; список полей не включает workflow", () => {
+    assert.equal(sync.hasSyncSelections([]), false);
+    assert.equal(sync.hasSyncSelections([{ action: "update" }]), true);
+    assert.equal(sync.SYNC_FIELDS.includes("current_status"), false);
+    assert.equal(sync.SYNC_FIELDS.includes("teacher_templates"), false);
+    assert.equal(sync.TEMPLATE_SYNC_FIELDS.has("current_status"), false);
+    assert.equal(sync.TEMPLATE_SYNC_FIELDS.has("teacher_templates"), false);
+  });
   test("формирует форму аттестации по нагрузке контроля", () => {
     assert.equal(sync.deriveCertification({ "Экзамен": "да" }), "Экзамен");
     assert.equal(sync.deriveCertification({}), null);

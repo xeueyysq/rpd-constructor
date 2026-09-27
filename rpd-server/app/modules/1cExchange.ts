@@ -5,6 +5,8 @@ import { insertUnloadedStatus } from "./templateStatusHistory.ts";
 import { normalizeDisciplineFrom1c } from "./normalizeDisciplineFrom1c.ts";
 import { mapApiDataFor1c, hashPayload, loadReferenceTree } from "./specProfilesMapping.ts";
 import { merge1cIntoReferenceTree } from "./specProfilesTransformer.ts";
+import type { UserClaims } from "../types/express.d.ts";
+import TemplateAccess from "../services/TemplateAccess.ts";
 
 const apiUrl = "https://1c-api.uni-dubna.ru/v1/api/persons/reports";
 const CACHE_ROW_ID = 1;
@@ -43,12 +45,12 @@ const requestWithSingleRetry = async <T>(requestFn: () => Promise<T>, requestNam
   }
 };
 
-async function exchange1C(apiData: ApiData, { userId }: { userId?: number } = {}) {
+async function exchange1C(apiData: ApiData, { actor }: { actor?: UserClaims } = {}) {
   try {
     const disciplines = await fetchUpLink(apiData);
     const RpdComplectId = await createRpdComplect(apiData);
-    if (userId) {
-      await insertUserComplectId(userId, RpdComplectId);
+    if (actor) {
+      await insertUserComplectId(actor, RpdComplectId);
     }
     await processDisciplines(disciplines, RpdComplectId);
     return RpdComplectId;
@@ -218,14 +220,19 @@ const insertDiscipline = async (data: { RpdComplectId: number; division: string;
   return rows[0]?.id ?? null;
 };
 
-const insertUserComplectId = async (userId: number, complectId: number) => {
-  await pool.query(
-    `
-    INSERT INTO user_complect (user_id, complect_id)
-    VALUES ($1, $2)
-    `,
-    [userId, complectId]
-  );
+const insertUserComplectId = async (actor: UserClaims, complectId: number) => {
+  const client = await pool.connect();
+  try {
+    await client.query("BEGIN");
+    await client.query("SELECT id FROM rpd_complects WHERE id=$1 FOR UPDATE", [complectId]);
+    const { rows } = await client.query<{ user_id: number }>("SELECT user_id FROM user_complect WHERE complect_id=$1", [complectId]);
+    if (rows.length) await TemplateAccess.assertComplect(client, actor, complectId);
+    else await client.query("INSERT INTO user_complect(user_id,complect_id) VALUES($1,$2) ON CONFLICT(user_id,complect_id) DO NOTHING", [actor.id, complectId]);
+    await client.query("COMMIT");
+  } catch (error) {
+    await client.query("ROLLBACK");
+    throw error;
+  } finally { client.release(); }
 };
 
 const handle1cError = (error: unknown) => {

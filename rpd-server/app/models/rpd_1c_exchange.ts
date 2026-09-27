@@ -3,7 +3,7 @@ import type { Pool } from "pg";
 
 type ResultRow = { competence_id: number; competence: string; indicator_id: number; indicator: string; discipline: string | null };
 type ResultEntry = { competence: string; indicator: string; disciplines: string[] };
-type RpdTemplateListRow = Pick<Rpd1cExchangeRow, "id" | "discipline" | "teachers" | "semester" | "removed_at"> & { id_profile_template: number | null; profile_template_public_id: string | null; status: string | null; sync_status: string; last_change_summary: string[]; sync_changed_at: Date | null; has_profile_template: boolean };
+type RpdTemplateListRow = Pick<Rpd1cExchangeRow, "id" | "discipline" | "teachers" | "semester" | "removed_at"> & { id_profile_template: number | null; profile_template_public_id: string | null; status: string | null; sync_status: string; last_change_summary: string[]; sync_changed_at: Date | null; pending_count: number; has_profile_template: boolean };
 
 class Rpd1cExchange {
   pool: Pool;
@@ -209,6 +209,7 @@ class Rpd1cExchange {
         END AS sync_status,
         COALESCE(ch.change_fields, ARRAY[]::text[]) AS last_change_summary,
         ch.sync_changed_at,
+        ch.pending_count,
         (ts.id_profile_template IS NOT NULL) AS has_profile_template
         FROM rpd_1c_exchange r
         LEFT JOIN template_status ts ON r.id = ts.id_1c_template
@@ -219,6 +220,7 @@ class Rpd1cExchange {
             array_agg(DISTINCT tfc.field_key) FILTER (
               WHERE tfc.field_key NOT IN ('__new__', 'removed', 'teachers')
             ) AS change_fields,
+            COUNT(*)::int AS pending_count,
             MAX(tfc.applied_at) AS sync_changed_at
           FROM template_field_changes tfc
           WHERE tfc.id_1c_exchange = r.id
@@ -233,6 +235,7 @@ class Rpd1cExchange {
         ...row,
         syncStatus: row.sync_status,
         syncChangedAt: row.sync_changed_at ?? row.removed_at ?? null,
+        pendingChanges: { count: row.pending_count, lastAppliedAt: row.sync_changed_at },
         lastChangeSummary: row.last_change_summary ?? [],
         hasProfileTemplate: row.has_profile_template,
       }));

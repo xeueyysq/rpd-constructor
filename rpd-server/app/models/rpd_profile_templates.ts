@@ -3,6 +3,9 @@ import type { Pool } from "pg";
 import { patchStudyLoad } from "../modules/disciplineScope.ts";
 import { isEditableTemplateField } from "../validators/RpdProfileTemplates.ts";
 import { fullnameText } from "../modules/teacherNames.ts";
+import TemplateAccess from "../services/TemplateAccess.ts";
+import type { UserClaims } from "../types/express.d.ts";
+import { Forbidden, Unprocessable } from "../utils/Errors.ts";
 
 type AssessmentQuestionEntry = { id: string; text: string; correctAnswer?: string };
 type AssessmentCompetence = { openPool?: AssessmentQuestionEntry[]; closedPool?: AssessmentQuestionEntry[]; openQuestions?: unknown; closedQuestions?: unknown; selectedOpenIds?: string[]; selectedClosedIds?: string[] };
@@ -325,13 +328,20 @@ class RpdProfileTemplates {
     }
   }
 
-  async getChangeableValues(ids: unknown, rowName: unknown) {
-    try {
+  async getChangeableValues(ids: unknown, rowName: unknown, actor: UserClaims) {
+      if (!isEditableTemplateField(rowName)) throw new Unprocessable("Недопустимое поле шаблона");
+      await TemplateAccess.assertActive(this.pool, actor);
       const idList = Array.isArray(ids) ? ids : [ids];
-      const numericIds = [];
+      const numericIds: number[] = [];
       for (const id of idList) {
         const n = await this.resolveTemplateId(id);
-        if (n != null) numericIds.push(n);
+        if (n == null) continue;
+        try {
+          await TemplateAccess.assertTemplate(this.pool, actor, n, "read");
+          numericIds.push(n);
+        } catch (error) {
+          if (!(error instanceof Forbidden)) throw error;
+        }
       }
       if (numericIds.length === 0) return [];
       const queryResult = await this.pool.query<Pick<RpdProfileTemplateRow, "id" | "public_id"> & Record<string, unknown>>(
@@ -339,10 +349,6 @@ class RpdProfileTemplates {
         [numericIds]
       );
       return queryResult.rows;
-    } catch (error) {
-      console.error(error);
-      throw error;
-    }
   }
 
   async getAssessmentFundsDocumentData(complectId: unknown, competence: string) {
