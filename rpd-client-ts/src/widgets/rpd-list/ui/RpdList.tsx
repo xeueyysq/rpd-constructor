@@ -20,19 +20,12 @@ import { RedirectPath, TemplatePagesPath } from "@shared/enums";
 import { useStore } from "@shared/hooks";
 import { FC } from "react";
 import { useNavigate, useParams } from "react-router-dom";
-import { RpdListItem, RpdSelectionItem } from "../model/types.ts";
+import { RpdListItem } from "../model/types.ts";
 import RpdListItemComponent from "./RpdListItem.tsx";
 
-type RpdListProps =
-  | { RpdListItems: RpdListItem[]; setChoise?: never; selectedId?: never }
-  | {
-      RpdListItems: RpdSelectionItem[];
-      setChoise: (id: string) => void;
-      selectedId: string;
-    };
-
-export const RpdList: FC<RpdListProps> = (props) => {
-  const { RpdListItems } = props;
+export const RpdList: FC<{ RpdListItems: RpdListItem[] }> = ({
+  RpdListItems,
+}) => {
   const { jsonData, complectId } = useStore((state) => state);
   const userRole = useAuth((state) => state.userRole);
   const navigate = useNavigate();
@@ -116,83 +109,70 @@ export const RpdList: FC<RpdListProps> = (props) => {
         }}
       >
         <List dense disablePadding>
-          {RpdListItems.map((item) =>
-            props.setChoise ? (
-              <RpdListItemComponent
-                key={item.id}
-                item={item}
-                onSelect={props.setChoise}
-                selectedId={props.selectedId}
-              />
-            ) : "path" in item ? (
-              <RpdListItemComponent
-                key={item.id}
-                item={item}
-                templateId={templateId}
-                templatePage={page}
-              />
-            ) : null
-          )}
+          {RpdListItems.map((item) => (
+            <RpdListItemComponent
+              key={item.id}
+              item={item}
+              templateId={templateId}
+              templatePage={page}
+            />
+          ))}
         </List>
       </Box>
-      {!props.setChoise && (
-        <Box
-          sx={{
-            flexShrink: 0,
-            width: "100%",
-          }}
-        >
-          <Divider sx={{ bgcolor: "#ffffff", height: 0 }} />
-          <List dense>
-            <Can I="get" a="rop_interface">
-              <ListItem disableGutters disablePadding>
-                <ListItemButton
-                  onClick={() =>
-                    navigate(
-                      `${RedirectPath.TEMPLATES}/${templateId}/${TemplatePagesPath.TEST_PDF}`
-                    )
-                  }
-                  sx={{ py: 1 }}
-                >
-                  <ListItemIcon sx={{ pl: 2 }}>
-                    <DescriptionIcon sx={{ fontSize: "20px" }} />
-                  </ListItemIcon>
-                  <ListItemText
-                    primary={
-                      <Typography sx={{ fontSize: "14px" }}>
-                        Сформировать документ
-                      </Typography>
-                    }
-                  />
-                </ListItemButton>
-              </ListItem>
-            </Can>
+      <Box
+        sx={{
+          flexShrink: 0,
+          width: "100%",
+        }}
+      >
+        <Divider sx={{ bgcolor: "#ffffff", height: 0 }} />
+        <List dense>
+          <Can I="get" a="rop_interface">
             <ListItem disableGutters disablePadding>
               <ListItemButton
                 onClick={() =>
                   navigate(
-                    userRole === UserRole.TEACHER
-                      ? RedirectPath.TEMPLATES
-                      : `${RedirectPath.COMPLECTS}/${jsonData?.complect_uuid ?? complectId}`
+                    `${RedirectPath.TEMPLATES}/${templateId}/${TemplatePagesPath.TEST_PDF}`
                   )
                 }
                 sx={{ py: 1 }}
               >
                 <ListItemIcon sx={{ pl: 2 }}>
-                  <ArrowBackIcon sx={{ fontSize: "20px" }} />
+                  <DescriptionIcon sx={{ fontSize: "20px" }} />
                 </ListItemIcon>
                 <ListItemText
                   primary={
                     <Typography sx={{ fontSize: "14px" }}>
-                      Список РПД
+                      Сформировать документ
                     </Typography>
                   }
                 />
               </ListItemButton>
             </ListItem>
-          </List>
-        </Box>
-      )}
+          </Can>
+          <ListItem disableGutters disablePadding>
+            <ListItemButton
+              onClick={() =>
+                navigate(
+                  userRole === UserRole.TEACHER
+                    ? RedirectPath.TEMPLATES
+                    : `${RedirectPath.COMPLECTS}/${jsonData?.complect_uuid ?? complectId}`
+                )
+              }
+              sx={{ py: 1 }}
+            >
+              <ListItemIcon sx={{ pl: 2 }}>
+                <ArrowBackIcon sx={{ fontSize: "20px" }} />
+              </ListItemIcon>
+              <ListItemText
+                primary={
+                  <Typography sx={{ fontSize: "14px" }}>Список РПД</Typography>
+                }
+              />
+            </ListItemButton>
+          </ListItem>
+        </List>
+      </Box>
     </Box>
   );
 };

@@ -3,8 +3,3 @@ export interface RpdListItem {
   text: string;
   path: string;
 }
-
-export interface RpdSelectionItem {
-  id: string;
-  text: string;
-}

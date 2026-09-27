@@ -17,19 +17,6 @@ class RpdChangeableValues {
       throw err;
     }
   }
-
-  async updateChangeableValue(id: unknown, value: unknown) {
-    try {
-      const queryResult = await this.pool.query<{ id: number; title: string | null; value: string | null }>(
-        "UPDATE rpd_changeable_values SET value = $1 WHERE id = $2 RETURNING *",
-        [value, id]
-      );
-      return queryResult.rows[0];
-    } catch (err) {
-      console.log(err);
-      throw err;
-    }
-  }
 }
 
 export default RpdChangeableValues;

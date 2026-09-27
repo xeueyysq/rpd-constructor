@@ -28,23 +28,6 @@ router.post("/templates/:id/workflow", TokenService.checkAccess, validateWorkflo
 router.get("/my-templates", TokenService.checkAccess, TemplateWorkflowController.myTemplates);
 router.get("/assignable-teachers", TokenService.checkAccess, requireRole(USER_ROLES.ADMIN, USER_ROLES.ROP), TemplateWorkflowController.assignableTeachers);
 
-import RpdChangeableValuesController from "../controllers/rpdChangeableValuesController.ts";
-const rpdChangeableValuesController = new RpdChangeableValuesController(pool);
-
-router.get(
-  "/rpd-changeable-values",
-  rpdChangeableValuesController.getChangeableValues.bind(
-    rpdChangeableValuesController
-  )
-);
-router.put(
-  "/rpd-changeable-values/:id",
-  TokenService.checkAccess,
-  rpdChangeableValuesController.updateChangeableValue.bind(
-    rpdChangeableValuesController
-  )
-);
-
 import RpdProfileTemplatesController from "../controllers/rpdProfileTemplatesController.ts";
 const rpdProfileTemplatesController = new RpdProfileTemplatesController(pool);
 
