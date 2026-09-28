@@ -21,6 +21,12 @@ class Conflict extends WebError {
   }
 }
 
+class BadGateway extends WebError {
+  constructor(error?: unknown) {
+    super(502, error);
+  }
+}
+
 class NotFound extends WebError {
   constructor(error?: unknown) {
     console.log(error);
@@ -67,6 +73,7 @@ export {
   NotFound, 
   Forbidden, 
   Conflict, 
+  BadGateway,
   Unauthorized, 
   Unprocessable
 };

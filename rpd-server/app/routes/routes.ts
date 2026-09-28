@@ -209,7 +209,7 @@ router.post(
 );
 
 import findBooks from "../modules/findBooks.ts";
-router.post("/find-books", findBooks);
+router.post("/find-books", TokenService.checkAccess, requireRole(USER_ROLES.TEACHER, USER_ROLES.ROP, USER_ROLES.ADMIN), findBooks);
 
 import UsersController from "../controllers/usersController.ts";
 import UsersValidator from "../validators/Users.ts";

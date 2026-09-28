@@ -269,12 +269,12 @@ async function generateContentPage(id: unknown, { forWord = false } = {}) {
     : "";
 
   const textbookList = Array.isArray(jsonData.textbook)
-    ? jsonData.textbook.map((row: unknown) => `<li>${row || ""}</li>`).join("")
+    ? jsonData.textbook.map((row: unknown) => `<li>${escapeHtml(String(row || ""))}</li>`).join("")
     : "";
 
   const additionalTextbookList = Array.isArray(jsonData.additional_textbook)
     ? jsonData.additional_textbook
-        .map((row: unknown) => `<li>${row || ""}</li>`)
+        .map((row: unknown) => `<li>${escapeHtml(String(row || ""))}</li>`)
         .join("")
     : "";
 
