@@ -4,6 +4,15 @@ import { matchTeacherNames, splitNames } from "../../modules/teacherNames.ts";
 
 type StatusRow = { id: number; id_1c_template: number | null; id_profile_template: number | null; history: unknown; current_status: string | null };
 const statusCodes = new Set(["unloaded", "created", "on_teacher", "in_progress", "ready", "on_refinement"]);
+// Подписи статусов из клиента 1.x (templateStatusCodes.ts) → коды.
+const statusLabels: Record<string, string> = {
+  "Выгружен из 1С": "unloaded",
+  "Создан": "created",
+  "Отправлен преподавателю": "on_teacher",
+  "Взят в работу": "in_progress",
+  "Готов": "ready",
+  "Отправлен на доработку": "on_refinement",
+};
 
 function historyEvents(value: unknown, id: number): Record<string, unknown>[] {
   if (value == null) return [];
@@ -24,6 +33,16 @@ async function migrateTeacherWorkflow(client: MigrationClient) {
     await client.query("DELETE FROM teacher_templates dup USING teacher_templates keep WHERE dup.user_id=keep.user_id AND dup.template_id=keep.template_id AND dup.id>keep.id");
     await client.query("CREATE UNIQUE INDEX IF NOT EXISTS idx_teacher_templates_pair ON teacher_templates(user_id,template_id)");
     await client.query("ALTER TABLE template_status ADD COLUMN IF NOT EXISTS current_status TEXT");
+
+    // Клиент 1.x местами сохранял в историю подпись статуса вместо кода; переводим подписи в коды.
+    const { rowCount: labeledHistories } = await client.query(`UPDATE template_status ts SET history=(
+        SELECT jsonb_agg(CASE WHEN labels.code IS NULL THEN item.value ELSE jsonb_set(item.value,'{status}',to_jsonb(labels.code)) END ORDER BY item.ord)
+        FROM jsonb_array_elements(ts.history) WITH ORDINALITY AS item(value,ord)
+        LEFT JOIN (SELECT key AS label,value AS code FROM jsonb_each_text($1::jsonb)) labels ON labels.label=item.value->>'status')
+      WHERE jsonb_typeof(ts.history)='array'
+        AND EXISTS (SELECT 1 FROM jsonb_array_elements(ts.history) AS event(value) WHERE event.value->>'status' IN (SELECT key FROM jsonb_object_keys($1::jsonb) AS key))`,
+    [JSON.stringify(statusLabels)]);
+    if (labeledHistories) console.warn(`Подписи статусов заменены кодами в истории шаблонов: ${labeledHistories}`);
 
     const { rows: allStatuses } = await client.query<StatusRow>(`SELECT id,id_1c_template,id_profile_template,history,current_status FROM template_status
       WHERE id_1c_template IN (SELECT id_1c_template FROM template_status WHERE id_1c_template IS NOT NULL GROUP BY id_1c_template HAVING COUNT(*) > 1)
