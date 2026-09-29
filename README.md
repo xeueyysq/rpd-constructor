@@ -10,6 +10,7 @@
 | `rpd-client-ts/` | Клиент: React 19, TypeScript, Vite 8, Feature-Sliced Design, MUI 9 |
 | `e2e/` | Сценарии Playwright против настоящих сервера и клиента на тестовой БД |
 | `docs/CONVENTIONS.md` | Правила разработки и проверки перед передачей изменений |
+| `CHANGELOG.md` | История версий и шаги обновления между ними |
 
 У каждого проекта свои `package.json` и `bun.lock`, менеджер пакетов — bun.
 
@@ -99,3 +100,5 @@ bun run test:e2e tests/editor -g "конфликт"           # тесты гр�
 ## Развёртывание
 
 `rpd-server/docker-compose.yml` собирает клиент (nginx, порты 8080 и 443), сервер (порт 8000) и `postgres:16`. Серверу нужен `rpd-server/.env`. Пересборку и перезапуск выполняет `rpd-server/docker.sh`.
+
+Выкладывается ветка `main`, каждая версия отмечена тегом `vX.Y.Z`. Перед обновлением прочитайте раздел версии в [CHANGELOG.md](CHANGELOG.md): если выкладка требует миграций или других ручных шагов, они описаны там. Порядок выпуска — в [docs/CONVENTIONS.md](docs/CONVENTIONS.md#версии-и-релизы).
