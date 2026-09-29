@@ -1,3 +1,4 @@
+# Имя проекта определяет том rpd-server_postgres_data с данными прода. Не меняйте его.
 name: rpd-server
 services:
   client:
@@ -40,7 +41,7 @@ services:
     restart: unless-stopped
     environment:
       POSTGRES_USER: ${DB_USER:-postgres}
-      POSTGRES_PASSWORD: ${DB_PASSWORD:?Задайте DB_PASSWORD в rpd-server/.env}
+      POSTGRES_PASSWORD: ${DB_PASSWORD:?Задайте DB_PASSWORD в deploy/.env}
       POSTGRES_DB: ${DB_NAME:-Rpd}
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U $$POSTGRES_USER -d $$POSTGRES_DB"]

@@ -9,8 +9,9 @@ PROJECT=rpd-deploy-test
 SCENARIO="подготовка"
 
 cleanup() {
-  if [[ -f "$PROD/rpd-server/docker-compose.yml" && -f "$PROD/rpd-server/.env" ]]; then
-    docker compose -p "$PROJECT" --project-directory "$PROD/rpd-server" -f "$PROD/rpd-server/docker-compose.yml" down -v --remove-orphans || true
+  if [[ -d "$T/state/history.log" ]]; then chmod 700 "$T/state/history.log" || true; fi
+  if [[ -f "$PROD/deploy/compose.yaml" && -f "$PROD/deploy/.env" ]]; then
+    docker compose -p "$PROJECT" --project-directory "$PROD/deploy" -f "$PROD/deploy/compose.yaml" down -v --remove-orphans || true
   fi
   local repository image
   for repository in rpd/server rpd/client; do
@@ -29,7 +30,7 @@ fail() {
 }
 
 dc() {
-  docker compose -p "$PROJECT" --project-directory "$PROD/rpd-server" -f "$PROD/rpd-server/docker-compose.yml" "$@"
+  docker compose -p "$PROJECT" --project-directory "$PROD/deploy" -f "$PROD/deploy/compose.yaml" "$@"
 }
 
 sql() {
@@ -101,7 +102,7 @@ MIGRATION
 
   git clone -q --bare "$SRC" "$T/origin.git"
   git clone -q "$T/origin.git" "$PROD"
-  cat > "$PROD/rpd-server/.env" <<'ENVFILE'
+  cat > "$PROD/deploy/.env" <<'ENVFILE'
 PORT=8000
 CLIENT_URL=http://localhost:18080
 API_URL=http://localhost:18080
@@ -117,7 +118,7 @@ ENVFILE
 }
 
 run_deploy() {
-  (cd "$PROD/rpd-server" && ./deploy.sh "$@")
+  (cd "$PROD/deploy" && ./deploy.sh "$@")
 }
 
 assert_marker() {
@@ -174,7 +175,16 @@ git -C "$PROD" show HEAD:README.md > "$PROD/README.md"
 echo "PASS: $SCENARIO"
 
 SCENARIO="6 — повторная выкладка"
+mv "$T/state/history.log" "$T/state/history.saved"
+mkdir "$T/state/history.log"
+chmod 500 "$T/state/history.log"
 run_deploy v9.1.0 --yes
 assert_equal "$(health_version)" 9.1.0 "версия при повторе"
 assert_equal "$(sql "SELECT count(*) FROM schema_migrations WHERE name='9001_deploy_test'")" 1 "повтор миграции"
+assert_equal "$(cat "$T/state/current")" v9.1.0 "current после ошибки записи истории"
+assert_marker
+grep -q "Версия v9.1.0 выложена, но" "$T/state/logs/"*.log || fail "Нет предупреждения об ошибке записи истории"
+chmod 700 "$T/state/history.log"
+rmdir "$T/state/history.log"
+mv "$T/state/history.saved" "$T/state/history.log"
 echo "PASS: $SCENARIO"

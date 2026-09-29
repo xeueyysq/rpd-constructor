@@ -26,14 +26,13 @@ YES=0
 TAG=""
 PREV_REF=""
 PREV_VERSION=""
-PREV_CURRENT_EXISTS=0
-CURRENT_UPDATED=0
+DEPLOY_CONFIRMED=0
 PREV_MIGRATIONS=""
 BACKUP=""
 
 # Все вызовы Compose закреплены за одним проектом и одним compose-файлом.
 dc() {
-  docker compose -p "$PROJECT" --project-directory "$SCRIPT_DIR" -f "$SCRIPT_DIR/docker-compose.yml" "$@"
+  docker compose -p "$PROJECT" --project-directory "$SCRIPT_DIR" -f "$SCRIPT_DIR/compose.yaml" "$@"
 }
 
 cleanup() {
@@ -68,7 +67,7 @@ check_env_value() {
       break
     fi
   done < "$SCRIPT_DIR/.env"
-  [[ -n "$value" ]] || fail "Задайте непустое $key в rpd-server/.env"
+  [[ -n "$value" ]] || fail "Задайте непустое $key в deploy/.env"
 }
 
 preflight() {
@@ -77,7 +76,7 @@ preflight() {
     command -v "$command_name" >/dev/null || fail "Не найдена команда $command_name"
   done
   docker compose version --short >/dev/null || fail "Требуется Docker Compose v2 (docker compose)"
-  [[ -f "$SCRIPT_DIR/.env" ]] || fail "Создайте rpd-server/.env по образцу .env.example"
+  [[ -f "$SCRIPT_DIR/.env" ]] || fail "Создайте deploy/.env по образцу deploy/.env.example"
   check_env_value DB_PASSWORD
   check_env_value ACCESS_TOKEN_SECRET
   check_env_value REFRESH_TOKEN_SECRET
@@ -94,7 +93,7 @@ preflight() {
     fail "Том ${PROJECT}_postgres_data не найден; для первой установки укажите --init"
   fi
   # Compose должен разобрать .env и конфигурацию до остановки API.
-  dc config --quiet || fail "Проверьте rpd-server/.env и docker-compose.yml"
+  dc config --quiet || fail "Проверьте deploy/.env и deploy/compose.yaml"
 }
 
 package_version() {
@@ -105,7 +104,6 @@ package_version() {
 select_target() {
   local server_version client_version
   PREV_REF="$(git -C "$REPO_DIR" rev-parse HEAD)"
-  if [[ -e "$DEPLOY_DIR/current" ]]; then PREV_CURRENT_EXISTS=1; fi
   PREV_VERSION="$(cat "$DEPLOY_DIR/current" 2>/dev/null || true)"
   git -C "$REPO_DIR" fetch --tags --prune "$REMOTE"
   if [[ -z "$TAG" ]]; then
@@ -170,14 +168,6 @@ SQL
 rollback() {
   local journal="" restore_needed=0 restore_ok=1
   echo "Начат откат после ошибки или прерывания."
-  if (( CURRENT_UPDATED )); then
-    if (( PREV_CURRENT_EXISTS )); then
-      printf '%s\n' "$PREV_VERSION" > "$CURRENT_TMP"
-      mv "$CURRENT_TMP" "$DEPLOY_DIR/current" || echo "ОШИБКА: не удалось вернуть current" >&2
-    else
-      rm -f "$DEPLOY_DIR/current" || echo "ОШИБКА: не удалось удалить current" >&2
-    fi
-  fi
   if (( ! INIT && MIGRATION_STARTED )); then
     if journal="$(migration_journal)"; then
       [[ "$journal" == "$PREV_MIGRATIONS" ]] || restore_needed=1
@@ -219,6 +209,10 @@ on_error() {
   local code="$1"
   trap - ERR INT TERM
   set +e
+  if (( DEPLOY_CONFIRMED )); then
+    echo "Версия $TAG выложена, но действия после проверки health прерваны (код $code). Лог: $LOG" >&2
+    exit 0
+  fi
   echo "Выкладка прервана (код $code)." >&2
   if (( STOPPED )); then rollback; else
     if [[ -n "$PREV_REF" ]]; then git -C "$REPO_DIR" checkout --quiet --detach "$PREV_REF" || true; fi
@@ -241,17 +235,33 @@ prune_backups() {
 }
 
 prune_images() {
-  local repository image
+  local repository image images failed=0
   for repository in rpd/server rpd/client; do
+    images="$(docker image ls "$repository" --format '{{.Repository}}:{{.Tag}}')" || return 1
     while IFS= read -r image; do
       [[ "$image" == "$repository:"* ]] || continue
       [[ "$image" == "$repository:$TAG" || ( -n "$PREV_VERSION" && "$image" == "$repository:$PREV_VERSION" ) ]] && continue
-      docker image rm "$image" || echo "Не удалось удалить старый образ $image" >&2
-    done < <(docker image ls "$repository" --format '{{.Repository}}:{{.Tag}}')
+      docker image rm "$image" || { echo "Не удалось удалить старый образ $image" >&2; failed=1; }
+    done <<< "$images"
   done
+  (( ! failed ))
+}
+
+record_current() {
+  printf '%s\n' "$TAG" > "$CURRENT_TMP" || return 1
+  mv "$CURRENT_TMP" "$DEPLOY_DIR/current"
+}
+
+record_history() {
+  if [[ -f "$DEPLOY_DIR/history.log" ]]; then
+    cat "$DEPLOY_DIR/history.log" > "$HISTORY_TMP" || return 1
+  fi
+  printf '%s\t%s\t%s\t%s\n' "$(date -u +%Y-%m-%dT%H:%M:%SZ)" "$TAG" "${PREV_VERSION:-неизвестна}" "${BACKUP:-нет}" >> "$HISTORY_TMP" || return 1
+  mv "$HISTORY_TMP" "$DEPLOY_DIR/history.log"
 }
 
 deploy() {
+  local post_deploy_warning=0
   echo "Переключение исходников на $TAG"
   git -C "$REPO_DIR" -c advice.detachedHead=false checkout --quiet --detach "$TAG"
   echo "Сборка образов до остановки API"
@@ -275,18 +285,29 @@ deploy() {
   RPD_VERSION="$TAG" dc up -d --no-deps --wait --wait-timeout "$WAIT_TIMEOUT" server
   RPD_VERSION="$TAG" dc up -d --no-deps --wait --wait-timeout "$WAIT_TIMEOUT" client
   wait_health "$TAG"
-  {
-    if [[ -f "$DEPLOY_DIR/history.log" ]]; then cat "$DEPLOY_DIR/history.log"; fi
-    printf '%s\t%s\t%s\t%s\n' "$(date -u +%Y-%m-%dT%H:%M:%SZ)" "$TAG" "${PREV_VERSION:-неизвестна}" "${BACKUP:-нет}"
-  } > "$HISTORY_TMP"
-  printf '%s\n' "$TAG" > "$CURRENT_TMP"
-  mv "$CURRENT_TMP" "$DEPLOY_DIR/current"
-  CURRENT_UPDATED=1
-  mv "$HISTORY_TMP" "$DEPLOY_DIR/history.log"
+  DEPLOY_CONFIRMED=1
   STOPPED=0
-  prune_backups || echo "Не удалось удалить часть старых дампов" >&2
-  prune_images
-  echo "Выложена версия $TAG. Дамп: ${BACKUP:-не требуется}. Лог: $LOG"
+  if ! record_current; then
+    echo "Предупреждение: не удалось обновить current" >&2
+    post_deploy_warning=1
+  fi
+  if ! record_history; then
+    echo "Предупреждение: не удалось обновить history.log" >&2
+    post_deploy_warning=1
+  fi
+  if ! prune_backups; then
+    echo "Предупреждение: не удалось удалить часть старых дампов" >&2
+    post_deploy_warning=1
+  fi
+  if ! prune_images; then
+    echo "Предупреждение: не удалось удалить часть старых образов" >&2
+    post_deploy_warning=1
+  fi
+  if (( post_deploy_warning )); then
+    echo "Версия $TAG выложена, но часть действий после проверки health завершилась с ошибкой. Дамп: ${BACKUP:-не требуется}. Лог: $LOG"
+  else
+    echo "Выложена версия $TAG. Дамп: ${BACKUP:-не требуется}. Лог: $LOG"
+  fi
 }
 
 main() {
