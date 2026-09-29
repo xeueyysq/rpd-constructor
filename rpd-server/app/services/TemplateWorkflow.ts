@@ -8,7 +8,7 @@ import { allowedActions, decide, deriveStatus, type DecisionInput, type Particip
 import TemplateAccess from "./TemplateAccess.ts";
 
 type Database = Pool | PoolClient;
-type ParticipantRow = Participant & { fullname: unknown; updatedAt: Date };
+type ParticipantRow = Participant & { fullname: unknown; name: string; updatedAt: Date };
 type StatusRow = { id: number; current_status: TemplateStatus };
 type TemplateRow = { id: number; id_rpd_complect: number };
 type SnapshotStatusRow = { id_profile_template: number; current_status: TemplateStatus };
@@ -28,7 +28,7 @@ export function buildSnapshots(templateIds: number[], statuses: SnapshotStatusRo
     const assigned = participantsById.get(id) ?? [];
     const active = assigned.filter((part) => part.isActive);
     const canManage = managerIds.has(id);
-    return [id, { templateId: id, status, participants: assigned.map((part) => ({ userId: part.userId, fullname: fullnameText(part.fullname), state: part.state, isActive: part.isActive, updatedAt: part.updatedAt })), progress: { done: active.filter((part) => part.state === "done").length, total: active.length }, allowedActions: allowedActions(status, assigned, actorId, canManage), canEditTeachers: canManage && status !== "ready" }];
+    return [id, { templateId: id, status, participants: assigned.map((part) => ({ userId: part.userId, fullname: fullnameText(part.fullname) || part.name, state: part.state, isActive: part.isActive, updatedAt: part.updatedAt })), progress: { done: active.filter((part) => part.state === "done").length, total: active.length }, allowedActions: allowedActions(status, assigned, actorId, canManage), canEditTeachers: canManage && status !== "ready" }];
   }));
 }
 
@@ -44,7 +44,7 @@ export default class TemplateWorkflow {
   }
 
   async participants(db: Database, id: number): Promise<ParticipantRow[]> {
-    const { rows } = await db.query<ParticipantRow>(`SELECT tt.user_id AS "userId",tt.state,u.fullname,u.is_active AS "isActive",tt.updated_at AS "updatedAt" FROM teacher_templates tt JOIN users u ON u.id=tt.user_id WHERE tt.template_id=$1 ORDER BY tt.id`, [id]);
+    const { rows } = await db.query<ParticipantRow>(`SELECT tt.user_id AS "userId",tt.state,u.name,u.fullname,u.is_active AS "isActive",tt.updated_at AS "updatedAt" FROM teacher_templates tt JOIN users u ON u.id=tt.user_id WHERE tt.template_id=$1 ORDER BY tt.id`, [id]);
     return rows;
   }
 
@@ -65,7 +65,7 @@ export default class TemplateWorkflow {
     if (!templateIds.length) return new Map();
     const [statuses, participants, managers] = await Promise.all([
       db.query<SnapshotStatusRow>("SELECT id_profile_template,current_status FROM template_status WHERE id_profile_template=ANY($1::int[])", [templateIds]),
-      db.query<SnapshotParticipantRow>(`SELECT tt.template_id AS "templateId",tt.user_id AS "userId",tt.state,u.fullname,u.is_active AS "isActive",tt.updated_at AS "updatedAt" FROM teacher_templates tt JOIN users u ON u.id=tt.user_id WHERE tt.template_id=ANY($1::int[]) ORDER BY tt.id`, [templateIds]),
+      db.query<SnapshotParticipantRow>(`SELECT tt.template_id AS "templateId",tt.user_id AS "userId",tt.state,u.name,u.fullname,u.is_active AS "isActive",tt.updated_at AS "updatedAt" FROM teacher_templates tt JOIN users u ON u.id=tt.user_id WHERE tt.template_id=ANY($1::int[]) ORDER BY tt.id`, [templateIds]),
       canManageAll ? Promise.resolve(null) : db.query<{ id: number }>(`SELECT rpt.id FROM rpd_profile_templates rpt JOIN users actor ON actor.id=$2 AND actor.is_active LEFT JOIN user_complect uc ON uc.complect_id=rpt.id_rpd_complect AND uc.user_id=actor.id WHERE rpt.id=ANY($1::int[]) AND ($3::int=$4::int OR ($3::int=$5::int AND uc.user_id IS NOT NULL))`, [templateIds, actor.id, actor.role, USER_ROLES.ADMIN, USER_ROLES.ROP]),
     ]);
     const managerIds = new Set(canManageAll ? templateIds : managers?.rows.map((row) => row.id) ?? []);
@@ -131,8 +131,8 @@ export default class TemplateWorkflow {
     if (actor.role !== USER_ROLES.ADMIN && actor.role !== USER_ROLES.ROP) throw new Forbidden("Нет доступа к списку преподавателей");
     const { rows: active } = await this.database.query<{ is_active: boolean }>("SELECT is_active FROM users WHERE id=$1", [actor.id]);
     if (!active[0]?.is_active) throw new Forbidden("Пользователь неактивен");
-    const { rows } = await this.database.query<{ id: number; fullname: unknown }>("SELECT id,fullname FROM users WHERE is_active AND role=ANY($1::int[]) ORDER BY id", [ASSIGNABLE_TEACHER_ROLES]);
-    return rows.map((row) => ({ id: row.id, fullname: fullnameText(row.fullname) }));
+    const { rows } = await this.database.query<{ id: number; name: string; fullname: unknown }>("SELECT id,name,fullname FROM users WHERE is_active AND role=ANY($1::int[]) ORDER BY id", [ASSIGNABLE_TEACHER_ROLES]);
+    return rows.map((row) => ({ id: row.id, fullname: fullnameText(row.fullname) || row.name }));
   }
 
   async recomputeForUser(client: PoolClient, userId: number) {

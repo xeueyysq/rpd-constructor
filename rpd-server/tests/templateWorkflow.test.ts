@@ -54,9 +54,9 @@ test("пакетные снимки сохраняют порядок участ
     [10, 20, 30],
     [{ id_profile_template: 10, current_status: "on_teacher" }, { id_profile_template: 30, current_status: "ready" }],
     [
-      { templateId: 10, userId: 2, state: "done", isActive: true, fullname: { surname: "Второй", name: "Иван" }, updatedAt: now },
-      { templateId: 20, userId: 4, state: "assigned", isActive: true, fullname: { surname: "Четвёртый" }, updatedAt: now },
-      { templateId: 10, userId: 1, state: "assigned", isActive: false, fullname: { surname: "Первый" }, updatedAt: now },
+      { templateId: 10, userId: 2, state: "done", isActive: true, name: "second", fullname: { surname: "Второй", name: "Иван" }, updatedAt: now },
+      { templateId: 20, userId: 4, state: "assigned", isActive: true, name: "nofio", fullname: {}, updatedAt: now },
+      { templateId: 10, userId: 1, state: "assigned", isActive: false, name: "first", fullname: { surname: "Первый" }, updatedAt: now },
     ],
     new Set([10, 30]),
     2,
@@ -65,6 +65,7 @@ test("пакетные снимки сохраняют порядок участ
   assert.deepEqual(snapshots.get(10)?.participants.map((part) => part.userId), [2, 1]);
   assert.deepEqual(snapshots.get(10)?.progress, { done: 1, total: 1 });
   assert.equal(snapshots.get(10)?.participants[0].fullname, "Второй Иван");
+  assert.equal(snapshots.get(20)?.participants[0].fullname, "nofio");
   assert.deepEqual(snapshots.get(10)?.allowedActions, ["assign", "unassign", "accept", "reopen"]);
   assert.equal(snapshots.get(20)?.status, "created");
   assert.equal(snapshots.get(20)?.canEditTeachers, false);

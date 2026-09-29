@@ -33,7 +33,8 @@ INSERT INTO rpd_1c_exchange (id, id_rpd_complect, department, discipline, teache
   (109, 101, 'Другая кафедра', 'РПД другого РОП для теста', ARRAY[]::text[], 3, 'Базовая часть', 'discipline', '{}'::jsonb, '{}'::jsonb, 1),
   (110, 100, 'Тестовая кафедра', 'Совместное редактирование для теста', ARRAY['Альфина Тест Тестовна', 'Яковлева Тест Тестовна'], 3, 'Базовая часть', 'discipline', '{}'::jsonb, '{}'::jsonb, 1),
   (111, 100, 'Тестовая кафедра', 'Конфликт правок для теста', ARRAY['Альфина Тест Тестовна', 'Яковлева Тест Тестовна'], 3, 'Базовая часть', 'discipline', '{}'::jsonb, '{}'::jsonb, 1),
-  (112, 100, 'Тестовая кафедра', 'Литература для теста', ARRAY['Альфина Тест Тестовна'], 3, 'Базовая часть', 'discipline', '{}'::jsonb, '{}'::jsonb, 1);
+  (112, 100, 'Тестовая кафедра', 'Литература для теста', ARRAY['Альфина Тест Тестовна'], 3, 'Базовая часть', 'discipline', '{}'::jsonb, '{}'::jsonb, 1),
+  (113, 100, 'Тестовая кафедра', 'Создание без преподавателя для теста', ARRAY[]::text[], 3, 'Базовая часть', 'discipline', '{}'::jsonb, '{}'::jsonb, 2);
 INSERT INTO rpd_profile_templates (id, public_id, id_rpd_complect, disciplins_name, department, semester, zet, competencies, content, study_load, control_load, assessment_tools_questions) VALUES
   (100, 'aaaaaaaaaaaa', 100, 'Алгоритмы для теста', 'Тестовая кафедра', 1, 3, '{}'::jsonb, '{}'::jsonb, '{}'::jsonb, '{}'::jsonb, '{}'::jsonb),
   (101, 'bbbbbbbbbbbb', 100, 'Базы данных для теста', 'Тестовая кафедра', 2, 4, '{}'::jsonb, '{}'::jsonb, '{}'::jsonb, '{}'::jsonb, '{}'::jsonb),
@@ -82,7 +83,8 @@ INSERT INTO template_status (id, id_1c_template, id_profile_template, current_st
   (109, 109, 109, 'created', '[{"date":"2025-01-09T00:00:00.000Z","status":"created","user":"rop2"}]'::jsonb),
   (110, 110, 110, 'on_teacher', '[{"date":"2025-01-10T00:00:00.000Z","status":"on_teacher","user":"rop"}]'::jsonb),
   (111, 111, 111, 'on_teacher', '[{"date":"2025-01-11T00:00:00.000Z","status":"on_teacher","user":"rop"}]'::jsonb),
-  (112, 112, 112, 'on_teacher', '[{"date":"2025-01-12T00:00:00.000Z","status":"on_teacher","user":"rop"}]'::jsonb);
+  (112, 112, 112, 'on_teacher', '[{"date":"2025-01-12T00:00:00.000Z","status":"on_teacher","user":"rop"}]'::jsonb),
+  (113, 113, NULL, 'unloaded', '[{"date":"2025-01-13T00:00:00.000Z","status":"unloaded","user":"rop"}]'::jsonb);
 
 INSERT INTO complect_sync_log (id, complect_id, user_id, source, created_at) VALUES
   (100, 100, (SELECT id FROM users WHERE name = 'rop'), '1c', '2025-02-01T00:00:00Z');
@@ -95,9 +97,9 @@ INSERT INTO planned_indicators (id, competence_id, indicator) VALUES (100, 100, 
 INSERT INTO planned_indicator_disciplines (id, indicator_id, discipline) VALUES (100, 100, 'Алгоритмы для теста');
 
 SELECT setval(pg_get_serial_sequence('rpd_complects', 'id'), 101);
-SELECT setval(pg_get_serial_sequence('rpd_1c_exchange', 'id'), 112);
+SELECT setval(pg_get_serial_sequence('rpd_1c_exchange', 'id'), 113);
 SELECT setval(pg_get_serial_sequence('rpd_profile_templates', 'id'), 112);
-SELECT setval(pg_get_serial_sequence('template_status', 'id'), 112);
+SELECT setval(pg_get_serial_sequence('template_status', 'id'), 113);
 SELECT setval(pg_get_serial_sequence('teacher_templates', 'id'), 114);
 SELECT setval(pg_get_serial_sequence('user_complect', 'id'), 101);
 SELECT setval(pg_get_serial_sequence('complect_sync_log', 'id'), 100);

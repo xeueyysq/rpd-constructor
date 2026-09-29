@@ -112,12 +112,12 @@ class RpdProfileTemplates {
     );
     const profile = queryResult.rows[0];
     if (!profile) return null;
-    const { rows: teachers } = await this.pool.query<{ userId: number; fullname: unknown; isActive: boolean }>(`
-      SELECT u.id AS "userId",u.fullname,u.is_active AS "isActive"
+    const { rows: teachers } = await this.pool.query<{ userId: number; name: string; fullname: unknown; isActive: boolean }>(`
+      SELECT u.id AS "userId",u.name,u.fullname,u.is_active AS "isActive"
       FROM teacher_templates tt JOIN users u ON u.id=tt.user_id
       WHERE tt.template_id=$1 ORDER BY tt.id
     `, [numericId]);
-    return { ...profile, field_edits: await withEditorNames(this.pool, profile.field_edits), teachers: teachers.map((teacher) => ({ userId: teacher.userId, fullname: fullnameText(teacher.fullname), isActive: teacher.isActive })) };
+    return { ...profile, field_edits: await withEditorNames(this.pool, profile.field_edits), teachers: teachers.map((teacher) => ({ userId: teacher.userId, fullname: fullnameText(teacher.fullname) || teacher.name, isActive: teacher.isActive })) };
   }
 
   async updateById(id: unknown, fieldToUpdate: string, value: unknown, baseAt: string | null, userId: number) {

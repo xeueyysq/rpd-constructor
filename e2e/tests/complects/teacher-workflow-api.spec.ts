@@ -19,6 +19,14 @@ test('workflow без токена возвращает 401', async ({ page, req
   expect(post.status()).toBe(401);
 });
 
+test('преподаватель без ФИО отображается по логину в списке назначаемых', async ({ page, request }) => {
+  await signIn(page, 'rop');
+  const headers = await headersFor(request, 'rop');
+  const response = await request.get(`${apiUrl}/api/assignable-teachers`, { headers });
+  expect(response.status()).toBe(200);
+  expect(await response.json()).toContainEqual(expect.objectContaining({ fullname: 'nofio' }));
+});
+
 test.describe('права второго РОП на отдельном комплекте', () => {
   test.describe.configure({ mode: 'serial' });
 
