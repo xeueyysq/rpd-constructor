@@ -49,6 +49,7 @@ INSERT INTO rpd_profile_templates (id, public_id, id_rpd_complect, disciplins_na
   (111, 'a111a111a111', 100, 'Конфликт правок для теста', 'Тестовая кафедра', 1, 3, '<p>Исходные цели для проверки конфликта</p>', '{}'::jsonb);
 INSERT INTO rpd_profile_templates (id, public_id, id_rpd_complect, disciplins_name, department, semester, zet, additional_textbook) VALUES
   (112, 'a112a112a112', 100, 'Литература для теста', 'Тестовая кафедра', 1, 3, ARRAY['Дублирующая запись для теста', 'Дублирующая запись для теста']);
+UPDATE rpd_profile_templates SET assessment_tools_questions = '{"competencies":{"ТЕСТ-1 Анализировать учебные данные":{"openPool":[{"id":"open-1","text":"Как проверить источник?","correctAnswer":"Сверить данные"},{"id":"open-2","text":"Как сохранить данные?","correctAnswer":"Создать копию"}],"closedPool":[{"id":"closed-1","text":"Есть ли ошибка?","correctAnswer":"Да"},{"id":"closed-2","text":"Есть ли копия?","correctAnswer":"Нет"}],"selectedOpenIds":["open-1"],"selectedClosedIds":["closed-1"]}}}'::jsonb WHERE id = 112;
 UPDATE rpd_profile_templates SET certification = 'Экзамен' WHERE id = 103;
 -- Копия для API-проверок: teacher2 может менять content, UI-тесты не трогают её.
 INSERT INTO rpd_profile_templates (id, public_id, id_rpd_complect, disciplins_name, department, semester, zet, certification, competencies, content, study_load, control_load, assessment_tools_questions)
