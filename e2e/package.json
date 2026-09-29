@@ -9,6 +9,7 @@
     "test:e2e:users": "bun run test:e2e tests/users",
     "test:e2e:complects": "bun run test:e2e tests/complects",
     "test:e2e:editor": "bun run test:e2e tests/editor",
+    "docs:screenshots": "DOCS_SCREENSHOTS=1 bun run test:e2e tests/docs",
     "db:down": "docker compose --env-file e2e.env down"
   },
   "devDependencies": {
