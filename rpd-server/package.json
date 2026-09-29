@@ -47,6 +47,7 @@
   "scripts": {
     "dev": "node --watch --env-file-if-exists=.env server.ts",
     "migrate": "node --env-file-if-exists=.env app/migrations/migrations.ts",
+    "migrate:new": "node app/migrations/new.ts",
     "start": "node --env-file-if-exists=.env server.ts",
     "test": "node --test tests/*.test.ts",
     "typecheck": "tsc",

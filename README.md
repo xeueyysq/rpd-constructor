@@ -28,9 +28,11 @@
 ```bash
 cd rpd-server
 bun install
-bun run migrate   # схема БД, идемпотентно
+bun run migrate   # применить новые миграции из app/migrations/versions (журнал schema_migrations)
 bun run dev       # node --watch, порт из PORT
 ```
+
+Новую миграцию создавайте командой `bun run migrate:new <имя>`; правила — в [CONVENTIONS.md](docs/CONVENTIONS.md#сервер-и-данные).
 
 Серверу нужны переменные `PORT`, `CLIENT_URL`, `API_URL`, `DB_HOST`, `DB_PORT`, `DB_NAME`, `DB_USER`, `DB_PASSWORD`, `ACCESS_TOKEN_SECRET` и `REFRESH_TOKEN_SECRET`. Команды `dev`, `start` и `migrate` читают `rpd-server/.env` через флаг Node `--env-file-if-exists`; переменные окружения процесса имеют приоритет над файлом. Без `DB_*` используются значения по умолчанию из `config/db.ts` (`localhost:5432`, БД `Rpd`).
 
