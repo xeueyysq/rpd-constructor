@@ -299,11 +299,10 @@ async function migrateTeacherWorkflow() {
     `);
 
     // Миграция для таблицы `template_field_comment`
-    //TODO убрать у комментатара ключ
     await pool.query(`
       CREATE TABLE IF NOT EXISTS template_field_comment (
         id SERIAL PRIMARY KEY,
-        id_1c_template INT REFERENCES rpd_1c_exchange(id) ON DELETE CASCADE,
+        id_profile_template INT NOT NULL REFERENCES rpd_profile_templates(id) ON DELETE CASCADE,
         commentator_id INT REFERENCES users(id) ON DELETE SET NULL,
         template_field TEXT,
         comment_text TEXT,
@@ -312,11 +311,31 @@ async function migrateTeacherWorkflow() {
       )
     `);
 
-    // Уникальный индекс для UPSERT операции
-    await pool.query(`
-      CREATE UNIQUE INDEX IF NOT EXISTS idx_template_field_comment_unique 
-      ON template_field_comment(id_1c_template, template_field)
-    `);
+    const commentClient = await pool.connect();
+    try {
+      await commentClient.query("BEGIN");
+      const { rows: oldColumn } = await commentClient.query<{ exists: boolean }>("SELECT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema='public' AND table_name='template_field_comment' AND column_name='id_1c_template') AS exists");
+      if (oldColumn[0]?.exists) await commentClient.query("ALTER TABLE template_field_comment RENAME COLUMN id_1c_template TO id_profile_template");
+
+      const { rows: oldKeys } = await commentClient.query<{ name: string }>("SELECT quote_ident(conname) AS name FROM pg_constraint WHERE conrelid='template_field_comment'::regclass AND confrelid='rpd_1c_exchange'::regclass AND contype='f'");
+      for (const key of oldKeys) await commentClient.query(`ALTER TABLE template_field_comment DROP CONSTRAINT ${key.name}`);
+
+      const { rows: removedComments } = await commentClient.query<{ id: number }>("DELETE FROM template_field_comment tfc WHERE id_profile_template IS NULL OR NOT EXISTS (SELECT 1 FROM rpd_profile_templates rpt WHERE rpt.id=tfc.id_profile_template) RETURNING tfc.id");
+      await commentClient.query("ALTER TABLE template_field_comment ALTER COLUMN id_profile_template SET NOT NULL");
+
+      const { rows: profileKey } = await commentClient.query<{ exists: boolean }>("SELECT EXISTS (SELECT 1 FROM pg_constraint WHERE conrelid='template_field_comment'::regclass AND confrelid='rpd_profile_templates'::regclass AND contype='f') AS exists");
+      if (!profileKey[0]?.exists) await commentClient.query("ALTER TABLE template_field_comment ADD CONSTRAINT template_field_comment_id_profile_template_fkey FOREIGN KEY (id_profile_template) REFERENCES rpd_profile_templates(id) ON DELETE CASCADE");
+
+      // Уникальный индекс для UPSERT операции
+      await commentClient.query("CREATE UNIQUE INDEX IF NOT EXISTS idx_template_field_comment_unique ON template_field_comment(id_profile_template, template_field)");
+      await commentClient.query("COMMIT");
+      if (removedComments.length) console.warn(`Удалены комментарии без профильного шаблона (${removedComments.length}): ${removedComments.map((row) => row.id).join(", ")}`);
+    } catch (error) {
+      await commentClient.query("ROLLBACK");
+      throw error;
+    } finally {
+      commentClient.release();
+    }
 
     // Функция для автоматического обновления updated_at
     await pool.query(`

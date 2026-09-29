@@ -98,10 +98,10 @@ class RpdProfileTemplates {
       LEFT JOIN LATERAL (
         SELECT jsonb_object_agg(
                 tfc.template_field,
-                to_jsonb(tfc) - 'template_field' - 'id_1c_template'
+                to_jsonb(tfc) - 'template_field' - 'id_profile_template'
               ) AS comments
         FROM template_field_comment tfc
-        WHERE tfc.id_1c_template = rpt.id
+        WHERE tfc.id_profile_template = rpt.id
       ) c ON true
       WHERE rpt.id = $1;
     `,
@@ -199,12 +199,12 @@ class RpdProfileTemplates {
 
     const queryResult = await this.pool.query<Record<string, unknown>>(
       `INSERT INTO template_field_comment (
-        id_1c_template,
+        id_profile_template,
         commentator_id,
         template_field,
         comment_text
       ) VALUES ($1, $2, $3, $4)
-       ON CONFLICT (id_1c_template, template_field)
+       ON CONFLICT (id_profile_template, template_field)
        DO UPDATE SET 
         comment_text = EXCLUDED.comment_text,
         commentator_id = EXCLUDED.commentator_id,

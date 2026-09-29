@@ -18,9 +18,9 @@ import { replaceComplectOwner } from "../services/ComplectOwnership.ts";
 const template = (selector: (req: express.Request) => unknown, mode: "read" | "edit" | "manage") => templateAuthorization(pool, selector, mode);
 const complect = (selector: (req: express.Request) => unknown) => complectAuthorization(pool, selector);
 const byComment: express.RequestHandler = async (req, _res, next) => {
-  const { rows } = await pool.query<{ id_1c_template: number }>("SELECT id_1c_template FROM template_field_comment WHERE id=$1", [req.params.id]);
+  const { rows } = await pool.query<{ id_profile_template: number }>("SELECT id_profile_template FROM template_field_comment WHERE id=$1", [req.params.id]);
   if (!rows[0]) throw new NotFound("Комментарий не найден");
-  await TemplateAccess.assertTemplate(pool, TemplateAccess.actor(req.user), rows[0].id_1c_template, "edit");
+  await TemplateAccess.assertTemplate(pool, TemplateAccess.actor(req.user), rows[0].id_profile_template, "edit");
   next();
 };
 
