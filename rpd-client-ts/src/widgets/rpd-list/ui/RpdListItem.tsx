@@ -22,15 +22,15 @@ const RpdListItem: FC<RpdListItemProps> = ({
   templateId,
   templatePage,
 }) => {
-  const { id, text, path } = item;
+  const { id, text } = item;
   const navigate = useNavigate();
-  const isActive = templatePage === path;
+  const isActive = templatePage === item.path;
 
   return (
     <ListItem disableGutters disablePadding>
       <ListItemButton
         onClick={() =>
-          navigate(`${RedirectPath.TEMPLATES}/${templateId}/${path}`)
+          navigate(`${RedirectPath.TEMPLATES}/${templateId}/${item.path}`)
         }
         sx={{
           py: 0.15,
@@ -48,7 +48,7 @@ const RpdListItem: FC<RpdListItemProps> = ({
           <FiberManualRecordIcon sx={{ fontSize: "5px" }} />
         </ListItemIcon>
         <ListItemText
-          primary={<Typography fontSize={"14px"}>{text}</Typography>}
+          primary={<Typography sx={{ fontSize: "14px" }}>{text}</Typography>}
         />
       </ListItemButton>
     </ListItem>

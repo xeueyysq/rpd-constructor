@@ -8,18 +8,10 @@ import { Box, Button } from "@mui/material";
 import { MRT_Localization_RU } from "material-react-table/locales/ru";
 import AddIcon from "@mui/icons-material/Add";
 import { BookThumbZoom } from "./BookThumbZoom";
-
-interface BookMeta {
-  title: string;
-  author: string;
-  biblio: string;
-  url: string;
-  thumb?: string;
-  published: string;
-}
+import type { Book } from "../../api/findBooks";
 
 interface IBooksMetaList {
-  books: BookMeta[];
+  books: Book[];
   addBooksToList: (biblios: string[]) => void;
   closeDialog: () => void;
 }
@@ -35,31 +27,27 @@ export function BooksMetaList({
   );
 
   const handleAddBooks = () => {
-    //TODO костыль на поиск выделенных книг
     const selectedBooks = books
-      ?.map((book, index) => {
-        if (rowSelection[index])
-          return book.biblio.replace(/<b>.*?<\/b>|<br>/g, "");
-      })
-      .filter(Boolean);
+      .filter((book) => rowSelection[book.id])
+      .map((book) => book.biblio);
     addBooksToList(selectedBooks);
     closeDialog();
   };
 
-  const columns = useMemo<MRT_ColumnDef<BookMeta>[]>(
+  const columns = useMemo<MRT_ColumnDef<Book>[]>(
     () => [
       {
         accessorKey: "thumb",
         header: "Обложка",
-        Cell: ({ row }) => (
-          <Box
-            onClick={() => setZoomThumbSrc(row.original.thumb)}
-            p={2}
-            component="img"
-            src={row.original.thumb}
-            sx={{ width: "100px", cursor: "pointer" }}
-          ></Box>
-        ),
+        Cell: ({ row }) =>
+          row.original.thumb && (
+            <Box
+              onClick={() => setZoomThumbSrc(row.original.thumb ?? undefined)}
+              sx={{ p: 2, width: "100px", cursor: "pointer" }}
+              component="img"
+              src={row.original.thumb}
+            />
+          ),
         enableColumnFilter: false,
         enableSorting: false,
         size: 50,
@@ -75,48 +63,42 @@ export function BooksMetaList({
         size: 70,
       },
       {
-        accessorKey: "published",
+        accessorKey: "year",
         header: "Год",
-        Cell: ({ row }) => {
-          const published = row.original.published;
-          const year =
-            published && isNaN(Number(published))
-              ? published.split(",")[1]
-              : published;
-          return <Box>{year}</Box>;
-        },
         size: 0,
       },
       {
         accessorKey: "biblio",
         header: "Аннотация",
-        accessorFn: (row) => row.biblio.replace(/<b>.*?<\/b>|<br>/g, ""),
       },
       {
         accessorKey: "url",
         header: "",
         enableColumnFilter: false,
         enableSorting: false,
-        Cell: ({ row }) => (
-          <Button
-            size="medium"
-            sx={{ textDecoration: "underline" }}
-            component="a"
-            href={row.original.url}
-            target="_blank"
-          >
-            Источник
-          </Button>
-        ),
+        Cell: ({ row }) =>
+          row.original.url && (
+            <Button
+              size="medium"
+              sx={{ textDecoration: "underline" }}
+              component="a"
+              href={row.original.url}
+              target="_blank"
+              rel="noopener noreferrer"
+            >
+              Источник
+            </Button>
+          ),
         size: 0,
       },
     ],
     []
   );
 
-  const table = useMaterialReactTable<BookMeta>({
+  const table = useMaterialReactTable<Book>({
     columns,
-    data: books || [],
+    data: books,
+    getRowId: (book) => book.id,
     localization: MRT_Localization_RU,
     layoutMode: "grid",
     enableRowSelection: true,
@@ -136,8 +118,7 @@ export function BooksMetaList({
     renderTopToolbarCustomActions: ({ table }) => {
       const selectedRowsCount = Object.values(
         table.getState().rowSelection
-      ).length;
-      //TODO добавить удаление книг из списка
+      ).filter(Boolean).length;
       return (
         <Box
           sx={{
@@ -162,7 +143,7 @@ export function BooksMetaList({
   });
 
   return (
-    <Box pt={2}>
+    <Box sx={{ pt: 2 }}>
       <MaterialReactTable table={table} />
       <BookThumbZoom
         thumb={zoomThumbSrc}

@@ -1,104 +1,62 @@
-import { useAuth } from "@entities/auth";
 import { TemplateStatusEnum } from "@entities/template";
-import { useStore } from "@shared/hooks";
-import {
-  showErrorMessage,
-  showSuccessMessage,
-  showWarningMessage,
-} from "@shared/lib";
-import { useCallback, useEffect, useMemo, useState } from "react";
-import { fetchComplectRpd, createProfileTemplateFrom1c } from "../api";
-import {
-  parseCreateTemplateResponse,
-  parseCreateTemplateError,
-} from "../utils/parseCreateTemplateResponse";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { useCreateTemplateFrom1c } from "@features/create-rpd-template";
+import { showErrorMessage, showSuccessMessage } from "@shared/lib";
+import { useMemo, useState } from "react";
+import { fetchComplectRpd } from "../api";
 import { sortTemplatesByStatus } from "../utils/sortTemplates";
-import type { ComplectMeta, TemplateData } from "../types";
 
-export type SelectedTeachersMap = Record<number, string[]>;
+const statusPriority = { [TemplateStatusEnum.UNLOADED]: 1 };
 
 export function useComplectData(complectId: string | undefined) {
-  const selectedTemplateData = useStore.getState().selectedTemplateData;
-  const userName = useAuth.getState().userName;
-  const [complectMeta, setComplectMeta] = useState<ComplectMeta | undefined>();
-  const [selectedTeachers, setSelectedTeachers] = useState<SelectedTeachersMap>(
-    {}
+  const queryClient = useQueryClient();
+  const createTemplate = useCreateTemplateFrom1c();
+  const [selectedTeacherIds, setSelectedTeacherIds] = useState<
+    Record<number, number[]>
+  >({});
+  const { data: complectMeta, refetch } = useQuery({
+    queryKey: ["rpd-complect", complectId],
+    queryFn: () => fetchComplectRpd(complectId),
+    enabled: Boolean(complectId),
+  });
+
+  const fetchComplectData = async () => {
+    await Promise.all([
+      refetch(),
+      queryClient.invalidateQueries({ queryKey: ["exchange-changes"] }),
+    ]);
+  };
+  const filteredData = useMemo(
+    () => sortTemplatesByStatus(complectMeta?.templates ?? [], statusPriority),
+    [complectMeta?.templates]
   );
 
-  const fetchComplectData = useCallback(async () => {
+  const createTemplateData = async (id: number) => {
+    if (!complectMeta?.id) return;
     try {
-      const data = await fetchComplectRpd(complectId);
-      setComplectMeta(data);
+      await createTemplate.mutateAsync({
+        id_1c: id,
+        complectId: complectMeta.id,
+        teacherIds: selectedTeacherIds[id] ?? [],
+      });
+      showSuccessMessage("Шаблон успешно создан");
+      setSelectedTeacherIds((previous) => {
+        const next = { ...previous };
+        delete next[id];
+        return next;
+      });
     } catch (error) {
-      showErrorMessage("Ошибка при получении данных");
       console.error(error);
+      showErrorMessage("Не удалось создать шаблон");
     }
-  }, [complectId]);
-
-  useEffect(() => {
-    fetchComplectData();
-  }, [fetchComplectData]);
-
-  const handleTeachersChange = useCallback(
-    (templateId: number, value: string[]) => {
-      setSelectedTeachers((prev) => ({ ...prev, [templateId]: value }));
-    },
-    []
-  );
-
-  const createTemplateData = useCallback(
-    async (id: number, discipline: string) => {
-      const teachers = selectedTeachers[id] ?? [];
-      try {
-        const response = await createProfileTemplateFrom1c({
-          id_1c: id,
-          complectId,
-          teachers,
-          year: selectedTemplateData.year,
-          discipline,
-          userName,
-        });
-
-        const outcome = parseCreateTemplateResponse(response);
-        if (outcome.kind === "success") {
-          showSuccessMessage(outcome.message);
-          if (outcome.refetch) await fetchComplectData();
-        } else if (outcome.kind === "warning") {
-          showWarningMessage(outcome.message);
-        } else {
-          showErrorMessage(outcome.message);
-        }
-      } catch (error) {
-        const { message } = parseCreateTemplateError(error);
-        showErrorMessage(message);
-        console.error(error);
-      }
-    },
-    [
-      selectedTeachers,
-      complectId,
-      selectedTemplateData.year,
-      userName,
-      fetchComplectData,
-    ]
-  );
-
-  const statusPriority: Record<string, number> = useMemo(
-    () => ({ [TemplateStatusEnum.UNLOADED]: 1 }),
-    []
-  );
-
-  const filteredData: TemplateData[] = useMemo(() => {
-    if (!complectMeta?.templates) return [];
-    return sortTemplatesByStatus(complectMeta.templates, statusPriority);
-  }, [complectMeta?.templates, statusPriority]);
+  };
 
   return {
     complectMeta,
-    selectedTeachers,
+    selectedTeacherIds,
+    setSelectedTeacherIds,
     filteredData,
     fetchComplectData,
-    handleTeachersChange,
     createTemplateData,
   };
 }

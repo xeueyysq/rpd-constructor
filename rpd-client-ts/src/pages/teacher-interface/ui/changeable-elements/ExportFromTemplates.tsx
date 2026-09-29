@@ -10,10 +10,15 @@ import {
   Typography,
 } from "@mui/material";
 import { DataDialogBox } from "../DataDialogBox";
-import { useEffect, useRef, useState } from "react";
-import { useAuth } from "@entities/auth";
+import { useState } from "react";
+import {
+  useMyTemplates,
+  useTemplateSync,
+  type FieldEdits,
+  type FieldEdit,
+} from "@entities/template";
 import { useStore } from "@shared/hooks";
-import { showErrorMessage, showSuccessMessage } from "@shared/lib";
+import { showErrorMessage } from "@shared/lib";
 import { axiosBase } from "@shared/api";
 import { JsonChangeValueTypes } from "@pages/teacher-interface/model/DisciplineContentPageTypes";
 import { DisciplineContentData } from "@pages/teacher-interface/model/DisciplineContentPageTypes";
@@ -22,51 +27,21 @@ export function ExportFromTemplates({
   elementName,
   setChangeableValue,
 }: JsonChangeValueTypes & {
-  setChangeableValue: (value: string | DisciplineContentData) => void;
+  setChangeableValue?: (value: string | DisciplineContentData) => void;
 }) {
   const [openFromYearDialog, setOpenFromYearDialog] = useState<boolean>(false);
   const [openFromDirectionDialog, setOpenFromDirectionDialog] =
     useState<boolean>(false);
-  const userName = useAuth((state) => state.userName);
-  const teacherTemplates = useStore((state) => state.teacherTemplates);
+  const { data: myTemplates = [] } = useMyTemplates();
+  const teacherTemplates = myTemplates.map((row) => ({
+    id: row.id,
+    text: row.disciplins_name,
+    year: row.year,
+  }));
   const jsonData = useStore((state) => state.jsonData);
   const [anchorEl, setAnchorEl] = useState<null | HTMLButtonElement>(null);
   const open = Boolean(anchorEl);
   const updateJsonData = useStore((state) => state.updateJsonData);
-  const setTeacherTemplates = useStore((state) => state.setTeacherTemplates);
-  const isFetchingTemplatesRef = useRef(false);
-
-  useEffect(() => {
-    if (teacherTemplates.length) return;
-    if (!userName) return;
-    if (isFetchingTemplatesRef.current) return;
-
-    isFetchingTemplatesRef.current = true;
-    (async () => {
-      try {
-        const response = await axiosBase.post("find-teacher-templates", {
-          userName,
-        });
-        type TemplateRow = {
-          id?: number;
-          disciplins_name?: string;
-          year?: number;
-        };
-        const rows = (response.data ?? []) as TemplateRow[];
-        const templates = rows.map((row) => ({
-          id: row.id,
-          text: row.disciplins_name,
-          year: row.year,
-        }));
-        setTeacherTemplates(templates);
-      } catch (error) {
-        showErrorMessage("Ошибка при получении списка шаблонов");
-        console.error(error);
-      } finally {
-        isFetchingTemplatesRef.current = false;
-      }
-    })();
-  }, [setTeacherTemplates, teacherTemplates.length, userName]);
 
   const handleClick = (event: React.MouseEvent<HTMLButtonElement>) => {
     setAnchorEl(event.currentTarget);
@@ -99,23 +74,43 @@ export function ExportFromTemplates({
     fieldToCopy: string
   ) => {
     const currentTemplateId = jsonData.id;
+    const sync = useTemplateSync.getState();
+    const wasDirty = Boolean(sync.dirty[fieldToCopy]);
+    sync.markDirty(fieldToCopy);
 
     try {
-      const response = await axiosBase.post("/copy-template-data", {
-        sourceTemplateId,
-        targetTemplateId: currentTemplateId,
-        fieldToCopy,
-        appendParagraph: true,
-      });
+      const response = await useTemplateSync.getState().track(
+        axiosBase.post<{
+          success: boolean;
+          value: string | DisciplineContentData;
+          edit: FieldEdit;
+        }>("/copy-template-data", {
+          sourceTemplateId,
+          targetTemplateId: currentTemplateId,
+          fieldToCopy,
+          appendParagraph: true,
+        })
+      );
 
-      if (response.data.success) {
-        showSuccessMessage("Данные успешно скопированы");
-        updateJsonData(fieldToCopy, response.data.targetTemplate[fieldToCopy]);
-        setChangeableValue(response.data.targetTemplate[fieldToCopy]);
+      if (
+        response.data.success &&
+        useStore.getState().jsonData.id === currentTemplateId
+      ) {
+        updateJsonData(fieldToCopy, response.data.value);
+        updateJsonData("field_edits", {
+          ...(useStore.getState().jsonData.field_edits as
+            FieldEdits | undefined),
+          [fieldToCopy]: response.data.edit,
+        });
+        setChangeableValue?.(response.data.value);
       }
     } catch (error) {
       showErrorMessage("Ошибка при копировании данных");
       console.error(error);
+    } finally {
+      if (!wasDirty && useStore.getState().jsonData.id === currentTemplateId) {
+        useTemplateSync.getState().clearDirty(fieldToCopy);
+      }
     }
   };
 
@@ -135,9 +130,7 @@ export function ExportFromTemplates({
         anchorEl={anchorEl}
         open={open}
         onClose={handleClose}
-        MenuListProps={{
-          "aria-labelledby": "basic-button",
-        }}
+        slotProps={{ list: { "aria-labelledby": "basic-button" } }}
       >
         <MenuItem
           onClick={() => {
@@ -150,11 +143,10 @@ export function ExportFromTemplates({
           </ListItemIcon>
           <ListItemText>
             <Typography
+              sx={{ display: "block", m: "0" }}
               variant="button"
-              display="block"
               color="grey"
               gutterBottom
-              m="0"
             >
               Загрузить данные из шаблона
               <br /> другого года
@@ -172,11 +164,10 @@ export function ExportFromTemplates({
           </ListItemIcon>
           <ListItemText>
             <Typography
+              sx={{ display: "block", m: "0" }}
               variant="button"
-              display="block"
               gutterBottom
               color="grey"
-              m="0"
             >
               Загрузить данные из шаблона
               <br /> другого направления

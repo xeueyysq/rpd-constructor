@@ -1,5 +1,5 @@
-import { FC, ReactNode, useEffect, useRef, useState } from "react";
-import { EditorState } from "draft-js";
+import { FC, RefObject, useEffect, useRef, useState } from "react";
+import { Editor as DraftEditor, EditorState } from "draft-js";
 import { stateToHTML } from "draft-js-export-html";
 import { stateFromHTML } from "draft-js-import-html";
 import {
@@ -19,7 +19,7 @@ import {
   focusOnEditor,
 } from "contenido";
 
-import { IconButton, Box, Button, ButtonGroup } from "@mui/material";
+import { IconButton, Box, Button } from "@mui/material";
 import FormatBoldIcon from "@mui/icons-material/FormatBold";
 import FormatItalicIcon from "@mui/icons-material/FormatItalic";
 import FormatUnderlinedIcon from "@mui/icons-material/FormatUnderlined";
@@ -28,24 +28,26 @@ import FormatListNumberedIcon from "@mui/icons-material/FormatListNumbered";
 
 interface TestEditor {
   value: string;
-  saveContent: (htmlValue: string) => Promise<void>;
+  onBlur: (htmlValue: string, changed: boolean) => Promise<void>;
   setIsEditing: (value: boolean) => void;
   isComment?: boolean;
 }
 
 const TextEditor: FC<TestEditor> = ({
   value,
-  saveContent,
+  onBlur,
   setIsEditing,
   isComment,
 }) => {
-  const content = stateFromHTML(value);
-  const [editorState, setEditorState] = useState(
-    EditorState.createWithContent(content)
+  const [editorState, setEditorState] = useState(() =>
+    EditorState.createWithContent(stateFromHTML(value))
   );
-  const editorRef = useRef(null);
+  const originalHtml = useRef(stateToHTML(editorState.getCurrentContent()));
+  const editorRef = useRef<DraftEditor>(null);
+  // contenido ожидает ненулевой ref, хотя React заполняет его только после монтирования.
+  const contenidoEditorRef = editorRef as RefObject<DraftEditor>;
 
-  useEffect(() => focusOnEditor(editorRef), [editorRef]);
+  useEffect(() => focusOnEditor(contenidoEditorRef), [contenidoEditorRef]);
 
   const toolbarButtons = [
     {
@@ -80,11 +82,6 @@ const TextEditor: FC<TestEditor> = ({
     },
   ];
 
-  const handleSaveClick = async () => {
-    const htmlValue = stateToHTML(editorState.getCurrentContent());
-    saveContent(htmlValue);
-  };
-
   return (
     <>
       <Box
@@ -111,9 +108,9 @@ const TextEditor: FC<TestEditor> = ({
         ))}
       </Box>
       <Box
-        gap={4}
-        p={1}
         sx={{
+          gap: 4,
+          p: 1,
           border: "1px solid grey",
           borderRadius: "0 5px 5px 5px",
           mb: 2,
@@ -139,23 +136,23 @@ const TextEditor: FC<TestEditor> = ({
         <Editor
           editorState={editorState}
           onChange={setEditorState}
+          onBlur={() => {
+            const html = stateToHTML(editorState.getCurrentContent());
+            void onBlur(html, html !== originalHtml.current);
+          }}
           handleKeyCommand={shortcutHandler(setEditorState)}
           keyBindingFn={getDefaultKeyBindingFn}
-          editorRef={editorRef}
+          editorRef={contenidoEditorRef}
         />
       </Box>
-      <ButtonGroup
+      <Button
         color={isComment ? "warning" : undefined}
         variant="outlined"
-        aria-label="Basic button group"
+        onMouseDown={(event) => event.preventDefault()}
+        onClick={() => setIsEditing(false)}
       >
-        <Button variant="contained" onClick={handleSaveClick}>
-          {isComment ? "Сохранить комментарий" : "Сохранить изменения"}
-        </Button>
-        <Button variant="outlined" onClick={() => setIsEditing(false)}>
-          Отменить
-        </Button>
-      </ButtonGroup>
+        Отменить
+      </Button>
     </>
   );
 };

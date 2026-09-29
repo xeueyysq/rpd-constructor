@@ -7,7 +7,7 @@ import {
 import { useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { RedirectPath } from "@shared/enums";
-import { ComplectTableHeader } from "@widgets/table-header/ui/ComplectTableHeader";
+import { ComplectTableHeader } from "@widgets/table-header";
 import { useComplectData, useComplectTableColumns } from "../hooks";
 import { complectTableOptions } from "../config";
 import type { TemplateData } from "../types";
@@ -17,27 +17,26 @@ export function RpdComplectPage() {
   const { id: complectId } = useParams();
   const navigate = useNavigate();
   const [openBuildFunds, setOpenBuildFunds] = useState(false);
-
   const {
     complectMeta,
-    selectedTeachers,
+    selectedTeacherIds,
+    setSelectedTeacherIds,
     filteredData,
     fetchComplectData,
-    handleTeachersChange,
     createTemplateData,
   } = useComplectData(complectId);
-
   const columns = useComplectTableColumns({
-    selectedTeachers,
-    onTeachersChange: handleTeachersChange,
+    selectedTeacherIds,
+    onSelectedTeacherIdsChange: (id, ids) =>
+      setSelectedTeacherIds((previous) => ({ ...previous, [id]: ids })),
     onCreateTemplate: createTemplateData,
     onFetchData: fetchComplectData,
   });
-
   const table = useMaterialReactTable<TemplateData>({
     ...complectTableOptions,
     columns,
     data: filteredData,
+    getRowId: (row) => String(row.id),
     renderTopToolbarCustomActions: () => (
       <ComplectTableHeader
         id={complectId}
@@ -47,16 +46,14 @@ export function RpdComplectPage() {
       />
     ),
   });
-
   if (!complectMeta) return <Loader />;
-
   return (
     <Box>
       <PageTitle
         title={`${complectMeta.profile} ${complectMeta.year}`}
         backNavPath={RedirectPath.COMPLECTS}
       />
-      <Box pt={2}>
+      <Box sx={{ pt: 2 }}>
         <MaterialReactTable table={table} />
       </Box>
       {complectId ? (

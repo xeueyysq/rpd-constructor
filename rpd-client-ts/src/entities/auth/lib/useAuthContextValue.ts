@@ -21,7 +21,7 @@ export const useAuthContextValue = (): AuthContextProps => {
   }, []);
 
   const scheduleRefresh = useCallback(
-    (expiration: number) => {
+    function schedule(expiration: number) {
       clearRefreshTimer();
       const refreshTime = expiration - 10000;
 
@@ -34,7 +34,7 @@ export const useAuthContextValue = (): AuthContextProps => {
             updateAbility(role);
             setIsUserLogged(true);
             setAccessToken(accessToken);
-            scheduleRefresh(accessTokenExpiration);
+            schedule(accessTokenExpiration);
           })
           .catch(() => {
             setIsUserLogged(false);

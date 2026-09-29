@@ -1,14 +1,14 @@
 import { FC, useEffect, useState } from "react";
 import { pdfjs } from "react-pdf";
-pdfjs.GlobalWorkerOptions.workerSrc =
-  "https://cdnjs.cloudflare.com/ajax/libs/pdf.js/4.8.69/pdf.worker.min.mjs";
+pdfjs.GlobalWorkerOptions.workerSrc = new URL(
+  "pdfjs-dist/build/pdf.worker.min.mjs",
+  import.meta.url
+).toString();
 
-import {
-  ChevronLeft,
-  ChevronRight,
-  ZoomIn,
-  ZoomOut,
-} from "@mui/icons-material";
+import ChevronLeft from "@mui/icons-material/ChevronLeft";
+import ChevronRight from "@mui/icons-material/ChevronRight";
+import ZoomIn from "@mui/icons-material/ZoomIn";
+import ZoomOut from "@mui/icons-material/ZoomOut";
 import FileDownloadOutlinedIcon from "@mui/icons-material/FileDownloadOutlined";
 import {
   Box,
@@ -20,8 +20,8 @@ import {
 } from "@mui/material";
 import { useStore } from "@shared/hooks";
 import { Document, Page } from "react-pdf";
-import "react-pdf/dist/esm/Page/AnnotationLayer.css";
-import "react-pdf/dist/esm/Page/TextLayer.css";
+import "react-pdf/dist/Page/AnnotationLayer.css";
+import "react-pdf/dist/Page/TextLayer.css";
 
 interface PdfReaderProps {
   file: Blob | MediaSource;
@@ -98,12 +98,14 @@ export const PdfReader: FC<PdfReaderProps> = ({
       }}
     >
       <Stack
-        width={"100%"}
+        sx={{
+          width: "100%",
+          alignItems: "center",
+          justifyContent: "space-between",
+        }}
         direction="row"
-        alignItems="center"
-        justifyContent={"space-between"}
       >
-        <Box minWidth={"175px"} />
+        <Box sx={{ minWidth: "175px" }} />
         <Box
           sx={{
             display: "flex",
@@ -121,7 +123,7 @@ export const PdfReader: FC<PdfReaderProps> = ({
             <ZoomIn />
           </IconButton>
         </Box>
-        <Stack direction="row" spacing={1} justifyContent="flex-end">
+        <Stack sx={{ justifyContent: "flex-end" }} direction="row" spacing={1}>
           <Button
             variant="contained"
             startIcon={<FileDownloadOutlinedIcon />}
@@ -155,7 +157,7 @@ export const PdfReader: FC<PdfReaderProps> = ({
         </Stack>
       </Stack>
 
-      <Box pr={10} border={"1px dashed black"} my={2}>
+      <Box sx={{ pr: 10, border: "1px dashed black", my: 2 }}>
         <Document
           file={fileUrl}
           onLoadSuccess={onDocumentLoadSuccess}
@@ -176,7 +178,7 @@ export const PdfReader: FC<PdfReaderProps> = ({
       </Box>
 
       {numPages > 0 && (
-        <Stack direction="row" alignItems="center">
+        <Stack sx={{ alignItems: "center" }} direction="row">
           <IconButton onClick={() => changePage(-1)} disabled={pageNumber <= 1}>
             <ChevronLeft />
           </IconButton>

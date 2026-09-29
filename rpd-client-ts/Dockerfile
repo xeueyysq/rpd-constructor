@@ -1,21 +1,22 @@
-FROM node:20.11.1-alpine as builder
+FROM node:22-alpine as builder
 
 WORKDIR /app
 
-COPY package*.json ./
+RUN apk add --no-cache curl bash unzip \
+    && curl -fsSL https://bun.sh/install | bash
+ENV PATH="/root/.bun/bin:${PATH}"
 
-RUN npm install
+COPY package.json bun.lock ./
+
+RUN bun install --frozen-lockfile
 
 COPY . .
 
-RUN npm run build
+RUN bun run build
 
 FROM nginx:alpine
 
-# Копируем собранные файлы
 COPY --from=0 /app/dist /usr/share/nginx/html
-
-# Копируем конфигурацию Nginx
 COPY nginx.conf /etc/nginx/conf.d/default.conf
 
 EXPOSE 80

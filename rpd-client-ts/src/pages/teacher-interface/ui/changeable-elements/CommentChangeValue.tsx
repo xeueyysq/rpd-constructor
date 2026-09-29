@@ -1,4 +1,5 @@
 import { useAuth } from "@entities/auth";
+import { useTemplateSync } from "@entities/template";
 import {
   Box,
   Button,
@@ -12,12 +13,12 @@ import {
 import { UserRole } from "@shared/ability";
 import { axiosBase } from "@shared/api";
 import { useStore } from "@shared/hooks";
-import { showErrorMessage, showSuccessMessage } from "@shared/lib";
+import { showErrorMessage } from "@shared/lib";
 import { useMemo, useState } from "react";
 import TextEditor from "./TextEditor.tsx";
 import MoreHorizIcon from "@mui/icons-material/MoreHoriz";
 import EditIcon from "@mui/icons-material/Edit";
-import RemoveCircleOutlineIcon from "@mui/icons-material/RemoveCircleOutline";
+import RemoveCircleOutlineOutlined from "@mui/icons-material/RemoveCircleOutlineOutlined";
 
 interface ICommentChangeValue {
   templateField: string;
@@ -82,21 +83,23 @@ export function CommentChangeValue({
         })
       : "—";
 
-  const saveComment = async (htmlValue: string) => {
+  const saveComment = async (htmlValue: string, changed: boolean) => {
+    if (!changed) {
+      setIsEdittedComment(false);
+      return;
+    }
     if (!templateId) {
       showErrorMessage("Шаблон не загружен");
       return;
     }
     try {
-      const { data } = await axiosBase.put(
-        `upset-template-comment/${templateId}`,
-        {
+      const { data } = await useTemplateSync.getState().track(
+        axiosBase.put(`upset-template-comment/${templateId}`, {
           field: templateField,
           value: htmlValue,
-        }
+        })
       );
 
-      showSuccessMessage("Данные успешно сохранены");
       updateJsonComment(templateField, data ?? htmlValue);
       setIsEdittedComment(false);
     } catch (error) {
@@ -115,7 +118,6 @@ export function CommentChangeValue({
       await axiosBase.delete(`delete-template-comment/${commentId}`);
       updateJsonComment(templateField, undefined);
       setIsEdittedComment(false);
-      showSuccessMessage("Комментарий удален");
     } catch (error) {
       showErrorMessage("Ошибка сохранения данных");
       console.error(error);
@@ -153,14 +155,13 @@ export function CommentChangeValue({
             }}
           >
             <Box>
-              <Typography display="block" gutterBottom m="0">
+              <Typography sx={{ display: "block", m: "0" }} gutterBottom>
                 Комментарий
               </Typography>
               <Typography
+                sx={{ display: "block", m: "0" }}
                 variant="caption"
-                display="block"
                 color="text.secondary"
-                m="0"
               >
                 {isEdited
                   ? `Изменен: ${formatDateTime(updatedAt)}`
@@ -168,18 +169,17 @@ export function CommentChangeValue({
               </Typography>
             </Box>
             <Typography
+              sx={{ display: "block", m: "0" }}
               color="text.secondary"
-              display="block"
               gutterBottom
-              m="0"
             >
               Автор: {comment.commentator_id}
             </Typography>
           </Box>
-          <Box pl={2}>
+          <Box sx={{ pl: 2 }}>
             <Typography dangerouslySetInnerHTML={{ __html: commentText }} />
           </Box>
-          <Box p={2} pb={1}>
+          <Box sx={{ p: 2, pb: 1 }}>
             <Box sx={{ display: "flex", justifyContent: "space-between" }}>
               {userRole !== UserRole.TEACHER && (
                 <Button
@@ -208,21 +208,18 @@ export function CommentChangeValue({
                 anchorEl={anchorEl}
                 open={open}
                 onClose={handleClose}
-                MenuListProps={{
-                  "aria-labelledby": "basic-button",
-                }}
+                slotProps={{ list: { "aria-labelledby": "basic-button" } }}
               >
                 <MenuItem onClick={deleteComment}>
                   <ListItemIcon>
-                    <RemoveCircleOutlineIcon color="error" />
+                    <RemoveCircleOutlineOutlined color="error" />
                   </ListItemIcon>
                   <ListItemText>
                     <Typography
+                      sx={{ display: "block", m: "0" }}
                       variant="button"
-                      display="block"
                       gutterBottom
                       color="error"
-                      m="0"
                     >
                       Удалить комментарий
                     </Typography>
@@ -233,10 +230,10 @@ export function CommentChangeValue({
           </Box>
         </Box>
       ) : (
-        <Box p={2}>
+        <Box sx={{ p: 2 }}>
           <TextEditor
             value={commentText ?? ""}
-            saveContent={saveComment}
+            onBlur={saveComment}
             setIsEditing={setIsEdittedComment}
             isComment={true}
           />

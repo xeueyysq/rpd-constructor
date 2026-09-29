@@ -11,8 +11,12 @@ import {
   TextField,
   Typography,
 } from "@mui/material";
-import { axiosBase } from "@shared/api";
-import { showErrorMessage } from "@shared/lib";
+import {
+  useAssessmentFundsCompetencies,
+  useDownloadAssessmentFundsExcel,
+  useDownloadAssessmentFundsWord,
+} from "@features/assessment-funds";
+import { downloadBlob, showErrorMessage } from "@shared/lib";
 import { FC, useEffect, useMemo, useState } from "react";
 
 export type BuildFundsByComplectDialogProps = {
@@ -21,19 +25,18 @@ export type BuildFundsByComplectDialogProps = {
   onClose: () => void;
 };
 
-type ResultsRow = {
-  competence: string;
-  indicator: string;
-  disciplines: string[];
-};
-
 export const BuildFundsByComplectDialog: FC<
   BuildFundsByComplectDialogProps
 > = ({ open, complectId, onClose }) => {
-  const [rows, setRows] = useState<ResultsRow[]>([]);
   const [selectedCompetence, setSelectedCompetence] = useState("");
-  const [isLoading, setIsLoading] = useState(false);
-  const [isGenerating, setIsGenerating] = useState(false);
+  const {
+    data: rows = [],
+    isPending: isLoading,
+    isError,
+  } = useAssessmentFundsCompetencies(complectId, open);
+  const word = useDownloadAssessmentFundsWord();
+  const excel = useDownloadAssessmentFundsExcel();
+  const isGenerating = word.isPending || excel.isPending;
 
   const competencies = useMemo(() => {
     return [
@@ -43,30 +46,8 @@ export const BuildFundsByComplectDialog: FC<
 
   useEffect(() => {
     if (!open) return;
-
-    let isActive = true;
-    setIsLoading(true);
     setSelectedCompetence("");
-
-    (async () => {
-      try {
-        const { data } = await axiosBase.get<ResultsRow[]>("get-results-data", {
-          params: { complectId },
-        });
-        if (!isActive) return;
-        setRows(Array.isArray(data) ? data : []);
-      } catch (error) {
-        console.error(error);
-        showErrorMessage("Не удалось загрузить компетенции комплекта");
-      } finally {
-        if (isActive) setIsLoading(false);
-      }
-    })();
-
-    return () => {
-      isActive = false;
-    };
-  }, [open, complectId]);
+  }, [open]);
 
   useEffect(() => {
     if (!selectedCompetence && competencies.length > 0) {
@@ -77,29 +58,25 @@ export const BuildFundsByComplectDialog: FC<
   const handleGenerateDocx = async () => {
     if (!selectedCompetence) return;
 
-    setIsGenerating(true);
     try {
-      const response = await axiosBase.post<Blob>(
-        "generate-assessment-funds-docx",
-        {
-          complectId,
-          competence: selectedCompetence,
-        },
-        { responseType: "blob" }
-      );
-      const url = URL.createObjectURL(response.data);
-      const link = document.createElement("a");
-      link.href = url;
-      link.download = `${selectedCompetence.slice(0, 80)}.docx`;
-      document.body.appendChild(link);
-      link.click();
-      link.remove();
-      URL.revokeObjectURL(url);
+      const blob = await word.mutateAsync({
+        complectId,
+        competence: selectedCompetence,
+      });
+      downloadBlob(blob, `${selectedCompetence.slice(0, 80)}.docx`);
     } catch (error) {
       console.error(error);
       showErrorMessage("Не удалось сформировать Word-документ");
-    } finally {
-      setIsGenerating(false);
+    }
+  };
+
+  const handleGenerateExcel = async () => {
+    try {
+      const { blob, filename } = await excel.mutateAsync(complectId);
+      downloadBlob(blob, filename);
+    } catch (error) {
+      console.error(error);
+      showErrorMessage("Не удалось сформировать Excel-файл");
     }
   };
 
@@ -108,15 +85,20 @@ export const BuildFundsByComplectDialog: FC<
       <DialogTitle>Сформировать ФОС</DialogTitle>
       <DialogContent dividers>
         <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
-          Выберите компетенцию, вопросы которой нужно отразить в Word-документе
+          Word содержит вопросы выбранной компетенции. Excel содержит выбранные
+          вопросы всех компетенций комплекта в формате таблицы.
         </Typography>
         {isLoading ? (
-          <Box display="flex" alignItems="center" gap={1}>
+          <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
             <CircularProgress size={18} />
             <Typography color="text.secondary">
               Загрузка компетенций…
             </Typography>
           </Box>
+        ) : isError ? (
+          <Alert severity="error">
+            Не удалось загрузить компетенции комплекта
+          </Alert>
         ) : competencies.length === 0 ? (
           <Alert severity="warning">
             В комплекте не найдены компетенции. Сначала загрузите планируемые
@@ -129,12 +111,16 @@ export const BuildFundsByComplectDialog: FC<
             value={selectedCompetence}
             onChange={(e) => setSelectedCompetence(e.target.value)}
             sx={{ width: "100%", maxWidth: 900 }}
-            SelectProps={{
-              MenuProps: {
-                PaperProps: {
-                  sx: {
-                    maxHeight: 320,
-                    maxWidth: 900,
+            slotProps={{
+              select: {
+                MenuProps: {
+                  slotProps: {
+                    paper: {
+                      sx: {
+                        maxHeight: 320,
+                        maxWidth: 900,
+                      },
+                    },
                   },
                 },
               },
@@ -153,11 +139,18 @@ export const BuildFundsByComplectDialog: FC<
           Закрыть
         </Button>
         <Button
+          variant="outlined"
+          onClick={handleGenerateExcel}
+          disabled={isGenerating}
+        >
+          {excel.isPending ? "Формирование…" : "Скачать Excel"}
+        </Button>
+        <Button
           variant="contained"
           onClick={handleGenerateDocx}
           disabled={!selectedCompetence || isLoading || isGenerating}
         >
-          {isGenerating ? "Формирование…" : "Скачать Word"}
+          {word.isPending ? "Формирование…" : "Скачать Word"}
         </Button>
       </DialogActions>
     </Dialog>

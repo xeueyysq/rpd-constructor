@@ -1,5 +1,9 @@
 import { useQuery, useQueryClient, useMutation } from "@tanstack/react-query";
-import { getRpdComplects, deleteRpdComplects } from "../api/rpdComplects";
+import {
+  getRpdComplects,
+  deleteRpdComplects,
+  assignComplectOwner,
+} from "../api/rpdComplects";
 import { ComplectData } from "@shared/types";
 import { showErrorMessage } from "@shared/lib";
 
@@ -28,5 +32,14 @@ export const useDeleteRpdComplectsMutation = () => {
         return prev.filter((c) => !toDelete.has(c.uuid));
       });
     },
+  });
+};
+
+export const useAssignComplectOwner = () => {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: assignComplectOwner,
+    onSuccess: () =>
+      queryClient.invalidateQueries({ queryKey: rpdComplectsQueryKey }),
   });
 };

@@ -61,32 +61,14 @@
 
 ## Установка и запуск
 
-### 1. Клонирование репозитория
+Нужны bun 1.3 и Node.js 22.
 
 ```bash
-git clone <URL репозитория>
-cd <название папки с проектом>
+bun install
+bun run dev
 ```
 
-### 2. Установка зависимостей
-
-Убедитесь, что у вас установлен Node.js и npm или yarn. Затем выполните:
-
-```bash
-npm install
-# или
-yarn install
-```
-
-### 3. Запуск проекта
-
-```bash
-npm start
-# или
-yarn start
-```
-
-Проект будет запущен на [http://localhost:8000](http://localhost:8000).
+Клиент запускается на [http://localhost:5173](http://localhost:5173). Адрес API задаёт `VITE_API_URL` в `.env`. Запуск сервера, проверки и e2e описаны в [README в корне репозитория](../README.md).
 
 ---
 

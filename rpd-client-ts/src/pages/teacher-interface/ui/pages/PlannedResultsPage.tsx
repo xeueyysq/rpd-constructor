@@ -1,6 +1,5 @@
 import {
   Box,
-  Button,
   Paper,
   Table,
   TableBody,
@@ -12,19 +11,23 @@ import {
   useTheme,
 } from "@mui/material";
 import { useAuth } from "@entities/auth";
+import {
+  sameValue,
+  useTemplateSync,
+  useUpdateTemplateField,
+} from "@entities/template";
 import { PlannedResultsData } from "@pages/teacher-interface/model/DisciplineContentPageTypes.ts";
-import { TemplatePagesPath } from "@pages/teacher-interface/model/pathes";
+import { TemplatePagesPath } from "@shared/enums";
 import { UserRole } from "@shared/ability";
 import { axiosBase } from "@shared/api";
 import { useStore } from "@shared/hooks";
-import { showErrorMessage, showSuccessMessage } from "@shared/lib";
-import { Loader, PageTitleComment } from "@shared/ui";
-import { isAxiosError } from "axios";
+import { Loader } from "@shared/ui";
+import { PageTitleComment } from "../PageTitleComment";
 import {
   hasPlannedResultsData,
   mapComplectResultsToPlannedResults,
   type ComplectResultsRow,
-} from "@pages/teacher-interface/lib/mapPlannedResultsFromComplect.ts";
+} from "@features/discipline-evaluations-funds";
 import {
   FC,
   useEffect,
@@ -93,7 +96,8 @@ const PlannedResultsTableRow: FC<{
     key: "competence" | "indicator"
   ) => void;
   onChangeResult: (id: number, value: string, key: ResultKey) => void;
-}> = ({ rowKeyStr, row, readOnly, onChangeBase, onChangeResult }) => {
+  onBlur: () => void;
+}> = ({ rowKeyStr, row, readOnly, onChangeBase, onChangeResult, onBlur }) => {
   const theme = useTheme();
   const id = Number(rowKeyStr);
   const cellSx = {
@@ -134,6 +138,7 @@ const PlannedResultsTableRow: FC<{
             minRows={1}
             value={row.competence}
             onChange={(e) => onChangeBase(id, e.target.value, "competence")}
+            onBlur={onBlur}
             inputRef={registerTextarea(0)}
             disabled={readOnly}
           />
@@ -148,6 +153,7 @@ const PlannedResultsTableRow: FC<{
             minRows={1}
             value={row.indicator}
             onChange={(e) => onChangeBase(id, e.target.value, "indicator")}
+            onBlur={onBlur}
             inputRef={registerTextarea(1)}
             disabled={readOnly}
           />
@@ -163,6 +169,7 @@ const PlannedResultsTableRow: FC<{
               minRows={1}
               value={row.results[resultKey]}
               onChange={(e) => onChangeResult(id, e.target.value, resultKey)}
+              onBlur={onBlur}
               inputRef={registerTextarea(2 + idx)}
               disabled={readOnly}
             />
@@ -180,41 +187,27 @@ const PlannedResultsPage: FC = () => {
     (state) => state.jsonData.disciplins_name
   ) as string;
   const initialData = useStore((state) => state.jsonData.competencies) as
-    | PlannedResultsData
-    | undefined;
-  const { updateJsonData } = useStore();
+    PlannedResultsData | undefined;
+  const saveField = useUpdateTemplateField();
+  const dirty = useTemplateSync((state) => Boolean(state.dirty.competencies));
   const [data, setData] = useState<PlannedResultsData | undefined>(initialData);
 
   useEffect(() => {
-    setData(initialData);
-  }, [initialData]);
+    if (!dirty) setData(initialData);
+  }, [initialData, dirty]);
 
-  const saveData = async () => {
+  const saveData = () => {
     if (!data) return;
-    const id = useStore.getState().jsonData.id;
-
-    try {
-      await axiosBase.put(`update-json-value/${id}`, {
-        fieldToUpdate: "competencies",
-        value: data,
-      });
-
-      updateJsonData("competencies", data);
-      showSuccessMessage("Данные успешно сохранены");
-    } catch (error) {
-      showErrorMessage("Ошибка сохранения данных");
-      if (isAxiosError(error)) {
-        console.error("Ошибка Axios:", error.response?.data);
-        console.error("Статус ошибки:", error.response?.status);
-        console.error("Заголовки ошибки:", error.response?.headers);
-      } else {
-        console.error("Неизвестная ошибка:", error);
-      }
+    if (sameValue(data, useStore.getState().jsonData.competencies ?? {})) {
+      useTemplateSync.getState().clearDirty("competencies");
+      return;
     }
+    void saveField("competencies", data);
   };
 
   const handleChangeResult = (id: number, value: string, key: ResultKey) => {
     if (!data) return;
+    useTemplateSync.getState().markDirty("competencies");
     setData({
       ...data,
       [id]: {
@@ -233,6 +226,7 @@ const PlannedResultsPage: FC = () => {
     key: "competence" | "indicator"
   ) => {
     if (!data) return;
+    useTemplateSync.getState().markDirty("competencies");
     setData({
       ...data,
       [id]: {
@@ -288,16 +282,10 @@ const PlannedResultsPage: FC = () => {
     <Box>
       <PageTitleComment
         title="Планируемые результаты обучения по дисциплине (модулю)"
-        paddingBottom={2}
+        sx={{ pb: 2 }}
         templateField={TemplatePagesPath.DISCIPLINE_PLANNED_RESULTS}
+        fields={["competencies"]}
       />
-      {!readOnly && (
-        <Box pt={2} display={"flex"} justifyContent="flex-end" gap={1}>
-          <Button variant="contained" onClick={saveData}>
-            Сохранить
-          </Button>
-        </Box>
-      )}
       <TableContainer component={Paper} sx={{ my: 2, borderRadius: 0 }}>
         <Table
           sx={{
@@ -340,6 +328,7 @@ const PlannedResultsPage: FC = () => {
                 readOnly={readOnly}
                 onChangeBase={handleChangeBaseCell}
                 onChangeResult={handleChangeResult}
+                onBlur={saveData}
               />
             ))}
           </TableBody>

@@ -1,47 +1,35 @@
 import EditIcon from "@mui/icons-material/Edit";
 import { Box, Button } from "@mui/material";
 import { JsonChangeValueTypes } from "@pages/teacher-interface/model/DisciplineContentPageTypes.ts";
-import { axiosBase } from "@shared/api";
+import { useTemplateSync, useUpdateTemplateField } from "@entities/template";
 import { useStore } from "@shared/hooks";
-import { showErrorMessage, showSuccessMessage } from "@shared/lib";
-import { FC, useEffect, useState } from "react";
+import { FC, useState } from "react";
 import { ExportFromTemplates } from "./ExportFromTemplates.tsx";
 import TextEditor from "./TextEditor.tsx";
 
 const JsonChangeValue: FC<JsonChangeValueTypes> = ({ elementName }) => {
-  const updateJsonData = useStore((state) => state.updateJsonData);
-  const templateId = useStore((state) => state.jsonData.id);
-  const elementValue = useStore((state) => state.jsonData[elementName]);
+  const elementValue = useStore((state) => state.jsonData[elementName]) as
+    string | undefined;
+  const save = useUpdateTemplateField();
 
   const [isEditing, setIsEditing] = useState<boolean>(false);
-  const [changeableValue, setChangeableValue] = useState<string>(
-    elementValue || ""
-  );
-
-  useEffect(() => {
-    if (!isEditing) setChangeableValue(elementValue || "");
-  }, [elementValue, templateId, isEditing]);
-
   const handleEditClick = () => {
+    useTemplateSync.getState().markDirty(elementName);
     setIsEditing(true);
   };
 
-  const saveContent = async (htmlValue: string) => {
+  const saveContent = async (htmlValue: string, changed: boolean) => {
     setIsEditing(false);
-
-    try {
-      await axiosBase.put(`update-json-value/${templateId}`, {
-        fieldToUpdate: elementName,
-        value: htmlValue,
-      });
-
-      showSuccessMessage("Данные успешно сохранены");
-      updateJsonData(elementName, htmlValue);
-      setChangeableValue(htmlValue);
-    } catch (error) {
-      showErrorMessage("Ошибка сохранения данных");
-      console.error(error);
+    if (!changed) {
+      useTemplateSync.getState().clearDirty(elementName);
+    } else {
+      await save(elementName, htmlValue);
     }
+  };
+
+  const cancelEdit = (editing: boolean) => {
+    if (!editing) useTemplateSync.getState().clearDirty(elementName);
+    setIsEditing(editing);
   };
 
   return (
@@ -65,18 +53,18 @@ const JsonChangeValue: FC<JsonChangeValueTypes> = ({ elementName }) => {
         }}
       >
         {isEditing ? (
-          <Box p={1}>
+          <Box sx={{ p: 1 }}>
             <TextEditor
-              value={changeableValue}
-              saveContent={saveContent}
-              setIsEditing={setIsEditing}
+              value={elementValue || ""}
+              onBlur={saveContent}
+              setIsEditing={cancelEdit}
             />
           </Box>
         ) : (
           <Box>
-            {changeableValue ? (
+            {elementValue ? (
               <Box
-                dangerouslySetInnerHTML={{ __html: changeableValue }}
+                dangerouslySetInnerHTML={{ __html: elementValue }}
                 sx={{ py: 1 }}
               ></Box>
             ) : (
@@ -102,12 +90,7 @@ const JsonChangeValue: FC<JsonChangeValueTypes> = ({ elementName }) => {
               >
                 Редактировать
               </Button>
-              <ExportFromTemplates
-                elementName={elementName}
-                setChangeableValue={(value) =>
-                  setChangeableValue(value as string)
-                }
-              />
+              <ExportFromTemplates elementName={elementName} />
             </Box>
           </Box>
         )}

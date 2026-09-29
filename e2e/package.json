@@ -1,0 +1,18 @@
+{
+  "name": "rpd-e2e",
+  "private": true,
+  "type": "module",
+  "packageManager": "bun@1.3.14",
+  "scripts": {
+    "test:e2e": "bash ./scripts/reset-db.sh && playwright test",
+    "test:e2e:auth": "bun run test:e2e tests/auth",
+    "test:e2e:users": "bun run test:e2e tests/users",
+    "test:e2e:complects": "bun run test:e2e tests/complects",
+    "test:e2e:editor": "bun run test:e2e tests/editor",
+    "docs:screenshots": "DOCS_SCREENSHOTS=1 bun run test:e2e tests/docs",
+    "db:down": "docker compose --env-file e2e.env down"
+  },
+  "devDependencies": {
+    "@playwright/test": "^1.63.0"
+  }
+}

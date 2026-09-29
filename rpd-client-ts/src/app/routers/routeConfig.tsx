@@ -1,9 +1,9 @@
+/* eslint-disable react-refresh/only-export-components -- конфигурация маршрутов экспортирует JSX для роутера. */
 import { lazy } from "react";
 import { RedirectPath } from "@shared/enums";
 import { UserRole } from "@shared/ability";
 
 const Manager = lazy(() => import("@pages/manager"));
-const RPDTemplate = lazy(() => import("@pages/rpd-template"));
 const TeacherInterface = lazy(() => import("@pages/teacher-interface"));
 const SignIn = lazy(() => import("@pages/sign-in"));
 const UserManagement = lazy(() => import("@pages/user-management"));
@@ -27,7 +27,6 @@ export const roleToAvailablePath: Record<UserRole, RedirectPath[]> = {
   [UserRole.ROP]: mainPages,
   [UserRole.TEACHER]: [
     RedirectPath.TEMPLATES,
-    RedirectPath.RPD_TEMPLATE,
     RedirectPath.TEMPLATE,
     RedirectPath.TEMPLATE_SUBPAGE,
   ],
@@ -37,9 +36,8 @@ export const roleToAvailablePath: Record<UserRole, RedirectPath[]> = {
 
 export const routes = {
   [RedirectPath.SIGN_IN]: <SignIn />,
-  [RedirectPath.MANAGER]: <Manager />,
+  [RedirectPath.MANAGER]: <Manager complectPage={<RpdComplectPage />} />,
   [RedirectPath.TEMPLATES]: <TeacherInterfaceTemplates />,
-  [RedirectPath.RPD_TEMPLATE]: <RPDTemplate />,
   [RedirectPath.COMPLECTS]: <RpdComplectsList />,
   [RedirectPath.PLANNED_RESULTS]: <PlannedResultsList />,
   [RedirectPath.USER_MANAGEMENT]: <UserManagement />,

@@ -1,0 +1,17 @@
+study.docs/
+.DS_Store
+.vscode/
+.cursor/
+.claude/settings.local.json
+**/node_modules/
+**/dist/
+**/build/
+*.log
+./claude
+CLAUDE.md
+.serena/
+.claude/
+AGENTS.md
+e2e/test-results/
+e2e/playwright-report/
+e2e/blob-report/

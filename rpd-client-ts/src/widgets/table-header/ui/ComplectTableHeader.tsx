@@ -1,6 +1,5 @@
 import CachedIcon from "@mui/icons-material/Cached";
 import DeleteIcon from "@mui/icons-material/Delete";
-import SaveAsIcon from "@mui/icons-material/SaveAs";
 import PlaylistAddCheckIcon from "@mui/icons-material/PlaylistAddCheck";
 import {
   Box,
@@ -12,7 +11,7 @@ import {
   Tooltip,
 } from "@mui/material";
 import { useMemo, useState } from "react";
-import { useDeleteRpdComplectsMutation } from "@entities/rpd-complect/model/queries";
+import { useDeleteRpdComplectsMutation } from "@entities/rpd-complect";
 import { UpdateComplectDialog } from "@features/complect-sync";
 import { ComplectData } from "@shared/types";
 import { MRT_TableInstance } from "material-react-table";
@@ -108,21 +107,15 @@ export function ComplectTableHeader({
           Удалить
         </Button>
       )}
-      <Button
-        variant="outlined"
-        startIcon={<SaveAsIcon />}
-        disabled={!hasSelection}
-      >
-        Добавить содержание рпд
-      </Button>
-      <Button
-        variant="contained"
-        startIcon={<PlaylistAddCheckIcon />}
-        disabled={!isPageMode || !onBuildFundsClick}
-        onClick={onBuildFundsClick}
-      >
-        Собрать ФОСы
-      </Button>
+      {onBuildFundsClick && (
+        <Button
+          variant="contained"
+          startIcon={<PlaylistAddCheckIcon />}
+          onClick={onBuildFundsClick}
+        >
+          Собрать ФОСы
+        </Button>
+      )}
       <Dialog
         open={openDeleteConfirm}
         onClose={() => setOpenDeleteConfirm(false)}

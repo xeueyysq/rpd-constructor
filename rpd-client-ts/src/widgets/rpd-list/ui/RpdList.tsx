@@ -14,21 +14,20 @@ import {
   ListItemText,
   Typography,
 } from "@mui/material";
-import { TemplatePagesPath } from "@pages/teacher-interface/model/pathes.ts";
-import { Can } from "@shared/ability";
-import { RedirectPath } from "@shared/enums.ts";
+import { Can, UserRole } from "@shared/ability";
+import { useAuth } from "@entities/auth";
+import { RedirectPath, TemplatePagesPath } from "@shared/enums";
 import { useStore } from "@shared/hooks";
 import { FC } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { RpdListItem } from "../model/types.ts";
 import RpdListItemComponent from "./RpdListItem.tsx";
 
-interface RpdListProps {
-  RpdListItems: RpdListItem[];
-}
-
-export const RpdList: FC<RpdListProps> = ({ RpdListItems }) => {
+export const RpdList: FC<{ RpdListItems: RpdListItem[] }> = ({
+  RpdListItems,
+}) => {
   const { jsonData, complectId } = useStore((state) => state);
+  const userRole = useAuth((state) => state.userRole);
   const navigate = useNavigate();
   const { id: templateId, page } = useParams();
   return (
@@ -47,7 +46,10 @@ export const RpdList: FC<RpdListProps> = ({ RpdListItems }) => {
             expandIcon={<ExpandMoreIcon />}
             aria-controls="panel1-content"
           >
-            <Typography fontSize={"14px"} fontWeight={"bold"} color={"primary"}>
+            <Typography
+              sx={{ fontSize: "14px", fontWeight: "bold" }}
+              color={"primary"}
+            >
               {String(jsonData.disciplins_name)}
             </Typography>
           </AccordionSummary>
@@ -55,7 +57,7 @@ export const RpdList: FC<RpdListProps> = ({ RpdListItems }) => {
             <ListItem disablePadding>
               <ListItemText>
                 <Typography
-                  fontSize={"14px"}
+                  sx={{ fontSize: "14px" }}
                   color="textSecondary"
                 >{`${jsonData.direction}, ${jsonData.profile}`}</Typography>
               </ListItemText>
@@ -63,7 +65,7 @@ export const RpdList: FC<RpdListProps> = ({ RpdListItems }) => {
             <ListItem disablePadding>
               <ListItemText>
                 <Typography
-                  fontSize={"14px"}
+                  sx={{ fontSize: "14px" }}
                   color="textSecondary"
                 >{`Уровень образования - ${jsonData.education_level}`}</Typography>
               </ListItemText>
@@ -71,7 +73,7 @@ export const RpdList: FC<RpdListProps> = ({ RpdListItems }) => {
             <ListItem disablePadding>
               <ListItemText>
                 <Typography
-                  fontSize={"14px"}
+                  sx={{ fontSize: "14px" }}
                   color="textSecondary"
                 >{`Форма обучения - ${jsonData.education_form}`}</Typography>
               </ListItemText>
@@ -79,7 +81,7 @@ export const RpdList: FC<RpdListProps> = ({ RpdListItems }) => {
             <ListItem disablePadding>
               <ListItemText>
                 <Typography
-                  fontSize={"14px"}
+                  sx={{ fontSize: "14px" }}
                   color="textSecondary"
                 >{`Год набора - ${jsonData.year}`}</Typography>
               </ListItemText>
@@ -140,7 +142,7 @@ export const RpdList: FC<RpdListProps> = ({ RpdListItems }) => {
                 </ListItemIcon>
                 <ListItemText
                   primary={
-                    <Typography fontSize={"14px"}>
+                    <Typography sx={{ fontSize: "14px" }}>
                       Сформировать документ
                     </Typography>
                   }
@@ -152,7 +154,9 @@ export const RpdList: FC<RpdListProps> = ({ RpdListItems }) => {
             <ListItemButton
               onClick={() =>
                 navigate(
-                  `${RedirectPath.COMPLECTS}/${jsonData?.complect_uuid ?? complectId}`
+                  userRole === UserRole.TEACHER
+                    ? RedirectPath.TEMPLATES
+                    : `${RedirectPath.COMPLECTS}/${jsonData?.complect_uuid ?? complectId}`
                 )
               }
               sx={{ py: 1 }}
@@ -161,7 +165,9 @@ export const RpdList: FC<RpdListProps> = ({ RpdListItems }) => {
                 <ArrowBackIcon sx={{ fontSize: "20px" }} />
               </ListItemIcon>
               <ListItemText
-                primary={<Typography fontSize={"14px"}>Список РПД</Typography>}
+                primary={
+                  <Typography sx={{ fontSize: "14px" }}>Список РПД</Typography>
+                }
               />
             </ListItemButton>
           </ListItem>

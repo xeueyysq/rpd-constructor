@@ -1,5 +1,5 @@
 import { useAuth } from "@entities/auth";
-import { useRpdComplectsQuery } from "@entities/rpd-complect/model/queries";
+import { useRpdComplectsQuery } from "@entities/rpd-complect";
 import FiberManualRecordIcon from "@mui/icons-material/FiberManualRecord";
 import {
   Box,
@@ -13,7 +13,7 @@ import { RedirectPath } from "@shared/enums";
 import { useStore } from "@shared/hooks";
 import type { ComplectData } from "@shared/types";
 import { Loader, PageTitle, StatusWithDate } from "@shared/ui";
-import { ComplectTableHeader } from "@widgets/table-header/ui/ComplectTableHeader";
+import { ComplectTableHeader } from "@widgets/table-header";
 import { orderBy } from "lodash";
 import {
   MaterialReactTable,
@@ -23,11 +23,13 @@ import {
 import { MRT_Localization_RU } from "material-react-table/locales/ru";
 import { FC, useCallback, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
+import { AssignOwnerDialog } from "./AssignOwnerDialog";
 
 export const RpdComplectsList: FC = () => {
   const { setComplectId } = useStore();
   const navigate = useNavigate();
   const [rowSelection, setRowSelection] = useState<Record<string, boolean>>({});
+  const [selectedOwnerId, setSelectedOwnerId] = useState<number | null>(null);
   const userRole = useAuth.getState().userRole;
   const { complects, isLoading } = useRpdComplectsQuery();
 
@@ -63,6 +65,31 @@ export const RpdComplectsList: FC = () => {
   const generalColumns = useMemo<MRT_ColumnDef<ComplectData>[]>(
     () => [
       ...(userRole === UserRole.ADMIN ? adminColumns : []),
+      ...(userRole === UserRole.ADMIN
+        ? [
+            {
+              id: "owner",
+              header: "Владелец",
+              accessorFn: (row: ComplectData) =>
+                row.owner?.map((owner) => owner.fullname).join(", ") ?? "",
+              Cell: ({ row }: { row: { original: ComplectData } }) => (
+                <Box>
+                  <Box>
+                    {row.original.owner
+                      ?.map((owner) => owner.fullname)
+                      .join(", ") || "Не назначен"}
+                  </Box>
+                  <Button
+                    size="small"
+                    onClick={() => setSelectedOwnerId(row.original.id)}
+                  >
+                    Назначить РОП
+                  </Button>
+                </Box>
+              ),
+            } as MRT_ColumnDef<ComplectData>,
+          ]
+        : []),
       {
         accessorKey: "profile",
         header: "Профиль",
@@ -133,12 +160,13 @@ export const RpdComplectsList: FC = () => {
         ),
       },
     ],
-    [handleViewComplect, navigate]
+    [handleViewComplect, navigate, userRole]
   );
 
   const table = useMaterialReactTable<ComplectData>({
     columns: generalColumns,
     data: userRole === UserRole.ADMIN ? complects : sortedComplectsByYear,
+    getRowId: (row) => String(row.id),
     localization: MRT_Localization_RU,
     enableFilters: false,
     enableSorting: false,
@@ -174,7 +202,7 @@ export const RpdComplectsList: FC = () => {
     <Box>
       <CssBaseline />
       <PageTitle title={"Список загруженных комплектов РПД"} />
-      <Box py={0.5}>
+      <Box sx={{ py: 0.5 }}>
         {sortedComplectsByYear.length > 0 && userRole !== UserRole.ADMIN && (
           <Breadcrumbs
             separator={
@@ -192,9 +220,15 @@ export const RpdComplectsList: FC = () => {
           </Breadcrumbs>
         )}
       </Box>
-      <Box pt={2}>
+      <Box sx={{ pt: 2 }}>
         <MaterialReactTable table={table} />
       </Box>
+      {selectedOwnerId !== null ? (
+        <AssignOwnerDialog
+          complectId={selectedOwnerId}
+          onClose={() => setSelectedOwnerId(null)}
+        />
+      ) : null}
     </Box>
   );
 };
