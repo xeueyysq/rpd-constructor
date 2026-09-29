@@ -4,3 +4,4 @@ export {
   showWarningMessage,
 } from "./showMessage";
 export { formatFullName } from "./formatFullName";
+export { downloadBlob } from "./downloadBlob";
