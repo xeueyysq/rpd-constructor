@@ -7,7 +7,8 @@ import { deriveCertification, getStudyPlanHours } from "../modules/disciplineSco
 import { isEditableTemplateField } from "../validators/RpdProfileTemplates.ts";
 import RpdProfileTemplates from "../models/rpd_profile_templates.ts";
 import TemplateAccess from "../services/TemplateAccess.ts";
-import { Unprocessable } from "../utils/Errors.ts";
+import { NotFound, Unprocessable } from "../utils/Errors.ts";
+import { buildFosWorkbook, fosRows } from "../services/documents/fosWorkbook.ts";
 import {
   AlignmentType,
   BorderStyle,
@@ -436,6 +437,19 @@ class RpdProfileTemplatesController {
       console.error(error);
       res.status(500).json({ message: errorMessage(error) });
     }
+  }
+
+  async generateAssessmentFundsXlsx(req: Request<ParamsDictionary, unknown, Record<string, unknown>>, res: Response) {
+    const complectId = req.body.complectId;
+    if (typeof complectId !== "string" && typeof complectId !== "number" || String(complectId).trim() === "") throw new Unprocessable("Укажите complectId");
+    const data = await this.model.getAssessmentFundsWorkbookData(complectId);
+    if (!data) throw new NotFound("Комплект не найден");
+    const { direction, profile, year } = data.complect;
+    const buffer = await buildFosWorkbook({ direction, profile, year, rows: fosRows(data.templates) });
+    const filename = profile?.trim() && year !== null ? `ФОС ${profile.trim().replace(/[\\/:*?"<>|\r\n]/g, " ")} ${year}.xlsx` : "ФОС.xlsx";
+    res.setHeader("Content-Type", "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet");
+    res.setHeader("Content-Disposition", `attachment; filename*=UTF-8''${encodeURIComponent(filename)}`);
+    res.send(buffer);
   }
 }
 

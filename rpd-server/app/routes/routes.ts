@@ -109,6 +109,13 @@ router.post(
     rpdProfileTemplatesController
   )
 );
+router.post(
+  "/generate-assessment-funds-xlsx",
+  TokenService.checkAccess,
+  requireRole(USER_ROLES.ROP, USER_ROLES.ADMIN),
+  complect((req) => req.body.complectId),
+  rpdProfileTemplatesController.generateAssessmentFundsXlsx.bind(rpdProfileTemplatesController)
+);
 
 import SpecProfilesController from "../controllers/specProfilesController.ts";
 const specProfilesController = new SpecProfilesController(pool);

@@ -42,6 +42,7 @@ app.use(
       }
     },
     credentials: true,
+    exposedHeaders: ["Content-Disposition"],
     methods: ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
     allowedHeaders: [
       "Content-Type",

@@ -3,14 +3,11 @@ import type { Pool } from "pg";
 import { patchStudyLoad } from "../modules/disciplineScope.ts";
 import { isEditableTemplateField } from "../validators/RpdProfileTemplates.ts";
 import { fullnameText } from "../modules/teacherNames.ts";
+import { selectedFundsQuestions } from "../modules/assessmentFunds.ts";
 import { fieldEditsSet, withEditorNames } from "../modules/fieldEdits.ts";
 import TemplateAccess from "../services/TemplateAccess.ts";
 import type { UserClaims } from "../types/express.d.ts";
 import { Conflict, Forbidden, NotFound, Unprocessable } from "../utils/Errors.ts";
-
-type AssessmentQuestionEntry = { id: string; text: string; correctAnswer?: string };
-type AssessmentCompetence = { openPool?: AssessmentQuestionEntry[]; closedPool?: AssessmentQuestionEntry[]; openQuestions?: unknown; closedQuestions?: unknown; selectedOpenIds?: string[]; selectedClosedIds?: string[] };
-type AssessmentFundsJson = { competencies?: Record<string, AssessmentCompetence> };
 
 class RpdProfileTemplates {
   pool: Pool;
@@ -419,65 +416,12 @@ class RpdProfileTemplates {
       [complect.id]
     );
 
-    const openQuestions = [];
-    const closedQuestions = [];
-    const parseLegacyQuestions = (value: unknown): AssessmentQuestionEntry[] =>
-      typeof value === "string"
-        ? value
-            .split(/\r?\n+/)
-            .map((text) => text.trim())
-            .filter(Boolean)
-            .map((text, idx) => ({ id: `legacy_${idx}`, text }))
-        : [];
-
+    const openQuestions: { text: string; answer: string; discipline: string | null }[] = [];
+    const closedQuestions: { text: string; answer: string; discipline: string | null }[] = [];
     for (const row of questionsResult.rows) {
-      const fundsValue: unknown = row.assessment_tools_questions;
-      const funds = fundsValue && typeof fundsValue === "object" && !Array.isArray(fundsValue) ? fundsValue as AssessmentFundsJson : {};
-      const item = funds?.competencies?.[competence];
-      if (!item) continue;
-
-      const openPool =
-        Array.isArray(item.openPool) && item.openPool.length
-          ? item.openPool
-          : parseLegacyQuestions(item.openQuestions);
-      const closedPool =
-        Array.isArray(item.closedPool) && item.closedPool.length
-          ? item.closedPool
-          : parseLegacyQuestions(item.closedQuestions);
-      const selectedOpen = new Set(
-        Array.isArray(item.selectedOpenIds)
-          ? item.selectedOpenIds
-          : openPool.map((question: { id: string }) => question.id)
-      );
-      const selectedClosed = new Set(
-        Array.isArray(item.selectedClosedIds)
-          ? item.selectedClosedIds
-          : closedPool.map((question: { id: string }) => question.id)
-      );
-
-      for (const question of openPool) {
-        if (!selectedOpen.has(question.id)) continue;
-        openQuestions.push({
-          text: question.text,
-          answer:
-            typeof question.correctAnswer === "string"
-              ? question.correctAnswer
-              : "",
-          discipline: row.disciplins_name,
-        });
-      }
-
-      for (const question of closedPool) {
-        if (!selectedClosed.has(question.id)) continue;
-        closedQuestions.push({
-          text: question.text,
-          answer:
-            typeof question.correctAnswer === "string"
-              ? question.correctAnswer
-              : "",
-          discipline: row.disciplins_name,
-        });
-      }
+      const selected = selectedFundsQuestions(row.assessment_tools_questions, competence);
+      openQuestions.push(...selected.open.map((question) => ({ ...question, discipline: row.disciplins_name })));
+      closedQuestions.push(...selected.closed.map((question) => ({ ...question, discipline: row.disciplins_name })));
     }
 
     return {
@@ -487,6 +431,20 @@ class RpdProfileTemplates {
       openQuestions,
       closedQuestions,
     };
+  }
+
+  async getAssessmentFundsWorkbookData(complectId: unknown) {
+    const { rows: complects } = await this.pool.query<Pick<RpdComplectRow, "id" | "direction" | "profile" | "year">>(`
+      SELECT id,direction,profile,year FROM rpd_complects
+      WHERE id::text=$1::text OR uuid::text=$1::text LIMIT 1
+    `, [String(complectId)]);
+    const complect = complects[0];
+    if (!complect) return null;
+    const { rows: templates } = await this.pool.query<Pick<RpdProfileTemplateRow, "disciplins_name" | "semester" | "assessment_tools_questions">>(`
+      SELECT disciplins_name,semester,assessment_tools_questions FROM rpd_profile_templates
+      WHERE id_rpd_complect=$1 AND assessment_tools_questions IS NOT NULL ORDER BY id
+    `, [complect.id]);
+    return { complect, templates };
   }
 }
 
