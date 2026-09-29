@@ -1,4 +1,6 @@
-export type SpecProfilesTree = Record<string, SpecProfilesTree | number>;
+export interface SpecProfilesTree {
+  [key: string]: SpecProfilesTree | number;
+}
 
 export type SpecProfilesSource = "1c" | "database" | "fallback";
 

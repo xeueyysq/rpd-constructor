@@ -1,57 +1,79 @@
-import { statusConfig } from "@entities/template/model/templateStatusCodes";
+import { getTemplateStatusLabel } from "@entities/template";
 import {
   Box,
-  Breadcrumbs,
   Button,
   Dialog,
   DialogActions,
   DialogContent,
   DialogTitle,
+  Stack,
 } from "@mui/material";
 import { format, parseISO } from "date-fns";
 import { ru } from "date-fns/locale";
-import ArrowForwardIcon from "@mui/icons-material/ArrowForward";
 
-interface history {
+export interface HistoryEvent {
   date: string;
   user: string;
   status: string;
+  action?: string;
+  comment?: string;
+  targetUserId?: number;
 }
-interface HistoryModal {
-  history: history[];
+
+const actionLabels: Record<string, string> = {
+  assign: "Назначен преподаватель",
+  unassign: "Преподаватель снят",
+  start: "Взято в работу",
+  finish: "Готово",
+  reopen: "Отметка снята",
+  accept: "Принято",
+  refine: "Возвращено на доработку",
+  create: "Создано",
+  migration: "Перенесено",
+  activation: "Изменена активность",
+};
+
+export default function HistoryModal({
+  history,
+  openDialog,
+  setOpenDialog,
+}: {
+  history: HistoryEvent[];
   openDialog: boolean;
   setOpenDialog: (open: boolean) => void;
-}
-
-function HistoryModal({ history, openDialog, setOpenDialog }: HistoryModal) {
-  const formattedDate = (date: string) =>
-    format(parseISO(date), "d MMMM yyyy, HH:mm", { locale: ru });
-
+}) {
   return (
     <Dialog
-      maxWidth={"lg"}
+      maxWidth="lg"
+      fullWidth
       open={openDialog}
       onClose={() => setOpenDialog(false)}
     >
       <DialogTitle>История шаблона</DialogTitle>
       <DialogContent>
-        <Breadcrumbs maxItems={4} separator={<ArrowForwardIcon />}>
-          {...history.map((data, index) => (
-            <Box key={index} sx={{ p: 1 }}>
-              <Box>{formattedDate(data.date)}</Box>
-              <Box>{data.user}</Box>
-              <Box>{statusConfig[data.status]?.label}</Box>
+        <Stack spacing={2}>
+          {history.map((event, index) => (
+            <Box key={`${event.date}-${index}`}>
+              <Box>
+                {format(parseISO(event.date), "d MMMM yyyy, HH:mm", {
+                  locale: ru,
+                })}{" "}
+                — {event.user}
+              </Box>
+              <Box>
+                {actionLabels[event.action ?? ""] ??
+                  event.action ??
+                  "Изменение статуса"}
+                : {getTemplateStatusLabel(event.status)}
+              </Box>
+              {event.comment ? <Box>Комментарий: {event.comment}</Box> : null}
             </Box>
           ))}
-        </Breadcrumbs>
+        </Stack>
       </DialogContent>
       <DialogActions>
-        <Button variant={"contained"} onClick={() => setOpenDialog(false)}>
-          Закрыть
-        </Button>
+        <Button onClick={() => setOpenDialog(false)}>Закрыть</Button>
       </DialogActions>
     </Dialog>
   );
 }
-
-export default HistoryModal;

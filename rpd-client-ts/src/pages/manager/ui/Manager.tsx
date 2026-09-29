@@ -1,41 +1,31 @@
-import { ChangeRpdTemplate } from "@features/change-rpd-template";
 import { TemplateConstructor } from "@features/create-rpd-template";
-import { CreateRpdTemplateFromYear } from "@features/create-rpd-template-from-year";
 import { Selectors } from "@features/select-template-data";
 import { Box } from "@mui/material";
-import RpdComplectPage from "@pages/rpd-complect";
 import { useStore } from "@shared/hooks";
 import { PageTitle } from "@shared/ui";
-import { FC } from "react";
+import type { ReactNode } from "react";
 
-export const Manager: FC = () => {
+export function Manager({ complectPage }: { complectPage: ReactNode }) {
   const { managerPage, setManagerPage } = useStore();
-
   return (
     <Box>
       <Box
-        p={3}
         sx={{
-          backgroundColor: "#ffffff",
+          p: 3,
+          backgroundColor: "background.paper",
           width: "100%",
           minHeight: "85vh",
         }}
       >
-        <PageTitle title={"Создание комплекта РПД на основе учебного плана"} />
-        {managerPage === "selectData" && (
+        <PageTitle title="Создание комплекта РПД на основе учебного плана" />
+        {managerPage === "selectData" ? (
           <Selectors setChoise={setManagerPage} />
-        )}
-        {managerPage === "workingType" && (
+        ) : null}
+        {managerPage === "workingType" ? (
           <TemplateConstructor setChoise={setManagerPage} />
-        )}
-        {managerPage === "changeTemplate" && (
-          <ChangeRpdTemplate setChoise={setManagerPage} />
-        )}
-        {managerPage === "createTemplateFromCurrentYear" && (
-          <CreateRpdTemplateFromYear setChoise={setManagerPage} />
-        )}
-        {managerPage === "createTemplateFromExchange" && <RpdComplectPage />}
+        ) : null}
+        {managerPage === "createTemplateFromExchange" ? complectPage : null}
       </Box>
     </Box>
   );
-};
+}

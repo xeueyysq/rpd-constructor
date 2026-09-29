@@ -1,0 +1,175 @@
+import type { RpdComplectRow } from "../types/db.ts";
+import type { Pool } from "pg";
+import { exchange1C } from "../modules/1cExchange.ts";
+import type { UserClaims } from "../types/express.d.ts";
+
+export type ComplectCriteria = { faculty: string; year: number; formEducation: string; levelEducation: string; profile: string; directionOfStudy: string };
+type ComplectListRow = Pick<RpdComplectRow, "id" | "uuid" | "faculty" | "year" | "profile"> & { formEducation: string | null; levelEducation: string | null; directionOfStudy: string | null; lastSyncedAt: Date | null; hasPendingChanges: boolean };
+
+class RpdComplects {
+  pool: Pool;
+  constructor(pool: Pool) {
+    this.pool = pool;
+  }
+
+  async findRpdComplect(data: ComplectCriteria, userId: number | undefined) {
+      const result = await this.pool.query<{ id: number }>(
+        `
+                SELECT rc.id 
+                FROM rpd_complects rc
+                LEFT JOIN user_complect uc ON uc.complect_id = rc.id
+                WHERE rc.faculty = $1
+                AND rc.year = $2
+                AND rc.education_form = $3
+                AND rc.education_level = $4
+                AND rc.profile = $5
+                AND rc.direction = $6
+                AND ($7::int IS NULL OR uc.user_id = $7)
+                LIMIT 1
+            `,
+        [
+          data.faculty,
+          data.year,
+          data.formEducation,
+          data.levelEducation,
+          data.profile,
+          data.directionOfStudy,
+          userId,
+        ]
+      );
+      const resultId = result.rows[0];
+      if (!resultId) return "NotFound";
+      return resultId;
+  }
+
+  async findRpdComplectMeta(complect_id: unknown) {
+    try {
+      const result = await this.pool.query<RpdComplectRow>(
+        `
+          SELECT *
+          FROM rpd_complects
+          WHERE id::text = $1::text
+             OR uuid::text = $1::text
+          LIMIT 1
+        `,
+        [complect_id]
+      );
+      return result.rows[0];
+    } catch (error) {
+      console.log(error);
+      throw new Error(String(error), { cause: error });
+    }
+  }
+
+  async findRpdComplectData(template_id: unknown) {
+    try {
+      const result = await this.pool.query<RpdComplectRow>(
+        `
+                SELECT * FROM rpd_complects
+                WHERE ID = (
+                    SELECT id_rpd_complect FROM rpd_profile_templates
+                    WHERE id::text = $1 OR public_id = $1
+                )`,
+        [template_id]
+      );
+      return result.rows[0];
+    } catch (error) {
+      console.log(error);
+      throw new Error(String(error), { cause: error });
+    }
+  }
+
+  async createRpdComplect({ data, actor }: { data: { faculty: string; year: number; formEducation: string; levelEducation: string; profile: string; directionOfStudy: string }; actor: UserClaims }) {
+    try {
+      const apiData = {
+        faculty: data.faculty,
+        year: data.year,
+        educationLevel: data.levelEducation,
+        educationForm: data.formEducation,
+        profile: data.profile,
+        direction: data.directionOfStudy,
+      };
+      const RpdComplectId = await exchange1C(apiData, { actor });
+      return RpdComplectId;
+    } catch (error) {
+      console.error(error);
+      throw error;
+    }
+  }
+
+  async getAllRpdComplects() {
+    try {
+      const result = await this.pool.query<ComplectListRow>(`
+            SELECT id,
+                   uuid,
+                   faculty,
+                   year,
+                   education_form as "formEducation", 
+                   education_level as "levelEducation",
+                   profile,
+                   direction as "directionOfStudy",
+                   last_synced_at as "lastSyncedAt",
+                   has_pending_changes as "hasPendingChanges",
+                   COALESCE((SELECT jsonb_agg(jsonb_build_object('userId', u.id, 'fullname', trim(concat_ws(' ',u.fullname->>'surname',u.fullname->>'name',u.fullname->>'patronymic'))) ORDER BY u.id)
+                     FROM user_complect uc JOIN users u ON u.id=uc.user_id WHERE uc.complect_id=rpd_complects.id), '[]'::jsonb) AS owner
+            FROM rpd_complects
+            ORDER BY id DESC
+        `);
+      return result.rows;
+    } catch (error) {
+      console.log(error);
+      throw new Error(String(error), { cause: error });
+    }
+  }
+
+  async getRopComplects(userId: number) {
+    try {
+      const result = await this.pool.query<ComplectListRow>(
+        `
+            SELECT rc.id,
+                    rc.uuid,
+                    rc.faculty,
+                    rc.year,
+                    rc.education_form as "formEducation",
+                    rc.education_level as "levelEducation",
+                    rc.profile,
+                    rc.direction as "directionOfStudy",
+                    rc.last_synced_at as "lastSyncedAt",
+                    rc.has_pending_changes as "hasPendingChanges"
+            FROM rpd_complects rc
+            INNER JOIN user_complect uc ON uc.complect_id = rc.id
+            WHERE uc.user_id = $1
+            ORDER BY rc.id DESC
+            `,
+        [userId]
+      );
+      return result.rows;
+    } catch (error) {
+      console.log(error);
+      throw new Error(String(error), { cause: error });
+    }
+  }
+
+  async deleteRpdComplect(ids: unknown) {
+    try {
+      const idStrings = Array.isArray(ids) ? ids.map((x) => String(x)) : [];
+      if (idStrings.length === 0) {
+        return { rowCount: 0 };
+      }
+      const result = await this.pool.query(
+        `
+          DELETE FROM rpd_complects
+          WHERE id::text = ANY($1::text[])
+             OR uuid::text = ANY($1::text[])
+        `,
+        [idStrings]
+      );
+      return result;
+    } catch (error) {
+      console.error(error);
+      throw new Error(String(error), { cause: error });
+    }
+  }
+}
+
+export default RpdComplects;

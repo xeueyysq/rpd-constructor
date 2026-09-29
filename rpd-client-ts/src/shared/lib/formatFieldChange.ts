@@ -8,6 +8,8 @@ const FIELD_LABELS: Record<string, string> = {
   control_load: "Контрольная нагрузка",
   teachers: "Преподаватели",
   certification: "Аттестация",
+  __new__: "Новая дисциплина",
+  removed: "Удалена из плана",
 };
 
 const formatValue = (value: unknown): string => {

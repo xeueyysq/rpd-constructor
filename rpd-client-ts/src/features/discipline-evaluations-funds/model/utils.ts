@@ -150,14 +150,12 @@ export const normalizeFunds = (
     const openPool = sanitizeUniquePoolIds(openPoolRaw);
     const closedPool = sanitizeUniquePoolIds(closedPoolRaw);
 
-    const selectedOpenIds =
-      Array.isArray(prev?.selectedOpenIds) && prev.selectedOpenIds.length
-        ? prev.selectedOpenIds
-        : selectAllIds(openPool);
-    const selectedClosedIds =
-      Array.isArray(prev?.selectedClosedIds) && prev.selectedClosedIds.length
-        ? prev.selectedClosedIds
-        : selectAllIds(closedPool);
+    const selectedOpenIds = Array.isArray(prev?.selectedOpenIds)
+      ? prev.selectedOpenIds
+      : selectAllIds(openPool);
+    const selectedClosedIds = Array.isArray(prev?.selectedClosedIds)
+      ? prev.selectedClosedIds
+      : selectAllIds(closedPool);
 
     const normalizedCompetence: CompetenceAssessmentQuestions = {
       openQuestions: renderSelectedText(openPool, selectedOpenIds),

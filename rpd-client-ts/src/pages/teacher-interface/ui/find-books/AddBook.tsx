@@ -6,18 +6,17 @@ import {
   DialogActions,
   DialogContent,
   DialogTitle,
-  Divider,
   IconButton,
   InputAdornment,
   List,
   ListItem,
   ListItemText,
   TextField,
-  Typography,
 } from "@mui/material";
 import { useStore } from "@shared/hooks";
-import { showErrorMessage, showSuccessMessage } from "@shared/lib";
-import { axiosBase } from "@shared/api";
+import { useUpdateTemplateField } from "@entities/template";
+import { bookSearchError, useFindBooks } from "../../api/findBooks";
+import { addBooks } from "../../lib/bookList";
 import { BooksMetaList } from "./BooksMetaList.tsx";
 import { motion } from "framer-motion";
 import ClearIcon from "@mui/icons-material/Clear";
@@ -27,93 +26,57 @@ interface AddBook {
   elementName: string;
 }
 
-interface BookData {
-  title: string;
-  author: string;
-  biblio: string;
-  url: string;
-  thumb?: string;
-  published: string;
-}
-
 const AddBook: FC<AddBook> = ({ elementName }) => {
   const [open, setOpen] = useState<boolean>(false);
-  const [bookName, setBookName] = useState<string | null>(null);
+  const [bookName, setBookName] = useState("");
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [manualInput, setManualInput] = useState<string>("");
-  const [isLoadingBooks, setIsLoadingBooks] = useState<boolean>(false);
+  const findBooks = useFindBooks();
+  const booksData = findBooks.data?.books;
 
-  const jsonData = useStore.getState().jsonData[elementName];
-  const [booksData, setBooksData] = useState<BookData[] | null>(jsonData);
+  const elementValue = useStore((state) => state.jsonData[elementName]) as
+    string[] | undefined;
+  const updateJsonData = useStore((state) => state.updateJsonData);
+  const save = useUpdateTemplateField();
 
-  const elementValue: string[] =
-    useStore.getState().jsonData[elementName] || [];
-  const [addedBooks, setAddedBooks] = useState<string[]>(elementValue);
-
-  const { updateJsonData } = useStore();
+  const saveBooks = (next: string[]) => {
+    updateJsonData(elementName, next);
+    void save(elementName, next);
+  };
 
   const handleOpenDialog = () => {
     setOpen(true);
-    setBooksData([]);
   };
 
   const handleCloseDialog = () => {
     setOpen(false);
     setErrorMessage(null);
-    setBookName(null);
+    setBookName("");
+    findBooks.reset();
   };
 
   const handleBookNameChange = (event: ChangeEvent<HTMLInputElement>) => {
     setBookName(event.target.value);
-    if (errorMessage) setErrorMessage(null);
+    setErrorMessage(null);
+    findBooks.reset();
   };
 
-  const handleFindBooks = async () => {
-    if (!bookName) {
-      setErrorMessage("Поле обязательно для заполнения");
+  const handleFindBooks = () => {
+    const query = bookName.trim();
+    if (!query) {
+      setErrorMessage("Введите запрос для поиска");
+      findBooks.reset();
       return;
     }
-    // setBooksData(null);
-    setIsLoadingBooks(true);
     setErrorMessage(null);
-
-    try {
-      const response = await axiosBase.post("find-books", { bookName });
-      const books = response.data;
-      if (!books.length) {
-        setErrorMessage("По вашему запросу ничего не найдено");
-        setBooksData(null);
-        return;
-      }
-      setBooksData(response.data);
-    } catch (error) {
-      console.error(error);
-    } finally {
-      setIsLoadingBooks(false);
-    }
-  };
-
-  const saveContent = async (htmlValue: string[]) => {
-    const templateId = useStore.getState().jsonData.id;
-
-    try {
-      await axiosBase.put(`update-json-value/${templateId}`, {
-        fieldToUpdate: elementName,
-        value: htmlValue,
-      });
-
-      updateJsonData(elementName, htmlValue);
-      setAddedBooks(htmlValue);
-      showSuccessMessage("Данные успешно сохранены");
-    } catch (error) {
-      showErrorMessage("Ошибка сохранения данных");
-      console.error(error);
-    }
+    findBooks.mutate(query);
   };
 
   const handleAddBooksToList = (biblios: string[]) => {
-    //TODO добавить фильтр на добавление книг
-    saveContent([...addedBooks, ...biblios]);
+    const current =
+      (useStore.getState().jsonData[elementName] as string[] | undefined) ?? [];
+    const next = addBooks(current, biblios);
+    if (next !== current) saveBooks(next);
   };
 
   const handleAddManualBook = () => {
@@ -121,19 +84,22 @@ const AddBook: FC<AddBook> = ({ elementName }) => {
       return;
     }
 
-    const newBooks = [...addedBooks, manualInput];
-    saveContent(newBooks);
+    const current =
+      (useStore.getState().jsonData[elementName] as string[] | undefined) ?? [];
+    const next = addBooks(current, [manualInput]);
+    if (next !== current) saveBooks(next);
     setManualInput("");
   };
 
-  const handleRemoveBook = (biblioToRemove: string) => {
-    const newBooks = addedBooks.filter((biblio) => biblio !== biblioToRemove);
-    saveContent(newBooks);
+  const handleRemoveBook = (index: number) => {
+    const current =
+      (useStore.getState().jsonData[elementName] as string[] | undefined) ?? [];
+    saveBooks(current.filter((_, i) => i !== index));
   };
 
   return (
     <>
-      <Box pt={3}>
+      <Box sx={{ pt: 3 }}>
         <Button
           variant="outlined"
           onClick={handleOpenDialog}
@@ -145,28 +111,24 @@ const AddBook: FC<AddBook> = ({ elementName }) => {
       <List>
         {elementValue &&
           elementValue.map((biblio, index) => (
-            <>
-              <ListItem key={index}>
-                <ListItemText>
-                  <Typography
-                    sx={{
-                      display: "flex",
-                      justifyContent: "space-between",
-                      alignItems: "center",
-                    }}
-                  >
-                    <Typography fontSize={"14px"}>{biblio}</Typography>
-                    <IconButton
-                      color="error"
-                      onClick={() => handleRemoveBook(biblio)}
-                    >
-                      <ClearIcon />
-                    </IconButton>
-                  </Typography>
-                </ListItemText>
-              </ListItem>
-              <Divider />
-            </>
+            <ListItem
+              key={index}
+              divider
+              secondaryAction={
+                <IconButton
+                  color="error"
+                  aria-label={`Удалить книгу ${index + 1}`}
+                  onClick={() => handleRemoveBook(index)}
+                >
+                  <ClearIcon />
+                </IconButton>
+              }
+            >
+              <ListItemText
+                primary={biblio}
+                slotProps={{ primary: { sx: { fontSize: "14px" } } }}
+              />
+            </ListItem>
           ))}
       </List>
 
@@ -188,7 +150,7 @@ const AddBook: FC<AddBook> = ({ elementName }) => {
             },
           }}
         />
-        <Box pt={1} display={"flex"} justifyContent={"flex-end"}>
+        <Box sx={{ pt: 1, display: "flex", justifyContent: "flex-end" }}>
           <Button variant="contained" onClick={handleAddManualBook}>
             Добавить книгу
           </Button>
@@ -198,15 +160,19 @@ const AddBook: FC<AddBook> = ({ elementName }) => {
       <Dialog
         open={open}
         fullWidth
-        maxWidth={booksData && booksData.length > 0 ? "xl" : "sm"}
+        maxWidth={findBooks.isSuccess && booksData?.length ? "xl" : "sm"}
         onClose={handleCloseDialog}
-        onKeyDown={(e) => {
-          if (e.key === "Enter") handleFindBooks();
-        }}
       >
         <DialogTitle>Поиск книг в библиотечной системе</DialogTitle>
         <DialogContent>
-          <Box position="sticky" top={0} zIndex={2} bgcolor="background.paper">
+          <Box
+            sx={{
+              position: "sticky",
+              top: 0,
+              zIndex: 2,
+              bgcolor: "background.paper",
+            }}
+          >
             <TextField
               autoFocus
               margin="dense"
@@ -215,8 +181,14 @@ const AddBook: FC<AddBook> = ({ elementName }) => {
               variant="standard"
               value={bookName}
               onChange={handleBookNameChange}
+              onKeyDown={(event) => {
+                if (event.key === "Enter") {
+                  event.preventDefault();
+                  handleFindBooks();
+                }
+              }}
               helperText={
-                isLoadingBooks ? (
+                findBooks.isPending ? (
                   <motion.div
                     animate={{ opacity: [1, 0.3, 1] }}
                     transition={{
@@ -228,15 +200,24 @@ const AddBook: FC<AddBook> = ({ elementName }) => {
                     Поиск книг...
                   </motion.div>
                 ) : (
-                  errorMessage
+                  (errorMessage ??
+                  (findBooks.isError
+                    ? bookSearchError(findBooks.error)
+                    : null) ??
+                  (findBooks.isSuccess && booksData?.length === 0
+                    ? "По вашему запросу ничего не найдено"
+                    : null))
                 )
               }
               slotProps={{
                 input: {
                   endAdornment: (
                     <InputAdornment position="end">
-                      <Box pb={1}>
-                        <IconButton onClick={handleFindBooks}>
+                      <Box sx={{ pb: 1 }}>
+                        <IconButton
+                          aria-label="Искать книги"
+                          onClick={handleFindBooks}
+                        >
                           <SearchIcon color="primary" />
                         </IconButton>
                       </Box>
@@ -246,7 +227,13 @@ const AddBook: FC<AddBook> = ({ elementName }) => {
               }}
             />
           </Box>
-          {booksData && booksData?.length > 0 && (
+          {findBooks.isSuccess && findBooks.data.truncated && (
+            <Box sx={{ pt: 2 }}>
+              Показаны не все найденные записи. Уточните запрос: добавьте автора
+              или год издания.
+            </Box>
+          )}
+          {findBooks.isSuccess && booksData && booksData.length > 0 && (
             <BooksMetaList
               books={booksData}
               addBooksToList={handleAddBooksToList}

@@ -1,26 +1,31 @@
 import JsonChangeValue from "../changeable-elements/JsonChangeValue.tsx";
 import { Box } from "@mui/material";
 import { DisciplineContentTable } from "../changeable-elements/DisciplineContentTable.tsx";
-import { TemplatePagesPath } from "@pages/teacher-interface/model/pathes.ts";
-import { PageTitleComment } from "@shared/ui";
+import { TemplatePagesPath } from "@shared/enums";
+import { PageTitleComment } from "../PageTitleComment";
 
-export function DisciplineContentPage() {
+export function DisciplineContentPage({
+  canEditPlan = false,
+}: {
+  canEditPlan?: boolean;
+}) {
   return (
     <Box>
       <PageTitleComment
         title="Содержание дисциплины"
-        paddingBottom={2}
+        sx={{ pb: 2 }}
         templateField={TemplatePagesPath.DISCIPLINE_CONTENT}
+        fields={["content", "study_load"]}
       />
-      <DisciplineContentTable />
+      <DisciplineContentTable canEditPlan={canEditPlan} />
       <PageTitleComment
-        py={2}
-        pt={3}
+        sx={{ py: 2, pt: 3 }}
         title="Содержание дисциплины"
         templateField={`${TemplatePagesPath.DISCIPLINE_CONTENT}_1`}
+        fields={["content_more_text", "content_template_more_text"]}
       />
       <JsonChangeValue elementName="content_more_text" />
-      <Box pt={1}>
+      <Box sx={{ pt: 1 }}>
         <JsonChangeValue elementName="content_template_more_text" />
       </Box>
     </Box>

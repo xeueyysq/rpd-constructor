@@ -1,4 +1,4 @@
-FROM node:20-alpine
+FROM node:22-alpine
 
 # Установка необходимых пакетов
 RUN apk add --no-cache \
@@ -33,9 +33,6 @@ RUN bun install
 # Копирование остальных файлов приложения
 COPY . .
 
-# Пересборка bcrypt
-RUN npm rebuild bcrypt --build-from-source
-
 # Удаление временных зависимостей
 RUN apk del .build-deps
 
@@ -43,4 +40,4 @@ RUN apk del .build-deps
 EXPOSE 8000
 
 # Запуск приложения
-CMD ["bun", "run", "dev"]
+CMD ["bun", "run", "start"]

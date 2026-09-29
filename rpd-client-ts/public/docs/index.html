@@ -1,156 +1,143 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="ru">
-  <head>
-    <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Справка — Конструктор РПД</title>
-    <style>
-      :root {
-        --primary: #29363d;
-        --accent: #1976d2;
-        --bg: #f2f3f7;
-        --border: rgba(0, 0, 0, 0.12);
-      }
-      * {
-        box-sizing: border-box;
-      }
-      body {
-        margin: 0;
-        font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto,
-          Helvetica, Arial, sans-serif;
-        color: var(--primary);
-        background: var(--bg);
-        line-height: 1.6;
-      }
-      .layout {
-        display: flex;
-        max-width: 1100px;
-        margin: 0 auto;
-        gap: 32px;
-        padding: 32px 24px;
-      }
-      nav {
-        flex: 0 0 220px;
-        position: sticky;
-        top: 32px;
-        align-self: flex-start;
-      }
-      nav a {
-        display: block;
-        padding: 6px 10px;
-        color: var(--primary);
-        text-decoration: none;
-        border-radius: 6px;
-        font-size: 14px;
-      }
-      nav a:hover {
-        background: #e3e6ef;
-      }
-      main {
-        flex: 1 1 auto;
-        background: #fff;
-        border: 1px solid var(--border);
-        border-radius: 12px;
-        padding: 32px 40px;
-      }
-      h1 {
-        margin-top: 0;
-      }
-      h2 {
-        margin-top: 40px;
-        padding-top: 8px;
-        border-top: 1px solid var(--border);
-      }
-      code {
-        background: #f0f1f5;
-        padding: 2px 6px;
-        border-radius: 4px;
-        font-size: 0.9em;
-      }
-      .lead {
-        font-size: 18px;
-        color: #555;
-      }
-      footer {
-        text-align: center;
-        color: #888;
-        font-size: 13px;
-        padding: 24px;
-      }
-    </style>
-  </head>
-  <body>
-    <div class="layout">
-      <nav>
-        <strong style="display: block; padding: 6px 10px">Справка</strong>
-        <a href="#intro">Введение</a>
-        <a href="#roles">Роли</a>
-        <a href="#complects">Комплекты РПД</a>
-        <a href="#templates">Шаблоны</a>
-        <a href="#competencies">Компетенции</a>
-        <a href="#faq">Частые вопросы</a>
-      </nav>
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Документация — Конструктор РПД</title>
+  <link rel="stylesheet" href="css/documentation.css" />
+</head>
+<body>
+<div class="wrapper">
+  <aside class="sidebar">
+    <nav aria-label="Содержание документации">
+      <h2>Содержание</h2>
+      <div class="nav-section"><button class="nav-header" type="button" aria-expanded="true" aria-controls="nav-start">Начало работы</button>
+        <div class="nav-sub" id="nav-start"><a href="#overview">Обзор и роли</a><a href="#navigation">Навигация и смена роли</a></div>
+      </div>
+      <div class="nav-section"><button class="nav-header" type="button" aria-expanded="true" aria-controls="nav-rop">РОП</button>
+        <div class="nav-sub" id="nav-rop">
+          <a href="#create-complect">Создание комплекта</a><a href="#complect-list">Список, обновление и удаление</a>
+          <a href="#rpd-in-complect">РПД и преподаватели</a><a href="#workflow">Готовность и согласование</a>
+          <a href="#import-history">Импорт и история</a><a href="#documents">Документы и ФОС</a>
+          <a href="#competencies">Компетенции</a><a href="#comments">Комментарии к разделам</a>
+        </div>
+      </div>
+      <div class="nav-section"><button class="nav-header" type="button" aria-expanded="true" aria-controls="nav-teacher">Преподаватель</button>
+        <div class="nav-sub" id="nav-teacher"><a href="#my-rpd">Свои РПД</a><a href="#editor">Редактор и совместная работа</a>
+          <a href="#hours">Содержание и часы</a><a href="#books">Литература</a><a href="#questions">Вопросы ФОС и готовность</a></div>
+      </div>
+      <div class="nav-section"><button class="nav-header" type="button" aria-expanded="true" aria-controls="nav-admin">Администратор</button>
+        <div class="nav-sub" id="nav-admin"><a href="#users">Пользователи</a></div>
+      </div>
+    </nav>
+  </aside>
+  <main class="content" id="main">
+    <h1>Конструктор РПД</h1>
+    <p class="subhead">Инструкция по созданию, заполнению и согласованию рабочих программ дисциплин.</p>
 
-      <main>
-        <h1>Конструктор РПД — документация</h1>
-        <p class="lead">
-          Руководство пользователя по работе с системой формирования рабочих
-          программ дисциплин.
-        </p>
+    <section class="chapter" aria-labelledby="start-heading">
+      <h2 id="start-heading">Начало работы</h2>
+      <section class="sub-chapter" id="overview"><h3>Обзор и роли</h3>
+        <p>Конструктор объединяет дисциплины в комплекты РПД. РОП создаёт комплект, назначает преподавателей и проверяет готовые программы. Преподаватель заполняет назначенные РПД. Администратор управляет пользователями и может работать с комплектами.</p>
+        <ul><li><strong>Анонимный посетитель (anonymous)</strong> видит страницу входа.</li>
+          <li><strong>Преподаватель</strong> видит назначенные ему шаблоны.</li>
+          <li><strong>РОП</strong> ведёт свои комплекты и согласует РПД.</li>
+          <li><strong>Администратор</strong> управляет учётными записями.</li></ul>
+      </section>
+      <section class="sub-chapter" id="navigation"><h3>Навигация и смена роли</h3>
+        <p>Откройте боковую панель кнопкой ☰. Пункт <strong>«Документация»</strong> открывает эту страницу в новой вкладке. У аккаунта РОП в меню профиля есть переключение между ролями РОП и преподавателя; у остальных ролей такого переключения нет.</p>
+      </section>
+    </section>
 
-        <h2 id="intro">Введение</h2>
-        <p>
-          «Конструктор РПД» — это веб-приложение для создания, согласования и
-          выгрузки рабочих программ дисциплин. Документация открывается из
-          сайдбара по ссылке <code>Документация</code> и доступна на всех
-          страницах приложения.
-        </p>
+    <section class="chapter" aria-labelledby="rop-heading">
+      <h2 id="rop-heading">РОП</h2>
+      <section class="sub-chapter" id="create-complect"><h3>Создание комплекта</h3>
+        <ol><li>Откройте <strong>«Создание комплекта»</strong> в боковой панели.</li>
+          <li>Последовательно выберите институт, уровень образования, направление, профиль, форму обучения и год набора.</li>
+          <li>Нажмите <strong>«Продолжить»</strong> и проверьте выбранные данные. Кнопка <strong>«Назад»</strong> возвращает к выбору.</li>
+          <li>Нажмите <strong>«Создать комплект»</strong>. После создания выберите <strong>«Перейти»</strong>, чтобы открыть его.</li></ol>
+        <p class="note">Если комплект с такими параметрами уже существует, откройте его кнопкой «Перейти к редактированию».</p>
+      </section>
+      <section class="sub-chapter" id="complect-list"><h3>Список, обновление и удаление</h3>
+        <p>Откройте <strong>«Список комплектов»</strong>. Кнопка <strong>«Комплект РПД»</strong> в строке открывает дисциплины, а <strong>«Компетенции»</strong> — планируемые результаты. Для обновления из 1С выберите один комплект в списке или откройте его и нажмите <strong>«Обновить комплект»</strong>. Загрузите данные из 1С, отметьте нужные изменения и подтвердите применение. Для удаления выберите комплекты в списке, нажмите <strong>«Удалить»</strong> и подтвердите действие.</p>
+        <figure class="figure"><img src="media/complects-list.png" alt="Таблица комплектов с кнопкой открытия комплекта" width="1280" height="800" loading="lazy" />
+          <figcaption>Список комплектов: 1 — откройте комплект кнопкой «Комплект РПД».</figcaption></figure>
+      </section>
+      <section class="sub-chapter" id="rpd-in-complect"><h3>РПД и преподаватели</h3>
+        <p>В комплекте каждая строка соответствует дисциплине. Если РПД ещё не создана, нажмите <strong>«Создать»</strong> в колонке «Действия». Для созданной РПД откройте <strong>«Меню шаблона»</strong> и выберите <strong>«Открыть»</strong>. В колонке «Преподаватели» выберите один или несколько существующих аккаунтов: назначение сохраняется при изменении выбора. Подсказка «из 1С» помогает найти нужного преподавателя; если аккаунта нет, его должен создать администратор.</p>
+        <figure class="figure"><img src="media/complect-table.png" alt="Страница комплекта с дисциплинами, преподавателями и статусами" width="1280" height="800" loading="lazy" />
+          <figcaption>Страница комплекта: 1 — найдите дисциплину; 2 — проверьте статус и отметки готовности.</figcaption></figure>
+        <figure class="figure"><img src="media/teacher-selection.png" alt="Выбор аккаунтов преподавателей в строке РПД" width="1280" height="800" loading="lazy" />
+          <figcaption>Назначение преподавателей: 1 — откройте поле «Преподаватели»; 2 — выберите аккаунт из списка.</figcaption></figure>
+      </section>
+      <section class="sub-chapter" id="workflow"><h3>Готовность и согласование</h3>
+        <p>Преподаватели отмечают свою работу кнопкой <strong>«Готово»</strong>. Колонка «Статус» показывает общую готовность и число отметившихся. Когда все активные назначенные преподаватели отметились, статус становится «Готов». При необходимости РОП может нажать <strong>«Принять»</strong> раньше: в статусах «Назначены преподаватели», «В работе» или «На доработке», если есть хотя бы один активный преподаватель. После этого статус также становится «Готов». В статусе «Готов» РОП может нажать <strong>«Вернуть на доработку»</strong> с обязательным комментарием; преподавателям снова потребуется отметить готовность.</p>
+      </section>
+      <section class="sub-chapter" id="import-history"><h3>Импорт и история</h3>
+        <p>В <strong>«Меню шаблона»</strong> выберите <strong>«Импортировать»</strong>, затем комплект и готовый шаблон для переноса содержательных полей. Перед подтверждением проверьте, какие данные будут заменены. Пункт <strong>«История шаблона»</strong> показывает события статусов и назначений; правки отдельных полей смотрите в редакторе.</p>
+      </section>
+      <section class="sub-chapter" id="documents"><h3>Документы и ФОС</h3>
+        <p>Для отдельной РПД откройте редактор и выберите <strong>«Сформировать документ»</strong> в боковой панели. Там доступны просмотр и скачивание PDF, а также выгрузка Word.</p>
+        <p>Для ФОС нажмите <strong>«Собрать ФОСы»</strong> на странице комплекта. В диалоге <strong>«Сформировать ФОС»</strong> выберите компетенцию и нажмите <strong>«Скачать Word»</strong>. Кнопка <strong>«Скачать Excel»</strong> выгружает выбранные вопросы по всем компетенциям комплекта в один файл. Если компетенций нет, сначала загрузите планируемые результаты.</p>
+        <figure class="figure"><img src="media/funds-dialog.png" alt="Диалог формирования ФОС с выбором компетенции и кнопками Word и Excel" width="1280" height="800" loading="lazy" />
+          <figcaption>ФОС: 1 — выберите компетенцию для Word; 2 — скачайте Excel по всему комплекту.</figcaption></figure>
+      </section>
+      <section class="sub-chapter" id="competencies"><h3>Компетенции</h3>
+        <p>Откройте <strong>«Список компетенций»</strong> и выберите профиль, форму обучения и год набора, чтобы увидеть результаты выбранного комплекта. Для загрузки нажмите <strong>«Загрузить файл»</strong>, выберите <code>.csv</code> или <code>.xlsx</code>, проверьте таблицу и нажмите <strong>«Сохранить»</strong>.</p>
+        <figure class="figure"><img src="media/competencies-list.png" alt="Фильтры профиля, формы обучения и года набора на странице компетенций" width="1280" height="800" loading="lazy" />
+          <figcaption>Компетенции: 1 — выберите профиль; 2 — укажите год набора.</figcaption></figure>
+      </section>
+      <section class="sub-chapter" id="comments"><h3>Комментарии к разделам</h3>
+        <p>В редакторе РОП может добавить комментарий у заголовка раздела. Преподаватель видит комментарий рядом с этим разделом. Если РПД требует исправлений целиком, используйте <strong>«Вернуть на доработку»</strong> с комментарием.</p>
+      </section>
+    </section>
 
-        <h2 id="roles">Роли</h2>
-        <ul>
-          <li>
-            <strong>РОП / Администратор</strong> — создание комплектов,
-            управление шаблонами, компетенциями и пользователями.
-          </li>
-          <li>
-            <strong>Преподаватель</strong> — заполнение шаблонов РПД по
-            закреплённым дисциплинам.
-          </li>
-        </ul>
+    <section class="chapter" aria-labelledby="teacher-heading">
+      <h2 id="teacher-heading">Преподаватель</h2>
+      <section class="sub-chapter" id="my-rpd"><h3>Свои РПД</h3>
+        <p>Откройте <strong>«Список шаблонов»</strong>. В таблице видны назначенные РПД, их общий статус и колонка «Моя отметка». Нажмите <strong>«Открыть»</strong> в нужной строке.</p>
+        <figure class="figure"><img src="media/teacher-templates.png" alt="Список назначенных преподавателю РПД" width="1280" height="800" loading="lazy" />
+          <figcaption>Свои РПД: 1 — найдите дисциплину; 2 — откройте её.</figcaption></figure>
+      </section>
+      <section class="sub-chapter" id="editor"><h3>Редактор и совместная работа</h3>
+        <p>Выберите раздел в боковой панели. Текст и ячейки таблиц сохраняются при выходе из редактируемого поля. Над разделом видно, кто сейчас открыл шаблон и кто внёс последние правки. Если другой участник изменил то же поле раньше вас, редактор сообщит о конфликте и покажет актуальное содержимое; проверьте его перед повторной правкой.</p>
+        <figure class="figure"><img src="media/editor-collaboration.png" alt="Редактор РПД с панелью присутствия и сведениями о последнем изменении" width="1280" height="800" loading="lazy" />
+          <figcaption>Редактор: 1 — выберите раздел; 2 — проверьте участников и сведения об изменении.</figcaption></figure>
+      </section>
+      <section class="sub-chapter" id="hours"><h3>Содержание дисциплины и часы</h3>
+        <p>В разделе <strong>«Содержание дисциплины»</strong> заполняйте темы и часы. Сумма по темам сравнивается с учебным планом 1С: зелёный цвет означает совпадение, красный — расхождение. Контроль указывают в строке промежуточной аттестации. Данные учебного плана справа могут менять только РОП и администратор. Изменения в ячейке сохраняются при выходе из неё.</p>
+        <figure class="figure"><img src="media/discipline-content.png" alt="Таблица содержания дисциплины с часами по темам и планом 1С" width="1280" height="800" loading="lazy" />
+          <figcaption>Часы: 1 — заполните темы; 2 — сравните суммы с планом 1С.</figcaption></figure>
+      </section>
+      <section class="sub-chapter" id="books"><h3>Литература</h3>
+        <p>В разделе <strong>«Ресурсное обеспечение»</strong> нажмите <strong>«Найти книги в библиотечной системе»</strong>, введите ключевые слова, выберите результаты и нажмите <strong>«Добавить в список»</strong>. Если результатов слишком много, уточните запрос автором или годом издания. Библиографическое описание можно также ввести вручную и добавить кнопкой <strong>«Добавить книгу»</strong>.</p>
+        <figure class="figure"><img src="media/books-search.png" alt="Диалог поиска книг в библиотечной системе с результатами" width="1280" height="800" loading="lazy" />
+          <figcaption>Литература: 1 — введите ключевые слова; 2 — выберите книгу из результатов.</figcaption></figure>
+      </section>
+      <section class="sub-chapter" id="questions"><h3>Вопросы ФОС и готовность</h3>
+        <p>В разделе оценочных средств добавляйте открытые и закрытые вопросы по компетенциям, указывайте ответы и отмечайте вопросы для включения в ФОС. Если выбрать вопросы пока нельзя, проверьте планируемые результаты комплекта. Закончив заполнение, вернитесь к списку РПД и нажмите <strong>«Готово»</strong>. При необходимости отметку можно снять кнопкой <strong>«Снять отметку»</strong>, если она доступна.</p>
+      </section>
+    </section>
 
-        <h2 id="complects">Комплекты РПД</h2>
-        <p>
-          Раздел <em>«Создание комплекта»</em> позволяет сформировать новый
-          комплект рабочих программ, а <em>«Список комплектов»</em> — открыть
-          ранее созданные комплекты для просмотра и редактирования.
-        </p>
-
-        <h2 id="templates">Шаблоны</h2>
-        <p>
-          Преподаватели работают с шаблонами РПД через раздел
-          <em>«Список шаблонов»</em>. Каждый шаблон содержит разделы программы,
-          которые заполняются и сохраняются автоматически.
-        </p>
-
-        <h2 id="competencies">Компетенции</h2>
-        <p>
-          Раздел <em>«Список компетенций»</em> содержит планируемые результаты
-          обучения, которые привязываются к дисциплинам при формировании РПД.
-        </p>
-
-        <h2 id="faq">Частые вопросы</h2>
-        <p>
-          <strong>Как выгрузить РПД в Word?</strong> — Выгрузка доступна со
-          страницы комплекта; документ формируется в формате <code>.docx</code>.
-        </p>
-        <p>
-          <strong>Не сохраняются изменения.</strong> — Проверьте подключение к
-          сети и обновите страницу; данные сохраняются автоматически при
-          переходе между разделами.
-        </p>
-
-        <footer>Конструктор РПД · внутренняя документация</footer>
-      </main>
-    </div>
-  </body>
+    <section class="chapter" aria-labelledby="admin-heading">
+      <h2 id="admin-heading">Администратор</h2>
+      <section class="sub-chapter" id="users"><h3>Пользователи</h3>
+        <p>Откройте <strong>«Пользователи»</strong> в боковой панели. Кнопка <strong>«Добавить пользователя»</strong> создаёт учётную запись. Чтобы изменить существующую, откройте меню действий строки и выберите <strong>«Редактировать»</strong>. Чтобы закрыть доступ, отметьте активные учётные записи, нажмите <strong>«Деактивировать»</strong> и подтвердите действие. В меню неактивного пользователя доступна команда <strong>«Активировать»</strong>.</p>
+        <figure class="figure"><img src="media/users-list.png" alt="Таблица управления пользователями с добавлением и деактивацией" width="1280" height="800" loading="lazy" />
+          <figcaption>Пользователи: 1 — добавьте пользователя; 2 — выберите запись для управления.</figcaption></figure>
+      </section>
+    </section>
+    <footer class="footer-doc">Конструктор РПД · документация по ролям</footer>
+  </main>
+</div>
+<script>
+  document.querySelectorAll('.nav-header').forEach((button) => {
+    button.addEventListener('click', () => {
+      const expanded = button.getAttribute('aria-expanded') === 'true';
+      button.setAttribute('aria-expanded', String(!expanded));
+      document.getElementById(button.getAttribute('aria-controls')).hidden = expanded;
+    });
+  });
+</script>
+</body>
 </html>

@@ -103,6 +103,7 @@ type PoolQuestionCardProps = {
     id: string,
     value: string
   ) => void;
+  saveFundsData: () => void;
   removePoolQuestion: (competence: string, kind: PoolKind, id: string) => void;
 };
 
@@ -115,11 +116,12 @@ function PoolQuestionCard({
   toggleSelectedQuestion,
   updatePoolQuestionText,
   updateCorrectAnswer,
+  saveFundsData,
   removePoolQuestion,
 }: PoolQuestionCardProps) {
   return (
     <Box sx={questionCardSx}>
-      <Stack direction="row" spacing={1} alignItems="flex-start">
+      <Stack sx={{ alignItems: "flex-start" }} direction="row" spacing={1}>
         <Checkbox
           size="small"
           checked={checked}
@@ -153,6 +155,7 @@ function PoolQuestionCard({
               onChange={(e) =>
                 updatePoolQuestionText(competence, kind, q.id, e.target.value)
               }
+              onBlur={saveFundsData}
               sx={textFieldSx}
               variant="outlined"
             />
@@ -174,6 +177,7 @@ function PoolQuestionCard({
               onChange={(e) =>
                 updateCorrectAnswer(competence, kind, q.id, e.target.value)
               }
+              onBlur={saveFundsData}
               sx={textFieldSx}
               variant="outlined"
             />
@@ -223,25 +227,6 @@ const DisciplineEvaluationsFundsForm = () => {
 
   return (
     <Box>
-      <Box
-        sx={{
-          position: "fixed",
-          top: 110,
-          right: 95,
-          zIndex: (theme) => theme.zIndex.appBar + 1,
-        }}
-      >
-        <Button
-          variant="contained"
-          onClick={saveFundsData}
-          sx={{
-            boxShadow: "0 8px 24px rgba(0, 0, 0, 0.12)",
-          }}
-        >
-          Сохранить
-        </Button>
-      </Box>
-
       <Box sx={{ mt: 2 }}>
         <TextField
           fullWidth
@@ -250,6 +235,7 @@ const DisciplineEvaluationsFundsForm = () => {
           label="Контрольные вопросы по экзамену/зачету"
           value={fundsData.controlQuestions}
           onChange={(e) => handleControlQuestionsChange(e.target.value)}
+          onBlur={saveFundsData}
           sx={textFieldSx}
         />
       </Box>
@@ -371,6 +357,7 @@ const DisciplineEvaluationsFundsForm = () => {
                                 toggleSelectedQuestion={toggleSelectedQuestion}
                                 updatePoolQuestionText={updatePoolQuestionText}
                                 updateCorrectAnswer={updateCorrectAnswer}
+                                saveFundsData={saveFundsData}
                                 removePoolQuestion={removePoolQuestion}
                               />
                             );
@@ -426,6 +413,7 @@ const DisciplineEvaluationsFundsForm = () => {
                                 toggleSelectedQuestion={toggleSelectedQuestion}
                                 updatePoolQuestionText={updatePoolQuestionText}
                                 updateCorrectAnswer={updateCorrectAnswer}
+                                saveFundsData={saveFundsData}
                                 removePoolQuestion={removePoolQuestion}
                               />
                             );

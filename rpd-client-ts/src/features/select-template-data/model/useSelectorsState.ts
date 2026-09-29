@@ -30,7 +30,7 @@ const buildInitialState = (): SelectorsState => {
 };
 
 export const useSelectorsState = () => {
-  const { setSelectedTemplateData, setTabState, deInitializeTabs } = useStore();
+  const { setSelectedTemplateData } = useStore();
   const [selectors, setSelectors] = useState(buildInitialState);
   const [isFacultyOpen, setIsFacultyOpen] = useState(
     () => !buildInitialState().faculty
@@ -89,8 +89,6 @@ export const useSelectorsState = () => {
       selectors.year?.value
     );
     setChoise?.("workingType");
-    deInitializeTabs();
-    setTabState("workingType", true);
   };
 
   return {

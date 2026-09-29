@@ -12,3 +12,6 @@ CLAUDE.md
 .serena/
 .claude/
 AGENTS.md
+e2e/test-results/
+e2e/playwright-report/
+e2e/blob-report/

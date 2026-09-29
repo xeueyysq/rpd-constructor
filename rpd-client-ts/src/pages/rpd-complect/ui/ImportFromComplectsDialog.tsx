@@ -19,21 +19,11 @@ import {
 } from "@mui/material";
 import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { useRpdComplectsQuery } from "@entities/rpd-complect/model/queries";
+import { useRpdComplectsQuery } from "@entities/rpd-complect";
 import { axiosBase } from "@shared/api";
 import { showErrorMessage, showSuccessMessage } from "@shared/lib";
 import type { ComplectData } from "@shared/types";
-
-type ComplectTemplatesResponse = ComplectData & {
-  templates: Array<{
-    id: number;
-    id_profile_template: number | null;
-    discipline: string;
-    teachers: string[];
-    teacher: string;
-    semester: number;
-  }>;
-};
+import type { ComplectMeta } from "../types";
 
 export type ImportFromComplectsDialogProps = {
   open: boolean;
@@ -55,7 +45,7 @@ export function ImportFromComplectsDialog({
     null
   );
   const [templatesByComplectId, setTemplatesByComplectId] = useState<
-    Record<number, ComplectTemplatesResponse["templates"]>
+    Record<number, ComplectMeta["templates"]>
   >({});
   const [templatesLoading, setTemplatesLoading] = useState<
     Record<number, boolean>
@@ -98,10 +88,9 @@ export function ImportFromComplectsDialog({
       setTemplatesError((p) => ({ ...p, [complectId]: null }));
 
       try {
-        const { data } = await axiosBase.post<ComplectTemplatesResponse>(
-          "find-rpd",
-          { complectId }
-        );
+        const { data } = await axiosBase.post<ComplectMeta>("find-rpd", {
+          complectId,
+        });
         setTemplatesByComplectId((p) => ({
           ...p,
           [complectId]: data.templates ?? [],
@@ -170,7 +159,7 @@ export function ImportFromComplectsDialog({
   ]);
 
   const filteredTemplatesByComplectId = useMemo(() => {
-    const result: Record<number, ComplectTemplatesResponse["templates"]> = {};
+    const result: Record<number, ComplectMeta["templates"]> = {};
     for (const [idStr, templates] of Object.entries(templatesByComplectId)) {
       const complectId = Number(idStr);
       const q = (searchByComplectId[complectId] ?? "").trim().toLowerCase();
@@ -187,7 +176,7 @@ export function ImportFromComplectsDialog({
 
       result[complectId] = withoutSelf.filter((t) => {
         const hay =
-          `${t.discipline} ${t.teacher ?? ""} ${t.semester ?? ""}`.toLowerCase();
+          `${t.discipline} ${t.participants.map((participant) => participant.fullname).join(", ")} ${t.semester}`.toLowerCase();
         return hay.includes(q);
       });
     }
@@ -296,9 +285,11 @@ export function ImportFromComplectsDialog({
                                 <ListItemText
                                   primary={
                                     <Box
-                                      display="flex"
-                                      justifyContent="space-between"
-                                      gap={2}
+                                      sx={{
+                                        display: "flex",
+                                        justifyContent: "space-between",
+                                        gap: 2,
+                                      }}
                                     >
                                       <Box sx={{ minWidth: 0 }}>
                                         <Typography
@@ -312,8 +303,13 @@ export function ImportFromComplectsDialog({
                                           color="text.secondary"
                                           noWrap
                                         >
-                                          {t.teacher || "—"} • семестр{" "}
-                                          {t.semester}
+                                          {t.participants
+                                            .map(
+                                              (participant) =>
+                                                participant.fullname
+                                            )
+                                            .join(", ") || "—"}{" "}
+                                          • семестр {t.semester}
                                         </Typography>
                                       </Box>
                                       <Typography
