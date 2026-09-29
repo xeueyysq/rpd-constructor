@@ -15,7 +15,7 @@
 
 `e2e/` — отдельный bun-пакет для UI-сценариев Playwright. Запуск: `cd e2e && bun run test:e2e`. Нужен Docker: команда сбрасывает отдельную тестовую БД PostgreSQL на порту 5433, выполняет миграции и синтетический seed, затем запускает Chromium против сервера на 8010 и клиента на 5180. После работы: `bun run db:down`. E2E не входит в быстрый gate; UI-сценарии проверяются этим набором.
 
-Сценарии разложены по группам `e2e/tests/{auth,users,complects,editor}/`. После фичи или фикса запускайте группу своей области (`bun run test:e2e:<группа>`), перед PR и `but land` — весь набор. Таблица «что менялось → какая группа» — в разделе E2E файла [README.md](../README.md). Новый сценарий кладите в папку своей области.
+Сценарии разложены по группам `e2e/tests/{auth,users,complects,editor,system}/`. После фичи или фикса запускайте группу своей области (`bun run test:e2e:<группа>`), перед PR и `but land` — весь набор. Таблица «что менялось → какая группа» — в разделе E2E файла [README.md](../README.md). Новый сценарий кладите в папку своей области.
 
 ## Клиент
 
@@ -53,3 +53,4 @@
   1. Ветка от `develop`: версия в обоих `package.json`, раздел CHANGELOG с датой и, если нужно, шагами обновления. Затем `but land`.
   2. PR `develop → main`, влить через «Create a merge commit». Squash и rebase разрывают общую историю веток, и следующий релиз даст конфликты.
   3. Тег и релиз на GitHub: `gh release create vX.Y.Z --target main --title vX.Y.Z --notes-file <раздел CHANGELOG>`.
+  4. На сервере из `~/rpd-app/rpd-constructor/rpd-server` запустите `./deploy.sh vX.Y.Z`; подробности — в [README.md](../README.md#развёртывание).
