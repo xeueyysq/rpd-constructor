@@ -9,6 +9,8 @@
     "test:e2e:users": "bun run test:e2e tests/users",
     "test:e2e:complects": "bun run test:e2e tests/complects",
     "test:e2e:editor": "bun run test:e2e tests/editor",
+    "test:e2e:system": "bun run test:e2e tests/system",
+    "test:deploy": "bash ./deploy/test-deploy.sh",
     "docs:screenshots": "DOCS_SCREENSHOTS=1 bun run test:e2e tests/docs",
     "db:down": "docker compose --env-file e2e.env down"
   },

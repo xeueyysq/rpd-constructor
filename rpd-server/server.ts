@@ -1,4 +1,5 @@
 import express from "express";
+import { readFileSync } from "node:fs";
 import type { NextFunction, Request, Response } from "express";
 
 import { pool } from "./config/db.ts";
@@ -13,7 +14,12 @@ import AuthRootRouter from "./app/routes/Auth.ts";
 import TokenService from "./app/services/Token.ts";
 import { ErrorUtils } from "./app/utils/Errors.ts";
 
-const { PORT, CLIENT_URL, API_URL } = process.env;
+const { PORT, CLIENT_URL, API_URL, ALLOWED_ORIGINS } = process.env;
+const packageData: unknown = JSON.parse(readFileSync(new URL("./package.json", import.meta.url), "utf8"));
+if (!packageData || typeof packageData !== "object" || !("version" in packageData) || typeof packageData.version !== "string") {
+  throw new Error("Не найдена версия сервера в package.json");
+}
+const version = packageData.version;
 
 app.use(cookieParser());
 app.use(express.json());
@@ -28,6 +34,7 @@ const allowedOrigins = [
   "http://localhost:5432",
   CLIENT_URL,
   API_URL,
+  ...(ALLOWED_ORIGINS ?? "").split(",").map((origin) => origin.trim()).filter(Boolean),
 ];
 
 // CORS Middleware
@@ -66,6 +73,15 @@ pool
   .connect()
   .then(() => {
     console.log("Подключено к PostgreSQL");
+
+    app.get("/api/health", async (_req, res) => {
+      try {
+        await pool.query("SELECT 1");
+        res.status(200).json({ status: "ok", version });
+      } catch {
+        res.status(503).json({ status: "error" });
+      }
+    });
 
     app.use("/api", routes);
     app.use("/auth", AuthRootRouter);

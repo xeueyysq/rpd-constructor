@@ -18,7 +18,7 @@ RUN apk add --no-cache --virtual .build-deps build-base python3 make g++ \
     && apk add --no-cache netcat-openbsd curl bash unzip
 
 # Установка bun
-RUN curl -fsSL https://bun.sh/install | bash
+RUN curl -fsSL https://bun.sh/install | bash -s "bun-v1.3.14"
 ENV PATH="/root/.bun/bin:${PATH}"
 
 # Установка рабочих директорий
@@ -28,7 +28,7 @@ WORKDIR /app
 COPY package.json bun.lock ./
 
 # Установка зависимостей
-RUN bun install
+RUN bun install --frozen-lockfile
 
 # Копирование остальных файлов приложения
 COPY . .

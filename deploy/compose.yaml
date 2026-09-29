@@ -1,0 +1,62 @@
+# Имя проекта определяет том rpd-server_postgres_data с данными прода. Не меняйте его.
+name: rpd-server
+services:
+  client:
+    image: rpd/client:${RPD_VERSION:-dev}
+    build: ../rpd-client-ts
+    restart: unless-stopped
+    ports:
+      # HTTPS и домен обслуживает nginx хоста.
+      - "127.0.0.1:${RPD_HTTP_PORT:-8080}:80"
+    networks:
+      - app-network
+    depends_on:
+      server:
+        # nginx разрешает upstream динамически.
+        condition: service_started
+
+  server:
+    image: rpd/server:${RPD_VERSION:-dev}
+    build: ../rpd-server
+    restart: unless-stopped
+    ports:
+      - "127.0.0.1:${RPD_API_PORT:-8000}:8000"
+    env_file:
+      - ./.env
+    healthcheck:
+      test: ["CMD", "curl", "-fsS", "http://127.0.0.1:8000/api/health"]
+      interval: 5s
+      timeout: 3s
+      retries: 12
+      start_period: 15s
+    networks:
+      - app-network
+    depends_on:
+      db:
+        condition: service_healthy
+
+  db:
+    # Том прода создан PostgreSQL 17: версия 16 его не откроет, 18+ меняет раскладку тома.
+    image: postgres:17
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ${DB_USER:-postgres}
+      POSTGRES_PASSWORD: ${DB_PASSWORD:?Задайте DB_PASSWORD в deploy/.env}
+      POSTGRES_DB: ${DB_NAME:-Rpd}
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $$POSTGRES_USER -d $$POSTGRES_DB"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+      start_period: 10s
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    networks:
+      - app-network
+
+networks:
+  app-network:
+    driver: bridge
+
+volumes:
+  postgres_data:
