@@ -146,7 +146,7 @@ export const RpdList: FC<{ RpdListItems: RpdListItem[] }> = ({
                 }
                 sx={{ py: 1 }}
               >
-                <ListItemIcon sx={{ pl: 2 }}>
+                <ListItemIcon sx={{ minWidth: (theme) => theme.spacing(4.5) }}>
                   <DescriptionIcon sx={{ fontSize: "20px" }} />
                 </ListItemIcon>
                 <ListItemText
@@ -170,7 +170,7 @@ export const RpdList: FC<{ RpdListItems: RpdListItem[] }> = ({
               }
               sx={{ py: 1 }}
             >
-              <ListItemIcon sx={{ pl: 2 }}>
+              <ListItemIcon sx={{ minWidth: (theme) => theme.spacing(4.5) }}>
                 <ArrowBackIcon sx={{ fontSize: "20px" }} />
               </ListItemIcon>
               <ListItemText

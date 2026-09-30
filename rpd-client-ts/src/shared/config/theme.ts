@@ -71,6 +71,15 @@ export const themeOptions: ThemeOptions = {
         size: "small",
       },
     },
+    MuiListItemIcon: {
+      styleOverrides: {
+        // В MUI 9 отступ иконки до текста уменьшился с 56 до 36 px — возвращаем прежний.
+        // Внутри MenuItem ширину по-прежнему задаёт MUI (селектор специфичнее).
+        root: ({ theme }) => ({
+          minWidth: theme.spacing(7),
+        }),
+      },
+    },
     MuiInputLabel: {
       styleOverrides: {
         root: {
