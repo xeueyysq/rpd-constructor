@@ -1,4 +1,5 @@
 export { TemplateStatus } from "./ui/TemplateStatus";
+export { TemplateParticipantsList } from "./ui/TemplateParticipantsList";
 export { getTemplateStatusLabel } from "./lib/getTemplateStatusLabel";
 export { formatProgress } from "./lib/formatProgress";
 export {

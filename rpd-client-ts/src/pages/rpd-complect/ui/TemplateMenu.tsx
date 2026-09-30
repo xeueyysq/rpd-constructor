@@ -1,4 +1,5 @@
 import HistoryIcon from "@mui/icons-material/History";
+import EditOutlinedIcon from "@mui/icons-material/EditOutlined";
 import MoreHorizIcon from "@mui/icons-material/MoreHoriz";
 import OpenInBrowserIcon from "@mui/icons-material/OpenInBrowser";
 import FileDownloadOutlinedIcon from "@mui/icons-material/FileDownloadOutlined";
@@ -15,9 +16,17 @@ interface Props {
   id: number;
   publicId?: string;
   fetchData: () => Promise<void>;
+  canEditTeachers: boolean;
+  onEditTeachers: () => void;
 }
 
-export default function TemplateMenu({ id, publicId, fetchData }: Props) {
+export default function TemplateMenu({
+  id,
+  publicId,
+  fetchData,
+  canEditTeachers,
+  onEditTeachers,
+}: Props) {
   const [anchorEl, setAnchorEl] = useState<HTMLButtonElement | null>(null);
   const [history, setHistory] = useState<HistoryEvent[] | null>(null);
   const [openImportDialog, setOpenImportDialog] = useState(false);
@@ -47,6 +56,19 @@ export default function TemplateMenu({ id, publicId, fetchData }: Props) {
         <MoreHorizIcon />
       </IconButton>
       <Menu anchorEl={anchorEl} open={Boolean(anchorEl)} onClose={close}>
+        {canEditTeachers ? (
+          <MenuItem
+            onClick={() => {
+              close();
+              onEditTeachers();
+            }}
+          >
+            <ListItemIcon>
+              <EditOutlinedIcon />
+            </ListItemIcon>
+            Изменить преподавателей
+          </MenuItem>
+        ) : null}
         <MenuItem
           onClick={() => {
             close();

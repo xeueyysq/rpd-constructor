@@ -10,24 +10,26 @@ import type { TemplateData } from "../types";
 
 type Params = {
   selectedTeacherIds: Record<number, number[]>;
-  onSelectedTeacherIdsChange: (exchangeId: number, ids: number[]) => void;
   onCreateTemplate: (id: number) => Promise<void>;
   onFetchData: () => Promise<void>;
+  onOpenTeachers: (exchangeId: number) => void;
 };
 
 export function useComplectTableColumns({
   selectedTeacherIds,
-  onSelectedTeacherIdsChange,
   onCreateTemplate,
   onFetchData,
+  onOpenTeachers,
 }: Params): MRT_ColumnDef<TemplateData>[] {
   return useMemo(
     () => [
       { accessorKey: "discipline", header: "Дисциплина" },
-      { accessorKey: "semester", header: "Семестр", size: 100 },
+      { accessorKey: "semester", header: "Семестр", size: 100, grow: false },
       {
         id: "participants",
         header: "Преподаватели",
+        minSize: 240,
+        size: 280,
         accessorFn: (row) =>
           row.participants.map((part) => part.fullname).join(", "),
         Cell: ({ row }) => (
@@ -35,13 +37,9 @@ export function useComplectTableColumns({
             templateId={row.original.id_profile_template}
             status={row.original.status}
             participants={row.original.participants}
-            hints={row.original.teacherHints}
             canEditTeachers={row.original.canEditTeachers}
             selectedIds={selectedTeacherIds[row.original.id] ?? []}
-            onSelectedIdsChange={(ids) =>
-              onSelectedTeacherIdsChange(row.original.id, ids)
-            }
-            onRefresh={onFetchData}
+            onOpen={() => onOpenTeachers(row.original.id)}
           />
         ),
       },
@@ -50,43 +48,50 @@ export function useComplectTableColumns({
         header: "Статус",
         accessorFn: (row) => getTemplateStatusLabel(row.status),
         Cell: ({ row }) => (
-          <TemplateStatus
-            status={row.original.status}
-            progress={
-              row.original.id_profile_template
-                ? row.original.progress
-                : undefined
-            }
-            participants={row.original.participants}
-          />
-        ),
-      },
-      {
-        id: "sync",
-        header: "1С",
-        enableSorting: false,
-        enableColumnFilter: false,
-        Cell: ({ row }) => (
-          <ExchangeChanges
-            exchangeId={row.original.id}
-            pendingChanges={row.original.pendingChanges}
-            onAcknowledged={onFetchData}
-          />
+          <Box>
+            <TemplateStatus
+              status={row.original.status}
+              progress={
+                row.original.id_profile_template
+                  ? row.original.progress
+                  : undefined
+              }
+            />
+            <Box sx={{ mt: row.original.pendingChanges.count ? 0.5 : 0 }}>
+              <ExchangeChanges
+                exchangeId={row.original.id}
+                pendingChanges={row.original.pendingChanges}
+                onAcknowledged={onFetchData}
+              />
+            </Box>
+          </Box>
         ),
       },
       {
         id: "actions",
         header: "Действия",
+        size: 240,
+        minSize: 240,
+        grow: false,
         enableSorting: false,
         enableColumnFilter: false,
         Cell: ({ row }) => (
-          <Box>
+          <Box
+            sx={{
+              display: "flex",
+              alignItems: "center",
+              gap: 1,
+              flexWrap: "nowrap",
+            }}
+          >
             {row.original.id_profile_template ? (
               <>
                 <TemplateMenu
                   id={row.original.id_profile_template}
                   publicId={row.original.profile_template_public_id}
                   fetchData={onFetchData}
+                  canEditTeachers={row.original.canEditTeachers}
+                  onEditTeachers={() => onOpenTeachers(row.original.id)}
                 />
                 <TemplateWorkflowActions
                   templateId={row.original.id_profile_template}
@@ -106,11 +111,6 @@ export function useComplectTableColumns({
         ),
       },
     ],
-    [
-      selectedTeacherIds,
-      onSelectedTeacherIdsChange,
-      onCreateTemplate,
-      onFetchData,
-    ]
+    [selectedTeacherIds, onCreateTemplate, onFetchData, onOpenTeachers]
   );
 }

@@ -1,5 +1,6 @@
 import { expect, test } from '@playwright/test';
 import { apiUrl, disciplines, openComplect, signIn } from '../helpers';
+import { closeTeachersDialog, openTeachersDialog, selectTeacher } from '../teacherAssignments';
 
 test('РОП видит действия активного режима и открывает свою РПД как преподаватель', async ({ page, request }) => {
   // Второй РОП и его комплект не участвуют в сценарии совместной готовности.
@@ -15,18 +16,26 @@ test('РОП видит действия активного режима и от
   try {
     await openComplect(page, 'other');
     const row = page.getByRole('row').filter({ hasText: disciplines.otherRop });
-    await row.getByRole('combobox', { name: 'Преподаватели' }).fill('Другов');
+    const teachers = await openTeachersDialog(page, row, disciplines.otherRop);
     const assignment = page.waitForResponse((response) =>
       response.url() === `${apiUrl}/api/templates/${templateId}/workflow` && response.request().method() === 'POST');
-    await page.getByRole('option', { name: 'Другов Тест Тестович' }).click();
+    await selectTeacher(teachers, 'Другов Тест Тестович');
     expect((await assignment).status()).toBe(200);
     assigned = true;
+    await closeTeachersDialog(teachers);
 
     await expect(row).toContainText('Другов Тест Тестович');
     await expect(row.getByRole('button', { name: 'Принять', exact: true })).toBeVisible();
     await expect(row.getByRole('button', { name: 'Взять в работу', exact: true })).toHaveCount(0);
     await expect(row.getByRole('button', { name: 'Готово', exact: true })).toHaveCount(0);
     await expect(row.getByRole('button', { name: 'Другие действия РПД' })).toHaveCount(0);
+    const actionsCell = row.getByRole('cell').nth(4);
+    const menuBounds = await actionsCell.getByRole('button', { name: 'Меню шаблона' }).boundingBox();
+    const primaryBounds = await actionsCell.getByRole('button', { name: 'Принять', exact: true }).boundingBox();
+    expect(menuBounds).not.toBeNull();
+    expect(primaryBounds).not.toBeNull();
+    expect(primaryBounds!.y + primaryBounds!.height / 2)
+      .toBeCloseTo(menuBounds!.y + menuBounds!.height / 2, 0);
 
     await page.getByRole('button', { name: 'Открыть меню аккаунта' }).click();
     await page.getByRole('menuitem', { name: 'Преподаватель', exact: true }).click();

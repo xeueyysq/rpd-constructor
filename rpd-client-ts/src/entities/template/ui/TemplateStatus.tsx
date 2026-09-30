@@ -1,11 +1,11 @@
-import { Box, Chip, Stack } from "@mui/material";
+import { Box } from "@mui/material";
 import { getTemplateStatusLabel } from "../lib/getTemplateStatusLabel";
 import { formatProgress } from "../lib/formatProgress";
 import type {
   TemplateStatusCode,
   TemplateParticipant,
 } from "../model/workflow";
-import { participationLabels } from "../model/workflow";
+import { TemplateParticipantsList } from "./TemplateParticipantsList";
 
 type TemplateStatusProps = {
   status: TemplateStatusCode | null | undefined;
@@ -24,15 +24,9 @@ export function TemplateStatus({
       <Box>{getTemplateStatusLabel(status)}</Box>
       {progress ? <Box>{formatProgress(progress)}</Box> : null}
       {participants?.length ? (
-        <Stack direction="row" sx={{ mt: 0.5, gap: 0.5, flexWrap: "wrap" }}>
-          {participants.map((participant) => (
-            <Chip
-              key={participant.userId}
-              size="small"
-              label={`${participant.fullname} — ${participationLabels[participant.state]}${participant.isActive ? "" : " (неактивен)"}`}
-            />
-          ))}
-        </Stack>
+        <Box sx={{ mt: 1 }}>
+          <TemplateParticipantsList participants={participants} />
+        </Box>
       ) : null}
     </Box>
   );
