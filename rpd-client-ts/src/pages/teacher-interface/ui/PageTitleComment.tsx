@@ -5,17 +5,19 @@ import { Box, BoxProps, IconButton } from "@mui/material";
 import { CommentChangeValue } from "./changeable-elements/CommentChangeValue";
 import { UserRole } from "@shared/ability";
 import { useStore } from "@shared/hooks";
-import { useMemo, useState } from "react";
+import { useMemo, useState, type ReactNode } from "react";
 import { PageTitle } from "@shared/ui";
 
 type PageTitleCommentProps = BoxProps & {
   title: string;
   templateField: string;
   fields?: string[];
+  // Кнопки справа от заголовка (например, подсказка по разделу).
+  actions?: ReactNode;
 };
 
 export function PageTitleComment(props: PageTitleCommentProps) {
-  const { title, templateField, fields, sx, ...boxProps } = props;
+  const { title, templateField, fields, actions, sx, ...boxProps } = props;
   const [isEdittedComment, setIsEdittedComment] = useState<boolean>(false);
   const { userRole } = useAuth((state) => state);
   const { jsonData } = useStore((state) => state);
@@ -37,41 +39,38 @@ export function PageTitleComment(props: PageTitleCommentProps) {
   }, [comment?.comment_text]);
 
   const hasComment = Boolean(commentText);
+  const canAddComment =
+    userRole !== UserRole.TEACHER && !hasComment && !isEdittedComment;
 
-  if (userRole !== UserRole.TEACHER && !hasComment && !isEdittedComment)
-    return (
-      <Box
-        {...boxProps}
-        sx={[
-          { display: "flex", gap: 2, alignItems: "center" },
-          ...(Array.isArray(sx) ? sx : sx ? [sx] : []),
-        ]}
-      >
-        <Box>
-          <PageTitle title={title} />
-          {fields && <FieldEditLabel fields={fields} />}
-        </Box>
-        <IconButton
-          onClick={() => {
-            setIsEdittedComment(true);
-          }}
-          sx={{ alignSelf: "flex-start" }}
-          color="warning"
-        >
-          <AddCommentIcon />
-        </IconButton>
-      </Box>
-    );
-
+  // Отметка «Изменено» — часть заголовка, комментарий — отдельный блок ниже.
+  // Отступ между ними задаёт sx страницы (pb у заголовка).
   return (
     <Box>
-      <PageTitle {...boxProps} sx={sx} title={title} />
-      {fields && <FieldEditLabel fields={fields} />}
-      <CommentChangeValue
-        templateField={templateField}
-        isEdittedComment={isEdittedComment}
-        setIsEdittedComment={setIsEdittedComment}
-      />
+      <Box {...boxProps} sx={sx}>
+        <Box sx={{ display: "flex", gap: 2, alignItems: "center" }}>
+          <PageTitle title={title} />
+          {actions}
+          {canAddComment && (
+            <IconButton
+              aria-label="Добавить комментарий"
+              onClick={() => {
+                setIsEdittedComment(true);
+              }}
+              color="warning"
+            >
+              <AddCommentIcon />
+            </IconButton>
+          )}
+        </Box>
+        {fields && <FieldEditLabel fields={fields} />}
+      </Box>
+      {!canAddComment && (
+        <CommentChangeValue
+          templateField={templateField}
+          isEdittedComment={isEdittedComment}
+          setIsEdittedComment={setIsEdittedComment}
+        />
+      )}
     </Box>
   );
 }
