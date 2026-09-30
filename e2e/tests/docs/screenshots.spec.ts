@@ -3,6 +3,7 @@ import { parseEnv } from 'node:util';
 import { fileURLToPath } from 'node:url';
 import { expect, test, type ElementHandle, type Locator, type Page } from '@playwright/test';
 import { complects, disciplines, openComplect, showAllRows, signIn } from '../helpers';
+import { closeTeachersDialog, openTeachersDialog } from '../teacherAssignments';
 
 test.use({ viewport: { width: 1280, height: 800 } });
 
@@ -211,14 +212,16 @@ test('снимки инструкции на синтетических данн
     { target: rpdRow.getByRole('cell').nth(3), label: 'Статус РПД' },
   ]);
 
-  const teachers = rpdRow.getByRole('combobox', { name: 'Преподаватели' });
-  await teachers.click();
-  const teacherOption = page.getByRole('option', { name: /Яковлева/ });
+  // Состав не меняем: в кадре только поиск и флажок нужного аккаунта.
+  const teachersDialog = await openTeachersDialog(page, rpdRow, disciplines.inProgress);
+  const teacherSearch = teachersDialog.getByRole('textbox', { name: 'Поиск преподавателя' });
+  await teacherSearch.fill('Яковлева');
+  const teacherCheckbox = teachersDialog.getByRole('checkbox', { name: /Яковлева/ });
   await save(page, 'teacher-selection', [
-    { target: teachers, label: 'Поле преподавателей' },
-    { target: teacherOption, label: 'Выбрать аккаунт' },
+    { target: teacherSearch, label: 'Найти преподавателя', placement: 'bottom' },
+    { target: teacherCheckbox, label: 'Отметить аккаунт', placement: 'right', avoid: [teachersDialog.getByRole('button', { name: 'Закрыть' })] },
   ]);
-  await teachers.press('Escape');
+  await closeTeachersDialog(teachersDialog);
 
   await page.getByRole('button', { name: 'Собрать ФОСы' }).click();
   const fundsDialog = page.getByRole('dialog', { name: 'Сформировать ФОС' });
@@ -252,11 +255,14 @@ test('снимки инструкции на синтетических данн
     const teacherPage = await teacherContext.newPage();
     await signIn(teacherPage, 'teacher');
     const templateRow = teacherPage.getByRole('row').filter({ hasText: 'Совместное редактирование для теста' });
+    // Таблица шире окна: прокручиваем к колонке «Действия», чтобы в кадре были «Моя отметка» и значок «Открыть».
+    const openButton = templateRow.getByRole('button', { name: 'Открыть' });
+    await openButton.scrollIntoViewIfNeeded();
     await save(teacherPage, 'teacher-templates', [
-      { target: templateRow.getByRole('cell', { name: 'Совместное редактирование для теста' }), label: 'Своя дисциплина' },
-      { target: templateRow.getByRole('button', { name: 'Открыть' }), label: 'Открыть РПД' },
+      { target: templateRow.getByRole('cell', { name: 'Назначен', exact: true }), label: 'Моя отметка' },
+      { target: openButton, label: 'Открыть РПД' },
     ]);
-    await templateRow.getByRole('button', { name: 'Открыть' }).click();
+    await openButton.click();
     const aims = teacherPage.getByRole('button', { name: 'Цели и задачи освоения дисциплины' });
     await aims.click();
 
@@ -265,19 +271,20 @@ test('снимки инструкции на синтетических данн
     await secondPage.getByRole('row').filter({ hasText: 'Совместное редактирование для теста' })
       .getByRole('button', { name: 'Открыть' }).click();
     await secondPage.getByRole('button', { name: 'Цели и задачи освоения дисциплины' }).click();
-    const presence = teacherPage.getByText(/Сейчас в шаблоне: Яковлева/);
-    await expect(presence).toBeVisible();
+    // Сохранение, последняя правка и присутствие — в блоке внизу панели разделов.
+    const status = teacherPage.getByRole('status', { name: 'Сохранение и присутствие' });
+    await expect(status.getByText(/Сейчас в шаблоне: Яковлева/)).toBeVisible();
     await teacherPage.getByRole('button', { name: 'Редактировать' }).click();
     const editor = teacherPage.locator('.textEditor [contenteditable="true"]');
     await editor.press('ControlOrMeta+a');
     await editor.pressSequentially('Цель обучения на синтетических данных');
     const saved = teacherPage.waitForResponse((response) => response.request().method() === 'PUT' && response.url().includes('/api/update-json-value/110') && response.ok());
-    await teacherPage.getByText('Цели и задачи освоения дисциплины', { exact: true }).last().click();
+    await teacherPage.getByRole('button', { name: 'Сохранить изменения' }).click();
     await saved;
-    await expect(presence.locator('..').getByText(/Изменено: Альфина/)).toBeVisible();
+    await expect(status.getByText(/Изменено: Альфина/)).toBeVisible();
     await save(teacherPage, 'editor-collaboration', [
-      { target: aims, label: 'Раздел редактора' },
-      { target: presence, label: 'Участники и правки' },
+      { target: aims, label: 'Раздел редактора', avoid: [teacherPage.getByRole('main').getByText(/Изменено: Альфина/)] },
+      { target: status, label: 'Статус и участники' },
     ]);
 
     await secondPage.getByRole('button', { name: 'Список РПД' }).click();
