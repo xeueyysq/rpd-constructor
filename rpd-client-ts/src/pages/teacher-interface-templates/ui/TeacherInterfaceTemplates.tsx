@@ -6,7 +6,15 @@ import {
   type MyTemplate,
 } from "@entities/template";
 import { TemplateWorkflowActions } from "@features/template-workflow";
-import { Box, Button, CssBaseline } from "@mui/material";
+import OpenInBrowserIcon from "@mui/icons-material/OpenInBrowser";
+import {
+  Box,
+  CssBaseline,
+  IconButton,
+  Stack,
+  Tooltip,
+  useTheme,
+} from "@mui/material";
 import { RedirectPath } from "@shared/enums";
 import { Loader, PageTitle } from "@shared/ui";
 import {
@@ -21,6 +29,8 @@ import { useNavigate } from "react-router-dom";
 export function TeacherInterfaceTemplates() {
   const { data, isLoading } = useMyTemplates();
   const navigate = useNavigate();
+  const theme = useTheme();
+  const actionsColumnWidth = Number.parseFloat(theme.spacing(30));
   const columns = useMemo<MRT_ColumnDef<MyTemplate>[]>(
     () => [
       { accessorKey: "disciplins_name", header: "Название дисциплины" },
@@ -52,27 +62,35 @@ export function TeacherInterfaceTemplates() {
         header: "Действия",
         enableSorting: false,
         enableColumnFilter: false,
+        size: actionsColumnWidth,
+        minSize: actionsColumnWidth,
         Cell: ({ row }) => (
-          <Box>
-            <Button
-              size="small"
-              onClick={() =>
-                navigate(
-                  `${RedirectPath.TEMPLATES}/${row.original.public_id ?? row.original.id}`
-                )
-              }
-            >
-              Открыть
-            </Button>
+          <Stack
+            direction="row"
+            sx={{ alignItems: "center", flexWrap: "nowrap", gap: 1 }}
+          >
+            <Tooltip title="Открыть">
+              <IconButton
+                size="small"
+                aria-label="Открыть"
+                onClick={() =>
+                  navigate(
+                    `${RedirectPath.TEMPLATES}/${row.original.public_id ?? row.original.id}`
+                  )
+                }
+              >
+                <OpenInBrowserIcon />
+              </IconButton>
+            </Tooltip>
             <TemplateWorkflowActions
               templateId={row.original.id}
               allowedActions={row.original.allowedActions}
             />
-          </Box>
+          </Stack>
         ),
       },
     ],
-    [navigate]
+    [navigate, actionsColumnWidth]
   );
   const table = useMaterialReactTable<MyTemplate>({
     columns,

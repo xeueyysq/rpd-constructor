@@ -43,6 +43,8 @@ export const BuildFundsByComplectDialog: FC<
       ...new Set(rows.map((row) => row.competence).filter((value) => value)),
     ];
   }, [rows]);
+  const downloadBlocked =
+    isLoading || isError || isGenerating || competencies.length === 0;
 
   useEffect(() => {
     if (!open) return;
@@ -71,6 +73,8 @@ export const BuildFundsByComplectDialog: FC<
   };
 
   const handleGenerateExcel = async () => {
+    if (downloadBlocked) return;
+
     try {
       const { blob, filename } = await excel.mutateAsync(complectId);
       downloadBlob(blob, filename);
@@ -141,14 +145,14 @@ export const BuildFundsByComplectDialog: FC<
         <Button
           variant="outlined"
           onClick={handleGenerateExcel}
-          disabled={isGenerating}
+          disabled={downloadBlocked}
         >
           {excel.isPending ? "Формирование…" : "Скачать Excel"}
         </Button>
         <Button
           variant="contained"
           onClick={handleGenerateDocx}
-          disabled={!selectedCompetence || isLoading || isGenerating}
+          disabled={downloadBlocked || !selectedCompetence}
         >
           {word.isPending ? "Формирование…" : "Скачать Word"}
         </Button>

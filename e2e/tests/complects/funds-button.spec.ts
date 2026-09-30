@@ -30,3 +30,15 @@ test('Excel ФОС скачивается как xlsx для всего комп
   expect(file).not.toBeNull();
   expect((await readFile(file!)).subarray(0, 2).toString()).toBe('PK');
 });
+
+test('без компетенций скачивание Word и Excel ФОС недоступно', async ({ page }) => {
+  await page.route('**/api/get-results-data?*', (route) =>
+    route.fulfill({ json: [] }));
+  await signIn(page, 'admin');
+  await openComplect(page);
+  await page.getByRole('button', { name: 'Собрать ФОСы' }).click();
+  const dialog = page.getByRole('dialog', { name: 'Сформировать ФОС' });
+  await expect(dialog.getByText(/В комплекте не найдены компетенции/)).toBeVisible();
+  await expect(dialog.getByRole('button', { name: 'Скачать Excel' })).toBeDisabled();
+  await expect(dialog.getByRole('button', { name: 'Скачать Word' })).toBeDisabled();
+});

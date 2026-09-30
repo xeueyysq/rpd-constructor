@@ -1,15 +1,21 @@
+import { useAuth } from "@entities/auth";
 import { useWorkflowAction, type WorkflowAction } from "@entities/template";
+import MoreHorizIcon from "@mui/icons-material/MoreHoriz";
 import {
   Button,
   Dialog,
   DialogActions,
   DialogContent,
   DialogTitle,
+  IconButton,
+  Menu,
+  MenuItem,
   Stack,
   TextField,
 } from "@mui/material";
 import { showErrorMessage } from "@shared/lib";
-import { useState } from "react";
+import { useId, useState } from "react";
+import { workflowActionsLayout } from "../lib/visibleWorkflowActions";
 
 const labels: Partial<Record<WorkflowAction, string>> = {
   start: "Взять в работу",
@@ -28,7 +34,14 @@ export function TemplateWorkflowActions({
   allowedActions: WorkflowAction[];
   onChanged?: () => void | Promise<void>;
 }) {
+  const userRole = useAuth((state) => state.userRole);
   const mutation = useWorkflowAction();
+  const { primary, secondary } = workflowActionsLayout(
+    allowedActions,
+    userRole
+  );
+  const menuId = useId();
+  const [anchorEl, setAnchorEl] = useState<HTMLButtonElement | null>(null);
   const [open, setOpen] = useState(false);
   const [comment, setComment] = useState("");
 
@@ -48,24 +61,67 @@ export function TemplateWorkflowActions({
     }
   };
 
+  const handleAction = (action: WorkflowAction) => {
+    setAnchorEl(null);
+    if (action === "refine") setOpen(true);
+    else void run(action);
+  };
+
   return (
     <>
-      <Stack direction="row" sx={{ flexWrap: "wrap", gap: 1 }}>
-        {allowedActions
-          .filter((action) => labels[action])
-          .map((action) => (
-            <Button
-              key={action}
+      <Stack
+        direction="row"
+        sx={{
+          display: "inline-flex",
+          alignItems: "center",
+          verticalAlign: "middle",
+          flexWrap: "nowrap",
+          flexShrink: 0,
+          gap: 1,
+        }}
+      >
+        {primary ? (
+          <Button
+            size="small"
+            variant="outlined"
+            disabled={mutation.isPending}
+            onClick={() => handleAction(primary)}
+            sx={{ whiteSpace: "nowrap" }}
+          >
+            {labels[primary]}
+          </Button>
+        ) : null}
+        {secondary.length > 0 ? (
+          <>
+            <IconButton
               size="small"
-              variant="outlined"
+              aria-label="Другие действия РПД"
+              aria-haspopup="menu"
+              aria-controls={anchorEl ? menuId : undefined}
+              aria-expanded={Boolean(anchorEl)}
               disabled={mutation.isPending}
-              onClick={() =>
-                action === "refine" ? setOpen(true) : void run(action)
-              }
+              onClick={(event) => setAnchorEl(event.currentTarget)}
             >
-              {labels[action]}
-            </Button>
-          ))}
+              <MoreHorizIcon />
+            </IconButton>
+            <Menu
+              id={menuId}
+              anchorEl={anchorEl}
+              open={Boolean(anchorEl)}
+              onClose={() => setAnchorEl(null)}
+            >
+              {secondary.map((action) => (
+                <MenuItem
+                  key={action}
+                  disabled={mutation.isPending}
+                  onClick={() => handleAction(action)}
+                >
+                  {labels[action]}
+                </MenuItem>
+              ))}
+            </Menu>
+          </>
+        ) : null}
       </Stack>
       <Dialog
         open={open}

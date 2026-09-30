@@ -35,19 +35,27 @@ test.describe('состав и готовность отдельной РПД', 
 
   test('отметка первого не делает РПД готовой, отметка второго делает', async ({ page, browser }) => {
     await signIn(page, 'teacher');
-    await row(page).getByRole('button', { name: 'Готово' }).click();
+    await row(page).getByRole('button', { name: 'Другие действия РПД' }).click();
+    await page.getByRole('menuitem', { name: 'Готово', exact: true }).click();
     await expect(teacherStatus(page)).toContainText('В работе');
     await expect(teacherStatus(page)).toContainText('1/2');
     await expect(row(page).getByRole('cell').nth(8)).toHaveText('Готово');
+    await expect(row(page).getByRole('button', { name: 'Взять в работу' })).toHaveCount(0);
+    await expect(row(page).getByRole('button', { name: 'Готово', exact: true })).toHaveCount(0);
+    await row(page).getByRole('button', { name: 'Другие действия РПД' }).click();
+    await expect(page.getByRole('menuitem', { name: 'Снять отметку' })).toBeVisible();
+    await page.keyboard.press('Escape');
 
     const secondContext = await browser.newContext({ baseURL: test.info().project.use.baseURL });
     try {
       const secondPage = await secondContext.newPage();
       await signIn(secondPage, 'teacher2');
       await expect(row(secondPage).getByRole('cell').nth(8)).toHaveText('Назначен');
-      await row(secondPage).getByRole('button', { name: 'Готово' }).click();
+      await row(secondPage).getByRole('button', { name: 'Другие действия РПД' }).click();
+      await secondPage.getByRole('menuitem', { name: 'Готово', exact: true }).click();
       await expect(teacherStatus(secondPage)).toContainText('Готов');
       await expect(teacherStatus(secondPage)).toContainText('2/2');
+      await expect(row(secondPage).getByRole('button', { name: 'Другие действия РПД' })).toHaveCount(0);
     } finally {
       await secondContext.close();
     }
@@ -60,6 +68,7 @@ test.describe('состав и готовность отдельной РПД', 
     await expect(row(page).getByRole('combobox', { name: 'Преподаватели' })).toBeDisabled();
     await row(page).getByRole('button', { name: 'Вернуть на доработку' }).click();
     const dialog = page.getByRole('dialog', { name: 'Вернуть РПД на доработку' });
+    await expect(dialog.getByRole('button', { name: 'Вернуть на доработку' })).toBeDisabled();
     await dialog.getByRole('textbox', { name: 'Комментарий' }).fill('Уточнить разделы РПД');
     await dialog.getByRole('button', { name: 'Вернуть на доработку' }).click();
     await expect(dialog).toBeHidden();
@@ -114,7 +123,8 @@ test.describe('деактивация назначенного преподав�
       const teacherPage = await teacherContext.newPage();
       await signIn(teacherPage, 'teacher2');
       const teacherRow = teacherPage.getByRole('row').filter({ hasText: disciplines.deactivation });
-      await teacherRow.getByRole('button', { name: 'Готово' }).click();
+      await teacherRow.getByRole('button', { name: 'Другие действия РПД' }).click();
+      await teacherPage.getByRole('menuitem', { name: 'Готово', exact: true }).click();
       await expect(teacherRow.getByRole('cell').nth(7)).toContainText('Готов');
       await expect(teacherRow.getByRole('cell').nth(7)).toContainText('1/1');
 
