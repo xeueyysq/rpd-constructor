@@ -14,7 +14,7 @@ import { UserRole } from "@shared/ability";
 import { axiosBase } from "@shared/api";
 import { useStore } from "@shared/hooks";
 import { showErrorMessage } from "@shared/lib";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import TextEditor from "./TextEditor.tsx";
 import MoreHorizIcon from "@mui/icons-material/MoreHoriz";
 import EditIcon from "@mui/icons-material/Edit";
@@ -38,6 +38,13 @@ export function CommentChangeValue({
   const templateId = useStore((state) => state.jsonData.id);
   const comment = jsonData?.comments?.[templateField];
   const commentId = comment?.id as number | undefined;
+  const dirtyField = `comment:${templateField}`;
+
+  useEffect(() => {
+    if (!isEdittedComment) return;
+    useTemplateSync.getState().markDirty(dirtyField);
+    return () => useTemplateSync.getState().clearDirty(dirtyField);
+  }, [dirtyField, isEdittedComment]);
 
   const commentText = useMemo(() => {
     const raw = comment?.comment_text;
@@ -137,7 +144,9 @@ export function CommentChangeValue({
   return (
     <Box
       sx={{
-        border: "1px dashed #ED6C02",
+        border: 1,
+        borderStyle: "dashed",
+        borderColor: "warning.main",
       }}
     >
       {!isEdittedComment ? (
@@ -147,7 +156,7 @@ export function CommentChangeValue({
               px: 2,
               pt: 2,
               pb: 1,
-              color: "#ED6C02",
+              color: "warning.main",
               display: "flex",
               alignItems: "flex-start",
               justifyContent: "space-between",
@@ -173,7 +182,7 @@ export function CommentChangeValue({
               color="text.secondary"
               gutterBottom
             >
-              Автор: {comment.commentator_id}
+              Автор: {comment?.commentator_fullname || "—"}
             </Typography>
           </Box>
           <Box sx={{ pl: 2 }}>
@@ -233,7 +242,7 @@ export function CommentChangeValue({
         <Box sx={{ p: 2 }}>
           <TextEditor
             value={commentText ?? ""}
-            onBlur={saveComment}
+            saveContent={saveComment}
             setIsEditing={setIsEdittedComment}
             isComment={true}
           />

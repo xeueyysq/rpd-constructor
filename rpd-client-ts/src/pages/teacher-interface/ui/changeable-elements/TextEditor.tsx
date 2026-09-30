@@ -19,7 +19,7 @@ import {
   focusOnEditor,
 } from "contenido";
 
-import { IconButton, Box, Button } from "@mui/material";
+import { IconButton, Box, Button, ButtonGroup } from "@mui/material";
 import FormatBoldIcon from "@mui/icons-material/FormatBold";
 import FormatItalicIcon from "@mui/icons-material/FormatItalic";
 import FormatUnderlinedIcon from "@mui/icons-material/FormatUnderlined";
@@ -28,14 +28,14 @@ import FormatListNumberedIcon from "@mui/icons-material/FormatListNumbered";
 
 interface TestEditor {
   value: string;
-  onBlur: (htmlValue: string, changed: boolean) => Promise<void>;
+  saveContent: (htmlValue: string, changed: boolean) => Promise<void>;
   setIsEditing: (value: boolean) => void;
   isComment?: boolean;
 }
 
 const TextEditor: FC<TestEditor> = ({
   value,
-  onBlur,
+  saveContent,
   setIsEditing,
   isComment,
 }) => {
@@ -43,11 +43,26 @@ const TextEditor: FC<TestEditor> = ({
     EditorState.createWithContent(stateFromHTML(value))
   );
   const originalHtml = useRef(stateToHTML(editorState.getCurrentContent()));
+  const [isSaving, setIsSaving] = useState(false);
+  const saving = useRef(false);
   const editorRef = useRef<DraftEditor>(null);
   // contenido ожидает ненулевой ref, хотя React заполняет его только после монтирования.
   const contenidoEditorRef = editorRef as RefObject<DraftEditor>;
 
   useEffect(() => focusOnEditor(contenidoEditorRef), [contenidoEditorRef]);
+
+  const handleSaveClick = async () => {
+    if (saving.current) return;
+    saving.current = true;
+    setIsSaving(true);
+    try {
+      const html = stateToHTML(editorState.getCurrentContent());
+      await saveContent(html, html !== originalHtml.current);
+    } finally {
+      saving.current = false;
+      setIsSaving(false);
+    }
+  };
 
   const toolbarButtons = [
     {
@@ -85,22 +100,24 @@ const TextEditor: FC<TestEditor> = ({
   return (
     <>
       <Box
-        sx={{
-          border: "1px solid grey",
-          width: "180px",
-          borderRadius: "5px 5px 0 0",
+        sx={(theme) => ({
+          display: "inline-flex",
+          border: 1,
+          borderColor: "divider",
+          borderRadius: `${theme.shape.borderRadius}px ${theme.shape.borderRadius}px 0 0`,
           mt: 2,
-        }}
+        })}
       >
         {toolbarButtons.map((btn) => (
           <IconButton
             key={btn.name}
+            disabled={isSaving}
             onMouseDown={(e) => {
               e.preventDefault();
               btn.handler(editorState, setEditorState);
             }}
-            style={{
-              color: btn.detector(editorState) ? "skyblue" : "black",
+            sx={{
+              color: btn.detector(editorState) ? "info.main" : "text.primary",
             }}
           >
             {btn.icon}
@@ -108,16 +125,17 @@ const TextEditor: FC<TestEditor> = ({
         ))}
       </Box>
       <Box
-        sx={{
+        sx={(theme) => ({
           gap: 4,
           p: 1,
-          border: "1px solid grey",
-          borderRadius: "0 5px 5px 5px",
+          border: 1,
+          borderColor: "divider",
+          borderRadius: `0 ${theme.shape.borderRadius}px ${theme.shape.borderRadius}px ${theme.shape.borderRadius}px`,
           mb: 2,
           "& .public-DraftStyleDefault-block": {
-            margin: "10px 0",
+            margin: theme.spacing(1.25, 0),
             textIndent: "1.5em",
-            lineHeight: "22px",
+            lineHeight: theme.typography.body1.lineHeight,
           },
           "& ol, ul": {
             paddingLeft: "1.5em",
@@ -130,29 +148,30 @@ const TextEditor: FC<TestEditor> = ({
             margin: "0",
             textIndent: "0",
           },
-        }}
+        })}
         className="textEditor"
       >
         <Editor
           editorState={editorState}
           onChange={setEditorState}
-          onBlur={() => {
-            const html = stateToHTML(editorState.getCurrentContent());
-            void onBlur(html, html !== originalHtml.current);
-          }}
+          readOnly={isSaving}
           handleKeyCommand={shortcutHandler(setEditorState)}
           keyBindingFn={getDefaultKeyBindingFn}
           editorRef={contenidoEditorRef}
         />
       </Box>
-      <Button
+      <ButtonGroup
         color={isComment ? "warning" : undefined}
         variant="outlined"
-        onMouseDown={(event) => event.preventDefault()}
-        onClick={() => setIsEditing(false)}
+        disabled={isSaving}
       >
-        Отменить
-      </Button>
+        <Button variant="contained" onClick={handleSaveClick}>
+          {isComment ? "Сохранить комментарий" : "Сохранить изменения"}
+        </Button>
+        <Button variant="outlined" onClick={() => setIsEditing(false)}>
+          Отменить
+        </Button>
+      </ButtonGroup>
     </>
   );
 };

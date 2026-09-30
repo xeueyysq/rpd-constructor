@@ -26,4 +26,34 @@ describe("ревизии правок шаблона", () => {
     useTemplateSync.getState().clearDirty("goals", current);
     expect(useTemplateSync.getState().dirty.goals).toBeUndefined();
   });
+
+  it("оставляет черновик грязным и не отмечает сохранение при ошибке", async () => {
+    const revision = useTemplateSync.getState().markDirty("comment:goals");
+    await expect(
+      useTemplateSync
+        .getState()
+        .track(Promise.reject(new Error("Ошибка сервера")))
+    ).rejects.toThrow("Ошибка сервера");
+    expect(useTemplateSync.getState().pending).toBe(0);
+    expect(useTemplateSync.getState().savedAt).toBeNull();
+    expect(useTemplateSync.getState().dirty["comment:goals"]).toBe(revision);
+    useTemplateSync.getState().clearDirty("comment:goals");
+    expect(useTemplateSync.getState().dirty).toEqual({});
+  });
+
+  it("ответ старого шаблона не меняет статус после сброса", async () => {
+    let finish!: () => void;
+    useTemplateSync.getState().markDirty("goals");
+    const request = useTemplateSync.getState().track(
+      new Promise<void>((resolve) => {
+        finish = resolve;
+      })
+    );
+    useTemplateSync.getState().reset();
+    finish();
+    await request;
+    expect(useTemplateSync.getState().pending).toBe(0);
+    expect(useTemplateSync.getState().savedAt).toBeNull();
+    expect(useTemplateSync.getState().dirty).toEqual({});
+  });
 });

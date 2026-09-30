@@ -16,6 +16,7 @@ import {
 } from "@mui/material";
 import { Can, UserRole } from "@shared/ability";
 import { useAuth } from "@entities/auth";
+import { TemplateCollabBar, useTemplatePresence } from "@entities/template";
 import { RedirectPath, TemplatePagesPath } from "@shared/enums";
 import { useStore } from "@shared/hooks";
 import { FC } from "react";
@@ -30,8 +31,15 @@ export const RpdList: FC<{ RpdListItems: RpdListItem[] }> = ({
   const userRole = useAuth((state) => state.userRole);
   const navigate = useNavigate();
   const { id: templateId, page } = useParams();
+  const activeTemplateId =
+    String(jsonData?.id) === templateId || jsonData?.public_id === templateId
+      ? Number(jsonData.id)
+      : undefined;
+  const { data: presence } = useTemplatePresence(activeTemplateId);
   return (
     <Box
+      component="nav"
+      aria-label="Разделы РПД"
       sx={{
         display: "grid",
         gridTemplateRows: "auto 1fr auto",
@@ -125,7 +133,8 @@ export const RpdList: FC<{ RpdListItems: RpdListItem[] }> = ({
           width: "100%",
         }}
       >
-        <Divider sx={{ bgcolor: "#ffffff", height: 0 }} />
+        <Divider />
+        {activeTemplateId && <TemplateCollabBar presence={presence} />}
         <List dense>
           <Can I="get" a="rop_interface">
             <ListItem disableGutters disablePadding>

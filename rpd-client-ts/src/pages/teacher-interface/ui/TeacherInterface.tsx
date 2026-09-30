@@ -1,10 +1,6 @@
 import { Box } from "@mui/material";
 import { useAuth } from "@entities/auth";
-import {
-  TemplateCollabBar,
-  useTemplatePresence,
-  useTemplateSync,
-} from "@entities/template";
+import { useTemplateSync } from "@entities/template";
 import { axiosBase } from "@shared/api";
 import { UserRole } from "@shared/ability";
 import { useStore } from "@shared/hooks";
@@ -36,7 +32,6 @@ export function TeacherInterface() {
     String(jsonData?.id) === templateId || jsonData?.public_id === templateId
       ? Number(jsonData.id)
       : undefined;
-  const { data: presence } = useTemplatePresence(activeTemplateId);
 
   useEffect(() => {
     useTemplateSync.getState().reset();
@@ -94,7 +89,6 @@ export function TeacherInterface() {
   return (
     <Box>
       <Box sx={{ backgroundColor: "#ffffff", p: 3, minHeight: "100vh" }}>
-        <TemplateCollabBar presence={presence} />
         {pageMap[page]}
       </Box>
     </Box>
