@@ -86,10 +86,23 @@ export const themeOptions: ThemeOptions = {
         }),
       },
     },
+    MuiFormControl: {
+      styleOverrides: {
+        // Метка — в ячейке сетки поля ввода, а не во всём FormControl: иначе helperText
+        // увеличивает высоту контейнера и «top: 50%» уводит метку вниз.
+        root: {
+          "&:has(> .MuiInputLabel-outlined)": {
+            display: "inline-grid",
+            alignContent: "start",
+          },
+        },
+      },
+    },
     MuiInputLabel: {
       styleOverrides: {
         root: {
           "&.MuiInputLabel-outlined": {
+            gridArea: "1 / 1 / 2 / 2",
             top: "50%",
             transform: "translate(14px, -50%)",
           },
