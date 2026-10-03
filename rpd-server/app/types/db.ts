@@ -8,7 +8,14 @@ export interface UserRow {
 }
 
 export interface RefreshSessionRow {
+  id: number;
+  user_id: number;
+  sid: string;
   finger_print: string;
+  token_hash: string;
+  prev_token_hash: string | null;
+  prev_valid_until: Date | null;
+  expires_at: Date;
 }
 
 export interface RpdComplectRow {

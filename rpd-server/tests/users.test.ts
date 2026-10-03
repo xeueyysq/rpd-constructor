@@ -1,5 +1,5 @@
 import type { NextFunction, Request, Response } from "express";
-import { test } from "node:test";
+import { test, type TestContext } from "node:test";
 import assert from "node:assert/strict";
 import bcrypt from "bcryptjs";
 
@@ -21,6 +21,18 @@ const fullname = { surname: "Иванов", name: "Иван", patronymic: "" };
 const user = { id: 42, name: "teacher", role: USER_ROLES.TEACHER, fullname, is_active: true };
 const input = { name: " teacher ", role: USER_ROLES.TEACHER, fullname: { surname: " Иванов ", name: " Иван ", patronymic: " " } };
 const fingerprint = { hash: "fingerprint", components: {} };
+
+function mockRefreshSession(t: TestContext, userData: typeof user | null = user) {
+  const sid = "728a1d1f-2033-4eeb-87c4-e01fc4dfc432";
+  t.mock.method(pool, "connect", async () => ({ query: async () => ({ rows: [] }), release() {} }) as unknown as PoolClient);
+  t.mock.method(RefreshSessionRepository, "getRefreshSession", async () => userData && ({
+    id: 1, user_id: 42, sid, finger_print: fingerprint.hash,
+    name: userData.name, role: userData.role, fullname: userData.fullname, is_active: userData.is_active,
+    token_hash: TokenService.hashRefreshToken("old-token"), prev_token_hash: null, prev_valid_until: null,
+    expires_at: new Date(Date.now() + 1296e6),
+  }));
+  t.mock.method(TokenService, "verifyRefreshToken", async () => ({ id: 42, role: 2, userName: "old-name", sid, jti: "old-jti", exp: Date.now() / 1000 + 1296e3 }));
+}
 
 async function validate(validator: (req: Request, res: Response, next: NextFunction) => Promise<unknown>, request: object) {
   let status = 0;
@@ -149,35 +161,23 @@ test("AuthService.signIn отклоняет неактивного пользо�
 });
 
 test("AuthService.refresh отклоняет отсутствующего пользователя", async (t) => {
-  t.mock.method(RefreshSessionRepository, "getRefreshSession", async () => ({ finger_print: "fingerprint" }));
-  t.mock.method(RefreshSessionRepository, "deleteRefreshSession", async () => {});
-  t.mock.method(TokenService, "verifyRefreshToken", async () => ({ id: 42, role: 2, userName: "old-name" }));
-  t.mock.method(UserRepository, "getUserById", async () => null);
+  mockRefreshSession(t, null);
   await assert.rejects(AuthService.refresh({ fingerprint, currentRefreshToken: "old-token" }), Unauthorized);
 });
 
 test("AuthService.refresh отклоняет неактивного пользователя", async (t) => {
-  t.mock.method(RefreshSessionRepository, "getRefreshSession", async () => ({ finger_print: "fingerprint" }));
-  t.mock.method(RefreshSessionRepository, "deleteRefreshSession", async () => {});
-  t.mock.method(TokenService, "verifyRefreshToken", async () => ({ id: 42, role: 2, userName: "old-name" }));
-  t.mock.method(UserRepository, "getUserById", async () => ({ ...user, is_active: false }));
+  mockRefreshSession(t, { ...user, is_active: false });
   await assert.rejects(AuthService.refresh({ fingerprint, currentRefreshToken: "old-token" }), Unauthorized);
 });
 
-test("AuthService.refresh ищет по id и выпускает токены с актуальными именем и ролью", async (t) => {
-  t.mock.method(RefreshSessionRepository, "getRefreshSession", async () => ({ finger_print: "fingerprint" }));
-  t.mock.method(RefreshSessionRepository, "deleteRefreshSession", async () => {});
-  t.mock.method(TokenService, "verifyRefreshToken", async () => ({ id: 42, role: 2, userName: "old-name" }));
-  t.mock.method(UserRepository, "getUserById", async (id: number) => {
-    assert.equal(id, 42);
-    return { ...user, name: "new-name", role: USER_ROLES.ROP };
-  });
+test("AuthService.refresh выпускает токены с актуальными именем и ролью пользователя сессии", async (t) => {
+  mockRefreshSession(t, { ...user, name: "new-name", role: USER_ROLES.ROP });
   t.mock.method(TokenService, "generateAccessToken", async (payload: UserClaims) => {
     assert.deepEqual(payload, { id: 42, role: USER_ROLES.ROP, userName: "new-name" });
     return "access-token";
   });
   t.mock.method(TokenService, "generateRefreshToken", async () => "refresh-token");
-  t.mock.method(RefreshSessionRepository, "createRefreshSession", async () => {});
+  t.mock.method(RefreshSessionRepository, "rotateRefreshSession", async () => {});
 
   const result = await AuthService.refresh({ fingerprint, currentRefreshToken: "old-token" });
   assert.equal(result.role, USER_ROLES.ROP);

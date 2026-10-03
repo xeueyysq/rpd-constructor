@@ -1,5 +1,5 @@
 import type { ParamsDictionary } from "express-serve-static-core";
-import type { Request, Response } from "express";
+import type { CookieOptions, Request, Response } from "express";
 import AuthService from "../services/Auth.ts";
 import { ErrorUtils } from "../utils/Errors.ts";
 import { COOKIE_SETTINGS } from "../../constants.ts";
@@ -29,7 +29,9 @@ class AuthController {
     try {
       await AuthService.logOut(refreshToken);
 
-      res.clearCookie("refreshToken");
+      const cookieSettings: CookieOptions = { ...COOKIE_SETTINGS.REFRESH_TOKEN };
+      delete cookieSettings.maxAge;
+      res.clearCookie("refreshToken", cookieSettings);
 
       return res.sendStatus(200);
     } catch (err) {
@@ -48,7 +50,7 @@ class AuthController {
           fingerprint,
         });
 
-      res.cookie("refreshToken", refreshToken, COOKIE_SETTINGS.REFRESH_TOKEN);
+      if (refreshToken) res.cookie("refreshToken", refreshToken, COOKIE_SETTINGS.REFRESH_TOKEN);
 
       return res.status(200).json({ role, fullname, accessToken, accessTokenExpiration });
     } catch (err) {
