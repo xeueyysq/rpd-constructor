@@ -1,4 +1,4 @@
-import { Alert, Box, Button, MenuItem } from "@mui/material";
+import { Alert, Box, Button } from "@mui/material";
 import { getRoleLabel } from "@entities/auth";
 import { useSetUsersActive, useUsers, type User } from "@entities/user";
 import {
@@ -6,6 +6,7 @@ import {
   showErrorMessage,
   showSuccessMessage,
 } from "@shared/lib";
+import { useActionsColumn } from "@shared/hooks";
 import { ConfirmActionDialog, Loader, PageTitle } from "@shared/ui";
 import {
   MaterialReactTable,
@@ -13,12 +14,15 @@ import {
   useMaterialReactTable,
 } from "material-react-table";
 import { MRT_Localization_RU } from "material-react-table/locales/ru";
-import { useMemo, useState } from "react";
+import { useCallback, useMemo, useState } from "react";
 import { UserFormDialog } from "./UserFormDialog";
+import { UserRowMenu } from "./UserRowMenu";
 
 export function UserManagementPage() {
   const { data: users = [], isPending, isError } = useUsers();
-  const setUsersActive = useSetUsersActive();
+  const { mutateAsync: setActive, isPending: isSetActivePending } =
+    useSetUsersActive();
+  const actionsColumn = useActionsColumn<User>();
   const [rowSelection, setRowSelection] = useState<Record<string, boolean>>({});
   const [formOpen, setFormOpen] = useState(false);
   const [editingUser, setEditingUser] = useState<User | null>(null);
@@ -30,6 +34,35 @@ export function UserManagementPage() {
         .filter(([, selected]) => selected)
         .map(([id]) => Number(id)),
     [rowSelection]
+  );
+
+  const openForm = useCallback((user: User | null) => {
+    setEditingUser(user);
+    setFormOpen(true);
+  }, []);
+
+  const deactivateUsers = async () => {
+    if (selectedIds.length === 0) return;
+    try {
+      await setActive({ ids: selectedIds, isActive: false });
+      showSuccessMessage("Пользователи деактивированы");
+      setRowSelection({});
+      setConfirmOpen(false);
+    } catch {
+      showErrorMessage("Не удалось деактивировать пользователей");
+    }
+  };
+
+  const activateUser = useCallback(
+    async (id: number) => {
+      try {
+        await setActive({ ids: [id], isActive: true });
+        showSuccessMessage("Пользователь активирован");
+      } catch {
+        showErrorMessage("Не удалось активировать пользователя");
+      }
+    },
+    [setActive]
   );
 
   const columns = useMemo<MRT_ColumnDef<User>[]>(
@@ -50,37 +83,27 @@ export function UserManagementPage() {
         header: "Статус",
         accessorFn: (row) => (row.is_active ? "Активен" : "Деактивирован"),
       },
+      {
+        id: "actions",
+        header: "Действия",
+        ...actionsColumn,
+        Cell: ({ row }) => (
+          <UserRowMenu
+            isActive={row.original.is_active}
+            onEdit={() => openForm(row.original)}
+            onActivate={() => void activateUser(row.original.id)}
+          />
+        ),
+      },
     ],
-    []
+    [actionsColumn, openForm, activateUser]
   );
-
-  const deactivateUsers = async () => {
-    if (selectedIds.length === 0) return;
-    try {
-      await setUsersActive.mutateAsync({ ids: selectedIds, isActive: false });
-      showSuccessMessage("Пользователи деактивированы");
-      setRowSelection({});
-      setConfirmOpen(false);
-    } catch {
-      showErrorMessage("Не удалось деактивировать пользователей");
-    }
-  };
-
-  const activateUser = async (id: number) => {
-    try {
-      await setUsersActive.mutateAsync({ ids: [id], isActive: true });
-      showSuccessMessage("Пользователь активирован");
-    } catch {
-      showErrorMessage("Не удалось активировать пользователя");
-    }
-  };
 
   const table = useMaterialReactTable<User>({
     columns,
     data: users,
     localization: MRT_Localization_RU,
     enableRowSelection: (row) => row.original.is_active,
-    enableRowActions: true,
     onRowSelectionChange: setRowSelection,
     layoutMode: "grid",
     state: { rowSelection },
@@ -89,51 +112,20 @@ export function UserManagementPage() {
     muiTableBodyCellProps: { sx: { py: 0.5 } },
     positionToolbarAlertBanner: "none",
     renderTopToolbarCustomActions: () => (
-      <Box sx={{ display: "flex", gap: 2, pl: 2, alignItems: "center" }}>
-        <Button
-          variant="contained"
-          onClick={() => {
-            setEditingUser(null);
-            setFormOpen(true);
-          }}
-        >
+      <Box sx={{ display: "flex", px: 1.5, pt: 0.5, gap: 1.5 }}>
+        <Button variant="contained" onClick={() => openForm(null)}>
           Добавить пользователя
         </Button>
         <Button
           color="error"
           variant="outlined"
-          disabled={selectedIds.length === 0 || setUsersActive.isPending}
+          disabled={selectedIds.length === 0 || isSetActivePending}
           onClick={() => setConfirmOpen(true)}
         >
           Деактивировать ({selectedIds.length})
         </Button>
       </Box>
     ),
-    renderRowActionMenuItems: ({ row, closeMenu }) => [
-      <MenuItem
-        key="edit"
-        onClick={() => {
-          closeMenu();
-          setEditingUser(row.original);
-          setFormOpen(true);
-        }}
-      >
-        Редактировать
-      </MenuItem>,
-      ...(!row.original.is_active
-        ? [
-            <MenuItem
-              key="activate"
-              onClick={() => {
-                closeMenu();
-                void activateUser(row.original.id);
-              }}
-            >
-              Активировать
-            </MenuItem>,
-          ]
-        : []),
-    ],
   });
 
   if (isPending) return <Loader />;

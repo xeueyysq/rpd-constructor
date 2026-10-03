@@ -1,7 +1,10 @@
+const REFRESH_TOKEN_EXPIRATION = 1296e6; // 15 * 24 * 3600 * 1000 (15 дней)
+
 const COOKIE_SETTINGS = {
   REFRESH_TOKEN: {
     httpOnly: true,
-    maxAge: 1296e6, // 15 * 24 * 3600 * 1000 (15 дней)
+    sameSite: "lax" as const,
+    maxAge: REFRESH_TOKEN_EXPIRATION,
   },
 };
 
@@ -17,5 +20,6 @@ const USER_ROLE = {
 export {
   COOKIE_SETTINGS,
   ACCESS_TOKEN_EXPIRATION,
+  REFRESH_TOKEN_EXPIRATION,
   USER_ROLE,
 };

@@ -1,3 +1,4 @@
+import { TemplateHistoryDialog, useTemplateHistory } from "@entities/template";
 import { Loader, PageTitle } from "@shared/ui";
 import { Box } from "@mui/material";
 import {
@@ -12,11 +13,19 @@ import { useComplectData, useComplectTableColumns } from "../hooks";
 import { complectTableOptions } from "../config";
 import type { TemplateData } from "../types";
 import { BuildFundsByComplectDialog } from "./BuildFundsByComplectDialog";
+import { AssignTeachersDialog } from "@features/assign-teachers";
 
 export function RpdComplectPage() {
   const { id: complectId } = useParams();
   const navigate = useNavigate();
+  const [historyTemplateId, setHistoryTemplateId] = useState<number | null>(
+    null
+  );
+  const history = useTemplateHistory(historyTemplateId);
   const [openBuildFunds, setOpenBuildFunds] = useState(false);
+  const [teachersExchangeId, setTeachersExchangeId] = useState<number | null>(
+    null
+  );
   const {
     complectMeta,
     selectedTeacherIds,
@@ -27,11 +36,12 @@ export function RpdComplectPage() {
   } = useComplectData(complectId);
   const columns = useComplectTableColumns({
     selectedTeacherIds,
-    onSelectedTeacherIdsChange: (id, ids) =>
-      setSelectedTeacherIds((previous) => ({ ...previous, [id]: ids })),
     onCreateTemplate: createTemplateData,
     onFetchData: fetchComplectData,
+    onOpenTeachers: setTeachersExchangeId,
+    onOpenHistory: setHistoryTemplateId,
   });
+  const teachersRow = filteredData.find((row) => row.id === teachersExchangeId);
   const table = useMaterialReactTable<TemplateData>({
     ...complectTableOptions,
     columns,
@@ -61,6 +71,33 @@ export function RpdComplectPage() {
           open={openBuildFunds}
           complectId={complectId}
           onClose={() => setOpenBuildFunds(false)}
+        />
+      ) : null}
+      <TemplateHistoryDialog
+        history={history.data ?? []}
+        open={historyTemplateId != null}
+        isPending={history.isPending}
+        isError={history.isError}
+        onClose={() => setHistoryTemplateId(null)}
+      />
+      {teachersRow ? (
+        <AssignTeachersDialog
+          key={teachersRow.id}
+          discipline={teachersRow.discipline}
+          templateId={teachersRow.id_profile_template}
+          status={teachersRow.status}
+          participants={teachersRow.participants}
+          hints={teachersRow.teacherHints}
+          canEditTeachers={teachersRow.canEditTeachers}
+          selectedIds={selectedTeacherIds[teachersRow.id] ?? []}
+          onSelectedIdsChange={(ids) =>
+            setSelectedTeacherIds((previous) => ({
+              ...previous,
+              [teachersRow.id]: ids,
+            }))
+          }
+          onRefresh={fetchComplectData}
+          onClose={() => setTeachersExchangeId(null)}
         />
       ) : null}
     </Box>

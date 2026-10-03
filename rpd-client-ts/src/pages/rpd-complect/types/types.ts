@@ -15,12 +15,13 @@ export interface TemplateData {
   discipline: string;
   semester: number;
   status: TemplateStatusCode;
+  statusChangedAt: string | null;
   participants: TemplateParticipant[];
   progress: { done: number; total: number };
   allowedActions: WorkflowAction[];
   canEditTeachers: boolean;
   teacherHints: TeacherHint[];
-  pendingChanges: { count: number; lastAppliedAt: string | null };
+  latestChanges: { count: number; lastAppliedAt: string | null };
   syncStatus?: DisciplineSyncStatus;
   syncChangedAt?: string | null;
   lastChangeSummary?: string[];

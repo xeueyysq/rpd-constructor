@@ -27,13 +27,3 @@ export const getExchangeChanges = async (exchangeId: number) => {
   >("complects/sync/changes", { params: { exchangeId } });
   return data;
 };
-
-export const acknowledgeFieldChanges = async (payload: {
-  exchangeId: number;
-}) => {
-  const { data } = await axiosBase.post<{
-    acknowledged: number;
-    hasPendingChanges: boolean;
-  }>("acknowledge-field-changes", payload);
-  return data;
-};

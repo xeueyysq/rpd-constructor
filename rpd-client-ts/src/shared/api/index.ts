@@ -1,73 +1,76 @@
-import axios from "axios";
-import config from "@shared/config";
+import axios, { type InternalAxiosRequestConfig } from "axios";
+import { axiosBase } from "./clients";
+import {
+  getAccessToken,
+  getSessionGeneration,
+  refreshSession,
+  SessionChangedError,
+} from "./lib/session";
 
-export const axiosBase = axios.create({
-  baseURL: `${config.API_URL}/api`,
-  headers: {
-    "Content-Type": "application/json",
-  },
-});
+export { axiosBase, axiosAuth } from "./clients";
+export {
+  applySession,
+  beginSession,
+  endSession,
+  getAccessToken,
+  getSessionGeneration,
+  refreshSession,
+  SessionChangedError,
+  subscribeToSession,
+} from "./lib/session";
+export type { AuthSession } from "./lib/session";
 
-let accessToken: string | null = null;
-
-export const setAccessToken = (token?: string) => {
-  accessToken = token ?? null;
+type SessionRequest = InternalAxiosRequestConfig & {
+  _retry?: boolean;
+  _sessionGeneration?: number;
 };
 
-axiosBase.interceptors.request.use((config) => {
-  if (accessToken) {
-    config.headers = config.headers ?? {};
-    config.headers.Authorization = `Bearer ${accessToken}`;
+axiosBase.interceptors.request.use((config: SessionRequest) => {
+  const generation = getSessionGeneration();
+  if (
+    config._sessionGeneration !== undefined &&
+    config._sessionGeneration !== generation
+  ) {
+    throw new SessionChangedError();
+  }
+  config._sessionGeneration = generation;
+  const token = getAccessToken();
+  if (token) {
+    config.headers.set("Authorization", `Bearer ${token}`);
+  } else {
+    config.headers.delete("Authorization");
   }
   return config;
 });
 
 axiosBase.interceptors.response.use(
   (response) => response,
-  async (error) => {
-    const status: number | undefined = error?.response?.status;
-    const originalRequest = error?.config as
-      | (import("axios").InternalAxiosRequestConfig & { _retry?: boolean })
-      | undefined;
-
+  async (error: unknown) => {
+    if (!axios.isAxiosError(error)) throw error;
+    const originalRequest = error.config as SessionRequest | undefined;
     if (
-      (status === 401 || status === 403) &&
-      originalRequest &&
-      !originalRequest._retry
+      error.response?.status !== 401 ||
+      !originalRequest ||
+      originalRequest._retry
     ) {
-      originalRequest._retry = true;
-      try {
-        const res = await axiosAuth.post("/refresh");
-        const newAccessToken: string | undefined = res?.data?.accessToken;
-        if (newAccessToken) {
-          setAccessToken(newAccessToken);
-          originalRequest.headers = originalRequest.headers ?? {};
-          originalRequest.headers.Authorization = `Bearer ${newAccessToken}`;
-          return axiosBase(originalRequest);
-        }
-      } catch (refreshError) {
-        console.error("Auth refresh failed:", refreshError);
-      }
+      throw error;
+    }
+    if (originalRequest._sessionGeneration !== getSessionGeneration()) {
+      throw new SessionChangedError();
     }
 
-    console.error("API Error:", error);
-    return Promise.reject(error);
-  }
-);
-
-export const axiosAuth = axios.create({
-  baseURL: `${config.API_URL}/auth`,
-  timeout: 5000,
-  withCredentials: true,
-  headers: {
-    "Content-Type": "application/json",
-  },
-});
-
-axiosAuth.interceptors.response.use(
-  (response) => response,
-  (error) => {
-    console.error("Auth Error:", error);
-    return Promise.reject(error);
+    originalRequest._retry = true;
+    const token = getAccessToken();
+    // Ответ на старый токен мог прийти после уже завершившегося refresh.
+    if (
+      !token ||
+      originalRequest.headers.get("Authorization") === `Bearer ${token}`
+    ) {
+      await refreshSession();
+    }
+    if (originalRequest._sessionGeneration !== getSessionGeneration()) {
+      throw new SessionChangedError();
+    }
+    return axiosBase(originalRequest);
   }
 );

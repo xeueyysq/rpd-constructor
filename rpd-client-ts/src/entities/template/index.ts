@@ -1,6 +1,7 @@
-export { TemplateStatus } from "./ui/TemplateStatus";
+export { useTemplateHistory } from "./api/history";
+export { TemplateHistoryDialog } from "./ui/TemplateHistoryDialog";
+export type { HistoryEvent } from "./api/history";
 export { getTemplateStatusLabel } from "./lib/getTemplateStatusLabel";
-export { formatProgress } from "./lib/formatProgress";
 export {
   useTemplateWorkflow,
   useWorkflowAction,

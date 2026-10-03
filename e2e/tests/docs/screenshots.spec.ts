@@ -2,7 +2,8 @@ import { mkdirSync, readFileSync } from 'node:fs';
 import { parseEnv } from 'node:util';
 import { fileURLToPath } from 'node:url';
 import { expect, test, type ElementHandle, type Locator, type Page } from '@playwright/test';
-import { complects, disciplines, openComplect, showAllRows, signIn } from '../helpers';
+import { complects, disciplines, openComplect, openTemplateFromTeacherList, showAllRows, signIn } from '../helpers';
+import { closeTeachersDialog, openTeachersDialog } from '../teacherAssignments';
 
 test.use({ viewport: { width: 1280, height: 800 } });
 
@@ -208,17 +209,21 @@ test('снимки инструкции на синтетических данн
   const rpdRow = page.getByRole('row').filter({ hasText: disciplines.inProgress });
   await save(page, 'complect-table', [
     { target: rpdRow.getByRole('cell', { name: disciplines.inProgress }), label: 'Дисциплина' },
-    { target: rpdRow.getByRole('cell').nth(3), label: 'Статус РПД' },
+    { target: rpdRow.getByRole('cell').nth(3), label: 'Статус и дата' },
   ]);
 
-  const teachers = rpdRow.getByRole('combobox', { name: 'Преподаватели' });
-  await teachers.click();
-  const teacherOption = page.getByRole('option', { name: /Яковлева/ });
+  // Состав не меняем: в кадре поиск, раздел «Из 1С» и флажок аккаунта из «Из системы».
+  const teachersDialog = await openTeachersDialog(page, rpdRow, disciplines.inProgress);
+  const teacherSearch = teachersDialog.getByRole('textbox', { name: 'Поиск преподавателя' });
+  const fromOneC = teachersDialog.getByRole('list', { name: 'Из 1С', exact: true });
+  const teacherCheckbox = teachersDialog.getByRole('list', { name: 'Из системы', exact: true })
+    .getByRole('checkbox', { name: /Яковлева/ });
   await save(page, 'teacher-selection', [
-    { target: teachers, label: 'Поле преподавателей' },
-    { target: teacherOption, label: 'Выбрать аккаунт' },
+    { target: teacherSearch, label: 'Найти преподавателя', placement: 'bottom' },
+    { target: fromOneC, label: 'Указаны в 1С', placement: 'right' },
+    { target: teacherCheckbox, label: 'Отметить аккаунт', placement: 'right', avoid: [teachersDialog.getByRole('button', { name: 'Закрыть' })] },
   ]);
-  await teachers.press('Escape');
+  await closeTeachersDialog(teachersDialog);
 
   await page.getByRole('button', { name: 'Собрать ФОСы' }).click();
   const fundsDialog = page.getByRole('dialog', { name: 'Сформировать ФОС' });
@@ -252,39 +257,45 @@ test('снимки инструкции на синтетических данн
     const teacherPage = await teacherContext.newPage();
     await signIn(teacherPage, 'teacher');
     const templateRow = teacherPage.getByRole('row').filter({ hasText: 'Совместное редактирование для теста' });
+    // Таблица шире окна: прокручиваем к колонке «Действия», чтобы в кадре были статус с отметкой и меню «…».
+    const menuButton = templateRow.getByRole('button', { name: 'Меню шаблона', exact: true });
+    await menuButton.scrollIntoViewIfNeeded();
+    await teacherPage.mouse.move(0, 0);
     await save(teacherPage, 'teacher-templates', [
-      { target: templateRow.getByRole('cell', { name: 'Совместное редактирование для теста' }), label: 'Своя дисциплина' },
-      { target: templateRow.getByRole('button', { name: 'Открыть' }), label: 'Открыть РПД' },
+      { target: templateRow.getByRole('cell').nth(7).getByRole('button'), label: 'Статус и моя отметка' },
+      { target: menuButton, label: 'Меню шаблона' },
     ]);
-    await templateRow.getByRole('button', { name: 'Открыть' }).click();
+    await openTemplateFromTeacherList(teacherPage, templateRow);
     const aims = teacherPage.getByRole('button', { name: 'Цели и задачи освоения дисциплины' });
     await aims.click();
 
     const secondPage = await secondContext.newPage();
     await signIn(secondPage, 'teacher2');
-    await secondPage.getByRole('row').filter({ hasText: 'Совместное редактирование для теста' })
-      .getByRole('button', { name: 'Открыть' }).click();
+    await openTemplateFromTeacherList(secondPage, secondPage.getByRole('row').filter({ hasText: 'Совместное редактирование для теста' }));
     await secondPage.getByRole('button', { name: 'Цели и задачи освоения дисциплины' }).click();
-    const presence = teacherPage.getByText(/Сейчас в шаблоне: Яковлева/);
-    await expect(presence).toBeVisible();
+    // Сохранение, последняя правка и присутствие — в блоке внизу панели разделов.
+    const status = teacherPage.getByRole('status', { name: 'Сохранение и присутствие' });
+    await expect(status.getByText(/Сейчас в шаблоне: Яковлева/)).toBeVisible();
     await teacherPage.getByRole('button', { name: 'Редактировать' }).click();
     const editor = teacherPage.locator('.textEditor [contenteditable="true"]');
     await editor.press('ControlOrMeta+a');
     await editor.pressSequentially('Цель обучения на синтетических данных');
     const saved = teacherPage.waitForResponse((response) => response.request().method() === 'PUT' && response.url().includes('/api/update-json-value/110') && response.ok());
-    await teacherPage.getByText('Цели и задачи освоения дисциплины', { exact: true }).last().click();
+    await teacherPage.getByRole('button', { name: 'Сохранить изменения' }).click();
     await saved;
-    await expect(presence.locator('..').getByText(/Изменено: Альфина/)).toBeVisible();
+    await expect(status.getByText(/Изменено: Альфина/)).toBeVisible();
+    // Окно остаётся прокрученным после перехода из длинного списка: возвращаем заголовок раздела в кадр.
+    await teacherPage.evaluate(() => window.scrollTo(0, 0));
     await save(teacherPage, 'editor-collaboration', [
-      { target: aims, label: 'Раздел редактора' },
-      { target: presence, label: 'Участники и правки' },
+      { target: aims, label: 'Раздел редактора', avoid: [teacherPage.getByRole('main').getByText(/Изменено: Альфина/)] },
+      { target: status, label: 'Статус и участники' },
     ]);
 
     await secondPage.getByRole('button', { name: 'Список РПД' }).click();
-    await secondPage.getByRole('row').filter({ hasText: 'Часы для теста' })
-      .getByRole('button', { name: 'Открыть' }).click();
+    await openTemplateFromTeacherList(secondPage, secondPage.getByRole('row').filter({ hasText: 'Часы для теста' }));
     await secondPage.getByRole('button', { name: 'Содержание дисциплины' }).click();
     const contentTable = secondPage.getByRole('table', { name: 'Содержание дисциплины' });
+    await secondPage.evaluate(() => window.scrollTo(0, 0));
     await save(secondPage, 'discipline-content', [
       { target: contentTable.getByRole('row').filter({ hasText: 'Тема 2' }), label: 'Часы по темам' },
       { target: contentTable.getByRole('row').filter({ hasText: 'Итого за семестр / курс' }), label: 'Сверка с планом 1С' },
@@ -304,8 +315,7 @@ test('снимки инструкции на синтетических данн
       });
     });
     await teacherPage.getByRole('button', { name: 'Список РПД' }).click();
-    await teacherPage.getByRole('row').filter({ hasText: 'Литература для теста' })
-      .getByRole('button', { name: 'Открыть' }).click();
+    await openTemplateFromTeacherList(teacherPage, teacherPage.getByRole('row').filter({ hasText: 'Литература для теста' }));
     await teacherPage.getByRole('button', { name: 'Ресурсное обеспечение' }).click();
     await teacherPage.getByRole('button', { name: 'Найти книги в библиотечной системе' }).first().click();
     const booksDialog = teacherPage.getByRole('dialog', { name: 'Поиск книг в библиотечной системе' });
@@ -313,6 +323,8 @@ test('снимки инструкции на синтетических данн
     await query.fill('Виноградов');
     await query.press('Enter');
     const bookRow = booksDialog.getByRole('row').filter({ hasText: 'База данных «Языки мира»' });
+    // Диалог расширяется, когда приходит таблица результатов: поле ввода измеряем уже после этого.
+    await expect(bookRow).toBeVisible();
     await save(teacherPage, 'books-search', [
       { target: query, label: 'Ключевые слова' },
       { target: bookRow, label: 'Выбрать книгу' },

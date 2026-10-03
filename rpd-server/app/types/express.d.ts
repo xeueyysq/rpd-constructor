@@ -6,6 +6,12 @@ export interface UserClaims extends JwtPayload {
   userName: string;
 }
 
+export interface RefreshClaims extends UserClaims {
+  sid: string;
+  jti: string;
+  exp: number;
+}
+
 export interface RequestFingerprint {
   hash: string | null;
   components: Record<string, unknown>;

@@ -20,6 +20,7 @@ export interface TemplateParticipant {
 export interface TemplateWorkflow {
   templateId: number;
   status: TemplateStatusCode;
+  statusChangedAt: string | null;
   participants: TemplateParticipant[];
   progress: { done: number; total: number };
   allowedActions: WorkflowAction[];

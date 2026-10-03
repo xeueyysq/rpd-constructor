@@ -1,104 +1,40 @@
 import { useCallback, useEffect, useRef, useState } from "react";
-import { useAuth } from "./useAuth.ts";
-import { AuthClient } from "../api/clients.ts";
-import { AuthContextProps, UserCredentials } from "../model/types.ts";
+import axios from "axios";
+import type { AuthContextProps, UserCredentials } from "../model/types.ts";
 import { showErrorMessage } from "@shared/lib";
-import { setAccessToken } from "@shared/api";
+import { SessionChangedError } from "@shared/api";
+import { createAuthSession } from "./authSession";
 
 export const useAuthContextValue = (): AuthContextProps => {
   const [isAppReady, setIsAppReady] = useState(false);
   const [isUserLogged, setIsUserLogged] = useState(false);
-  const [data, setData] = useState<UserCredentials>();
-  const { updateAbility, updateUserName, resetAuth } = useAuth();
+  const sessionRef = useRef<ReturnType<typeof createAuthSession> | null>(null);
 
-  const refreshTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  useEffect(() => {
+    const session = createAuthSession({
+      onAppReady: () => setIsAppReady(true),
+      onUserLogged: setIsUserLogged,
+    });
+    sessionRef.current = session;
+    void session.load();
+    return () => {
+      session.dispose();
+      sessionRef.current = null;
+    };
+  }, []);
 
-  const clearRefreshTimer = useCallback(() => {
-    if (refreshTimeoutRef.current) {
-      clearTimeout(refreshTimeoutRef.current);
-      refreshTimeoutRef.current = null;
+  const handleLogOut = useCallback(() => sessionRef.current?.logOut(), []);
+  const handleSignIn = useCallback(async (credentials: UserCredentials) => {
+    try {
+      await sessionRef.current?.signIn(credentials);
+    } catch (error) {
+      if (error instanceof SessionChangedError) return;
+      const message = axios.isAxiosError(error)
+        ? error.response?.data?.error
+        : undefined;
+      showErrorMessage(message ?? "Не удалось войти. Попробуйте ещё раз.");
     }
   }, []);
 
-  const scheduleRefresh = useCallback(
-    function schedule(expiration: number) {
-      clearRefreshTimer();
-      const refreshTime = expiration - 10000;
-
-      refreshTimeoutRef.current = setTimeout(() => {
-        AuthClient.post("/refresh")
-          .then((res) => {
-            const { role, fullname, accessToken, accessTokenExpiration } =
-              res.data;
-            updateUserName(fullname);
-            updateAbility(role);
-            setIsUserLogged(true);
-            setAccessToken(accessToken);
-            schedule(accessTokenExpiration);
-          })
-          .catch(() => {
-            setIsUserLogged(false);
-          });
-      }, refreshTime);
-    },
-    [clearRefreshTimer, updateAbility, updateUserName]
-  );
-
-  const handleLogOut = useCallback(() => {
-    AuthClient.post("/logout")
-      .then(() => {
-        setIsUserLogged(false);
-        resetAuth();
-        setData(undefined);
-        clearRefreshTimer();
-        setAccessToken(undefined);
-      })
-      .catch((error) => showErrorMessage(error.response.data.error));
-  }, [resetAuth, clearRefreshTimer]);
-
-  const handleSignIn = useCallback(
-    (credentials: UserCredentials) => {
-      AuthClient.post("/sign-in", credentials)
-        .then((res) => {
-          const { fullname, role, accessToken, accessTokenExpiration } =
-            res.data;
-          updateUserName(fullname);
-          updateAbility(role);
-          setIsUserLogged(true);
-          setAccessToken(accessToken);
-          scheduleRefresh(accessTokenExpiration);
-        })
-        .catch((error) => showErrorMessage(error.response.data.error));
-    },
-    [updateAbility, updateUserName, scheduleRefresh]
-  );
-
-  const refreshToken = useCallback(() => {
-    AuthClient.post("/refresh")
-      .then((res) => {
-        const { role, fullname, accessToken, accessTokenExpiration } = res.data;
-        updateUserName(fullname);
-        updateAbility(role);
-        setIsUserLogged(true);
-        setIsAppReady(true);
-        setAccessToken(accessToken);
-        scheduleRefresh(accessTokenExpiration);
-      })
-      .catch(() => {
-        setIsAppReady(true);
-        setIsUserLogged(false);
-      });
-  }, [scheduleRefresh, updateAbility, updateUserName]);
-
-  useEffect(() => {
-    refreshToken();
-  }, [refreshToken]);
-
-  return {
-    isAppReady,
-    isUserLogged,
-    data,
-    handleLogOut,
-    handleSignIn,
-  };
+  return { isAppReady, isUserLogged, handleLogOut, handleSignIn };
 };

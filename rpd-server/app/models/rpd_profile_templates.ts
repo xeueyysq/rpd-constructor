@@ -9,6 +9,12 @@ import TemplateAccess from "../services/TemplateAccess.ts";
 import type { UserClaims } from "../types/express.d.ts";
 import { Conflict, Forbidden, NotFound, Unprocessable } from "../utils/Errors.ts";
 
+const commentatorFullnameSql = `COALESCE(NULLIF(CONCAT_WS(' ',
+  NULLIF(BTRIM(u.fullname ->> 'surname'), ''),
+  NULLIF(BTRIM(u.fullname ->> 'name'), ''),
+  NULLIF(BTRIM(u.fullname ->> 'patronymic'), '')
+), ''), u.name, '—')`;
+
 class RpdProfileTemplates {
   pool: Pool;
   constructor(pool: Pool) {
@@ -98,9 +104,11 @@ class RpdProfileTemplates {
       LEFT JOIN LATERAL (
         SELECT jsonb_object_agg(
                 tfc.template_field,
-                to_jsonb(tfc) - 'template_field' - 'id_profile_template'
+                (to_jsonb(tfc) - 'template_field' - 'id_profile_template') ||
+                  jsonb_build_object('commentator_fullname', ${commentatorFullnameSql})
               ) AS comments
         FROM template_field_comment tfc
+        LEFT JOIN users u ON u.id = tfc.commentator_id
         WHERE tfc.id_profile_template = rpt.id
       ) c ON true
       WHERE rpt.id = $1;
@@ -198,7 +206,7 @@ class RpdProfileTemplates {
           : JSON.stringify(value);
 
     const queryResult = await this.pool.query<Record<string, unknown>>(
-      `INSERT INTO template_field_comment (
+      `WITH saved AS (INSERT INTO template_field_comment (
         id_profile_template,
         commentator_id,
         template_field,
@@ -209,7 +217,9 @@ class RpdProfileTemplates {
         comment_text = EXCLUDED.comment_text,
         commentator_id = EXCLUDED.commentator_id,
         updated_at = CURRENT_TIMESTAMP
-      RETURNING *
+      RETURNING *)
+      SELECT saved.*, ${commentatorFullnameSql} AS commentator_fullname
+      FROM saved LEFT JOIN users u ON u.id = saved.commentator_id
       `,
       [numericTemplateId, commentatorId, field, preparedValue]
     );

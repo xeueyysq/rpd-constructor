@@ -15,11 +15,16 @@ type ConflictResponse = {
 };
 
 type SaveResult = { success: boolean; clearDirty: boolean };
+type SaveField = (
+  field: string,
+  value: unknown,
+  options?: { keepDraftOnConflict?: boolean }
+) => Promise<boolean>;
 const queues = new Map<string, Promise<SaveResult>>();
 const latestValues = new Map<string, unknown>();
 
 export function useUpdateTemplateField() {
-  return useCallback((field: string, value: unknown): Promise<boolean> => {
+  return useCallback<SaveField>((field, value, options) => {
     const templateId = useStore.getState().jsonData.id;
     if (!templateId) return Promise.resolve(false);
     const key = `${templateId}:${field}`;
@@ -77,10 +82,10 @@ export function useUpdateTemplateField() {
                 })
               : "неизвестное время";
             showErrorMessage(
-              `Поле уже изменено: ${conflict.edit?.fullname || "другим пользователем"}, ${time}. Показано актуальное значение`
+              `Поле уже изменено: ${conflict.edit?.fullname || "другим пользователем"}, ${time}. ${options?.keepDraftOnConflict ? "Черновик оставлен в редакторе. Отмените редактирование, чтобы увидеть актуальное значение" : "Показано актуальное значение"}`
             );
           }
-          return { success: false, clearDirty: true };
+          return { success: false, clearDirty: !options?.keepDraftOnConflict };
         }
         showErrorMessage("Ошибка сохранения данных");
         console.error(error);

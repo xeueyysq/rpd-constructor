@@ -62,6 +62,20 @@ export default [
       "@typescript-eslint/no-unused-vars": "warn",
       "react-refresh/only-export-components": ["warn", { allowConstantExport: true }],
       "prettier/prettier": ["error", { endOfLine: "auto", tabWidth: 2, printWidth: 80 }],
+      // MUI 9 убрал системные пропсы: такие значения молча игнорируются, а TS их пропускает.
+      "no-restricted-syntax": [
+        "error",
+        {
+          selector: "JSXAttribute[name.name='color'][value.value=/\\./]",
+          message:
+            'MUI 9 игнорирует color="палитра.оттенок" в пропсе — используйте sx={{ color: "text.secondary" }}.',
+        },
+        {
+          selector:
+            "JSXOpeningElement[name.name=/^(Box|Typography|Link|Stack|Grid)$/] > JSXAttribute[name.name=/^(m|mt|mr|mb|ml|mx|my|p|pt|pr|pb|pl|px|py|gap|bgcolor|fontSize|fontWeight|textAlign|display|width|height)$/]",
+          message: "В MUI 9 системных пропсов нет — перенесите значение в sx.",
+        },
+      ],
       "boundaries/dependencies": [
         "error",
         {

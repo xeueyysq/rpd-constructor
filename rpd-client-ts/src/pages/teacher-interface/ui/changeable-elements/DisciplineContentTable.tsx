@@ -1,8 +1,7 @@
-import { InfoOutlined } from "@mui/icons-material";
 import {
+  Alert,
   Box,
   Button,
-  IconButton,
   Paper,
   Table,
   TableBody,
@@ -11,7 +10,6 @@ import {
   TableHead,
   TableRow,
   TextField,
-  Tooltip,
   alpha,
   useTheme,
 } from "@mui/material";
@@ -26,7 +24,8 @@ import {
   useManualPlan,
 } from "@pages/teacher-interface/model/useDisciplineContentData";
 import {
-  hoursMatchPlan,
+  describeHoursMismatches,
+  hoursMismatches,
   isComparableHour,
   parseHours,
 } from "@pages/teacher-interface/lib/hours";
@@ -67,7 +66,6 @@ const emptyPlan: StudyPlanHours = {
   has_total: false,
   has_breakdown: false,
 };
-const helpText = `Контактная работа = Лекции + Практические занятия (включая лабораторные). Всего = Контактная работа + Самостоятельная работа + Контроль. Контроль — часы промежуточной аттестации, вносятся в строку аттестации. Слева — сумма по темам, считается автоматически. Справа — данные учебного плана 1С: их меняют только РОП и администратор. Красный — сумма не совпадает с учебным планом, зелёный — совпадает. Изменения сохраняются при выходе из ячейки.`;
 
 export function DisciplineContentTable({
   readOnly = false,
@@ -89,7 +87,7 @@ export function DisciplineContentTable({
   const manual = useManualPlan(plan, jsonData?.id);
   const canEdit = canEditPlan && !readOnly;
   const displayedPlan = canEdit ? manual.values : plan;
-  const hasMismatch = !hoursMatchPlan(summ, displayedPlan, manual.touched);
+  const mismatches = hoursMismatches(summ, displayedPlan, manual.touched);
   const label = jsonData.certification
     ? String(jsonData.certification).toLowerCase()
     : "не выбрано";
@@ -192,6 +190,7 @@ export function DisciplineContentTable({
             sx={{ minWidth: 650, mb: 6 }}
             size="small"
             aria-label="Содержание дисциплины"
+            className="table"
           >
             <TableHead>
               <DisciplineContentTableHeader />
@@ -209,17 +208,7 @@ export function DisciplineContentTable({
                 />
               ))}
               <TableRow>
-                <TableCell>
-                  Итого за семестр / курс{" "}
-                  <Tooltip title={helpText}>
-                    <IconButton
-                      size="small"
-                      aria-label="Правила заполнения таблицы"
-                    >
-                      <InfoOutlined fontSize="small" />
-                    </IconButton>
-                  </Tooltip>
-                </TableCell>
+                <TableCell>Итого за семестр / курс</TableCell>
                 {columns.map(({ key, editable }) => {
                   const comparable = isComparableHour(
                     key,
@@ -232,21 +221,27 @@ export function DisciplineContentTable({
                     <TableCell
                       key={key}
                       sx={
-                        comparable
+                        comparable && !matches
                           ? {
-                              color: matches ? "success.main" : "error.main",
-                              backgroundColor: matches
-                                ? undefined
-                                : alpha(theme.palette.error.main, 0.08),
+                              backgroundColor: alpha(
+                                theme.palette.error.main,
+                                0.08
+                              ),
                             }
-                          : { color: "text.secondary" }
+                          : undefined
                       }
                     >
+                      {/* Цвет — на вложенном Box: .table td в global.css перекрывает color ячейки. */}
                       <Box
                         sx={{
                           display: "inline-flex",
                           alignItems: "center",
                           gap: 0.5,
+                          color: comparable
+                            ? matches
+                              ? "success.main"
+                              : "error.main"
+                            : "text.secondary",
                         }}
                       >
                         <span>{summ[key]}</span>
@@ -281,7 +276,16 @@ export function DisciplineContentTable({
                             slotProps={{ htmlInput: { min: 0 } }}
                             sx={{
                               width: 70,
-                              "& input": { textAlign: "center", p: 0.5 },
+                              "& .MuiInputBase-input": {
+                                fontSize: 14,
+                                textAlign: "center",
+                                p: 0.5,
+                              },
+                              "& .MuiOutlinedInput-root": {
+                                borderRadius: 0,
+                                "& fieldset": { border: "none" },
+                                padding: 0,
+                              },
                             }}
                           />
                         ) : (key === "all"
@@ -310,10 +314,11 @@ export function DisciplineContentTable({
           </Box>
         )}
       </Box>
-      {!readOnly && hasMismatch && (
-        <Box sx={{ color: "error.main", fontWeight: "bold", mb: 2 }}>
-          Ошибка заполнения данных. Данные по часам не совпадают
-        </Box>
+      {!readOnly && mismatches.length > 0 && (
+        <Alert severity="warning" sx={{ mb: 2 }}>
+          Часы не совпадают с учебным планом:{" "}
+          {describeHoursMismatches(mismatches)}.
+        </Alert>
       )}
       {!readOnly && (
         <Button variant="outlined" onClick={addRow}>

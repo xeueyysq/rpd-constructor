@@ -12,7 +12,7 @@ const FIELD_LABELS: Record<string, string> = {
   removed: "Удалена из плана",
 };
 
-const formatValue = (value: unknown): string => {
+export const formatFieldChangeValue = (value: unknown): string => {
   if (value == null) return "—";
   if (Array.isArray(value)) return value.join(", ") || "—";
   if (typeof value === "object") return JSON.stringify(value);
@@ -26,4 +26,21 @@ export const formatFieldChangeLine = (
   oldValue: unknown,
   newValue: unknown
 ) =>
-  `${getFieldLabel(field)}: ${formatValue(oldValue)} → ${formatValue(newValue)}`;
+  `${getFieldLabel(field)}: ${formatFieldChangeValue(oldValue)} → ${formatFieldChangeValue(newValue)}`;
+
+// Маркеры `__new__` и `removed` хранят `{ discipline }` — в таблице показываем название.
+export const formatFieldChangeCell = (
+  field: string,
+  value: unknown
+): string => {
+  if (
+    (field === "__new__" || field === "removed") &&
+    typeof value === "object" &&
+    value !== null &&
+    "discipline" in value &&
+    typeof value.discipline === "string"
+  ) {
+    return value.discipline;
+  }
+  return formatFieldChangeValue(value);
+};

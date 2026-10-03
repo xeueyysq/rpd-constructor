@@ -29,18 +29,9 @@ export function DisciplineContentDataRow({
 
   return (
     <TableRow key={rowId}>
-      <TableCell
-        padding="none"
-        sx={{
-          "& .MuiTableCell-root": {
-            padding: "0px 0px",
-          },
-        }}
-      >
+      <TableCell>
         {rowId === ATTESTATION_ROW_ID ? (
-          <Box sx={{ fontSize: 14, p: 1, fontWeight: 600 }}>
-            {attestationTheme}
-          </Box>
+          <Box sx={{ fontSize: 14, fontWeight: 600 }}>{attestationTheme}</Box>
         ) : readOnly ? (
           row.theme
         ) : (

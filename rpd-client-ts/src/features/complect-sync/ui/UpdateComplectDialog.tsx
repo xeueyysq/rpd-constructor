@@ -7,6 +7,7 @@ import {
   DialogActions,
   DialogContent,
   DialogTitle,
+  Divider,
   Typography,
 } from "@mui/material";
 import { useQueryClient } from "@tanstack/react-query";
@@ -183,7 +184,7 @@ export function UpdateComplectDialog({
     <Dialog open={open} onClose={handleClose} maxWidth="md" fullWidth>
       <DialogTitle>Обновление комплекта из 1С</DialogTitle>
       <DialogContent>
-        <Typography color="text.secondary" sx={{ mb: 2 }}>
+        <Typography sx={{ color: "text.secondary", mb: 2 }}>
           Загрузите актуальный учебный план из 1С и выберите изменения для
           применения
         </Typography>
@@ -202,7 +203,8 @@ export function UpdateComplectDialog({
         ) : null}
 
         {preview ? (
-          <Box sx={{ mt: 3 }}>
+          <>
+            <Divider sx={{ my: 2 }} />
             <SyncDiffTable
               diff={preview.diff}
               fieldSelection={fieldSelection}
@@ -210,7 +212,7 @@ export function UpdateComplectDialog({
               rowSelection={rowSelection}
               onRowSelectionChange={setRowSelection}
             />
-          </Box>
+          </>
         ) : null}
 
         {!complectUuid ? (
