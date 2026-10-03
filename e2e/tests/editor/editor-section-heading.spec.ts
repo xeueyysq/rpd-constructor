@@ -1,5 +1,5 @@
 import { expect, test, type APIRequestContext, type Locator, type Page } from '@playwright/test';
-import { apiUrl, disciplines, openComplect, password, signIn } from '../helpers';
+import { apiUrl, password, signIn } from '../helpers';
 
 // Страница «Место дисциплины» шаблона 100: её комментарий и правки поля place_more_text не использует ни один другой сценарий.
 test.describe('отметка «Изменено» относится к заголовку раздела, а не к комментарию', () => {
@@ -32,18 +32,9 @@ test.describe('отметка «Изменено» относится к заг�
     expect(seeded.ok()).toBeTruthy();
   }
 
-  // Открываем шаблон из списка, без перезагрузки страницы: как в остальных сценариях редактора.
   async function openPlace(page: Page, userName: 'rop' | 'teacher') {
     await signIn(page, userName);
-    const row = page.getByRole('row').filter({ hasText: disciplines.inProgress });
-    if (userName === 'rop') {
-      await openComplect(page);
-      await row.getByRole('button', { name: 'Меню шаблона' }).click();
-      await page.getByRole('menuitem', { name: 'Открыть' }).click();
-    } else {
-      await row.getByRole('button', { name: 'Открыть' }).click();
-    }
-    await page.getByRole('button', { name: title }).click();
+    await page.goto('/templates/aaaaaaaaaaaa/disciplinePlace');
     await expect(page.getByRole('main').getByText(title, { exact: true })).toBeVisible();
   }
 

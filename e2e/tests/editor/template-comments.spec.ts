@@ -1,5 +1,5 @@
 import { expect, test, type APIRequestContext, type Page } from '@playwright/test';
-import { apiUrl, disciplines, openComplect, password, signIn } from '../helpers';
+import { apiUrl, password, signIn } from '../helpers';
 
 test.describe('кнопочное сохранение комментариев РОП', () => {
   test.describe.configure({ mode: 'serial' });
@@ -26,13 +26,8 @@ test.describe('кнопочное сохранение комментариев 
   }
 
   async function openAims(page: Page) {
-    // Открываем шаблон из списка, без goto/reload: при параллельных входах (TD-13) перезагрузка теряет сессию.
     await signIn(page, 'rop');
-    await openComplect(page);
-    await page.getByRole('row').filter({ hasText: disciplines.inProgress })
-      .getByRole('button', { name: 'Меню шаблона' }).click();
-    await page.getByRole('menuitem', { name: 'Открыть' }).click();
-    await page.getByRole('button', { name: title }).click();
+    await page.goto('/templates/aaaaaaaaaaaa/aimsPage');
     await expect(page.getByRole('main').getByText(title, { exact: true })).toBeVisible();
   }
 
@@ -117,6 +112,10 @@ test.describe('кнопочное сохранение комментариев 
     const comment = await savedComment(request);
     expect(comment.comment_text).toContain(draft);
     expect(comment.commentator_fullname).toBe('Руководов Тест Тестович');
+    await page.reload();
+    await expect(page).toHaveURL(/\/templates\/aaaaaaaaaaaa\/aimsPage$/);
+    await expect(page.getByText(author, { exact: true })).toBeVisible();
+    await expect(page.getByText(draft, { exact: true })).toBeVisible();
   });
 
   test('отмена возвращает исходный комментарий и автора без PUT', async ({ page, request }) => {
@@ -139,6 +138,9 @@ test.describe('кнопочное сохранение комментариев 
     const comment = await savedComment(request);
     expect(comment.comment_text).toContain(original);
     expect(comment.commentator_fullname).toBe('Руководов Тест Тестович');
+    await page.reload();
+    await expect(page.getByText(original, { exact: true })).toBeVisible();
+    await expect(page.getByText(author, { exact: true })).toBeVisible();
   });
 
   test('отмена нового комментария не создаёт запись', async ({ page }) => {
@@ -151,6 +153,9 @@ test.describe('кнопочное сохранение комментариев 
     await expect(page.getByRole('button', { name: 'Сохранить комментарий' })).toHaveCount(0);
     await expect(collab(page).getByText('Есть несохранённые изменения')).toHaveCount(0);
     expect(puts).toHaveLength(0);
+    await page.reload();
+    await expect(page.getByRole('main').getByText(title, { exact: true })).toBeVisible();
+    await expect(page.getByText('Новый комментарий отменяется')).toHaveCount(0);
   });
 
   test('ошибка оставляет комментарий открытым и повторное сохранение возвращает ФИО', async ({ page }) => {
@@ -180,6 +185,9 @@ test.describe('кнопочное сохранение комментариев 
       response.request().method() === 'PUT' && response.url().endsWith(endpoint) && response.ok());
     await page.getByRole('button', { name: 'Сохранить комментарий' }).click();
     await saved;
+    await expect(page.getByText(author, { exact: true })).toBeVisible();
+    await expect(page.getByText(draft, { exact: true })).toBeVisible();
+    await page.reload();
     await expect(page.getByText(author, { exact: true })).toBeVisible();
     await expect(page.getByText(draft, { exact: true })).toBeVisible();
   });
