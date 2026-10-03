@@ -194,7 +194,7 @@ export function DataDialogBox(props: DataDialogBoxProps) {
                             __html:
                               currentFieldData || "Нет данных для отображения",
                           }}
-                          color="text.secondary"
+                          sx={{ color: "text.secondary" }}
                         />
                       )}
                     </Box>

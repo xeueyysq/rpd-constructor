@@ -183,7 +183,7 @@ export function UpdateComplectDialog({
     <Dialog open={open} onClose={handleClose} maxWidth="md" fullWidth>
       <DialogTitle>Обновление комплекта из 1С</DialogTitle>
       <DialogContent>
-        <Typography color="text.secondary" sx={{ mb: 2 }}>
+        <Typography sx={{ color: "text.secondary", mb: 2 }}>
           Загрузите актуальный учебный план из 1С и выберите изменения для
           применения
         </Typography>

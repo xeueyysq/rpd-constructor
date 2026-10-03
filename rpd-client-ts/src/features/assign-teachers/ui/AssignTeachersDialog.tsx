@@ -201,7 +201,7 @@ export function AssignTeachersDialog({
           sx={{ mt: 1 }}
         />
         {isPending ? (
-          <Typography color="text.secondary" sx={{ mt: 2 }}>
+          <Typography sx={{ color: "text.secondary", mt: 2 }}>
             Загрузка преподавателей…
           </Typography>
         ) : isError ? (

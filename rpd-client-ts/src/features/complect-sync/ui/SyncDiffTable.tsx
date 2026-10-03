@@ -98,7 +98,7 @@ export function SyncDiffTable({
 
   if (!hasChanges) {
     return (
-      <Typography color="text.secondary" sx={{ py: 2 }}>
+      <Typography sx={{ color: "text.secondary", py: 2 }}>
         Изменений не обнаружено
       </Typography>
     );
@@ -122,7 +122,10 @@ export function SyncDiffTable({
               }
               label={
                 <Box>
-                  <Typography variant="subtitle2" color="success.main">
+                  <Typography
+                    variant="subtitle2"
+                    sx={{ color: "success.main" }}
+                  >
                     Новая дисциплина
                   </Typography>
                   <DisciplineTitle incoming={item.incoming} />
@@ -168,7 +171,10 @@ export function SyncDiffTable({
               }
               label={
                 <Box>
-                  <Typography variant="subtitle2" color="warning.main">
+                  <Typography
+                    variant="subtitle2"
+                    sx={{ color: "warning.main" }}
+                  >
                     Обновлена
                   </Typography>
                   <DisciplineTitle
@@ -217,7 +223,7 @@ export function SyncDiffTable({
               }
               label={
                 <Box>
-                  <Typography variant="subtitle2" color="error.main">
+                  <Typography variant="subtitle2" sx={{ color: "error.main" }}>
                     Удалена из плана
                   </Typography>
                   <DisciplineTitle fallback={item.local.discipline} />

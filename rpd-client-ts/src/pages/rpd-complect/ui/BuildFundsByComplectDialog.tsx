@@ -88,14 +88,14 @@ export const BuildFundsByComplectDialog: FC<
     <Dialog open={open} onClose={onClose} maxWidth="md" fullWidth>
       <DialogTitle>Сформировать ФОС</DialogTitle>
       <DialogContent dividers>
-        <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
+        <Typography variant="body2" sx={{ color: "text.secondary", mb: 2 }}>
           Word содержит вопросы выбранной компетенции. Excel содержит выбранные
           вопросы всех компетенций комплекта в формате таблицы.
         </Typography>
         {isLoading ? (
           <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
             <CircularProgress size={18} />
-            <Typography color="text.secondary">
+            <Typography sx={{ color: "text.secondary" }}>
               Загрузка компетенций…
             </Typography>
           </Box>

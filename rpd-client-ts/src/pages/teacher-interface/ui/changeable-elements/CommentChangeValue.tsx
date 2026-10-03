@@ -168,9 +168,8 @@ export function CommentChangeValue({
                 Комментарий
               </Typography>
               <Typography
-                sx={{ display: "block", m: "0" }}
+                sx={{ color: "text.secondary", display: "block", m: "0" }}
                 variant="caption"
-                color="text.secondary"
               >
                 {isEdited
                   ? `Изменен: ${formatDateTime(updatedAt)}`
@@ -178,8 +177,8 @@ export function CommentChangeValue({
               </Typography>
             </Box>
             <Typography
-              sx={{ display: "block", m: "0" }}
-              color="text.secondary"
+              sx={{ color: "text.secondary", display: "block", m: "0" }}
+
               gutterBottom
             >
               Автор: {comment?.commentator_fullname || "—"}

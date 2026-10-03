@@ -57,7 +57,9 @@ export function ExchangeChanges({
             <Alert severity="error">Не удалось загрузить изменения из 1С</Alert>
           ) : null}
           {!isPending && !isError && !changes.length ? (
-            <Typography color="text.secondary">Изменений нет</Typography>
+            <Typography sx={{ color: "text.secondary" }}>
+              Изменений нет
+            </Typography>
           ) : null}
           {changes.length ? (
             <Table size="small" sx={{ tableLayout: "fixed" }}>

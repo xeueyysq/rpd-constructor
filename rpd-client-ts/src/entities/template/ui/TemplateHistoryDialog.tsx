@@ -59,7 +59,9 @@ export function TemplateHistoryDialog({
           <Alert severity="error">Не удалось загрузить историю шаблона</Alert>
         ) : null}
         {!isPending && !isError && !events.length ? (
-          <Typography color="text.secondary">История пуста</Typography>
+          <Typography sx={{ color: "text.secondary" }}>
+            История пуста
+          </Typography>
         ) : null}
         <Box component="ul" sx={{ m: 0, p: 0, listStyle: "none" }}>
           {events.map((event, index) => (
