@@ -7,6 +7,7 @@ import {
   DialogActions,
   DialogContent,
   DialogTitle,
+  Divider,
   Typography,
 } from "@mui/material";
 import { useQueryClient } from "@tanstack/react-query";
@@ -202,7 +203,8 @@ export function UpdateComplectDialog({
         ) : null}
 
         {preview ? (
-          <Box sx={{ mt: 3 }}>
+          <>
+            <Divider sx={{ my: 2 }} />
             <SyncDiffTable
               diff={preview.diff}
               fieldSelection={fieldSelection}
@@ -210,7 +212,7 @@ export function UpdateComplectDialog({
               rowSelection={rowSelection}
               onRowSelectionChange={setRowSelection}
             />
-          </Box>
+          </>
         ) : null}
 
         {!complectUuid ? (

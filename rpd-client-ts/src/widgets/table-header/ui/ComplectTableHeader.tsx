@@ -1,18 +1,11 @@
 import CachedIcon from "@mui/icons-material/Cached";
 import DeleteIcon from "@mui/icons-material/Delete";
 import PlaylistAddCheckIcon from "@mui/icons-material/PlaylistAddCheck";
-import {
-  Box,
-  Button,
-  Dialog,
-  DialogActions,
-  DialogContent,
-  DialogTitle,
-  Tooltip,
-} from "@mui/material";
+import { Box, Button, Tooltip } from "@mui/material";
 import { useMemo, useState } from "react";
 import { useDeleteRpdComplectsMutation } from "@entities/rpd-complect";
 import { UpdateComplectDialog } from "@features/complect-sync";
+import { ConfirmActionDialog } from "@shared/ui";
 import { ComplectData } from "@shared/types";
 import { MRT_TableInstance } from "material-react-table";
 
@@ -116,29 +109,19 @@ export function ComplectTableHeader({
           Собрать ФОСы
         </Button>
       )}
-      <Dialog
+      <ConfirmActionDialog
         open={openDeleteConfirm}
-        onClose={() => setOpenDeleteConfirm(false)}
-        maxWidth="xs"
-        fullWidth
-      >
-        <DialogTitle>Подтвердите удаление</DialogTitle>
-        <DialogContent>
-          {isPageMode
+        title="Подтвердите удаление"
+        description={
+          isPageMode
             ? "Вы уверены, что хотите удалить комплект?"
-            : "Вы уверены, что хотите удалить выбранные комплекты?"}
-        </DialogContent>
-        <DialogActions>
-          <Button onClick={() => setOpenDeleteConfirm(false)}>Отмена</Button>
-          <Button
-            color="error"
-            variant="contained"
-            onClick={handleConfirmDeletion}
-          >
-            Удалить
-          </Button>
-        </DialogActions>
-      </Dialog>
+            : "Вы уверены, что хотите удалить выбранные комплекты?"
+        }
+        confirmText="Удалить"
+        confirmColor="error"
+        onConfirm={handleConfirmDeletion}
+        onClose={() => setOpenDeleteConfirm(false)}
+      />
     </Box>
   );
 }

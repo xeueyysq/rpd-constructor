@@ -11,7 +11,7 @@ test('диалог импорта показывает преподавател�
   await page.getByRole('menuitem', { name: 'Изменить преподавателей' }).click();
   const teachers = page.getByRole('dialog', { name: `Преподаватели: ${disciplines.inProgress}`, exact: true });
   const fromOneC = teachers.getByRole('list', { name: 'Из 1С', exact: true });
-  const others = teachers.getByRole('list', { name: 'Остальные преподаватели', exact: true });
+  const others = teachers.getByRole('list', { name: 'Из системы', exact: true });
   await expect(fromOneC.getByRole('checkbox', { name: 'Альфина Тест Тестовна', exact: true })).toBeChecked();
   await expect(fromOneC.getByRole('checkbox')).toHaveCount(1);
   // Остальные аккаунты — во втором разделе, без пометки «из 1С» в подписи.

@@ -187,13 +187,13 @@ export function ImportFromComplectsDialog({
     <>
       <Dialog open={open} onClose={onClose} maxWidth="md" fullWidth>
         <DialogTitle>Импортировать данные из шаблона</DialogTitle>
-        <DialogContent dividers>
-          <Typography variant="body2" sx={{ color: "text.secondary", mb: 1 }}>
+        <DialogContent>
+          <Typography variant="body2" sx={{ color: "text.secondary" }}>
             Выберите комплект, затем шаблон. Будут импортированы только
             контентные поля (без дисциплины, семестра, нагрузки, формы
             промежуточной аттестации и т.п.)
           </Typography>
-          <Divider sx={{ mb: 2 }} />
+          <Divider sx={{ my: 1.5 }} />
 
           {isLoading ? (
             <Typography sx={{ color: "text.secondary" }}>

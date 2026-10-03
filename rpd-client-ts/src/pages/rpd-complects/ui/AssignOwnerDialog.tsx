@@ -53,9 +53,7 @@ export function AssignOwnerDialog({
           value={selected}
           onChange={(_, value) => setSelected(value)}
           getOptionLabel={name}
-          renderInput={(params) => (
-            <TextField {...params} label="РОП" sx={{ mt: 1 }} />
-          )}
+          renderInput={(params) => <TextField {...params} label="РОП" />}
         />
       </DialogContent>
       <DialogActions>

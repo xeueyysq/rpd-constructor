@@ -1,6 +1,7 @@
 import {
   Box,
   Checkbox,
+  Divider,
   FormControlLabel,
   Table,
   TableBody,
@@ -155,6 +156,9 @@ export function SyncDiffTable({
         );
       })}
 
+      {diff.new.length > 0 && diff.updated.length > 0 ? (
+        <Divider sx={{ mb: 2 }} />
+      ) : null}
       {diff.updated.map((item) => {
         const id = rowKey("updated", item.id_1c);
         const selected = rowSelection[id] ?? true;
@@ -207,6 +211,9 @@ export function SyncDiffTable({
         );
       })}
 
+      {diff.new.length + diff.updated.length > 0 && diff.removed.length > 0 ? (
+        <Divider sx={{ mb: 2 }} />
+      ) : null}
       {diff.removed.map((item) => {
         const id = rowKey("removed", item.id_1c);
         const selected = rowSelection[id] ?? true;

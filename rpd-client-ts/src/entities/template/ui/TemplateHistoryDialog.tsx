@@ -53,7 +53,7 @@ export function TemplateHistoryDialog({
       onClose={onClose}
     >
       <DialogTitle>История шаблона</DialogTitle>
-      <DialogContent dividers>
+      <DialogContent>
         {isPending ? <Typography>Загрузка истории…</Typography> : null}
         {isError ? (
           <Alert severity="error">Не удалось загрузить историю шаблона</Alert>

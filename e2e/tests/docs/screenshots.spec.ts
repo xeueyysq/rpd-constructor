@@ -212,11 +212,11 @@ test('снимки инструкции на синтетических данн
     { target: rpdRow.getByRole('cell').nth(3), label: 'Статус и дата' },
   ]);
 
-  // Состав не меняем: в кадре поиск, раздел «Из 1С» и флажок аккаунта из «Остальных преподавателей».
+  // Состав не меняем: в кадре поиск, раздел «Из 1С» и флажок аккаунта из «Из системы».
   const teachersDialog = await openTeachersDialog(page, rpdRow, disciplines.inProgress);
   const teacherSearch = teachersDialog.getByRole('textbox', { name: 'Поиск преподавателя' });
   const fromOneC = teachersDialog.getByRole('list', { name: 'Из 1С', exact: true });
-  const teacherCheckbox = teachersDialog.getByRole('list', { name: 'Остальные преподаватели', exact: true })
+  const teacherCheckbox = teachersDialog.getByRole('list', { name: 'Из системы', exact: true })
     .getByRole('checkbox', { name: /Яковлева/ });
   await save(page, 'teacher-selection', [
     { target: teacherSearch, label: 'Найти преподавателя', placement: 'bottom' },

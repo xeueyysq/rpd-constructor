@@ -12,6 +12,7 @@ import {
   DialogActions,
   DialogContent,
   DialogTitle,
+  Divider,
   FormControlLabel,
   TextField,
   Typography,
@@ -43,12 +44,7 @@ function TeacherSection({
 }: SectionProps) {
   return (
     <Box component="section" sx={{ mt: 2 }}>
-      <Typography
-        component="h3"
-        variant="subtitle2"
-        color="text.secondary"
-        sx={{ mb: 0.5 }}
-      >
+      <Typography component="h3" variant="subtitle2" sx={{ mb: 0.5 }}>
         {title}
       </Typography>
       {options.length ? (
@@ -198,7 +194,6 @@ export function AssignTeachersDialog({
           label="Поиск преподавателя"
           value={search}
           onChange={(event) => setSearch(event.target.value)}
-          sx={{ mt: 1 }}
         />
         {isPending ? (
           <Typography sx={{ color: "text.secondary", mt: 2 }}>
@@ -217,26 +212,31 @@ export function AssignTeachersDialog({
               onChange={(userId, checked) => void handleChange(userId, checked)}
             >
               {!hints.length ? (
-                <Typography color="text.secondary">
+                <Typography variant="body2" sx={{ color: "text.secondary" }}>
                   В 1С преподаватели не указаны
                 </Typography>
               ) : !from1c.length && !unmatchedNames.length ? (
-                <Typography color="text.secondary">Не найдено</Typography>
-              ) : null}
-              {unmatchedNames.map((name) => (
-                <Typography key={name} variant="body2" color="text.secondary">
-                  Аккаунт не найден: {name}
+                <Typography variant="body2" sx={{ color: "text.secondary" }}>
+                  Не найдено
                 </Typography>
-              ))}
+              ) : null}
+              {unmatchedNames.length > 0 && (
+                <Typography variant="body2" sx={{ color: "text.secondary" }}>
+                  Аккаунты не найдены: {unmatchedNames.join(", ")}
+                </Typography>
+              )}
             </TeacherSection>
+            <Divider sx={{ mt: 2 }} />
             <TeacherSection
-              title="Остальные преподаватели"
+              title="Из системы"
               options={others}
               disabled={disabled}
               onChange={(userId, checked) => void handleChange(userId, checked)}
             >
               {!others.length ? (
-                <Typography color="text.secondary">Не найдено</Typography>
+                <Typography sx={{ color: "text.secondary" }}>
+                  Не найдено
+                </Typography>
               ) : null}
             </TeacherSection>
           </>

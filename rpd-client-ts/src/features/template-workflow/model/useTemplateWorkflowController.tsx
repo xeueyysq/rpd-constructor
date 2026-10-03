@@ -77,7 +77,6 @@ export function useTemplateWorkflowController({
           label="Комментарий"
           value={comment}
           onChange={(event) => setComment(event.target.value)}
-          sx={{ mt: 1 }}
         />
       </DialogContent>
       <DialogActions>

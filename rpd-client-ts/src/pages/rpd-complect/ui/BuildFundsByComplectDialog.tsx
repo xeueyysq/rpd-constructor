@@ -7,6 +7,7 @@ import {
   DialogActions,
   DialogContent,
   DialogTitle,
+  Divider,
   MenuItem,
   TextField,
   Typography,
@@ -87,11 +88,12 @@ export const BuildFundsByComplectDialog: FC<
   return (
     <Dialog open={open} onClose={onClose} maxWidth="md" fullWidth>
       <DialogTitle>Сформировать ФОС</DialogTitle>
-      <DialogContent dividers>
-        <Typography variant="body2" sx={{ color: "text.secondary", mb: 2 }}>
+      <DialogContent>
+        <Typography variant="body2" sx={{ color: "text.secondary" }}>
           Word содержит вопросы выбранной компетенции. Excel содержит выбранные
           вопросы всех компетенций комплекта в формате таблицы.
         </Typography>
+        <Divider sx={{ mt: 1.5, mb: 2 }} />
         {isLoading ? (
           <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
             <CircularProgress size={18} />

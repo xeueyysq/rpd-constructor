@@ -71,6 +71,12 @@ export const themeOptions: ThemeOptions = {
         size: "small",
       },
     },
+    MuiDialogContent: {
+      // Линии под заголовком и над кнопками у всех диалогов: прокручивается только содержимое.
+      defaultProps: {
+        dividers: true,
+      },
+    },
     MuiListItemIcon: {
       styleOverrides: {
         // В MUI 9 отступ иконки до текста уменьшился с 56 до 36 px — возвращаем прежний.

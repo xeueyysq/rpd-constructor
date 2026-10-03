@@ -23,11 +23,11 @@ test.describe('создание РПД без преподавателя', () =>
     await assignmentMenu.getByRole('menuitem', { name: 'Назначить преподавателей', exact: true }).click();
     const teachers = page.getByRole('dialog', { name: `Преподаватели: ${discipline}`, exact: true });
     await expect(teachers).toBeVisible();
-    // В 1С для дисциплины преподавателей нет: раздел «Из 1С» это говорит, аккаунты — в «Остальных».
+    // В 1С для дисциплины преподавателей нет: раздел «Из 1С» это говорит, аккаунты — в «Из системы».
     await expect(teachers.getByRole('heading', { name: 'Из 1С', exact: true })).toBeVisible();
     await expect(teachers.getByText('В 1С преподаватели не указаны')).toBeVisible();
     await expect(teachers.getByRole('list', { name: 'Из 1С', exact: true })).toHaveCount(0);
-    const others = teachers.getByRole('list', { name: 'Остальные преподаватели', exact: true });
+    const others = teachers.getByRole('list', { name: 'Из системы', exact: true });
     await expect(others.getByRole('checkbox', { name: 'Яковлева Тест Тестовна', exact: true })).toBeVisible();
     await expect(others.getByRole('checkbox', { name: 'Альфина Тест Тестовна', exact: true })).toBeVisible();
     await closeTeachersDialog(teachers);
@@ -72,12 +72,12 @@ test('локальный выбор из диалога уходит в Созд
     await expect(row.getByRole('cell').nth(3)).toContainText('Выгружен из 1С');
     const dialog = await openTeachersDialog(page, row, disciplines.unloaded);
     const fromOneC = dialog.getByRole('list', { name: 'Из 1С', exact: true });
-    const others = dialog.getByRole('list', { name: 'Остальные преподаватели', exact: true });
+    const others = dialog.getByRole('list', { name: 'Из системы', exact: true });
     const hint = fromOneC.getByRole('checkbox', { name: 'Яковлева Тест Тестовна', exact: true });
     await expect(fromOneC.getByRole('checkbox')).toHaveCount(1);
     await expect(hint).not.toBeChecked();
     await expect(dialog.getByText('В 1С преподаватели не указаны')).toHaveCount(0);
-    // Преподаватель из 1С — только в своём разделе; остальные аккаунты — в «Остальных», все по алфавиту.
+    // Преподаватель из 1С — только в своём разделе; остальные аккаунты — в «Из системы», все по алфавиту.
     await expect(others.getByRole('checkbox', { name: 'Яковлева Тест Тестовна' })).toHaveCount(0);
     await expect(others.getByRole('checkbox', { name: 'Альфина Тест Тестовна', exact: true })).toBeVisible();
     // Поиск фильтрует оба раздела; в пустом показывается «Не найдено».
