@@ -1,5 +1,4 @@
-import { useTemplateHistory } from "@entities/template";
-import HistoryModal from "./HistoryModal";
+import { TemplateHistoryDialog, useTemplateHistory } from "@entities/template";
 import { Loader, PageTitle } from "@shared/ui";
 import { Box } from "@mui/material";
 import {
@@ -74,14 +73,12 @@ export function RpdComplectPage() {
           onClose={() => setOpenBuildFunds(false)}
         />
       ) : null}
-      <HistoryModal
+      <TemplateHistoryDialog
         history={history.data ?? []}
-        openDialog={historyTemplateId != null}
+        open={historyTemplateId != null}
         isPending={history.isPending}
         isError={history.isError}
-        setOpenDialog={(open) => {
-          if (!open) setHistoryTemplateId(null);
-        }}
+        onClose={() => setHistoryTemplateId(null)}
       />
       {teachersRow ? (
         <AssignTeachersDialog

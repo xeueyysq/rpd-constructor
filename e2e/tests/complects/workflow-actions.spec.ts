@@ -32,6 +32,11 @@ test('РОП видит действия активного режима и от
     const actionsCell = row.getByRole('cell').nth(4);
     await expect(actionsCell.getByRole('button')).toHaveCount(1);
     const menu = await openRowMenu(page, row);
+    // «Открыть» первым, затем управление РПД и действия workflow; у каждого пункта есть иконка.
+    await expect(menu.getByRole('menuitem')).toHaveText([
+      'Открыть', 'Изменить преподавателей', 'Импортировать', 'История шаблона', 'Принять',
+    ]);
+    for (const item of await menu.getByRole('menuitem').all()) await expect(item.locator('svg')).toHaveCount(1);
     await expect(menu.getByRole('menuitem', { name: 'Принять', exact: true })).toBeVisible();
     for (const name of ['Взять в работу', 'Готово', 'Снять отметку']) {
       await expect(menu.getByRole('menuitem', { name, exact: true })).toHaveCount(0);

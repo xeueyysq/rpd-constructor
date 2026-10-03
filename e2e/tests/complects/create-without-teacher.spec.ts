@@ -13,7 +13,13 @@ test.describe('создание РПД без преподавателя', () =>
     await openComplect(page);
     await expect(row(page).getByRole('cell').nth(3)).toContainText('Выгружен из 1С');
     await expect(row(page).getByRole('cell').nth(3).getByRole('button')).toHaveCount(0);
+    // Приглашение назначить подчёркнуто, как ссылка.
+    const invite = row(page).getByRole('cell').nth(2).getByRole('button', { name: 'Назначить преподавателей', exact: true });
+    await expect(invite.getByText('Назначить преподавателей')).toHaveCSS('text-decoration-line', 'underline');
     const assignmentMenu = await openRowMenu(page, row(page));
+    // Без шаблона «Создать» первым; у каждого пункта есть иконка.
+    await expect(assignmentMenu.getByRole('menuitem')).toHaveText(['Создать', 'Назначить преподавателей']);
+    for (const item of await assignmentMenu.getByRole('menuitem').all()) await expect(item.locator('svg')).toHaveCount(1);
     await assignmentMenu.getByRole('menuitem', { name: 'Назначить преподавателей', exact: true }).click();
     const teachers = page.getByRole('dialog', { name: `Преподаватели: ${discipline}`, exact: true });
     await expect(teachers).toBeVisible();
@@ -70,6 +76,8 @@ test('локальный выбор из диалога уходит в Созд
     await expect(teacherCell.getByRole('listitem').filter({ hasText: fullNameText })).toContainText('Назначен');
     const fullName = teacherCell.getByText(fullNameText, { exact: true });
     await expect(fullName).toBeVisible();
+    // Подчёркивается только приглашение, а не ФИО преподавателей.
+    await expect(fullName).toHaveCSS('text-decoration-line', 'none');
     const layout = await fullName.evaluate((element) => {
       const range = document.createRange();
       range.selectNodeContents(element);

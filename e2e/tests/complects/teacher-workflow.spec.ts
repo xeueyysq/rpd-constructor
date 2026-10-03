@@ -1,4 +1,4 @@
-import { expect, test, type Page } from '@playwright/test';
+import { expect, test, type Locator, type Page } from '@playwright/test';
 import { apiUrl, disciplines, openComplect, showAllRows, signIn, signInWithCredentials, password } from '../helpers';
 import { assignTeacher, closeTeachersDialog, openTeachersDialog, openRowMenu } from '../teacherAssignments';
 
@@ -189,6 +189,15 @@ test.describe('деактивация назначенного преподав�
   });
 });
 
+// Последняя группа синхронизации строки 107 из seed: таблица «Поле / Было / Стало».
+async function expectExchangeChanges(dialog: Locator) {
+  await expect(dialog.getByRole('columnheader')).toHaveText(['Поле', 'Было', 'Стало']);
+  await expect(dialog.getByRole('row').filter({ hasText: 'ЗЕТ' }).getByRole('cell')).toHaveText(['ЗЕТ', '3', '4']);
+  await expect(dialog.getByRole('row').filter({ hasText: 'Преподаватели' }).getByRole('cell'))
+    .toHaveText(['Преподаватели', '—', 'Третьева Тест Тестовна']);
+  await expect(dialog.getByRole('row')).toHaveCount(3);
+}
+
 test.describe('изменения 1С на отдельной РПД', () => {
   test.describe.configure({ mode: 'serial' });
 
@@ -205,8 +214,7 @@ test.describe('изменения 1С на отдельной РПД', () => {
     await expect(row.getByRole('cell').nth(2)).not.toContainText('Обновлено из 1С');
     await changes.click();
     const dialog = page.getByRole('dialog', { name: 'Изменения из 1С' });
-    await expect(dialog).toContainText('4');
-    await expect(dialog).toContainText('Третьева Тест Тестовна');
+    await expectExchangeChanges(dialog);
     await expect(dialog.getByRole('button', { name: 'Просмотрено' })).toHaveCount(0);
     await expect(dialog.getByRole('button')).toHaveCount(1);
     await dialog.getByRole('button', { name: 'Закрыть', exact: true }).click();
@@ -217,8 +225,7 @@ test.describe('изменения 1С на отдельной РПД', () => {
     await page.reload();
     await expect(changes).toBeVisible();
     await changes.click();
-    await expect(dialog).toContainText('4');
-    await expect(dialog).toContainText('Третьева Тест Тестовна');
+    await expectExchangeChanges(dialog);
     await expect(dialog.getByRole('button', { name: 'Просмотрено' })).toHaveCount(0);
     await dialog.getByRole('button', { name: 'Закрыть', exact: true }).click();
     await expect(row.getByRole('cell').nth(3)).toContainText('В работе');

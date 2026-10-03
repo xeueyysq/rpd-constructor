@@ -5,6 +5,7 @@ export type StatusWithSubtextProps = {
   subtext?: string | null;
   onClick?: () => void;
   ariaLabel?: string;
+  underline?: boolean;
 };
 
 export function StatusWithSubtext({
@@ -12,10 +13,17 @@ export function StatusWithSubtext({
   subtext,
   onClick,
   ariaLabel,
+  underline = false,
 }: StatusWithSubtextProps) {
   const content = (
     <Box component="span" sx={{ display: "block", minWidth: 0 }}>
-      <Box component="span" sx={{ display: "block" }}>
+      <Box
+        component="span"
+        sx={{
+          display: "block",
+          textDecoration: underline ? "underline" : undefined,
+        }}
+      >
         {label}
       </Box>
       {subtext ? (

@@ -1,3 +1,4 @@
+import AddCircleOutlineOutlinedIcon from "@mui/icons-material/AddCircleOutlineOutlined";
 import HistoryIcon from "@mui/icons-material/History";
 import EditOutlinedIcon from "@mui/icons-material/EditOutlined";
 import MoreHorizIcon from "@mui/icons-material/MoreHoriz";
@@ -5,7 +6,10 @@ import OpenInBrowserIcon from "@mui/icons-material/OpenInBrowser";
 import FileDownloadOutlinedIcon from "@mui/icons-material/FileDownloadOutlined";
 import { IconButton, ListItemIcon, Menu, MenuItem } from "@mui/material";
 import type { WorkflowAction } from "@entities/template";
-import { useTemplateWorkflowController } from "@features/template-workflow";
+import {
+  useTemplateWorkflowController,
+  WorkflowActionIcon,
+} from "@features/template-workflow";
 import { RedirectPath, TemplatePagesPath } from "@shared/enums";
 import { useId, useState, type MouseEvent } from "react";
 import { useNavigate } from "react-router-dom";
@@ -69,22 +73,10 @@ export default function TemplateMenu({
               void onCreateTemplate();
             }}
           >
-            Создать
-          </MenuItem>
-        ) : null}
-        {canEditTeachers ? (
-          <MenuItem
-            onClick={() => {
-              close();
-              onEditTeachers();
-            }}
-          >
             <ListItemIcon>
-              <EditOutlinedIcon />
+              <AddCircleOutlineOutlinedIcon />
             </ListItemIcon>
-            {id == null
-              ? "Назначить преподавателей"
-              : "Изменить преподавателей"}
+            Создать
           </MenuItem>
         ) : null}
         {id != null ? (
@@ -100,6 +92,21 @@ export default function TemplateMenu({
               <OpenInBrowserIcon />
             </ListItemIcon>
             Открыть
+          </MenuItem>
+        ) : null}
+        {canEditTeachers ? (
+          <MenuItem
+            onClick={() => {
+              close();
+              onEditTeachers();
+            }}
+          >
+            <ListItemIcon>
+              <EditOutlinedIcon />
+            </ListItemIcon>
+            {id == null
+              ? "Назначить преподавателей"
+              : "Изменить преподавателей"}
           </MenuItem>
         ) : null}
         {id != null ? (
@@ -137,6 +144,9 @@ export default function TemplateMenu({
               workflow.handleAction(action);
             }}
           >
+            <ListItemIcon>
+              <WorkflowActionIcon action={action} />
+            </ListItemIcon>
             {workflow.labels[action]}
           </MenuItem>
         ))}

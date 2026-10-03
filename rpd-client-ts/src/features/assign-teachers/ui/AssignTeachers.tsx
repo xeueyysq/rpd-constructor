@@ -40,6 +40,7 @@ export function AssignTeachers({
           canEdit ? "Назначить преподавателей" : "Преподаватели не назначены"
         }
         onClick={canEdit ? onOpen : undefined}
+        underline={canEdit}
       />
     );
   }

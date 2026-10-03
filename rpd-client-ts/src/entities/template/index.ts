@@ -1,5 +1,6 @@
 export { TemplateStatus } from "./ui/TemplateStatus";
 export { useTemplateHistory } from "./api/history";
+export { TemplateHistoryDialog } from "./ui/TemplateHistoryDialog";
 export type { HistoryEvent } from "./api/history";
 export { TemplateParticipantsList } from "./ui/TemplateParticipantsList";
 export { getTemplateStatusLabel } from "./lib/getTemplateStatusLabel";
