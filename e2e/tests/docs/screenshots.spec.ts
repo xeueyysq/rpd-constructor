@@ -209,7 +209,7 @@ test('снимки инструкции на синтетических данн
   const rpdRow = page.getByRole('row').filter({ hasText: disciplines.inProgress });
   await save(page, 'complect-table', [
     { target: rpdRow.getByRole('cell', { name: disciplines.inProgress }), label: 'Дисциплина' },
-    { target: rpdRow.getByRole('cell').nth(3), label: 'Статус РПД' },
+    { target: rpdRow.getByRole('cell').nth(3), label: 'Статус и дата' },
   ]);
 
   // Состав не меняем: в кадре только поиск и флажок нужного аккаунта.
@@ -282,6 +282,8 @@ test('снимки инструкции на синтетических данн
     await teacherPage.getByRole('button', { name: 'Сохранить изменения' }).click();
     await saved;
     await expect(status.getByText(/Изменено: Альфина/)).toBeVisible();
+    // Окно остаётся прокрученным после перехода из длинного списка: возвращаем заголовок раздела в кадр.
+    await teacherPage.evaluate(() => window.scrollTo(0, 0));
     await save(teacherPage, 'editor-collaboration', [
       { target: aims, label: 'Раздел редактора', avoid: [teacherPage.getByRole('main').getByText(/Изменено: Альфина/)] },
       { target: status, label: 'Статус и участники' },
@@ -292,6 +294,7 @@ test('снимки инструкции на синтетических данн
       .getByRole('button', { name: 'Открыть' }).click();
     await secondPage.getByRole('button', { name: 'Содержание дисциплины' }).click();
     const contentTable = secondPage.getByRole('table', { name: 'Содержание дисциплины' });
+    await secondPage.evaluate(() => window.scrollTo(0, 0));
     await save(secondPage, 'discipline-content', [
       { target: contentTable.getByRole('row').filter({ hasText: 'Тема 2' }), label: 'Часы по темам' },
       { target: contentTable.getByRole('row').filter({ hasText: 'Итого за семестр / курс' }), label: 'Сверка с планом 1С' },
