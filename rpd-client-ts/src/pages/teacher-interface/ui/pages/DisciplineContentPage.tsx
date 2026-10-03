@@ -3,6 +3,7 @@ import { Box } from "@mui/material";
 import { DisciplineContentTable } from "../changeable-elements/DisciplineContentTable.tsx";
 import { TemplatePagesPath } from "@shared/enums";
 import { PageTitleComment } from "../PageTitleComment";
+import { DisciplineContentHelp } from "../changeable-elements/DisciplineContentHelp";
 
 export function DisciplineContentPage({
   canEditPlan = false,
@@ -16,6 +17,7 @@ export function DisciplineContentPage({
         sx={{ pb: 2 }}
         templateField={TemplatePagesPath.DISCIPLINE_CONTENT}
         fields={["content", "study_load"]}
+        actions={<DisciplineContentHelp />}
       />
       <DisciplineContentTable canEditPlan={canEditPlan} />
       <PageTitleComment

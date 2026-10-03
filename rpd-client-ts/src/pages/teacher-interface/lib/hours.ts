@@ -54,12 +54,46 @@ export function isComparableHour(
     : plan.has_breakdown || Boolean(touched[key]);
 }
 
+export type HoursMismatch = {
+  key: keyof ObjectHours;
+  actual: number;
+  planned: number;
+};
+
+// Порядок и названия — как в таблице «Содержание дисциплины».
+const hourLabels: Record<keyof ObjectHours, string> = {
+  all: "всего",
+  lectures: "лекции",
+  seminars: "практика",
+  contact: "контактная работа",
+  independent_work: "СРС",
+  control: "контроль",
+};
+
+export function hoursMismatches(
+  sum: ObjectHours,
+  plan: StudyPlanHours,
+  touched: Partial<Record<keyof ObjectHours, true>> = {}
+): HoursMismatch[] {
+  return (Object.keys(hourLabels) as (keyof ObjectHours)[])
+    .filter(
+      (key) => isComparableHour(key, plan, touched) && sum[key] !== plan[key]
+    )
+    .map((key) => ({ key, actual: sum[key], planned: plan[key] }));
+}
+
 export function hoursMatchPlan(
   sum: ObjectHours,
   plan: StudyPlanHours,
   touched: Partial<Record<keyof ObjectHours, true>> = {}
 ): boolean {
-  return (Object.keys(sum) as (keyof ObjectHours)[]).every(
-    (key) => !isComparableHour(key, plan, touched) || sum[key] === plan[key]
-  );
+  return hoursMismatches(sum, plan, touched).length === 0;
+}
+
+export function describeHoursMismatches(mismatches: HoursMismatch[]): string {
+  return mismatches
+    .map(
+      ({ key, actual, planned }) => `${hourLabels[key]} ${actual} из ${planned}`
+    )
+    .join("; ");
 }

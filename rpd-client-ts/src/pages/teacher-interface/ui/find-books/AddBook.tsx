@@ -6,6 +6,7 @@ import {
   DialogActions,
   DialogContent,
   DialogTitle,
+  Divider,
   IconButton,
   InputAdornment,
   List,
@@ -165,14 +166,7 @@ const AddBook: FC<AddBook> = ({ elementName }) => {
       >
         <DialogTitle>Поиск книг в библиотечной системе</DialogTitle>
         <DialogContent>
-          <Box
-            sx={{
-              position: "sticky",
-              top: 0,
-              zIndex: 2,
-              bgcolor: "background.paper",
-            }}
-          >
+          <Box>
             <TextField
               autoFocus
               margin="dense"
@@ -226,6 +220,9 @@ const AddBook: FC<AddBook> = ({ elementName }) => {
                 },
               }}
             />
+            {findBooks.isSuccess && booksData?.length ? (
+              <Divider sx={{ mt: 1.5 }} />
+            ) : null}
           </Box>
           {findBooks.isSuccess && findBooks.data.truncated && (
             <Box sx={{ pt: 2 }}>

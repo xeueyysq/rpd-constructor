@@ -2,7 +2,7 @@ import type { ParamsDictionary } from "express-serve-static-core";
 import { errorMessage } from "../utils/Errors.ts";
 import type { Pool } from "pg";
 import type { Request, Response } from "express";
-import { getUnacknowledgedFieldChanges } from "../modules/complectSync.ts";
+import { getLatestFieldChanges } from "../modules/complectSync.ts";
 import { deriveCertification, getStudyPlanHours } from "../modules/disciplineScope.ts";
 import { isEditableTemplateField } from "../validators/RpdProfileTemplates.ts";
 import RpdProfileTemplates from "../models/rpd_profile_templates.ts";
@@ -268,7 +268,7 @@ class RpdProfileTemplatesController {
       if (!value) {
         return res.status(404).json({ message: "Шаблон не найден" });
       }
-      const fieldChanges = await getUnacknowledgedFieldChanges(value.id);
+      const fieldChanges = await getLatestFieldChanges(value.id);
       res.json({ ...value, fieldChanges, study_plan_hours: getStudyPlanHours(value.study_load, value.control_load), derived_certification: deriveCertification(value.study_load, value.control_load) });
     } catch (err) {
       res.status(500).json({ message: errorMessage(err) });

@@ -1,7 +1,9 @@
 import { describe, expect, it } from "vitest";
 import {
+  describeHoursMismatches,
   getRowHours,
   hoursMatchPlan,
+  hoursMismatches,
   parseHours,
   sumContentHours,
 } from "./hours";
@@ -88,5 +90,61 @@ describe("часы содержания дисциплины", () => {
         has_breakdown: false,
       })
     ).toBe(true);
+  });
+  describe("расхождения с учебным планом", () => {
+    const sum = getRowHours({
+      lectures: 0,
+      seminars: 0,
+      control: 36,
+      independent_work: 0,
+    });
+    const plan = {
+      all: 144,
+      lectures: 34,
+      seminars: 34,
+      contact: 68,
+      independent_work: 40,
+      control: 36,
+    };
+
+    it("при полной разбивке перечисляет только несовпавшие категории в порядке таблицы", () => {
+      const mismatches = hoursMismatches(sum, {
+        ...plan,
+        has_total: true,
+        has_breakdown: true,
+      });
+      expect(mismatches.map(({ key }) => key)).toEqual([
+        "all",
+        "lectures",
+        "seminars",
+        "contact",
+        "independent_work",
+      ]);
+      expect(describeHoursMismatches(mismatches)).toBe(
+        "всего 36 из 144; лекции 0 из 34; практика 0 из 34; контактная работа 0 из 68; СРС 0 из 40"
+      );
+    });
+    it("при только общем объёме сравнивает одно «всего»", () => {
+      expect(
+        hoursMismatches(sum, { ...plan, has_total: true, has_breakdown: false })
+      ).toEqual([{ key: "all", actual: 36, planned: 144 }]);
+    });
+    it("без плановых данных расхождений нет", () => {
+      const noPlan = { ...plan, has_total: false, has_breakdown: false };
+      expect(hoursMismatches(sum, noPlan)).toEqual([]);
+      expect(hoursMatchPlan(sum, noPlan)).toBe(true);
+    });
+    it("вручную изменённая категория сравнивается даже без данных 1С", () => {
+      const noPlan = { ...plan, has_total: false, has_breakdown: false };
+      expect(hoursMismatches(sum, noPlan, { lectures: true })).toEqual([
+        { key: "lectures", actual: 0, planned: 34 },
+      ]);
+      expect(hoursMatchPlan(sum, noPlan, { lectures: true })).toBe(false);
+    });
+    it("совпавший план не даёт расхождений", () => {
+      expect(
+        hoursMismatches(sum, { ...sum, has_total: true, has_breakdown: true })
+      ).toEqual([]);
+    });
   });
 });

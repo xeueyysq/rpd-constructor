@@ -92,7 +92,7 @@ export function UserFormDialog({ open, user, onClose }: UserFormDialogProps) {
           {isEditing ? "Редактирование пользователя" : "Новый пользователь"}
         </DialogTitle>
         <DialogContent>
-          <Box sx={{ display: "flex", flexDirection: "column", gap: 2, mt: 1 }}>
+          <Box sx={{ display: "flex", flexDirection: "column", gap: 2 }}>
             <TextField
               label="Логин"
               autoComplete="off"

@@ -1,10 +1,10 @@
 import { expect, test } from '@playwright/test';
-import { disciplines, openComplect, signIn } from '../helpers';
+import { disciplines, openComplect, openTemplateFromTeacherList, signIn } from '../helpers';
 
 test('преподаватель открывает шаблон и возвращается к списку через меню', async ({ page }) => {
   await signIn(page, 'teacher');
   const row = page.getByRole('row').filter({ hasText: disciplines.inProgress });
-  await row.getByRole('button', { name: 'Открыть' }).click();
+  await openTemplateFromTeacherList(page, row);
   await expect(page.getByText('Титульный лист', { exact: true }).last()).toBeVisible();
   await expect(page.getByText(disciplines.inProgress, { exact: true }).last()).toBeVisible();
   await page.getByRole('button', { name: 'Список РПД' }).click();

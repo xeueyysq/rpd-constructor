@@ -1,8 +1,10 @@
 import type { Request, Response, NextFunction } from "express";
-import type { UserClaims } from "../types/express.ts";
+import type { UserClaims, RefreshClaims } from "../types/express.ts";
+import { createHash, randomUUID } from "node:crypto";
 import jwt from "jsonwebtoken";
 
-import { Forbidden, Unauthorized } from "../utils/Errors.ts";
+import { Unauthorized } from "../utils/Errors.ts";
+import { REFRESH_TOKEN_EXPIRATION } from "../../constants.ts";
 
 class TokenService {
   static async generateAccessToken(payload: UserClaims) {
@@ -11,10 +13,15 @@ class TokenService {
     });
   }
 
-  static async generateRefreshToken(payload: UserClaims) {
+  static async generateRefreshToken(payload: UserClaims & { sid: string }) {
     return await jwt.sign(payload, process.env.REFRESH_TOKEN_SECRET!, {
-      expiresIn: "15d",
+      expiresIn: REFRESH_TOKEN_EXPIRATION / 1000,
+      jwtid: randomUUID(),
     });
+  }
+
+  static hashRefreshToken(refreshToken: string) {
+    return createHash("sha256").update(refreshToken).digest("hex");
   }
 
   static async verifyAccessToken(accessToken: string) {
@@ -22,7 +29,13 @@ class TokenService {
   }
 
   static async verifyRefreshToken(refreshToken: string) {
-    return await jwt.verify(refreshToken, process.env.REFRESH_TOKEN_SECRET!) as UserClaims;
+    const payload = jwt.verify(refreshToken, process.env.REFRESH_TOKEN_SECRET!);
+    if (typeof payload === "string" || typeof payload.id !== "number" || typeof payload.sid !== "string"
+      || !/^[\da-f]{8}-[\da-f]{4}-[\da-f]{4}-[\da-f]{4}-[\da-f]{12}$/i.test(payload.sid)
+      || typeof payload.jti !== "string" || !payload.jti || typeof payload.exp !== "number") {
+      throw new jwt.JsonWebTokenError("Недействительный токен сессии");
+    }
+    return payload as RefreshClaims;
   }
 
   static async checkAccess(req: Request, _: Response, next: NextFunction) {
@@ -35,10 +48,8 @@ class TokenService {
 
     try {
       req.user = await TokenService.verifyAccessToken(token);
-      console.log(req.user);
     } catch (error) {
-      console.log(error);
-      return next(new Forbidden(error));
+      return next(new Unauthorized(error));
     }
 
     next();

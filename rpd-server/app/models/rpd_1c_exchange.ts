@@ -3,7 +3,7 @@ import type { Pool } from "pg";
 
 type ResultRow = { competence_id: number; competence: string; indicator_id: number; indicator: string; discipline: string | null };
 type ResultEntry = { competence: string; indicator: string; disciplines: string[] };
-type RpdTemplateListRow = Pick<Rpd1cExchangeRow, "id" | "discipline" | "teachers" | "semester" | "removed_at"> & { id_profile_template: number | null; profile_template_public_id: string | null; status: string | null; sync_status: string; last_change_summary: string[]; sync_changed_at: Date | null; pending_count: number; has_profile_template: boolean };
+type RpdTemplateListRow = Pick<Rpd1cExchangeRow, "id" | "discipline" | "teachers" | "semester" | "removed_at"> & { id_profile_template: number | null; profile_template_public_id: string | null; status: string | null; status_history: unknown; sync_status: string; last_change_summary: string[]; sync_changed_at: Date | null; latest_count: number; has_profile_template: boolean };
 
 class Rpd1cExchange {
   pool: Pool;
@@ -198,34 +198,43 @@ class Rpd1cExchange {
     try {
       const queryResult = await this.pool.query<RpdTemplateListRow>(
           `
+        WITH latest_sync AS (
+          SELECT tfc.id_1c_exchange, MAX(tfc.sync_log_id) AS sync_log_id
+          FROM template_field_changes tfc
+          JOIN rpd_1c_exchange exchange ON exchange.id = tfc.id_1c_exchange
+          WHERE exchange.id_rpd_complect = $1
+          GROUP BY tfc.id_1c_exchange
+        ), latest_changes AS (
+          SELECT tfc.id_1c_exchange,
+            bool_or(tfc.field_key = '__new__') AS is_new,
+            bool_or(tfc.field_key = 'removed') AS is_removed,
+            array_agg(DISTINCT tfc.field_key) FILTER (
+              WHERE tfc.field_key NOT IN ('__new__', 'removed', 'teachers')
+            ) AS change_fields,
+            COUNT(*)::int AS latest_count,
+            MAX(tfc.applied_at) AS sync_changed_at
+          FROM template_field_changes tfc
+          JOIN latest_sync latest ON tfc.id_1c_exchange = latest.id_1c_exchange
+            AND tfc.sync_log_id = latest.sync_log_id
+          GROUP BY tfc.id_1c_exchange
+        )
         SELECT r.id, r.discipline, r.teachers,
         r.semester, r.removed_at,
-        ts.id_profile_template, rpt.public_id AS profile_template_public_id, ts.current_status AS status,
+        ts.id_profile_template, rpt.public_id AS profile_template_public_id, ts.current_status AS status, ts.history AS status_history,
         CASE
-          WHEN r.removed_at IS NOT NULL THEN 'removed'
+          WHEN COALESCE(ch.is_removed, false) THEN 'removed'
           WHEN COALESCE(ch.is_new, false) THEN 'new'
-          WHEN COALESCE(array_length(ch.change_fields, 1), 0) > 0 THEN 'updated'
+          WHEN COALESCE(ch.latest_count, 0) > 0 THEN 'updated'
           ELSE 'unchanged'
         END AS sync_status,
         COALESCE(ch.change_fields, ARRAY[]::text[]) AS last_change_summary,
         ch.sync_changed_at,
-        ch.pending_count,
+        COALESCE(ch.latest_count, 0) AS latest_count,
         (ts.id_profile_template IS NOT NULL) AS has_profile_template
         FROM rpd_1c_exchange r
         LEFT JOIN template_status ts ON r.id = ts.id_1c_template
         LEFT JOIN rpd_profile_templates rpt ON rpt.id = ts.id_profile_template
-        LEFT JOIN LATERAL (
-          SELECT
-            bool_or(tfc.field_key = '__new__') AS is_new,
-            array_agg(DISTINCT tfc.field_key) FILTER (
-              WHERE tfc.field_key NOT IN ('__new__', 'removed', 'teachers')
-            ) AS change_fields,
-            COUNT(*)::int AS pending_count,
-            MAX(tfc.applied_at) AS sync_changed_at
-          FROM template_field_changes tfc
-          WHERE tfc.id_1c_exchange = r.id
-            AND tfc.acknowledged_at IS NULL
-        ) ch ON true
+        LEFT JOIN latest_changes ch ON ch.id_1c_exchange = r.id
         WHERE r.id_rpd_complect = $1
           AND NULLIF(TRIM(r.discipline), '') IS NOT NULL`,
           [complectId]
@@ -234,8 +243,8 @@ class Rpd1cExchange {
       return queryResult.rows.map((row) => ({
         ...row,
         syncStatus: row.sync_status,
-        syncChangedAt: row.sync_changed_at ?? row.removed_at ?? null,
-        pendingChanges: { count: row.pending_count, lastAppliedAt: row.sync_changed_at },
+        syncChangedAt: row.sync_changed_at ?? null,
+        latestChanges: { count: row.latest_count, lastAppliedAt: row.sync_changed_at ?? null },
         lastChangeSummary: row.last_change_summary ?? [],
         hasProfileTemplate: row.has_profile_template,
       }));

@@ -5,8 +5,8 @@ export interface TeacherHint {
   userId: number | null;
 }
 
-export function orderTeacherOptions(
-  users: AssignableTeacher[],
+export function orderTeacherOptions<T extends AssignableTeacher>(
+  users: T[],
   hints: TeacherHint[]
 ) {
   const hintedIds = new Set(hints.map((hint) => hint.userId));

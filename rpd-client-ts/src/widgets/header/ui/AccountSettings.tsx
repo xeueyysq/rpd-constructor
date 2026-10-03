@@ -5,7 +5,6 @@ import PersonIcon from "@mui/icons-material/Person";
 import SettingsIcon from "@mui/icons-material/Settings";
 import {
   Box,
-  IconButton,
   ListItemIcon,
   ListItemText,
   Menu,
@@ -34,52 +33,53 @@ export function AccountSettings() {
   };
 
   return (
-    <Box
-      role="button"
-      tabIndex={0}
-      aria-controls={open ? "basic-menu" : undefined}
-      aria-haspopup="true"
-      aria-expanded={open ? "true" : undefined}
-      onClick={handleClick}
-      onKeyDown={(e) => {
-        if (e.key === "Enter" || e.key === " ")
-          handleClick(e as unknown as MouseEvent<HTMLElement>);
-      }}
-      sx={{
-        display: "flex",
-        alignItems: "center",
-        cursor: "pointer",
-        "&:focus-visible": (theme) => ({
-          outline: `2px solid ${theme.palette.primary.main}`,
-          outlineOffset: 2,
-          borderRadius: 6,
-        }),
-      }}
-    >
+    <>
       <Box
+        role="button"
+        tabIndex={0}
+        aria-label="Открыть меню аккаунта"
+        aria-controls={open ? "basic-menu" : undefined}
+        aria-haspopup="menu"
+        aria-expanded={open}
+        onClick={handleClick}
+        onKeyDown={(e) => {
+          if (e.key === "Enter" || e.key === " ") {
+            e.preventDefault();
+            handleClick(e as unknown as MouseEvent<HTMLElement>);
+          }
+        }}
         sx={{
           display: "flex",
-          flexDirection: "column",
-          lineHeight: 1.5,
-          pb: 0.5,
+          alignItems: "center",
+          cursor: "pointer",
+          "&:focus-visible": (theme) => ({
+            outline: `2px solid ${theme.palette.primary.main}`,
+            outlineOffset: 2,
+            borderRadius: 6,
+          }),
         }}
       >
-        <Box sx={{ fontSize: "15px" }}>{userName}</Box>
         <Box
           sx={{
-            fontSize: "12px",
-            fontWeight: 400,
-            color: "#B2B2B2",
+            display: "flex",
+            flexDirection: "column",
+            lineHeight: 1.5,
+            pb: 0.5,
           }}
         >
-          {getRoleLabel(userRole)}
+          <Box sx={{ fontSize: "15px" }}>{userName}</Box>
+          <Box
+            sx={{
+              fontSize: "12px",
+              fontWeight: 400,
+              color: "#B2B2B2",
+            }}
+          >
+            {getRoleLabel(userRole)}
+          </Box>
         </Box>
-      </Box>
-      <Box sx={{ pl: 2 }}>
-        <Box sx={{ pb: 0.25 }}>
-          <IconButton color="inherit" aria-label="Открыть меню аккаунта">
-            <PersonIcon sx={{ fontSize: "37.5px" }} />
-          </IconButton>
+        <Box sx={{ pl: 2, pb: 0.25 }}>
+          <PersonIcon sx={{ display: "block", m: 0.625, fontSize: "37.5px" }} />
         </Box>
       </Box>
       <Menu
@@ -87,15 +87,26 @@ export function AccountSettings() {
         slotProps={{
           paper: {
             style: {
-              width: canSwitchRoles ? 280 : 225,
+              minWidth: canSwitchRoles ? 280 : 225,
               marginTop: 5,
             },
           },
         }}
+        // Длинное название роли РОП не помещается в 280 px: меню растёт влево от правого края кнопки.
+        anchorOrigin={{ vertical: "bottom", horizontal: "right" }}
+        transformOrigin={{ vertical: "top", horizontal: "right" }}
         anchorEl={anchorEl}
         open={open}
         onClose={handleClose}
       >
+        {canSwitchRoles ? (
+          <RoleSwitchMenuItems
+            availableRoles={availableRoles}
+            activeRole={userRole}
+            onSwitch={handleSwitchRole}
+            onClose={handleClose}
+          />
+        ) : null}
         <MenuItem disabled>
           <ListItemIcon>
             <SettingsIcon />
@@ -106,14 +117,6 @@ export function AccountSettings() {
             </Typography>
           </ListItemText>
         </MenuItem>
-        {canSwitchRoles ? (
-          <RoleSwitchMenuItems
-            availableRoles={availableRoles}
-            activeRole={userRole}
-            onSwitch={handleSwitchRole}
-            onClose={handleClose}
-          />
-        ) : null}
         <MenuItem
           onClick={() => {
             handleClose();
@@ -130,6 +133,6 @@ export function AccountSettings() {
           </ListItemText>
         </MenuItem>
       </Menu>
-    </Box>
+    </>
   );
 }

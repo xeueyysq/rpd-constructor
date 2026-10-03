@@ -198,12 +198,6 @@ router.post(
   complect((req) => req.body.complectId),
   complectSyncController.apply.bind(complectSyncController)
 );
-router.post(
-  "/acknowledge-field-changes",
-  TokenService.checkAccess,
-  requireRole(USER_ROLES.ROP, USER_ROLES.ADMIN),
-  complectSyncController.acknowledgeFieldChanges.bind(complectSyncController)
-);
 router.get("/complects/sync/changes", TokenService.checkAccess, requireRole(USER_ROLES.ROP, USER_ROLES.ADMIN), complectSyncController.changes.bind(complectSyncController));
 
 import TemplateStatusController from "../controllers/templateStatusController.ts";

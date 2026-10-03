@@ -3,7 +3,7 @@ import { Box, Button } from "@mui/material";
 import { JsonChangeValueTypes } from "@pages/teacher-interface/model/DisciplineContentPageTypes.ts";
 import { useTemplateSync, useUpdateTemplateField } from "@entities/template";
 import { useStore } from "@shared/hooks";
-import { FC, useState } from "react";
+import { FC, useEffect, useState } from "react";
 import { ExportFromTemplates } from "./ExportFromTemplates.tsx";
 import TextEditor from "./TextEditor.tsx";
 
@@ -13,17 +13,25 @@ const JsonChangeValue: FC<JsonChangeValueTypes> = ({ elementName }) => {
   const save = useUpdateTemplateField();
 
   const [isEditing, setIsEditing] = useState<boolean>(false);
+  useEffect(
+    () => () => {
+      useTemplateSync.getState().clearDirty(elementName);
+    },
+    [elementName]
+  );
   const handleEditClick = () => {
     useTemplateSync.getState().markDirty(elementName);
     setIsEditing(true);
   };
 
   const saveContent = async (htmlValue: string, changed: boolean) => {
-    setIsEditing(false);
     if (!changed) {
       useTemplateSync.getState().clearDirty(elementName);
+      setIsEditing(false);
     } else {
-      await save(elementName, htmlValue);
+      if (await save(elementName, htmlValue, { keepDraftOnConflict: true })) {
+        setIsEditing(false);
+      }
     }
   };
 
@@ -56,7 +64,7 @@ const JsonChangeValue: FC<JsonChangeValueTypes> = ({ elementName }) => {
           <Box sx={{ p: 1 }}>
             <TextEditor
               value={elementValue || ""}
-              onBlur={saveContent}
+              saveContent={saveContent}
               setIsEditing={cancelEdit}
             />
           </Box>

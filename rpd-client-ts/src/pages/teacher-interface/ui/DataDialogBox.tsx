@@ -125,7 +125,7 @@ export function DataDialogBox(props: DataDialogBoxProps) {
       {...other}
     >
       <DialogTitle>{title}</DialogTitle>
-      <DialogContent dividers>
+      <DialogContent>
         {options.length ? (
           <RadioGroup ref={radioGroupRef} value={value} onChange={handleChange}>
             {options.map((option) => {
@@ -194,7 +194,7 @@ export function DataDialogBox(props: DataDialogBoxProps) {
                             __html:
                               currentFieldData || "Нет данных для отображения",
                           }}
-                          color="text.secondary"
+                          sx={{ color: "text.secondary" }}
                         />
                       )}
                     </Box>

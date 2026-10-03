@@ -8,7 +8,7 @@ export function FieldEditLabel({ fields }: { fields: string[] }) {
     FieldEdits | undefined;
   const edit = latestEdit(edits ?? {}, fields);
   return edit ? (
-    <Typography variant="caption" color="text.secondary">
+    <Typography variant="caption" sx={{ color: "text.secondary" }}>
       Изменено: {formatEdit(edit)}
     </Typography>
   ) : null;

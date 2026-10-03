@@ -88,6 +88,38 @@ test('непривязанный преподаватель не читает wo
   for (const response of responses) expect(response.status()).toBe(403);
 });
 
+test('назначенный преподаватель завершает РПД только после взятия в работу', async ({ request }) => {
+  // На шаблоне 108 teacher2 назначен, а первый преподаватель уже работает.
+  const workflowUrl = `${apiUrl}/api/templates/108/workflow`;
+  const headers = await headersFor(request, 'teacher2');
+  const workflow = await request.get(workflowUrl, { headers });
+  expect(workflow.status()).toBe(200);
+  expect(await workflow.json()).toMatchObject({
+    allowedActions: ['start'],
+    participants: expect.arrayContaining([expect.objectContaining({ userId: 10, state: 'assigned' })]),
+  });
+
+  const rejected = await request.post(workflowUrl, { headers, data: { action: 'finish' } });
+  expect(rejected.status()).toBe(409);
+  expect(await rejected.json()).toMatchObject({ status: 409, error: 'Недопустимый переход' });
+
+  const started = await request.post(workflowUrl, { headers, data: { action: 'start' } });
+  expect(started.status()).toBe(200);
+  expect(await started.json()).toMatchObject({
+    allowedActions: ['finish'],
+    participants: expect.arrayContaining([expect.objectContaining({ userId: 10, state: 'in_progress' })]),
+  });
+
+  const finished = await request.post(workflowUrl, { headers, data: { action: 'finish' } });
+  expect(finished.status()).toBe(200);
+  expect(await finished.json()).toMatchObject({
+    status: 'in_progress',
+    allowedActions: ['reopen'],
+    progress: { done: 1, total: 2 },
+    participants: expect.arrayContaining([expect.objectContaining({ userId: 10, state: 'done' })]),
+  });
+});
+
 test('refine без комментария даёт 422, состав ready защищён 409', async ({ page, request }) => {
   await signIn(page, 'rop');
   const headers = await headersFor(request, 'rop');

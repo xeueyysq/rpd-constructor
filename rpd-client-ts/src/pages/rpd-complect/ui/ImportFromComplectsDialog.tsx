@@ -187,22 +187,24 @@ export function ImportFromComplectsDialog({
     <>
       <Dialog open={open} onClose={onClose} maxWidth="md" fullWidth>
         <DialogTitle>Импортировать данные из шаблона</DialogTitle>
-        <DialogContent dividers>
-          <Typography variant="body2" color="text.secondary" sx={{ mb: 1 }}>
+        <DialogContent>
+          <Typography variant="body2" sx={{ color: "text.secondary" }}>
             Выберите комплект, затем шаблон. Будут импортированы только
             контентные поля (без дисциплины, семестра, нагрузки, формы
             промежуточной аттестации и т.п.)
           </Typography>
-          <Divider sx={{ mb: 2 }} />
+          <Divider sx={{ my: 1.5 }} />
 
           {isLoading ? (
-            <Typography color="text.secondary">Загрузка комплектов…</Typography>
+            <Typography sx={{ color: "text.secondary" }}>
+              Загрузка комплектов…
+            </Typography>
           ) : isError ? (
             <Alert severity="error">
               Не удалось загрузить список комплектов
             </Alert>
           ) : complects.length === 0 ? (
-            <Typography color="text.secondary">
+            <Typography sx={{ color: "text.secondary" }}>
               Нет доступных комплектов
             </Typography>
           ) : (
@@ -224,7 +226,10 @@ export function ImportFromComplectsDialog({
                     <AccordionSummary expandIcon={<ExpandMoreIcon />}>
                       <Box>
                         <Typography>{complectLabel(c)}</Typography>
-                        <Typography variant="caption" color="text.secondary">
+                        <Typography
+                          variant="caption"
+                          sx={{ color: "text.secondary" }}
+                        >
                           {c.directionOfStudy} • {c.levelEducation} •{" "}
                           {c.formEducation}
                         </Typography>
@@ -252,11 +257,11 @@ export function ImportFromComplectsDialog({
                       ) : null}
 
                       {isTplLoading ? (
-                        <Typography color="text.secondary">
+                        <Typography sx={{ color: "text.secondary" }}>
                           Загрузка шаблонов…
                         </Typography>
                       ) : templates.length === 0 ? (
-                        <Typography color="text.secondary">
+                        <Typography sx={{ color: "text.secondary" }}>
                           В этом комплекте нет созданных шаблонов для импорта
                         </Typography>
                       ) : (
@@ -300,7 +305,7 @@ export function ImportFromComplectsDialog({
                                         </Typography>
                                         <Typography
                                           variant="body2"
-                                          color="text.secondary"
+                                          sx={{ color: "text.secondary" }}
                                           noWrap
                                         >
                                           {t.participants
@@ -314,7 +319,7 @@ export function ImportFromComplectsDialog({
                                       </Box>
                                       <Typography
                                         variant="caption"
-                                        color="text.secondary"
+                                        sx={{ color: "text.secondary" }}
                                       >
                                         ID {sourceId}
                                       </Typography>

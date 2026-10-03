@@ -7,6 +7,7 @@ import {
   DialogActions,
   DialogContent,
   DialogTitle,
+  Divider,
   MenuItem,
   TextField,
   Typography,
@@ -43,6 +44,8 @@ export const BuildFundsByComplectDialog: FC<
       ...new Set(rows.map((row) => row.competence).filter((value) => value)),
     ];
   }, [rows]);
+  const downloadBlocked =
+    isLoading || isError || isGenerating || competencies.length === 0;
 
   useEffect(() => {
     if (!open) return;
@@ -71,6 +74,8 @@ export const BuildFundsByComplectDialog: FC<
   };
 
   const handleGenerateExcel = async () => {
+    if (downloadBlocked) return;
+
     try {
       const { blob, filename } = await excel.mutateAsync(complectId);
       downloadBlob(blob, filename);
@@ -83,15 +88,16 @@ export const BuildFundsByComplectDialog: FC<
   return (
     <Dialog open={open} onClose={onClose} maxWidth="md" fullWidth>
       <DialogTitle>Сформировать ФОС</DialogTitle>
-      <DialogContent dividers>
-        <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
+      <DialogContent>
+        <Typography variant="body2" sx={{ color: "text.secondary" }}>
           Word содержит вопросы выбранной компетенции. Excel содержит выбранные
           вопросы всех компетенций комплекта в формате таблицы.
         </Typography>
+        <Divider sx={{ mt: 1.5, mb: 2 }} />
         {isLoading ? (
           <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
             <CircularProgress size={18} />
-            <Typography color="text.secondary">
+            <Typography sx={{ color: "text.secondary" }}>
               Загрузка компетенций…
             </Typography>
           </Box>
@@ -141,14 +147,14 @@ export const BuildFundsByComplectDialog: FC<
         <Button
           variant="outlined"
           onClick={handleGenerateExcel}
-          disabled={isGenerating}
+          disabled={downloadBlocked}
         >
           {excel.isPending ? "Формирование…" : "Скачать Excel"}
         </Button>
         <Button
           variant="contained"
           onClick={handleGenerateDocx}
-          disabled={!selectedCompetence || isLoading || isGenerating}
+          disabled={downloadBlocked || !selectedCompetence}
         >
           {word.isPending ? "Формирование…" : "Скачать Word"}
         </Button>

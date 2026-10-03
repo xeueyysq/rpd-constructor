@@ -71,10 +71,38 @@ export const themeOptions: ThemeOptions = {
         size: "small",
       },
     },
+    MuiDialogContent: {
+      // Линии под заголовком и над кнопками у всех диалогов: прокручивается только содержимое.
+      defaultProps: {
+        dividers: true,
+      },
+    },
+    MuiListItemIcon: {
+      styleOverrides: {
+        // В MUI 9 отступ иконки до текста уменьшился с 56 до 36 px — возвращаем прежний.
+        // Внутри MenuItem ширину по-прежнему задаёт MUI (селектор специфичнее).
+        root: ({ theme }) => ({
+          minWidth: theme.spacing(7),
+        }),
+      },
+    },
+    MuiFormControl: {
+      styleOverrides: {
+        // Метка — в ячейке сетки поля ввода, а не во всём FormControl: иначе helperText
+        // увеличивает высоту контейнера и «top: 50%» уводит метку вниз.
+        root: {
+          "&:has(> .MuiInputLabel-outlined)": {
+            display: "inline-grid",
+            alignContent: "start",
+          },
+        },
+      },
+    },
     MuiInputLabel: {
       styleOverrides: {
         root: {
           "&.MuiInputLabel-outlined": {
+            gridArea: "1 / 1 / 2 / 2",
             top: "50%",
             transform: "translate(14px, -50%)",
           },

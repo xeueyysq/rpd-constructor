@@ -1,8 +1,9 @@
-import { getTemplateStatusLabel, TemplateStatus } from "@entities/template";
+import { getTemplateStatusLabel } from "@entities/template";
 import { AssignTeachers } from "@features/assign-teachers";
 import { ExchangeChanges } from "@features/complect-sync";
-import { TemplateWorkflowActions } from "@features/template-workflow";
-import { Box, Button } from "@mui/material";
+import { Box } from "@mui/material";
+import { useActionsColumn } from "@shared/hooks";
+import { StatusWithDate } from "@shared/ui";
 import type { MRT_ColumnDef } from "material-react-table";
 import { useMemo } from "react";
 import TemplateMenu from "../ui/TemplateMenu";
@@ -10,24 +11,29 @@ import type { TemplateData } from "../types";
 
 type Params = {
   selectedTeacherIds: Record<number, number[]>;
-  onSelectedTeacherIdsChange: (exchangeId: number, ids: number[]) => void;
   onCreateTemplate: (id: number) => Promise<void>;
   onFetchData: () => Promise<void>;
+  onOpenTeachers: (exchangeId: number) => void;
+  onOpenHistory: (templateId: number) => void;
 };
 
 export function useComplectTableColumns({
   selectedTeacherIds,
-  onSelectedTeacherIdsChange,
   onCreateTemplate,
   onFetchData,
+  onOpenTeachers,
+  onOpenHistory,
 }: Params): MRT_ColumnDef<TemplateData>[] {
+  const actionsColumn = useActionsColumn<TemplateData>();
   return useMemo(
     () => [
       { accessorKey: "discipline", header: "Дисциплина" },
-      { accessorKey: "semester", header: "Семестр", size: 100 },
+      { accessorKey: "semester", header: "Семестр", size: 100, grow: false },
       {
         id: "participants",
         header: "Преподаватели",
+        minSize: 240,
+        size: 280,
         accessorFn: (row) =>
           row.participants.map((part) => part.fullname).join(", "),
         Cell: ({ row }) => (
@@ -35,13 +41,9 @@ export function useComplectTableColumns({
             templateId={row.original.id_profile_template}
             status={row.original.status}
             participants={row.original.participants}
-            hints={row.original.teacherHints}
             canEditTeachers={row.original.canEditTeachers}
             selectedIds={selectedTeacherIds[row.original.id] ?? []}
-            onSelectedIdsChange={(ids) =>
-              onSelectedTeacherIdsChange(row.original.id, ids)
-            }
-            onRefresh={onFetchData}
+            onOpen={() => onOpenTeachers(row.original.id)}
           />
         ),
       },
@@ -50,67 +52,58 @@ export function useComplectTableColumns({
         header: "Статус",
         accessorFn: (row) => getTemplateStatusLabel(row.status),
         Cell: ({ row }) => (
-          <TemplateStatus
-            status={row.original.status}
-            progress={
-              row.original.id_profile_template
-                ? row.original.progress
-                : undefined
-            }
-            participants={row.original.participants}
-          />
-        ),
-      },
-      {
-        id: "sync",
-        header: "1С",
-        enableSorting: false,
-        enableColumnFilter: false,
-        Cell: ({ row }) => (
-          <ExchangeChanges
-            exchangeId={row.original.id}
-            pendingChanges={row.original.pendingChanges}
-            onAcknowledged={onFetchData}
-          />
+          <Box>
+            <StatusWithDate
+              label={getTemplateStatusLabel(row.original.status)}
+              date={row.original.statusChangedAt}
+              onClick={
+                row.original.id_profile_template != null
+                  ? () => onOpenHistory(row.original.id_profile_template!)
+                  : undefined
+              }
+            />
+            <Box
+              sx={{
+                mt: (theme) =>
+                  row.original.latestChanges.count ? theme.spacing(1) : 0,
+              }}
+            >
+              <ExchangeChanges
+                exchangeId={row.original.id}
+                latestChanges={row.original.latestChanges}
+              />
+            </Box>
+          </Box>
         ),
       },
       {
         id: "actions",
         header: "Действия",
-        enableSorting: false,
-        enableColumnFilter: false,
+        ...actionsColumn,
         Cell: ({ row }) => (
-          <Box>
-            {row.original.id_profile_template ? (
-              <>
-                <TemplateMenu
-                  id={row.original.id_profile_template}
-                  publicId={row.original.profile_template_public_id}
-                  fetchData={onFetchData}
-                />
-                <TemplateWorkflowActions
-                  templateId={row.original.id_profile_template}
-                  allowedActions={row.original.allowedActions}
-                  onChanged={onFetchData}
-                />
-              </>
-            ) : (
-              <Button
-                variant="contained"
-                onClick={() => void onCreateTemplate(row.original.id)}
-              >
-                Создать
-              </Button>
-            )}
-          </Box>
+          <TemplateMenu
+            id={row.original.id_profile_template}
+            publicId={row.original.profile_template_public_id}
+            allowedActions={row.original.allowedActions}
+            fetchData={onFetchData}
+            canEditTeachers={row.original.canEditTeachers}
+            onEditTeachers={() => onOpenTeachers(row.original.id)}
+            onOpenHistory={() => {
+              if (row.original.id_profile_template != null)
+                onOpenHistory(row.original.id_profile_template);
+            }}
+            onCreateTemplate={() => onCreateTemplate(row.original.id)}
+          />
         ),
       },
     ],
     [
+      actionsColumn,
       selectedTeacherIds,
-      onSelectedTeacherIdsChange,
       onCreateTemplate,
       onFetchData,
+      onOpenTeachers,
+      onOpenHistory,
     ]
   );
 }

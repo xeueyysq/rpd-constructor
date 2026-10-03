@@ -1,6 +1,7 @@
 import {
   Box,
   Checkbox,
+  Divider,
   FormControlLabel,
   Table,
   TableBody,
@@ -98,7 +99,7 @@ export function SyncDiffTable({
 
   if (!hasChanges) {
     return (
-      <Typography color="text.secondary" sx={{ py: 2 }}>
+      <Typography sx={{ color: "text.secondary", py: 2 }}>
         Изменений не обнаружено
       </Typography>
     );
@@ -122,7 +123,10 @@ export function SyncDiffTable({
               }
               label={
                 <Box>
-                  <Typography variant="subtitle2" color="success.main">
+                  <Typography
+                    variant="subtitle2"
+                    sx={{ color: "success.main" }}
+                  >
                     Новая дисциплина
                   </Typography>
                   <DisciplineTitle incoming={item.incoming} />
@@ -152,6 +156,9 @@ export function SyncDiffTable({
         );
       })}
 
+      {diff.new.length > 0 && diff.updated.length > 0 ? (
+        <Divider sx={{ mb: 2 }} />
+      ) : null}
       {diff.updated.map((item) => {
         const id = rowKey("updated", item.id_1c);
         const selected = rowSelection[id] ?? true;
@@ -168,7 +175,10 @@ export function SyncDiffTable({
               }
               label={
                 <Box>
-                  <Typography variant="subtitle2" color="warning.main">
+                  <Typography
+                    variant="subtitle2"
+                    sx={{ color: "warning.main" }}
+                  >
                     Обновлена
                   </Typography>
                   <DisciplineTitle
@@ -201,6 +211,9 @@ export function SyncDiffTable({
         );
       })}
 
+      {diff.new.length + diff.updated.length > 0 && diff.removed.length > 0 ? (
+        <Divider sx={{ mb: 2 }} />
+      ) : null}
       {diff.removed.map((item) => {
         const id = rowKey("removed", item.id_1c);
         const selected = rowSelection[id] ?? true;
@@ -217,7 +230,7 @@ export function SyncDiffTable({
               }
               label={
                 <Box>
-                  <Typography variant="subtitle2" color="error.main">
+                  <Typography variant="subtitle2" sx={{ color: "error.main" }}>
                     Удалена из плана
                   </Typography>
                   <DisciplineTitle fallback={item.local.discipline} />
