@@ -1,6 +1,8 @@
-import { getTemplateStatusLabel } from "@entities/template";
+import { getTemplateStatusLabel, type HistoryEvent } from "@entities/template";
 import {
+  Alert,
   Box,
+  Typography,
   Button,
   Dialog,
   DialogActions,
@@ -10,15 +12,6 @@ import {
 } from "@mui/material";
 import { format, parseISO } from "date-fns";
 import { ru } from "date-fns/locale";
-
-export interface HistoryEvent {
-  date: string;
-  user: string;
-  status: string;
-  action?: string;
-  comment?: string;
-  targetUserId?: number;
-}
 
 const actionLabels: Record<string, string> = {
   assign: "Назначен преподаватель",
@@ -36,10 +29,14 @@ const actionLabels: Record<string, string> = {
 export default function HistoryModal({
   history,
   openDialog,
+  isPending,
+  isError,
   setOpenDialog,
 }: {
   history: HistoryEvent[];
   openDialog: boolean;
+  isPending: boolean;
+  isError: boolean;
   setOpenDialog: (open: boolean) => void;
 }) {
   return (
@@ -51,6 +48,10 @@ export default function HistoryModal({
     >
       <DialogTitle>История шаблона</DialogTitle>
       <DialogContent>
+        {isPending ? <Typography>Загрузка истории…</Typography> : null}
+        {isError ? (
+          <Alert severity="error">Не удалось загрузить историю шаблона</Alert>
+        ) : null}
         <Stack spacing={2}>
           {history.map((event, index) => (
             <Box key={`${event.date}-${index}`}>

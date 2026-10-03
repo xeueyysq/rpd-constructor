@@ -1,11 +1,8 @@
-import {
-  TemplateParticipantsList,
-  type TemplateParticipant,
-} from "@entities/template";
+import type { TemplateParticipant } from "@entities/template";
 import { useAssignableTeachers } from "@entities/user";
-import EditOutlinedIcon from "@mui/icons-material/EditOutlined";
-import VisibilityOutlinedIcon from "@mui/icons-material/VisibilityOutlined";
-import { Box, IconButton, Tooltip } from "@mui/material";
+import { Box } from "@mui/material";
+import { StatusWithSubtext } from "@shared/ui";
+import { participantSubtext } from "../lib/participantSubtext";
 import {
   assignmentsDisabled,
   selectedParticipants,
@@ -30,35 +27,37 @@ export function AssignTeachers({
 }: Props) {
   const { data: users = [] } = useAssignableTeachers();
   const canEdit = !assignmentsDisabled(status, canEditTeachers);
-  const label = canEdit
-    ? "Изменить преподавателей"
-    : "Просмотреть преподавателей";
-
+  const selected = selectedParticipants(
+    templateId,
+    participants,
+    users,
+    selectedIds
+  );
+  if (!selected.length) {
+    return (
+      <StatusWithSubtext
+        label={
+          canEdit ? "Назначить преподавателей" : "Преподаватели не назначены"
+        }
+        onClick={canEdit ? onOpen : undefined}
+      />
+    );
+  }
   return (
-    <Box
-      sx={{ width: "100%", display: "flex", alignItems: "flex-start", gap: 1 }}
-    >
-      <Box sx={{ flex: 1, minWidth: 0 }}>
-        <TemplateParticipantsList
-          participants={selectedParticipants(
-            templateId,
-            participants,
-            users,
-            selectedIds
-          )}
-        />
-      </Box>
-      {canEdit || status === "ready" ? (
-        <Tooltip title={label}>
-          <IconButton
-            aria-label={label}
+    <Box component="ul" sx={{ m: 0, p: 0, listStyle: "none" }}>
+      {selected.map((participant) => (
+        <Box
+          component="li"
+          key={participant.userId}
+          sx={{ "& + &": { mt: (theme) => theme.spacing(1) } }}
+        >
+          <StatusWithSubtext
+            label={participant.fullname}
+            subtext={participantSubtext(participant)}
             onClick={onOpen}
-            sx={{ flexShrink: 0 }}
-          >
-            {canEdit ? <EditOutlinedIcon /> : <VisibilityOutlinedIcon />}
-          </IconButton>
-        </Tooltip>
-      ) : null}
+          />
+        </Box>
+      ))}
     </Box>
   );
 }

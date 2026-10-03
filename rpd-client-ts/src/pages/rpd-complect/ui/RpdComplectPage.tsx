@@ -1,3 +1,5 @@
+import { useTemplateHistory } from "@entities/template";
+import HistoryModal from "./HistoryModal";
 import { Loader, PageTitle } from "@shared/ui";
 import { Box } from "@mui/material";
 import {
@@ -17,6 +19,10 @@ import { AssignTeachersDialog } from "@features/assign-teachers";
 export function RpdComplectPage() {
   const { id: complectId } = useParams();
   const navigate = useNavigate();
+  const [historyTemplateId, setHistoryTemplateId] = useState<number | null>(
+    null
+  );
+  const history = useTemplateHistory(historyTemplateId);
   const [openBuildFunds, setOpenBuildFunds] = useState(false);
   const [teachersExchangeId, setTeachersExchangeId] = useState<number | null>(
     null
@@ -34,6 +40,7 @@ export function RpdComplectPage() {
     onCreateTemplate: createTemplateData,
     onFetchData: fetchComplectData,
     onOpenTeachers: setTeachersExchangeId,
+    onOpenHistory: setHistoryTemplateId,
   });
   const teachersRow = filteredData.find((row) => row.id === teachersExchangeId);
   const table = useMaterialReactTable<TemplateData>({
@@ -67,6 +74,15 @@ export function RpdComplectPage() {
           onClose={() => setOpenBuildFunds(false)}
         />
       ) : null}
+      <HistoryModal
+        history={history.data ?? []}
+        openDialog={historyTemplateId != null}
+        isPending={history.isPending}
+        isError={history.isError}
+        setOpenDialog={(open) => {
+          if (!open) setHistoryTemplateId(null);
+        }}
+      />
       {teachersRow ? (
         <AssignTeachersDialog
           key={teachersRow.id}

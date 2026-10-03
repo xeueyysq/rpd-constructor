@@ -1,6 +1,6 @@
 import { expect, test, type Page } from '@playwright/test';
-import { disciplines, openComplect, showAllRows, signIn, signInWithCredentials, password } from '../helpers';
-import { assignTeacher, closeTeachersDialog, openTeachersDialog } from '../teacherAssignments';
+import { apiUrl, disciplines, openComplect, showAllRows, signIn, signInWithCredentials, password } from '../helpers';
+import { assignTeacher, closeTeachersDialog, openTeachersDialog, openRowMenu } from '../teacherAssignments';
 
 test.describe('состав и готовность отдельной РПД', () => {
   test.describe.configure({ mode: 'serial' });
@@ -20,7 +20,8 @@ test.describe('состав и готовность отдельной РПД', 
     await assign(page, 'Альфина');
     await assign(page, 'Яковлева');
     await expect(complectStatus(page)).toContainText('Назначены преподаватели');
-    await expect(complectStatus(page)).toContainText('0/2');
+    await expect(complectStatus(page)).not.toContainText(/\d+\/\d+/);
+    await expect(row(page).getByRole('cell').nth(2).getByRole('button')).toHaveCount(2);
     const participants = row(page).getByRole('cell').nth(2).getByRole('listitem');
     await expect(participants).toHaveText([
       'Альфина Тест ТестовнаНазначен',
@@ -34,10 +35,10 @@ test.describe('состав и готовность отдельной РПД', 
     await page.getByRole('button', { name: 'Конструктор РПД' }).click();
     await expect(page).toHaveURL(/\/complects$/);
     await openComplect(page);
-    await expect(row(page).getByRole('button', { name: 'Изменить преподавателей' })).toBeVisible();
+    await expect(row(page).getByRole('button', { name: 'Альфина Тест Тестовна', exact: true })).toBeVisible();
     await expect(row(page)).toContainText('Альфина Тест Тестовна');
     await expect(row(page)).toContainText('Яковлева Тест Тестовна');
-    await expect(complectStatus(page)).toContainText('0/2');
+    await expect(complectStatus(page)).not.toContainText(/\d+\/\d+/);
   });
 
   test('отметка первого не делает РПД готовой, отметка второго делает', async ({ page, browser }) => {
@@ -87,24 +88,39 @@ test.describe('состав и готовность отдельной РПД', 
     await expect(choices.first()).toBeVisible();
     for (const choice of await choices.all()) await expect(choice).toBeDisabled();
     await closeTeachersDialog(teachersDialog);
-    await row(page).getByRole('button', { name: 'Меню шаблона' }).click();
-    await expect(page.getByRole('menuitem', { name: 'Изменить преподавателей' })).toHaveCount(0);
-    await page.keyboard.press('Escape');
-    const actionsBounds = await row(page).getByRole('cell').nth(4).boundingBox();
-    const refineBounds = await row(page).getByRole('button', { name: 'Вернуть на доработку' }).boundingBox();
-    expect(actionsBounds).not.toBeNull();
-    expect(refineBounds).not.toBeNull();
-    expect(refineBounds!.x + refineBounds!.width).toBeLessThanOrEqual(actionsBounds!.x + actionsBounds!.width);
-    await row(page).getByRole('button', { name: 'Вернуть на доработку' }).click();
+    const menu = await openRowMenu(page, row(page));
+    await expect(menu.getByRole('menuitem', { name: 'Изменить преподавателей' })).toHaveCount(0);
+    await menu.getByRole('menuitem', { name: 'Вернуть на доработку', exact: true }).click();
     const dialog = page.getByRole('dialog', { name: 'Вернуть РПД на доработку' });
     await expect(dialog.getByRole('button', { name: 'Вернуть на доработку' })).toBeDisabled();
-    await dialog.getByRole('textbox', { name: 'Комментарий' }).fill('Уточнить разделы РПД');
-    await dialog.getByRole('button', { name: 'Вернуть на доработку' }).click();
+    await dialog.getByRole('textbox', { name: 'Комментарий' }).fill('   ');
+    await expect(dialog.getByRole('button', { name: 'Вернуть на доработку' })).toBeDisabled();
+    await dialog.getByRole('textbox', { name: 'Комментарий' }).fill('  Уточнить разделы РПД  ');
+    let release!: () => void;
+    const hold = new Promise<void>((resolve) => { release = resolve; });
+    await page.route('**/api/templates/*/workflow', async (route) => {
+      if (route.request().postDataJSON()?.action === 'refine') await hold;
+      await route.continue();
+    });
+    const refinement = page.waitForRequest((request) =>
+      request.url().startsWith(`${apiUrl}/api/templates/`) && request.url().endsWith('/workflow')
+      && request.method() === 'POST' && request.postDataJSON().action === 'refine');
+    try {
+      await dialog.getByRole('button', { name: 'Вернуть на доработку' }).click();
+      expect((await refinement).postDataJSON().comment).toBe('Уточнить разделы РПД');
+      await expect(dialog.getByRole('textbox', { name: 'Комментарий' })).toBeDisabled();
+      await expect(dialog.getByRole('button', { name: 'Отмена' })).toBeDisabled();
+      await expect(dialog.getByRole('button', { name: 'Вернуть на доработку' })).toBeDisabled();
+      await page.keyboard.press('Escape');
+      await expect(dialog).toBeVisible();
+    } finally {
+      release();
+    }
     await expect(dialog).toBeHidden();
     await expect(complectStatus(page)).toContainText('На доработке');
-    await expect(complectStatus(page)).toContainText('0/2');
+    await expect(complectStatus(page)).not.toContainText(/\d+\/\d+/);
     await assign(page, 'Третьева');
-    await expect(complectStatus(page)).toContainText('0/3');
+    await expect(complectStatus(page)).not.toContainText(/\d+\/\d+/);
 
     const thirdContext = await browser.newContext({ baseURL: test.info().project.use.baseURL });
     try {
@@ -146,11 +162,11 @@ test.describe('деактивация назначенного преподав�
       await signIn(ropPage, 'rop');
       await openComplect(ropPage);
       const ropRow = ropPage.getByRole('row').filter({ hasText: disciplines.deactivation });
-      await expect(ropRow).toContainText('Отключева Тест Тестовна (неактивен)');
+      await expect(ropRow).toContainText('Отключева Тест Тестовна');
       await expect(ropRow.getByRole('cell').nth(2).getByRole('listitem').filter({ hasText: 'Отключева' }))
-        .toHaveText('Отключева Тест Тестовна (неактивен)Назначен');
+        .toHaveText('Отключева Тест ТестовнаНазначен (неактивен)');
       await expect(ropRow.getByRole('cell').nth(3)).not.toContainText('Отключева');
-      await expect(ropRow.getByRole('cell').nth(3)).toContainText('0/1');
+      await expect(ropRow.getByRole('cell').nth(3)).not.toContainText(/\d+\/\d+/);
 
       const teacherPage = await teacherContext.newPage();
       await signIn(teacherPage, 'teacher2');
@@ -162,9 +178,9 @@ test.describe('деактивация назначенного преподав�
 
       await ropPage.getByRole('button', { name: 'Конструктор РПД' }).click();
       await openComplect(ropPage);
-      await expect(ropRow).toContainText('Отключева Тест Тестовна (неактивен)');
+      await expect(ropRow).toContainText('Отключева Тест Тестовна');
       await expect(ropRow.getByRole('cell').nth(3)).toContainText('Готов');
-      await expect(ropRow.getByRole('cell').nth(3)).toContainText('1/1');
+      await expect(ropRow.getByRole('cell').nth(3)).not.toContainText(/\d+\/\d+/);
     } finally {
       await ropContext.close();
       await teacherContext.close();
@@ -176,7 +192,7 @@ test.describe('деактивация назначенного преподав�
 test.describe('изменения 1С на отдельной РПД', () => {
   test.describe.configure({ mode: 'serial' });
 
-  test('бейдж у in_progress исчезает после Просмотрено без смены этапа', async ({ page }) => {
+  test('последняя синхронизация остаётся после закрытия диалога и перезагрузки', async ({ page }) => {
     await signIn(page, 'rop');
     await openComplect(page);
     const row = page.getByRole('row').filter({ hasText: disciplines.sync });
@@ -184,20 +200,32 @@ test.describe('изменения 1С на отдельной РПД', () => {
     const status = row.getByRole('cell').nth(3);
     const changes = status.getByRole('button', { name: 'Изменения 1С: строка 107' });
     await expect(changes).toContainText('Обновлено из 1С');
-    await expect(changes).toContainText('1 февраля 2025');
+    await expect(changes).toContainText('2 февраля 2025');
+    await expect(changes).toContainText(/\d{2}:\d{2}/);
     await expect(row.getByRole('cell').nth(2)).not.toContainText('Обновлено из 1С');
     await changes.click();
     const dialog = page.getByRole('dialog', { name: 'Изменения из 1С' });
     await expect(dialog).toContainText('4');
-    await dialog.getByRole('button', { name: 'Просмотрено' }).click();
+    await expect(dialog).toContainText('Третьева Тест Тестовна');
+    await expect(dialog.getByRole('button', { name: 'Просмотрено' })).toHaveCount(0);
+    await expect(dialog.getByRole('button')).toHaveCount(1);
+    await dialog.getByRole('button', { name: 'Закрыть', exact: true }).click();
     await expect(dialog).toBeHidden();
-    await expect(row.getByRole('button', { name: 'Изменения 1С: строка 107' })).toHaveCount(0);
+    await expect(changes).toBeVisible();
     await expect(row.getByRole('cell').nth(3)).toContainText('В работе');
 
-    await page.getByRole('button', { name: 'Конструктор РПД' }).click();
-    await openComplect(page);
-    await expect(row.getByRole('button', { name: 'Изменения 1С: строка 107' })).toHaveCount(0);
+    await page.reload();
+    await expect(changes).toBeVisible();
+    await changes.click();
+    await expect(dialog).toContainText('4');
+    await expect(dialog).toContainText('Третьева Тест Тестовна');
+    await expect(dialog.getByRole('button', { name: 'Просмотрено' })).toHaveCount(0);
+    await dialog.getByRole('button', { name: 'Закрыть', exact: true }).click();
     await expect(row.getByRole('cell').nth(3)).toContainText('В работе');
+    await page.getByRole('button', { name: 'Конструктор РПД' }).click();
+    const complect = page.getByRole('row').filter({ has: page.getByRole('cell', { name: 'Синтетический профиль', exact: true }) });
+    await expect(complect).toContainText('Обновлён');
+    await expect(complect).toContainText('2 февраля 2025');
   });
 });
 

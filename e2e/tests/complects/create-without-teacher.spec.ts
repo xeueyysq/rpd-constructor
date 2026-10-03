@@ -1,6 +1,6 @@
 import { expect, test, type Page } from '@playwright/test';
 import { apiUrl, disciplines, openComplect, password, signIn } from '../helpers';
-import { assignTeacher, closeTeachersDialog, openTeachersDialog, selectTeacher } from '../teacherAssignments';
+import { assignTeacher, closeTeachersDialog, openTeachersDialog, openRowMenu, selectTeacher } from '../teacherAssignments';
 
 test.describe('создание РПД без преподавателя', () => {
   test.describe.configure({ mode: 'serial' });
@@ -12,7 +12,14 @@ test.describe('создание РПД без преподавателя', () =>
     await signIn(page, 'rop');
     await openComplect(page);
     await expect(row(page).getByRole('cell').nth(3)).toContainText('Выгружен из 1С');
-    await row(page).getByRole('button', { name: 'Создать' }).click();
+    await expect(row(page).getByRole('cell').nth(3).getByRole('button')).toHaveCount(0);
+    const assignmentMenu = await openRowMenu(page, row(page));
+    await assignmentMenu.getByRole('menuitem', { name: 'Назначить преподавателей', exact: true }).click();
+    const teachers = page.getByRole('dialog', { name: `Преподаватели: ${discipline}`, exact: true });
+    await expect(teachers).toBeVisible();
+    await closeTeachersDialog(teachers);
+    const menu = await openRowMenu(page, row(page));
+    await menu.getByRole('menuitem', { name: 'Создать', exact: true }).click();
     await expect(row(page).getByRole('cell').nth(3)).toContainText('Создан');
     await expect(row(page).getByRole('cell').nth(2)).not.toContainText('Яковлева Тест Тестовна');
 
@@ -88,12 +95,13 @@ test('локальный выбор из диалога уходит в Созд
 
     const creation = page.waitForResponse((response) =>
       response.url() === `${apiUrl}/api/create-profile-template-from-1c` && response.request().method() === 'POST');
-    await row.getByRole('button', { name: 'Создать' }).click();
+    const menu = await openRowMenu(page, row);
+    await menu.getByRole('menuitem', { name: 'Создать', exact: true }).click();
     const response = await creation;
     expect(response.status()).toBe(200);
     expect(response.request().postDataJSON()).toMatchObject({ id_1c: 102, teacherIds: [userId] });
     await expect(row.getByRole('cell').nth(3)).toContainText('Назначены преподаватели');
-    await expect(row.getByRole('cell').nth(3)).toContainText('0/1 готовы');
+    await expect(row.getByRole('cell').nth(3)).not.toContainText(/\d+\/\d+/);
 
     await page.getByRole('button', { name: 'Конструктор РПД' }).click();
     await openComplect(page);

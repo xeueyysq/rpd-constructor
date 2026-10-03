@@ -1,19 +1,19 @@
 import { expect, test } from '@playwright/test';
 import { disciplines, openComplect, signIn } from '../helpers';
-import { closeTeachersDialog } from '../teacherAssignments';
+import { closeTeachersDialog, openRowMenu } from '../teacherAssignments';
 
 test('диалог импорта показывает преподавателей и ищет шаблоны по ФИО', async ({ page }) => {
   await signIn(page, 'rop');
   await openComplect(page);
 
   const target = page.getByRole('row').filter({ hasText: disciplines.inProgress });
-  await target.getByRole('button', { name: 'Меню шаблона' }).click();
+  await openRowMenu(page, target);
   await page.getByRole('menuitem', { name: 'Изменить преподавателей' }).click();
   const teachers = page.getByRole('dialog', { name: `Преподаватели: ${disciplines.inProgress}`, exact: true });
   await expect(teachers.getByRole('checkbox', { name: 'Альфина Тест Тестовна — из 1С', exact: true })).toBeChecked();
   await expect(teachers.getByRole('checkbox').first()).toHaveAccessibleName('Альфина Тест Тестовна — из 1С');
   await closeTeachersDialog(teachers);
-  await target.getByRole('button', { name: 'Меню шаблона' }).click();
+  await openRowMenu(page, target);
   await page.getByRole('menuitem', { name: 'Импортировать' }).click();
 
   const dialog = page.getByRole('dialog', { name: 'Импортировать данные из шаблона' });

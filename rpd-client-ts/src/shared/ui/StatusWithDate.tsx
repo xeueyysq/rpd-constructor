@@ -1,23 +1,13 @@
-import { Box, Typography } from "@mui/material";
-import { FC } from "react";
 import { formatStatusDate } from "@shared/lib/formatStatusDate";
+import {
+  StatusWithSubtext,
+  type StatusWithSubtextProps,
+} from "./StatusWithSubtext";
 
-type StatusWithDateProps = {
-  label: string;
+type StatusWithDateProps = Omit<StatusWithSubtextProps, "subtext"> & {
   date?: string | null;
 };
 
-export const StatusWithDate: FC<StatusWithDateProps> = ({ label, date }) => {
-  const formattedDate = formatStatusDate(date);
-
-  return (
-    <Box>
-      <Box>{label}</Box>
-      {formattedDate ? (
-        <Typography sx={{ color: "grey", fontSize: "12px" }}>
-          {formattedDate}
-        </Typography>
-      ) : null}
-    </Box>
-  );
-};
+export function StatusWithDate({ date, ...props }: StatusWithDateProps) {
+  return <StatusWithSubtext {...props} subtext={formatStatusDate(date)} />;
+}

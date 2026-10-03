@@ -1,8 +1,8 @@
-import { getTemplateStatusLabel, TemplateStatus } from "@entities/template";
+import { getTemplateStatusLabel } from "@entities/template";
 import { AssignTeachers } from "@features/assign-teachers";
 import { ExchangeChanges } from "@features/complect-sync";
-import { TemplateWorkflowActions } from "@features/template-workflow";
-import { Box, Button } from "@mui/material";
+import { Box } from "@mui/material";
+import { StatusWithDate } from "@shared/ui";
 import type { MRT_ColumnDef } from "material-react-table";
 import { useMemo } from "react";
 import TemplateMenu from "../ui/TemplateMenu";
@@ -13,6 +13,7 @@ type Params = {
   onCreateTemplate: (id: number) => Promise<void>;
   onFetchData: () => Promise<void>;
   onOpenTeachers: (exchangeId: number) => void;
+  onOpenHistory: (templateId: number) => void;
 };
 
 export function useComplectTableColumns({
@@ -20,6 +21,7 @@ export function useComplectTableColumns({
   onCreateTemplate,
   onFetchData,
   onOpenTeachers,
+  onOpenHistory,
 }: Params): MRT_ColumnDef<TemplateData>[] {
   return useMemo(
     () => [
@@ -49,19 +51,24 @@ export function useComplectTableColumns({
         accessorFn: (row) => getTemplateStatusLabel(row.status),
         Cell: ({ row }) => (
           <Box>
-            <TemplateStatus
-              status={row.original.status}
-              progress={
-                row.original.id_profile_template
-                  ? row.original.progress
+            <StatusWithDate
+              label={getTemplateStatusLabel(row.original.status)}
+              date={row.original.statusChangedAt}
+              onClick={
+                row.original.id_profile_template != null
+                  ? () => onOpenHistory(row.original.id_profile_template!)
                   : undefined
               }
             />
-            <Box sx={{ mt: row.original.pendingChanges.count ? 0.5 : 0 }}>
+            <Box
+              sx={{
+                mt: (theme) =>
+                  row.original.latestChanges.count ? theme.spacing(1) : 0,
+              }}
+            >
               <ExchangeChanges
                 exchangeId={row.original.id}
-                pendingChanges={row.original.pendingChanges}
-                onAcknowledged={onFetchData}
+                latestChanges={row.original.latestChanges}
               />
             </Box>
           </Box>
@@ -76,41 +83,28 @@ export function useComplectTableColumns({
         enableSorting: false,
         enableColumnFilter: false,
         Cell: ({ row }) => (
-          <Box
-            sx={{
-              display: "flex",
-              alignItems: "center",
-              gap: 1,
-              flexWrap: "nowrap",
+          <TemplateMenu
+            id={row.original.id_profile_template}
+            publicId={row.original.profile_template_public_id}
+            allowedActions={row.original.allowedActions}
+            fetchData={onFetchData}
+            canEditTeachers={row.original.canEditTeachers}
+            onEditTeachers={() => onOpenTeachers(row.original.id)}
+            onOpenHistory={() => {
+              if (row.original.id_profile_template != null)
+                onOpenHistory(row.original.id_profile_template);
             }}
-          >
-            {row.original.id_profile_template ? (
-              <>
-                <TemplateMenu
-                  id={row.original.id_profile_template}
-                  publicId={row.original.profile_template_public_id}
-                  fetchData={onFetchData}
-                  canEditTeachers={row.original.canEditTeachers}
-                  onEditTeachers={() => onOpenTeachers(row.original.id)}
-                />
-                <TemplateWorkflowActions
-                  templateId={row.original.id_profile_template}
-                  allowedActions={row.original.allowedActions}
-                  onChanged={onFetchData}
-                />
-              </>
-            ) : (
-              <Button
-                variant="contained"
-                onClick={() => void onCreateTemplate(row.original.id)}
-              >
-                Создать
-              </Button>
-            )}
-          </Box>
+            onCreateTemplate={() => onCreateTemplate(row.original.id)}
+          />
         ),
       },
     ],
-    [selectedTeacherIds, onCreateTemplate, onFetchData, onOpenTeachers]
+    [
+      selectedTeacherIds,
+      onCreateTemplate,
+      onFetchData,
+      onOpenTeachers,
+      onOpenHistory,
+    ]
   );
 }

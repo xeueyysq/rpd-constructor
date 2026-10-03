@@ -5,6 +5,7 @@ import type {
   TemplateWorkflow,
   WorkflowAction,
 } from "../model/workflow";
+import { templateHistoryKey } from "./history";
 
 const workflowKey = (id: number) => ["template-workflow", id] as const;
 const myTemplatesKey = ["my-templates"] as const;
@@ -50,6 +51,9 @@ export function useWorkflowAction() {
       queryClient.setQueryData(workflowKey(snapshot.templateId), snapshot);
       void queryClient.invalidateQueries({ queryKey: ["rpd-complect"] });
       void queryClient.invalidateQueries({ queryKey: myTemplatesKey });
+      void queryClient.invalidateQueries({
+        queryKey: templateHistoryKey(snapshot.templateId),
+      });
     },
   });
 }

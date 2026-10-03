@@ -1,6 +1,6 @@
 import { expect, test } from '@playwright/test';
 import { apiUrl, disciplines, openComplect, signIn } from '../helpers';
-import { closeTeachersDialog, openTeachersDialog, selectTeacher } from '../teacherAssignments';
+import { closeTeachersDialog, openTeachersDialog, openRowMenu, selectTeacher } from '../teacherAssignments';
 
 test('РОП видит действия активного режима и открывает свою РПД как преподаватель', async ({ page, request }) => {
   // Второй РОП и его комплект не участвуют в сценарии совместной готовности.
@@ -25,17 +25,31 @@ test('РОП видит действия активного режима и от
     await closeTeachersDialog(teachers);
 
     await expect(row).toContainText('Другов Тест Тестович');
-    await expect(row.getByRole('button', { name: 'Принять', exact: true })).toBeVisible();
-    await expect(row.getByRole('button', { name: 'Взять в работу', exact: true })).toHaveCount(0);
-    await expect(row.getByRole('button', { name: 'Готово', exact: true })).toHaveCount(0);
-    await expect(row.getByRole('button', { name: 'Другие действия РПД' })).toHaveCount(0);
+    await row.getByRole('cell').nth(3).getByRole('button', { name: 'Назначены преподаватели', exact: true }).click();
+    const history = page.getByRole('dialog', { name: 'История шаблона' });
+    await expect(history).toContainText('Назначен преподаватель');
+    await history.getByRole('button', { name: 'Закрыть', exact: true }).click();
     const actionsCell = row.getByRole('cell').nth(4);
-    const menuBounds = await actionsCell.getByRole('button', { name: 'Меню шаблона' }).boundingBox();
-    const primaryBounds = await actionsCell.getByRole('button', { name: 'Принять', exact: true }).boundingBox();
-    expect(menuBounds).not.toBeNull();
-    expect(primaryBounds).not.toBeNull();
-    expect(primaryBounds!.y + primaryBounds!.height / 2)
-      .toBeCloseTo(menuBounds!.y + menuBounds!.height / 2, 0);
+    await expect(actionsCell.getByRole('button')).toHaveCount(1);
+    const menu = await openRowMenu(page, row);
+    await expect(menu.getByRole('menuitem', { name: 'Принять', exact: true })).toBeVisible();
+    for (const name of ['Взять в работу', 'Готово', 'Снять отметку']) {
+      await expect(menu.getByRole('menuitem', { name, exact: true })).toHaveCount(0);
+    }
+    // Принятие, как и остальные действия комплекта, запускается из единственного меню.
+    await menu.getByRole('menuitem', { name: 'Принять', exact: true }).click();
+    await expect(row.getByRole('cell').nth(3)).toContainText('Готов');
+    await expect(row.getByRole('cell').nth(3)).not.toContainText(/\d+\/\d+/);
+    const readyMenu = await openRowMenu(page, row);
+    await expect(readyMenu.getByRole('menuitem', { name: 'Вернуть на доработку', exact: true })).toBeVisible();
+    await readyMenu.getByRole('menuitem', { name: 'Вернуть на доработку', exact: true }).click();
+    const returnDialog = page.getByRole('dialog', { name: 'Вернуть РПД на доработку' });
+    await returnDialog.getByRole('textbox', { name: 'Комментарий' }).fill('Продолжить проверку режима преподавателя');
+    await returnDialog.getByRole('button', { name: 'Вернуть на доработку', exact: true }).click();
+    await expect(returnDialog).toBeHidden();
+    await row.getByRole('cell').nth(3).getByRole('button', { name: 'На доработке', exact: true }).click();
+    await expect(history).toContainText('Продолжить проверку режима преподавателя');
+    await history.getByRole('button', { name: 'Закрыть', exact: true }).click();
 
     await page.getByRole('button', { name: 'Открыть меню аккаунта' }).click();
     await page.getByRole('menuitem', { name: 'Преподаватель', exact: true }).click();
