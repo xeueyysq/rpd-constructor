@@ -4,19 +4,19 @@ import { pool } from "../../config/db.ts";
 import { Conflict, Forbidden, NotFound, Unprocessable } from "../utils/Errors.ts";
 import { ASSIGNABLE_TEACHER_ROLES, USER_ROLES } from "../models/constants.ts";
 import { formatShortName, fullnameText } from "../modules/teacherNames.ts";
-import { allowedActions, decide, deriveStatus, type DecisionInput, type Participant, type TemplateStatus, type WorkflowAction, type ParticipationState } from "../modules/templateWorkflow.ts";
+import { allowedActions, decide, deriveStatus, statusChangedAt, type DecisionInput, type Participant, type TemplateStatus, type WorkflowAction, type ParticipationState } from "../modules/templateWorkflow.ts";
 import TemplateAccess from "./TemplateAccess.ts";
 
 type Database = Pool | PoolClient;
 type ParticipantRow = Participant & { fullname: unknown; name: string; updatedAt: Date };
 type StatusRow = { id: number; current_status: TemplateStatus };
 type TemplateRow = { id: number; id_rpd_complect: number };
-type SnapshotStatusRow = { id_profile_template: number; current_status: TemplateStatus };
+type SnapshotStatusRow = { id_profile_template: number; current_status: TemplateStatus; history: unknown };
 type SnapshotParticipantRow = ParticipantRow & { templateId: number };
-type WorkflowSnapshot = { templateId: number; status: TemplateStatus; participants: Array<{ userId: number; fullname: string; state: ParticipationState; isActive: boolean; updatedAt: Date }>; progress: { done: number; total: number }; allowedActions: WorkflowAction[]; canEditTeachers: boolean };
+type WorkflowSnapshot = { templateId: number; status: TemplateStatus; statusChangedAt: string | null; participants: Array<{ userId: number; fullname: string; state: ParticipationState; isActive: boolean; updatedAt: Date }>; progress: { done: number; total: number }; allowedActions: WorkflowAction[]; canEditTeachers: boolean };
 
 export function buildSnapshots(templateIds: number[], statuses: SnapshotStatusRow[], participants: SnapshotParticipantRow[], managerIds: ReadonlySet<number>, actorId: number): Map<number, WorkflowSnapshot> {
-  const statusesById = new Map(statuses.map((row) => [row.id_profile_template, row.current_status]));
+  const statusesById = new Map(statuses.map((row) => [row.id_profile_template, row]));
   const participantsById = new Map<number, SnapshotParticipantRow[]>();
   for (const participant of participants) {
     const group = participantsById.get(participant.templateId) ?? [];
@@ -24,11 +24,12 @@ export function buildSnapshots(templateIds: number[], statuses: SnapshotStatusRo
     participantsById.set(participant.templateId, group);
   }
   return new Map(templateIds.map((id) => {
-    const status = statusesById.get(id) ?? "created";
+    const statusRow = statusesById.get(id);
+    const status = statusRow?.current_status ?? "created";
     const assigned = participantsById.get(id) ?? [];
     const active = assigned.filter((part) => part.isActive);
     const canManage = managerIds.has(id);
-    return [id, { templateId: id, status, participants: assigned.map((part) => ({ userId: part.userId, fullname: fullnameText(part.fullname) || part.name, state: part.state, isActive: part.isActive, updatedAt: part.updatedAt })), progress: { done: active.filter((part) => part.state === "done").length, total: active.length }, allowedActions: allowedActions(status, assigned, actorId, canManage), canEditTeachers: canManage && status !== "ready" }];
+    return [id, { templateId: id, status, statusChangedAt: statusChangedAt(statusRow?.history, status), participants: assigned.map((part) => ({ userId: part.userId, fullname: fullnameText(part.fullname) || part.name, state: part.state, isActive: part.isActive, updatedAt: part.updatedAt })), progress: { done: active.filter((part) => part.state === "done").length, total: active.length }, allowedActions: allowedActions(status, assigned, actorId, canManage), canEditTeachers: canManage && status !== "ready" }];
   }));
 }
 
@@ -64,7 +65,7 @@ export default class TemplateWorkflow {
   async snapshots(db: Database, templateIds: number[], actor: UserClaims, canManageAll = false): Promise<Map<number, WorkflowSnapshot>> {
     if (!templateIds.length) return new Map();
     const [statuses, participants, managers] = await Promise.all([
-      db.query<SnapshotStatusRow>("SELECT id_profile_template,current_status FROM template_status WHERE id_profile_template=ANY($1::int[])", [templateIds]),
+      db.query<SnapshotStatusRow>("SELECT id_profile_template,current_status,history FROM template_status WHERE id_profile_template=ANY($1::int[])", [templateIds]),
       db.query<SnapshotParticipantRow>(`SELECT tt.template_id AS "templateId",tt.user_id AS "userId",tt.state,u.name,u.fullname,u.is_active AS "isActive",tt.updated_at AS "updatedAt" FROM teacher_templates tt JOIN users u ON u.id=tt.user_id WHERE tt.template_id=ANY($1::int[]) ORDER BY tt.id`, [templateIds]),
       canManageAll ? Promise.resolve(null) : db.query<{ id: number }>(`SELECT rpt.id FROM rpd_profile_templates rpt JOIN users actor ON actor.id=$2 AND actor.is_active LEFT JOIN user_complect uc ON uc.complect_id=rpt.id_rpd_complect AND uc.user_id=actor.id WHERE rpt.id=ANY($1::int[]) AND ($3::int=$4::int OR ($3::int=$5::int AND uc.user_id IS NOT NULL))`, [templateIds, actor.id, actor.role, USER_ROLES.ADMIN, USER_ROLES.ROP]),
     ]);

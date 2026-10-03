@@ -387,11 +387,6 @@ const applySync = async ({ complectId, selections, actor }: { complectId: unknow
   const numericComplectId = complectRows[0]?.id;
   if (!numericComplectId) throw new NotFound("Комплект не найден");
   if (selections !== undefined && !Array.isArray(selections)) throw new Unprocessable("Некорректный список изменений");
-  if (!hasSyncSelections(selections)) {
-    await TemplateAccess.assertComplect(pool, actor, numericComplectId);
-    return { complectId: numericComplectId, syncLogId: null };
-  }
-
   const client = await pool.connect();
   try {
     await client.query("BEGIN");
@@ -408,7 +403,7 @@ const applySync = async ({ complectId, selections, actor }: { complectId: unknow
     );
     const syncLogId = syncLogRows[0].id;
 
-    const localRows = await loadLocalDisciplines(numericComplectId);
+    const localRows = hasSyncSelections(selections) ? await loadLocalDisciplines(numericComplectId) : [];
     const localById = new Map(localRows.map((row) => [row.id, row]));
 
     for (const selection of (selections || []) as Selection[]) {
@@ -568,7 +563,7 @@ const applySync = async ({ complectId, selections, actor }: { complectId: unknow
         });
 
         for (const field of fields.filter(
-          (f) => !TEMPLATE_SYNC_FIELDS.has(f) && f !== "teachers"
+          (f) => SYNC_FIELDS.includes(f) && f !== "teachers" && (!local.id_profile_template || !TEMPLATE_SYNC_FIELDS.has(f))
         )) {
           await recordFieldChange(client, {
             syncLogId,
@@ -597,10 +592,12 @@ const applySync = async ({ complectId, selections, actor }: { complectId: unknow
       `
         UPDATE rpd_complects
         SET last_synced_at = NOW(),
-            has_pending_changes = true
+            has_pending_changes = EXISTS (
+              SELECT 1 FROM template_field_changes WHERE sync_log_id = $2
+            )
         WHERE id = $1
       `,
-      [numericComplectId]
+      [numericComplectId, syncLogId]
     );
 
     await client.query("COMMIT");
@@ -613,15 +610,14 @@ const applySync = async ({ complectId, selections, actor }: { complectId: unknow
   }
 };
 
-const getUnacknowledgedFieldChanges = async (profileTemplateId: unknown) => {
+const getLatestFieldChanges = async (profileTemplateId: unknown) => {
   const { rows } = await pool.query<{ field_key: string; old_value: unknown | null; new_value: unknown | null; id: number }>(
     `
-      SELECT field_key, old_value, new_value, id
+      SELECT DISTINCT ON (field_key) field_key, old_value, new_value, id
       FROM template_field_changes
       WHERE id_profile_template = $1
-        AND acknowledged_at IS NULL
         AND field_key NOT IN ($2, 'removed', 'teachers')
-      ORDER BY applied_at ASC
+      ORDER BY field_key, applied_at DESC, id DESC
     `,
     [profileTemplateId, NEW_DISCIPLINE_MARKER]
   );
@@ -632,71 +628,6 @@ const getUnacknowledgedFieldChanges = async (profileTemplateId: unknown) => {
     old_value: row.old_value,
     new_value: row.new_value,
   }));
-};
-
-const acknowledgeFieldChanges = async (profileTemplateId: unknown, changeIds: unknown) => {
-  const numericId = Number(profileTemplateId);
-  if (!Number.isFinite(numericId)) {
-    const error = new Error("Некорректный идентификатор шаблона") as Error & { statusCode?: number };
-    error.statusCode = 400;
-    throw error;
-  }
-
-  if (Array.isArray(changeIds) && changeIds.length) {
-    await pool.query(
-      `
-        UPDATE template_field_changes
-        SET acknowledged_at = NOW()
-        WHERE id_profile_template = $1
-          AND id = ANY($2::int[])
-          AND acknowledged_at IS NULL
-      `,
-      [numericId, changeIds]
-    );
-  } else {
-    await pool.query(
-      `
-        UPDATE template_field_changes
-        SET acknowledged_at = NOW()
-        WHERE id_profile_template = $1
-          AND acknowledged_at IS NULL
-      `,
-      [numericId]
-    );
-  }
-
-  const { rows } = await pool.query<{ remaining: number }>(
-    `
-      SELECT COUNT(*)::int AS remaining
-      FROM template_field_changes
-      WHERE id_profile_template = $1
-        AND acknowledged_at IS NULL
-    `,
-    [numericId]
-  );
-
-  if (rows[0]?.remaining === 0) {
-    await pool.query(
-      `
-        UPDATE rpd_complects rc
-        SET has_pending_changes = EXISTS (
-          SELECT 1
-          FROM rpd_1c_exchange e
-          JOIN template_field_changes tfc ON tfc.id_1c_exchange = e.id
-          WHERE e.id_rpd_complect = rc.id
-            AND tfc.acknowledged_at IS NULL
-        )
-        WHERE rc.id = (
-          SELECT id_rpd_complect
-          FROM rpd_profile_templates
-          WHERE id = $1
-        )
-      `,
-      [numericId]
-    );
-  }
-
-  return { acknowledged: true };
 };
 
 export {
@@ -710,7 +641,6 @@ export {
   preview1cSync,
   applySync,
   hasSyncSelections,
-  getUnacknowledgedFieldChanges,
-  acknowledgeFieldChanges,
+  getLatestFieldChanges,
   deriveCertification,
 };

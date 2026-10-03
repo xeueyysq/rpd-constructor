@@ -8,6 +8,22 @@ export type Participant = { userId: number; state: ParticipationState; isActive:
 export type WorkflowEvent = { date: string; status: TemplateStatus; user: string; userId: number; action: WorkflowAction; targetUserId?: number; comment?: string };
 export type DecisionInput = { current: TemplateStatus; participants: Participant[]; action: WorkflowAction; actorId: number; actorRole: number; canManage: boolean; userName: string; targetUserId?: number; targetIsActive?: boolean; targetRole?: number; comment?: string; date?: string };
 
+export function statusChangedAt(history: unknown, current: string | null): string | null {
+  if (!Array.isArray(history) || !history.length) return null;
+  const entries: unknown[] = history;
+  const events: Array<{ status: string; date: string }> = [];
+  for (const entry of entries) {
+    if (!entry || typeof entry !== "object" || !("status" in entry) || !("date" in entry)) return null;
+    if (typeof entry.status !== "string" || !["unloaded", "created", "on_teacher", "in_progress", "ready", "on_refinement"].includes(entry.status)) return null;
+    if (typeof entry.date !== "string" || !Number.isFinite(Date.parse(entry.date))) return null;
+    events.push({ status: entry.status, date: entry.date });
+  }
+  let first = events.length - 1;
+  if (events[first].status !== current) return null;
+  while (first > 0 && events[first - 1].status === current) first--;
+  return new Date(events[first].date).toISOString();
+}
+
 export function deriveStatus(current: TemplateStatus, participants: Participant[]): TemplateStatus {
   if (current === "ready") return "ready";
   const active = participants.filter((participant) => participant.isActive);

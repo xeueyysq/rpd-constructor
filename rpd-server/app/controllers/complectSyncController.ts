@@ -6,7 +6,7 @@ import {
   preview1cSync,
   applySync,
 } from "../modules/complectSync.ts";
-import { acknowledgeExchangeChanges, getExchangeChanges } from "../services/ComplectChanges.ts";
+import { getExchangeChanges } from "../services/ComplectChanges.ts";
 import TemplateAccess from "../services/TemplateAccess.ts";
 
 class ComplectSyncController {
@@ -31,10 +31,6 @@ class ComplectSyncController {
         actor: TemplateAccess.actor(req.user),
       });
       res.json(result);
-  }
-
-  async acknowledgeFieldChanges(req: Request<ParamsDictionary, unknown, Record<string, unknown>>, res: Response) {
-    res.json(await acknowledgeExchangeChanges(this.pool, TemplateAccess.actor(req.user), req.body.exchangeId));
   }
 
   async changes(req: Request, res: Response) {

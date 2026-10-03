@@ -14,9 +14,9 @@ INSERT INTO users (id, name, password, role, fullname) VALUES
   (15, 'teacher4', '$2b$08$19oXcVS2/xt8y7H73RhQ4uws75CgyFFw9QuRe9oxX/1cDhRqUcbza', 2, '{"surname":"Отключева","name":"Тест","patronymic":"Тестовна"}');
 SELECT setval(pg_get_serial_sequence('users', 'id'), (SELECT max(id) FROM users));
 
-INSERT INTO rpd_complects (id, uuid, faculty, year, education_form, education_level, profile, direction, has_pending_changes) VALUES
-  (100, '11111111-1111-4111-8111-111111111111', 'Тестовый институт', 2025, 'Очная', 'Бакалавриат', 'Синтетический профиль', 'Тестовое направление', true),
-  (101, '22222222-2222-4222-8222-222222222222', 'Другой тестовый институт', 2026, 'Очная', 'Бакалавриат', 'Другой синтетический профиль', 'Другое направление', false);
+INSERT INTO rpd_complects (id, uuid, faculty, year, education_form, education_level, profile, direction, has_pending_changes, last_synced_at) VALUES
+  (100, '11111111-1111-4111-8111-111111111111', 'Тестовый институт', 2025, 'Очная', 'Бакалавриат', 'Синтетический профиль', 'Тестовое направление', true, '2025-02-02T00:00:00Z'),
+  (101, '22222222-2222-4222-8222-222222222222', 'Другой тестовый институт', 2026, 'Очная', 'Бакалавриат', 'Другой синтетический профиль', 'Другое направление', false, NULL);
 INSERT INTO user_complect (id, user_id, complect_id) VALUES
   (100, (SELECT id FROM users WHERE name = 'rop'), 100),
   (101, 13, 101);
@@ -88,9 +88,14 @@ INSERT INTO template_status (id, id_1c_template, id_profile_template, current_st
   (113, 113, NULL, 'unloaded', '[{"date":"2025-01-13T00:00:00.000Z","status":"unloaded","user":"rop"}]'::jsonb);
 
 INSERT INTO complect_sync_log (id, complect_id, user_id, source, created_at) VALUES
-  (100, 100, (SELECT id FROM users WHERE name = 'rop'), '1c', '2025-02-01T00:00:00Z');
-INSERT INTO template_field_changes (id, sync_log_id, id_1c_exchange, id_profile_template, field_key, old_value, new_value, applied_at) VALUES
-  (100, 100, 107, 107, 'zet', '3'::jsonb, '4'::jsonb, '2025-02-01T00:00:00Z');
+  (100, 100, (SELECT id FROM users WHERE name = 'rop'), '1c', '2025-02-01T00:00:00Z'),
+  (101, 100, (SELECT id FROM users WHERE name = 'rop'), '1c', '2025-02-02T00:00:00Z');
+-- Старое создание подтверждено; последняя группа содержит и подтверждённое поле, и преподавателей.
+INSERT INTO template_field_changes (id, sync_log_id, id_1c_exchange, id_profile_template, field_key, old_value, new_value, applied_at, acknowledged_at) VALUES
+  (100, 100, 107, 107, 'zet', '2'::jsonb, '3'::jsonb, '2025-02-01T00:00:00Z', '2025-02-01T01:00:00Z'),
+  (101, 100, 107, 107, '__new__', NULL, '{"discipline":"Синхронизация для теста"}'::jsonb, '2025-02-01T00:00:00Z', '2025-02-01T01:00:00Z'),
+  (102, 101, 107, 107, 'zet', '3'::jsonb, '4'::jsonb, '2025-02-02T00:00:00Z', '2025-02-02T01:00:00Z'),
+  (103, 101, 107, NULL, 'teachers', '[]'::jsonb, '["Третьева Тест Тестовна"]'::jsonb, '2025-02-02T00:00:00Z', NULL);
 
 INSERT INTO planned_results_sets (id, complect_id) VALUES (100, 100);
 INSERT INTO planned_competencies (id, set_id, competence) VALUES (100, 100, 'ТЕСТ-1 Анализировать учебные данные');
@@ -103,8 +108,8 @@ SELECT setval(pg_get_serial_sequence('rpd_profile_templates', 'id'), 112);
 SELECT setval(pg_get_serial_sequence('template_status', 'id'), 113);
 SELECT setval(pg_get_serial_sequence('teacher_templates', 'id'), 114);
 SELECT setval(pg_get_serial_sequence('user_complect', 'id'), 101);
-SELECT setval(pg_get_serial_sequence('complect_sync_log', 'id'), 100);
-SELECT setval(pg_get_serial_sequence('template_field_changes', 'id'), 100);
+SELECT setval(pg_get_serial_sequence('complect_sync_log', 'id'), 101);
+SELECT setval(pg_get_serial_sequence('template_field_changes', 'id'), 103);
 SELECT setval(pg_get_serial_sequence('planned_results_sets', 'id'), 100);
 SELECT setval(pg_get_serial_sequence('planned_competencies', 'id'), 100);
 SELECT setval(pg_get_serial_sequence('planned_indicators', 'id'), 100);
