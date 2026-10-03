@@ -45,7 +45,7 @@ export function allowedActions(current: TemplateStatus, participants: Participan
   }
   const own = participants.find((part) => part.userId === actorId && part.isActive);
   if (own && current !== "ready") {
-    if (own.state === "assigned") actions.push("start", "finish");
+    if (own.state === "assigned") actions.push("start");
     if (own.state === "in_progress") actions.push("finish");
     if (own.state === "done") actions.push("reopen");
   }
@@ -78,7 +78,7 @@ export function decide(input: DecisionInput): { participants: Participant[]; sta
   } else {
     const own = participants.find((part) => part.userId === actorId && part.isActive);
     if (!own) throw new Forbidden("Преподаватель не назначен или неактивен");
-    const valid = action === "start" && own.state === "assigned" || action === "finish" && own.state !== "done" || action === "reopen" && own.state === "done";
+    const valid = action === "start" && own.state === "assigned" || action === "finish" && own.state === "in_progress" || action === "reopen" && own.state === "done";
     if (!valid) throw new Conflict("Недопустимый переход");
     own.state = action === "finish" ? "done" : "in_progress";
   }
