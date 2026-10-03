@@ -28,6 +28,8 @@ export function prepareTeacherOptions(
 ) {
   const matchedIds = new Set(hints.map((hint) => hint.userId));
   const query = search.trim().toLocaleLowerCase("ru");
+  const matchesQuery = (name: string) =>
+    name.toLocaleLowerCase("ru").includes(query);
   const options = [
     ...users.map((user) => ({ ...user, isActive: true, canAssign: true })),
     ...participants
@@ -41,21 +43,24 @@ export function prepareTeacherOptions(
         canAssign: false,
       })),
   ];
+  const found = orderTeacherOptions(options, hints)
+    .filter((option) => matchesQuery(option.fullname))
+    .map((option) => ({
+      ...option,
+      selected: selectedIds.includes(option.id),
+    }));
   return {
-    options: orderTeacherOptions(options, hints)
-      .filter((option) =>
-        option.fullname.toLocaleLowerCase("ru").includes(query)
-      )
-      .map((option) => ({
-        ...option,
-        selected: selectedIds.includes(option.id),
-        from1c: matchedIds.has(option.id),
-      })),
+    from1c: found.filter((option) => matchedIds.has(option.id)),
+    others: found.filter((option) => !matchedIds.has(option.id)),
     unmatchedNames: hints
-      .filter((hint) => hint.userId === null)
+      .filter((hint) => hint.userId === null && matchesQuery(hint.name))
       .map((hint) => hint.name),
   };
 }
+
+export type TeacherOption = ReturnType<
+  typeof prepareTeacherOptions
+>["others"][number];
 
 export function assignmentsDisabled(status: string, canEditTeachers: boolean) {
   return status === "ready" || !canEditTeachers;

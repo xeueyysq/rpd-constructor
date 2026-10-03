@@ -23,6 +23,13 @@ test.describe('создание РПД без преподавателя', () =>
     await assignmentMenu.getByRole('menuitem', { name: 'Назначить преподавателей', exact: true }).click();
     const teachers = page.getByRole('dialog', { name: `Преподаватели: ${discipline}`, exact: true });
     await expect(teachers).toBeVisible();
+    // В 1С для дисциплины преподавателей нет: раздел «Из 1С» это говорит, аккаунты — в «Остальных».
+    await expect(teachers.getByRole('heading', { name: 'Из 1С', exact: true })).toBeVisible();
+    await expect(teachers.getByText('В 1С преподаватели не указаны')).toBeVisible();
+    await expect(teachers.getByRole('list', { name: 'Из 1С', exact: true })).toHaveCount(0);
+    const others = teachers.getByRole('list', { name: 'Остальные преподаватели', exact: true });
+    await expect(others.getByRole('checkbox', { name: 'Яковлева Тест Тестовна', exact: true })).toBeVisible();
+    await expect(others.getByRole('checkbox', { name: 'Альфина Тест Тестовна', exact: true })).toBeVisible();
     await closeTeachersDialog(teachers);
     const menu = await openRowMenu(page, row(page));
     await menu.getByRole('menuitem', { name: 'Создать', exact: true }).click();
@@ -64,9 +71,21 @@ test('локальный выбор из диалога уходит в Созд
     const row = page.getByRole('row').filter({ hasText: disciplines.unloaded });
     await expect(row.getByRole('cell').nth(3)).toContainText('Выгружен из 1С');
     const dialog = await openTeachersDialog(page, row, disciplines.unloaded);
-    const hint = dialog.getByRole('checkbox', { name: 'Яковлева Тест Тестовна — из 1С', exact: true });
-    await expect(dialog.getByRole('checkbox').first()).toHaveAccessibleName('Яковлева Тест Тестовна — из 1С');
+    const fromOneC = dialog.getByRole('list', { name: 'Из 1С', exact: true });
+    const others = dialog.getByRole('list', { name: 'Остальные преподаватели', exact: true });
+    const hint = fromOneC.getByRole('checkbox', { name: 'Яковлева Тест Тестовна', exact: true });
+    await expect(fromOneC.getByRole('checkbox')).toHaveCount(1);
     await expect(hint).not.toBeChecked();
+    await expect(dialog.getByText('В 1С преподаватели не указаны')).toHaveCount(0);
+    // Преподаватель из 1С — только в своём разделе; остальные аккаунты — в «Остальных», все по алфавиту.
+    await expect(others.getByRole('checkbox', { name: 'Яковлева Тест Тестовна' })).toHaveCount(0);
+    await expect(others.getByRole('checkbox', { name: 'Альфина Тест Тестовна', exact: true })).toBeVisible();
+    // Поиск фильтрует оба раздела; в пустом показывается «Не найдено».
+    await dialog.getByRole('textbox', { name: 'Поиск преподавателя' }).fill('Альфина');
+    await expect(fromOneC).toHaveCount(0);
+    await expect(dialog.getByText('Не найдено')).toHaveCount(1);
+    await expect(others.getByRole('checkbox')).toHaveCount(1);
+    await dialog.getByRole('textbox', { name: 'Поиск преподавателя' }).fill('');
     await selectTeacher(dialog, 'Яковлева Тест Тестовна');
     await selectTeacher(dialog, fullNameText);
     await closeTeachersDialog(dialog);
@@ -94,7 +113,8 @@ test('локальный выбор из диалога уходит в Созд
 
     const reopened = await openTeachersDialog(page, row, disciplines.unloaded);
     await expect(reopened.getByRole('checkbox', { name: fullNameText })).toBeChecked();
-    await expect(reopened.getByRole('checkbox', { name: 'Яковлева Тест Тестовна — из 1С', exact: true })).toBeChecked();
+    await expect(reopened.getByRole('list', { name: 'Из 1С', exact: true })
+      .getByRole('checkbox', { name: 'Яковлева Тест Тестовна', exact: true })).toBeChecked();
     // Удаление до создания тоже остаётся локальным.
     await selectTeacher(reopened, 'Яковлева Тест Тестовна', false);
     await closeTeachersDialog(reopened);

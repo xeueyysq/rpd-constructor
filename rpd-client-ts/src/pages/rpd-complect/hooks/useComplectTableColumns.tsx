@@ -2,6 +2,7 @@ import { getTemplateStatusLabel } from "@entities/template";
 import { AssignTeachers } from "@features/assign-teachers";
 import { ExchangeChanges } from "@features/complect-sync";
 import { Box } from "@mui/material";
+import { useActionsColumn } from "@shared/hooks";
 import { StatusWithDate } from "@shared/ui";
 import type { MRT_ColumnDef } from "material-react-table";
 import { useMemo } from "react";
@@ -23,6 +24,7 @@ export function useComplectTableColumns({
   onOpenTeachers,
   onOpenHistory,
 }: Params): MRT_ColumnDef<TemplateData>[] {
+  const actionsColumn = useActionsColumn<TemplateData>();
   return useMemo(
     () => [
       { accessorKey: "discipline", header: "Дисциплина" },
@@ -77,11 +79,7 @@ export function useComplectTableColumns({
       {
         id: "actions",
         header: "Действия",
-        size: 240,
-        minSize: 240,
-        grow: false,
-        enableSorting: false,
-        enableColumnFilter: false,
+        ...actionsColumn,
         Cell: ({ row }) => (
           <TemplateMenu
             id={row.original.id_profile_template}
@@ -100,6 +98,7 @@ export function useComplectTableColumns({
       },
     ],
     [
+      actionsColumn,
       selectedTeacherIds,
       onCreateTemplate,
       onFetchData,

@@ -10,8 +10,14 @@ test('диалог импорта показывает преподавател�
   await openRowMenu(page, target);
   await page.getByRole('menuitem', { name: 'Изменить преподавателей' }).click();
   const teachers = page.getByRole('dialog', { name: `Преподаватели: ${disciplines.inProgress}`, exact: true });
-  await expect(teachers.getByRole('checkbox', { name: 'Альфина Тест Тестовна — из 1С', exact: true })).toBeChecked();
-  await expect(teachers.getByRole('checkbox').first()).toHaveAccessibleName('Альфина Тест Тестовна — из 1С');
+  const fromOneC = teachers.getByRole('list', { name: 'Из 1С', exact: true });
+  const others = teachers.getByRole('list', { name: 'Остальные преподаватели', exact: true });
+  await expect(fromOneC.getByRole('checkbox', { name: 'Альфина Тест Тестовна', exact: true })).toBeChecked();
+  await expect(fromOneC.getByRole('checkbox')).toHaveCount(1);
+  // Остальные аккаунты — во втором разделе, без пометки «из 1С» в подписи.
+  await expect(others.getByRole('checkbox', { name: 'Яковлева Тест Тестовна', exact: true })).not.toBeChecked();
+  await expect(others.getByRole('checkbox', { name: 'Альфина Тест Тестовна' })).toHaveCount(0);
+  await expect(teachers.getByText('В 1С преподаватели не указаны')).toHaveCount(0);
   await closeTeachersDialog(teachers);
   await openRowMenu(page, target);
   await page.getByRole('menuitem', { name: 'Импортировать' }).click();

@@ -17,13 +17,78 @@ import {
   Typography,
 } from "@mui/material";
 import { showErrorMessage } from "@shared/lib";
-import { useId, useState } from "react";
+import { useId, useState, type ReactNode } from "react";
 import { diffAssignments } from "../lib/diffAssignments";
 import type { TeacherHint } from "../lib/orderTeacherOptions";
 import {
   assignmentsDisabled,
   prepareTeacherOptions,
+  type TeacherOption,
 } from "../lib/teacherSelection";
+
+interface SectionProps {
+  title: string;
+  options: TeacherOption[];
+  disabled: boolean;
+  onChange: (userId: number, checked: boolean) => void;
+  children: ReactNode;
+}
+
+function TeacherSection({
+  title,
+  options,
+  disabled,
+  onChange,
+  children,
+}: SectionProps) {
+  return (
+    <Box component="section" sx={{ mt: 2 }}>
+      <Typography
+        component="h3"
+        variant="subtitle2"
+        color="text.secondary"
+        sx={{ mb: 0.5 }}
+      >
+        {title}
+      </Typography>
+      {options.length ? (
+        <Box
+          component="ul"
+          sx={{ listStyle: "none", m: 0, p: 0 }}
+          aria-label={title}
+        >
+          {options.map((option) => (
+            <Box component="li" key={option.id}>
+              <FormControlLabel
+                sx={{
+                  width: "100%",
+                  m: 0,
+                  alignItems: "flex-start",
+                  "& .MuiFormControlLabel-label": {
+                    py: 1,
+                    whiteSpace: "normal",
+                    overflowWrap: "anywhere",
+                  },
+                }}
+                control={
+                  <Checkbox
+                    checked={option.selected}
+                    disabled={
+                      disabled || (!option.selected && !option.canAssign)
+                    }
+                    onChange={(_, checked) => onChange(option.id, checked)}
+                  />
+                }
+                label={`${option.fullname}${option.isActive ? "" : " (неактивен)"}`}
+              />
+            </Box>
+          ))}
+        </Box>
+      ) : null}
+      {children}
+    </Box>
+  );
+}
 
 interface Props {
   discipline: string;
@@ -59,7 +124,7 @@ export function AssignTeachersDialog({
     templateId != null
       ? participants.map((participant) => participant.userId)
       : selectedIds;
-  const { options, unmatchedNames } = prepareTeacherOptions(
+  const { from1c, others, unmatchedNames } = prepareTeacherOptions(
     users,
     participants,
     valueIds,
@@ -135,60 +200,47 @@ export function AssignTeachersDialog({
           onChange={(event) => setSearch(event.target.value)}
           sx={{ mt: 1 }}
         />
-        <Box
-          component="ul"
-          sx={{ listStyle: "none", m: 0, p: 0, mt: 1 }}
-          aria-label="Аккаунты преподавателей"
-        >
-          {options.map((option) => (
-            <Box component="li" key={option.id}>
-              <FormControlLabel
-                sx={{
-                  width: "100%",
-                  m: 0,
-                  alignItems: "flex-start",
-                  "& .MuiFormControlLabel-label": {
-                    py: 1,
-                    whiteSpace: "normal",
-                    overflowWrap: "anywhere",
-                  },
-                }}
-                control={
-                  <Checkbox
-                    checked={option.selected}
-                    disabled={
-                      disabled || (!option.selected && !option.canAssign)
-                    }
-                    onChange={(_, checked) =>
-                      void handleChange(option.id, checked)
-                    }
-                  />
-                }
-                label={`${option.fullname}${option.isActive ? "" : " (неактивен)"}${option.from1c ? " — из 1С" : ""}`}
-              />
-            </Box>
-          ))}
-        </Box>
         {isPending ? (
-          <Typography color="text.secondary">
+          <Typography color="text.secondary" sx={{ mt: 2 }}>
             Загрузка преподавателей…
           </Typography>
         ) : isError ? (
-          <Alert severity="error">Не удалось загрузить преподавателей</Alert>
-        ) : !options.length ? (
-          <Typography color="text.secondary">
-            Преподаватели не найдены
-          </Typography>
-        ) : null}
-        {unmatchedNames.length ? (
-          <Box sx={{ mt: 2 }}>
-            {unmatchedNames.map((name) => (
-              <Typography key={name} variant="body2" color="text.secondary">
-                В 1С, аккаунт не найден: {name}
-              </Typography>
-            ))}
-          </Box>
-        ) : null}
+          <Alert severity="error" sx={{ mt: 2 }}>
+            Не удалось загрузить преподавателей
+          </Alert>
+        ) : (
+          <>
+            <TeacherSection
+              title="Из 1С"
+              options={from1c}
+              disabled={disabled}
+              onChange={(userId, checked) => void handleChange(userId, checked)}
+            >
+              {!hints.length ? (
+                <Typography color="text.secondary">
+                  В 1С преподаватели не указаны
+                </Typography>
+              ) : !from1c.length && !unmatchedNames.length ? (
+                <Typography color="text.secondary">Не найдено</Typography>
+              ) : null}
+              {unmatchedNames.map((name) => (
+                <Typography key={name} variant="body2" color="text.secondary">
+                  Аккаунт не найден: {name}
+                </Typography>
+              ))}
+            </TeacherSection>
+            <TeacherSection
+              title="Остальные преподаватели"
+              options={others}
+              disabled={disabled}
+              onChange={(userId, checked) => void handleChange(userId, checked)}
+            >
+              {!others.length ? (
+                <Typography color="text.secondary">Не найдено</Typography>
+              ) : null}
+            </TeacherSection>
+          </>
+        )}
       </DialogContent>
       <DialogActions>
         <Button disabled={busy} onClick={onClose}>

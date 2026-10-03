@@ -9,6 +9,7 @@ import {
 import { TemplateWorkflowMenu } from "@features/template-workflow";
 import { Box, CssBaseline, useTheme } from "@mui/material";
 import { RedirectPath } from "@shared/enums";
+import { useActionsColumn } from "@shared/hooks";
 import { Loader, PageTitle, StatusWithDate } from "@shared/ui";
 import {
   MaterialReactTable,
@@ -28,7 +29,7 @@ export function TeacherInterfaceTemplates() {
   );
   const history = useTemplateHistory(historyTemplateId);
   const statusColumnWidth = Number.parseFloat(theme.spacing(26));
-  const actionsColumnWidth = Number.parseFloat(theme.spacing(18));
+  const actionsColumn = useActionsColumn<MyTemplate>();
   const columns = useMemo<MRT_ColumnDef<MyTemplate>[]>(
     () => [
       { accessorKey: "disciplins_name", header: "Название дисциплины" },
@@ -55,11 +56,7 @@ export function TeacherInterfaceTemplates() {
       {
         id: "actions",
         header: "Действия",
-        enableSorting: false,
-        enableColumnFilter: false,
-        size: actionsColumnWidth,
-        minSize: actionsColumnWidth,
-        grow: false,
+        ...actionsColumn,
         Cell: ({ row }) => (
           <TemplateWorkflowMenu
             templateId={row.original.id}
@@ -74,7 +71,7 @@ export function TeacherInterfaceTemplates() {
         ),
       },
     ],
-    [navigate, statusColumnWidth, actionsColumnWidth]
+    [navigate, statusColumnWidth, actionsColumn]
   );
   const table = useMaterialReactTable<MyTemplate>({
     columns,
