@@ -119,7 +119,10 @@ test('фильтр статуса у преподавателя', async ({ page 
   await filterColumn(page, 'Статус', 'В работе');
   const row = page.getByRole('row').filter({ hasText: disciplines.inProgress });
   await expect(row).toBeVisible();
-  await expect(row.getByRole('cell').nth(7)).toContainText('0/2 готовы');
-  await expect(row.getByRole('cell').nth(7).getByRole('listitem').filter({ hasText: 'Альфина' })).toContainText('Альфина Тест ТестовнаВ работе');
+  // Как у РОП: один общий статус с датой, личная отметка — подтекстом; прогресса и состава нет.
+  const status = row.getByRole('cell').nth(7);
+  await expect(status.getByRole('button', { name: 'В работе', exact: true })).toContainText('Моя отметка: В работе');
+  await expect(status).not.toContainText('0/2');
+  await expect(status.getByRole('listitem')).toHaveCount(0);
   await expect(page.getByRole('row').filter({ hasText: disciplines.ready })).toHaveCount(0);
 });

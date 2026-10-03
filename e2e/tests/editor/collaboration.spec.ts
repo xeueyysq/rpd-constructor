@@ -1,5 +1,5 @@
 import { expect, test, type Page } from '@playwright/test';
-import { signIn } from '../helpers';
+import { openTemplateFromTeacherList, signIn } from '../helpers';
 
 test.describe('совместное редактирование шаблона', () => {
   test.describe.configure({ mode: 'serial' });
@@ -14,8 +14,7 @@ test.describe('совместное редактирование шаблона'
   async function openAims(page: Page) {
     const presence = page.waitForResponse((response) =>
       response.url().endsWith('/api/templates/110/presence') && response.ok());
-    await page.getByRole('row').filter({ hasText: discipline })
-      .getByRole('button', { name: 'Открыть' }).click();
+    await openTemplateFromTeacherList(page, page.getByRole('row').filter({ hasText: discipline }));
     await presence;
     await page.getByRole('button', { name: title }).click();
     await expect(page.getByText(title, { exact: true }).last()).toBeVisible();

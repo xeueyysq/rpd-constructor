@@ -19,18 +19,3 @@ export function visibleWorkflowActions(
       return [];
   }
 }
-
-export function workflowActionsLayout(
-  allowedActions: readonly WorkflowAction[],
-  mode: UserRole
-) {
-  const visible = visibleWorkflowActions(allowedActions, mode);
-  const priority: WorkflowAction[] =
-    mode === UserRole.TEACHER ? ["start", "finish"] : ["accept", "refine"];
-  const primary = priority.find((action) => visible.includes(action));
-
-  return {
-    primary,
-    secondary: visible.filter((action) => action !== primary),
-  };
-}

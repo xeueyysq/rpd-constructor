@@ -1,7 +1,7 @@
 import { readFileSync } from 'node:fs';
 import { parseEnv } from 'node:util';
 import { expect, test, type Page } from '@playwright/test';
-import { signIn } from '../helpers';
+import { openTemplateFromTeacherList, signIn } from '../helpers';
 
 test.describe('поиск книг для литературы', () => {
   test.describe.configure({ mode: 'serial' });
@@ -21,8 +21,7 @@ test.describe('поиск книг для литературы', () => {
 
   async function openResource(page: Page) {
     await signIn(page, 'teacher');
-    await page.getByRole('row').filter({ hasText: 'Литература для теста' })
-      .getByRole('button', { name: 'Открыть' }).click();
+    await openTemplateFromTeacherList(page, page.getByRole('row').filter({ hasText: 'Литература для теста' }));
     await page.getByRole('button', { name: 'Ресурсное обеспечение' }).click();
     await expect(page.getByText('Основная литература', { exact: true })).toBeVisible();
   }
@@ -96,8 +95,7 @@ test.describe('поиск книг для литературы', () => {
     await dialog.getByRole('button', { name: 'Отмена' }).click();
 
     await page.getByRole('button', { name: 'Список РПД' }).click();
-    await page.getByRole('row').filter({ hasText: 'Литература для теста' })
-      .getByRole('button', { name: 'Открыть' }).click();
+    await openTemplateFromTeacherList(page, page.getByRole('row').filter({ hasText: 'Литература для теста' }));
     await page.getByRole('button', { name: 'Ресурсное обеспечение' }).click();
     await expect(page.getByText(biblio, { exact: true })).toHaveCount(1);
   });

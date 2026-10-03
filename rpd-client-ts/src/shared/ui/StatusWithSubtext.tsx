@@ -2,7 +2,7 @@ import { Box, Button, Typography } from "@mui/material";
 
 export type StatusWithSubtextProps = {
   label: string;
-  subtext?: string | null;
+  subtext?: string | null | readonly (string | null | undefined)[];
   onClick?: () => void;
   ariaLabel?: string;
   underline?: boolean;
@@ -15,6 +15,7 @@ export function StatusWithSubtext({
   ariaLabel,
   underline = false,
 }: StatusWithSubtextProps) {
+  const lines = [subtext].flat().filter(Boolean);
   const content = (
     <Box component="span" sx={{ display: "block", minWidth: 0 }}>
       <Box
@@ -26,8 +27,9 @@ export function StatusWithSubtext({
       >
         {label}
       </Box>
-      {subtext ? (
+      {lines.map((line) => (
         <Typography
+          key={line}
           component="span"
           sx={(theme) => ({
             display: "block",
@@ -35,9 +37,9 @@ export function StatusWithSubtext({
             fontSize: theme.typography.pxToRem(12),
           })}
         >
-          {subtext}
+          {line}
         </Typography>
-      ) : null}
+      ))}
     </Box>
   );
   const sx = {

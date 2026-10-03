@@ -10,10 +10,7 @@ import {
 } from "@mui/material";
 import { showErrorMessage } from "@shared/lib";
 import { useState } from "react";
-import {
-  visibleWorkflowActions,
-  workflowActionsLayout,
-} from "../lib/visibleWorkflowActions";
+import { visibleWorkflowActions } from "../lib/visibleWorkflowActions";
 
 const labels: Partial<Record<WorkflowAction, string>> = {
   start: "Взять в работу",
@@ -34,10 +31,6 @@ export function useTemplateWorkflowController({
 }) {
   const userRole = useAuth((state) => state.userRole);
   const mutation = useWorkflowAction();
-  const { primary, secondary } = workflowActionsLayout(
-    allowedActions,
-    userRole
-  );
   const actions = visibleWorkflowActions(allowedActions, userRole);
   const [open, setOpen] = useState(false);
   const [comment, setComment] = useState("");
@@ -103,8 +96,6 @@ export function useTemplateWorkflowController({
   );
   return {
     actions,
-    primary,
-    secondary,
     labels,
     handleAction,
     isPending: mutation.isPending,

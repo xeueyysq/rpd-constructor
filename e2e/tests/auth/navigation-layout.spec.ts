@@ -1,5 +1,5 @@
 import { expect, test, type Locator, type Page } from '@playwright/test';
-import { disciplines, openComplect, signIn } from '../helpers';
+import { disciplines, openComplect, openTemplateFromTeacherList, signIn } from '../helpers';
 
 // Минимальный зазор между правым краем иконки и началом текста пункта.
 const minGap = 8;
@@ -74,8 +74,7 @@ test('панель редактора у rop: зазор у нижних дей�
 
 test('панель редактора у teacher: зазор у нижнего действия и точек разделов', async ({ page }) => {
   await signIn(page, 'teacher');
-  await page.getByRole('row').filter({ hasText: disciplines.inProgress })
-    .getByRole('button', { name: 'Открыть', exact: true }).click();
+  await openTemplateFromTeacherList(page, page.getByRole('row').filter({ hasText: disciplines.inProgress }));
   await expect(page.getByRole('button', { name: 'Титульный лист' })).toBeVisible();
   await expectEditorPanel(page, ['Список РПД']);
 });

@@ -1,10 +1,7 @@
 import type { WorkflowAction } from "@entities/template";
 import { UserRole } from "@shared/ability";
 import { describe, expect, it } from "vitest";
-import {
-  visibleWorkflowActions,
-  workflowActionsLayout,
-} from "./visibleWorkflowActions";
+import { visibleWorkflowActions } from "./visibleWorkflowActions";
 
 const mixedActions: WorkflowAction[] = [
   "assign",
@@ -26,58 +23,29 @@ describe("действия РПД в активном режиме интерф�
     expect(visibleWorkflowActions(mixedActions, mode)).toEqual(expected);
   });
 
-  it("при assigned оставляет прямую отметку Готово в меню", () => {
-    expect(
-      workflowActionsLayout(
-        ["assign", "finish", "accept", "start", "unassign"],
-        UserRole.TEACHER
-      )
-    ).toEqual({ primary: "start", secondary: ["finish"] });
-  });
-
-  it("при in_progress делает Готово основным действием", () => {
-    expect(
-      workflowActionsLayout(["accept", "finish"], UserRole.TEACHER)
-    ).toEqual({ primary: "finish", secondary: [] });
-  });
-
-  it("при done оставляет снятие отметки только в меню", () => {
-    expect(
-      workflowActionsLayout(["accept", "reopen"], UserRole.TEACHER)
-    ).toEqual({ primary: undefined, secondary: ["reopen"] });
-  });
-
-  it("при ready не добавляет преподавателю личных действий", () => {
-    expect(workflowActionsLayout(["refine"], UserRole.TEACHER)).toEqual({
-      primary: undefined,
-      secondary: [],
-    });
-  });
-
-  it.each([UserRole.ROP, UserRole.ADMIN])(
-    "делает управленческое действие основным для режима %s",
-    (mode) => {
-      expect(
-        workflowActionsLayout(["assign", "start", "accept", "finish"], mode)
-      ).toEqual({ primary: "accept", secondary: [] });
-      expect(workflowActionsLayout(["refine"], mode)).toEqual({
-        primary: "refine",
-        secondary: [],
-      });
-    }
-  );
-
-  it.each([UserRole.TEACHER, UserRole.ROP, UserRole.ADMIN])(
-    "не добавляет недоступные действия для режима %s",
-    (mode) => {
-      expect(workflowActionsLayout(["assign", "unassign"], mode)).toEqual({
-        primary: undefined,
-        secondary: [],
-      });
-      expect(workflowActionsLayout([], mode)).toEqual({
-        primary: undefined,
-        secondary: [],
-      });
+  it.each<{
+    state: string;
+    allowed: WorkflowAction[];
+    expected: WorkflowAction[];
+  }>([
+    {
+      state: "assigned",
+      allowed: ["assign", "accept", "start"],
+      expected: ["start"],
+    },
+    {
+      state: "in_progress",
+      allowed: ["accept", "finish"],
+      expected: ["finish"],
+    },
+    { state: "done", allowed: ["accept", "reopen"], expected: ["reopen"] },
+    { state: "ready", allowed: ["refine"], expected: [] },
+  ])(
+    "у преподавателя в отметке $state нет «Готово» до начала работы: $expected",
+    ({ allowed, expected }) => {
+      expect(visibleWorkflowActions(allowed, UserRole.TEACHER)).toEqual(
+        expected
+      );
     }
   );
 });

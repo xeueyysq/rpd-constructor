@@ -1,5 +1,5 @@
 import { expect, test } from '@playwright/test';
-import { apiUrl, disciplines, openComplect, signIn } from '../helpers';
+import { apiUrl, disciplines, openComplect, openTeacherRowMenu, signIn } from '../helpers';
 import { closeTeachersDialog, openTeachersDialog, openRowMenu, selectTeacher } from '../teacherAssignments';
 
 test('РОП видит действия активного режима и открывает свою РПД как преподаватель', async ({ page, request }) => {
@@ -61,27 +61,28 @@ test('РОП видит действия активного режима и от
     await expect(page).toHaveURL(/\/templates$/);
 
     const teacherRow = page.getByRole('row').filter({ hasText: disciplines.otherRop });
-    await expect(teacherRow.getByRole('button', { name: 'Взять в работу', exact: true })).toBeVisible();
-    await expect(teacherRow.getByRole('button', { name: 'Принять', exact: true })).toHaveCount(0);
-    await expect(teacherRow.getByRole('button', { name: 'Готово', exact: true })).toHaveCount(0);
-    const openButton = teacherRow.getByRole('button', { name: 'Открыть', exact: true });
-    const openBounds = await openButton.boundingBox();
-    expect(openBounds).not.toBeNull();
-    for (const name of ['Взять в работу', 'Другие действия РПД']) {
-      const bounds = await teacherRow.getByRole('button', { name, exact: true }).boundingBox();
-      expect(bounds).not.toBeNull();
-      expect(bounds!.y + bounds!.height / 2).toBeCloseTo(openBounds!.y + openBounds!.height / 2, 0);
+    // Как у РОП: в строке одна кнопка «…», прямых кнопок действий нет.
+    await expect(teacherRow.getByRole('cell').nth(8).getByRole('button')).toHaveCount(1);
+    for (const name of ['Открыть', 'Взять в работу', 'Готово', 'Принять']) {
+      await expect(teacherRow.getByRole('button', { name, exact: true })).toHaveCount(0);
     }
-    await teacherRow.getByRole('button', { name: 'Другие действия РПД' }).click();
-    await expect(page.getByRole('menuitem', { name: 'Готово', exact: true })).toBeVisible();
-    await expect(page.getByRole('menuitem', { name: 'Принять', exact: true })).toHaveCount(0);
-    await page.keyboard.press('Escape');
+    // История открывается по клику на статус, как у РОП; личная отметка — подтекстом.
+    const teacherStatus = teacherRow.getByRole('cell').nth(7);
+    await expect(teacherStatus).toContainText('Моя отметка: Назначен');
+    await teacherStatus.getByRole('button', { name: 'На доработке', exact: true }).click();
+    await expect(history).toContainText('Продолжить проверку режима преподавателя');
+    await history.getByRole('button', { name: 'Закрыть', exact: true }).click();
 
-    await teacherRow.getByRole('button', { name: 'Взять в работу', exact: true }).click();
-    await expect(teacherRow.getByRole('button', { name: 'Готово', exact: true })).toBeVisible();
-    await expect(teacherRow.getByRole('button', { name: 'Другие действия РПД' })).toHaveCount(0);
-    await expect(teacherRow.getByRole('button', { name: 'Принять', exact: true })).toHaveCount(0);
-    await openButton.click();
+    // До «Взять в работу» «Готово» недоступно.
+    let teacherMenu = await openTeacherRowMenu(page, teacherRow);
+    await expect(teacherMenu.getByRole('menuitem')).toHaveText(['Открыть', 'История шаблона', 'Взять в работу']);
+    for (const item of await teacherMenu.getByRole('menuitem').all()) await expect(item.locator('svg')).toHaveCount(1);
+    await teacherMenu.getByRole('menuitem', { name: 'Взять в работу', exact: true }).click();
+    await expect(teacherStatus).toContainText('Моя отметка: В работе');
+
+    teacherMenu = await openTeacherRowMenu(page, teacherRow);
+    await expect(teacherMenu.getByRole('menuitem')).toHaveText(['Открыть', 'История шаблона', 'Готово']);
+    await teacherMenu.getByRole('menuitem', { name: 'Открыть', exact: true }).click();
     await expect(page).toHaveURL(/\/templates\/a109a109a109(?:\/.*)?$/);
     await expect(page.getByText('Титульный лист', { exact: true }).last()).toBeVisible();
     await expect(page.getByText(disciplines.otherRop, { exact: true }).last()).toBeVisible();

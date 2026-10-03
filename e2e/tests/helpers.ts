@@ -1,6 +1,6 @@
 import { readFileSync } from 'node:fs';
 import { parseEnv } from 'node:util';
-import { expect, type Page } from '@playwright/test';
+import { expect, type Locator, type Page } from '@playwright/test';
 
 export const apiUrl = parseEnv(readFileSync(new URL('../e2e.env', import.meta.url), 'utf8')).API_URL!;
 
@@ -42,6 +42,19 @@ export async function openComplect(page: Page, key: keyof typeof complects = 'ma
     .getByRole('button', { name: 'Комплект РПД' }).click();
   await expect(page).toHaveURL(new RegExp(`/complects/${complect.uuid}$`));
   await expect(page.getByRole('row').filter({ hasText: key === 'main' ? disciplines.inProgress : disciplines.otherRop })).toBeVisible();
+}
+
+// Меню «…» в строке списка преподавателя; «Открыть» — первый пункт.
+export async function openTeacherRowMenu(page: Page, row: Locator) {
+  await row.getByRole('button', { name: 'Меню шаблона', exact: true }).click();
+  const menu = page.getByRole('menu');
+  await expect(menu).toBeVisible();
+  return menu;
+}
+
+export async function openTemplateFromTeacherList(page: Page, row: Locator) {
+  const menu = await openTeacherRowMenu(page, row);
+  await menu.getByRole('menuitem', { name: 'Открыть', exact: true }).click();
 }
 
 export async function filterColumn(page: Page, column: string, value: string) {
