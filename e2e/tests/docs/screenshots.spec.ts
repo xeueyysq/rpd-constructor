@@ -2,7 +2,7 @@ import { mkdirSync, readFileSync } from 'node:fs';
 import { parseEnv } from 'node:util';
 import { fileURLToPath } from 'node:url';
 import { expect, test, type ElementHandle, type Locator, type Page } from '@playwright/test';
-import { complects, disciplines, openComplect, showAllRows, signIn } from '../helpers';
+import { complects, disciplines, openComplect, openTemplateFromTeacherList, showAllRows, signIn } from '../helpers';
 import { closeTeachersDialog, openTeachersDialog } from '../teacherAssignments';
 
 test.use({ viewport: { width: 1280, height: 800 } });
@@ -255,21 +255,21 @@ test('снимки инструкции на синтетических данн
     const teacherPage = await teacherContext.newPage();
     await signIn(teacherPage, 'teacher');
     const templateRow = teacherPage.getByRole('row').filter({ hasText: 'Совместное редактирование для теста' });
-    // Таблица шире окна: прокручиваем к колонке «Действия», чтобы в кадре были «Моя отметка» и значок «Открыть».
-    const openButton = templateRow.getByRole('button', { name: 'Открыть' });
-    await openButton.scrollIntoViewIfNeeded();
+    // Таблица шире окна: прокручиваем к колонке «Действия», чтобы в кадре были статус с отметкой и меню «…».
+    const menuButton = templateRow.getByRole('button', { name: 'Меню шаблона', exact: true });
+    await menuButton.scrollIntoViewIfNeeded();
+    await teacherPage.mouse.move(0, 0);
     await save(teacherPage, 'teacher-templates', [
-      { target: templateRow.getByRole('cell', { name: 'Назначен', exact: true }), label: 'Моя отметка' },
-      { target: openButton, label: 'Открыть РПД' },
+      { target: templateRow.getByRole('cell').nth(7).getByRole('button'), label: 'Статус и моя отметка' },
+      { target: menuButton, label: 'Меню шаблона' },
     ]);
-    await openButton.click();
+    await openTemplateFromTeacherList(teacherPage, templateRow);
     const aims = teacherPage.getByRole('button', { name: 'Цели и задачи освоения дисциплины' });
     await aims.click();
 
     const secondPage = await secondContext.newPage();
     await signIn(secondPage, 'teacher2');
-    await secondPage.getByRole('row').filter({ hasText: 'Совместное редактирование для теста' })
-      .getByRole('button', { name: 'Открыть' }).click();
+    await openTemplateFromTeacherList(secondPage, secondPage.getByRole('row').filter({ hasText: 'Совместное редактирование для теста' }));
     await secondPage.getByRole('button', { name: 'Цели и задачи освоения дисциплины' }).click();
     // Сохранение, последняя правка и присутствие — в блоке внизу панели разделов.
     const status = teacherPage.getByRole('status', { name: 'Сохранение и присутствие' });
@@ -290,8 +290,7 @@ test('снимки инструкции на синтетических данн
     ]);
 
     await secondPage.getByRole('button', { name: 'Список РПД' }).click();
-    await secondPage.getByRole('row').filter({ hasText: 'Часы для теста' })
-      .getByRole('button', { name: 'Открыть' }).click();
+    await openTemplateFromTeacherList(secondPage, secondPage.getByRole('row').filter({ hasText: 'Часы для теста' }));
     await secondPage.getByRole('button', { name: 'Содержание дисциплины' }).click();
     const contentTable = secondPage.getByRole('table', { name: 'Содержание дисциплины' });
     await secondPage.evaluate(() => window.scrollTo(0, 0));
@@ -314,8 +313,7 @@ test('снимки инструкции на синтетических данн
       });
     });
     await teacherPage.getByRole('button', { name: 'Список РПД' }).click();
-    await teacherPage.getByRole('row').filter({ hasText: 'Литература для теста' })
-      .getByRole('button', { name: 'Открыть' }).click();
+    await openTemplateFromTeacherList(teacherPage, teacherPage.getByRole('row').filter({ hasText: 'Литература для теста' }));
     await teacherPage.getByRole('button', { name: 'Ресурсное обеспечение' }).click();
     await teacherPage.getByRole('button', { name: 'Найти книги в библиотечной системе' }).first().click();
     const booksDialog = teacherPage.getByRole('dialog', { name: 'Поиск книг в библиотечной системе' });
@@ -323,6 +321,8 @@ test('снимки инструкции на синтетических данн
     await query.fill('Виноградов');
     await query.press('Enter');
     const bookRow = booksDialog.getByRole('row').filter({ hasText: 'База данных «Языки мира»' });
+    // Диалог расширяется, когда приходит таблица результатов: поле ввода измеряем уже после этого.
+    await expect(bookRow).toBeVisible();
     await save(teacherPage, 'books-search', [
       { target: query, label: 'Ключевые слова' },
       { target: bookRow, label: 'Выбрать книгу' },
