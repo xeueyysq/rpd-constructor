@@ -143,6 +143,9 @@ run_deploy v9.0.0 --init --yes
 assert_equal "$(health_version)" 9.0.0 "первая версия"
 assert_equal "$(cat "$T/state/current")" v9.0.0 "current"
 assert_equal "$(sql "SELECT count(*) FROM schema_migrations WHERE name='0001_baseline'")" 1 "baseline"
+mjs="$(dc exec -T client sh -c 'cd /usr/share/nginx/html && ls assets/*.mjs | head -n 1')"
+[[ -n "$mjs" ]] || fail "В сборке клиента нет .mjs (воркер pdf.js)"
+assert_equal "$(curl -fsS -o /dev/null -w '%{content_type}' "http://127.0.0.1:18080/$mjs")" application/javascript "тип $mjs"
 echo "PASS: $SCENARIO"
 
 SCENARIO="2 — миграция и дамп"
