@@ -1,5 +1,5 @@
 import { TemplateConstructorType } from "@entities/template";
-import { Box, Button, CircularProgress, Typography } from "@mui/material";
+import { Box, Button, Typography } from "@mui/material";
 import { axiosBase } from "@shared/api";
 import { useStore } from "@shared/hooks";
 import { showErrorMessage, showSuccessMessage } from "@shared/lib";
@@ -9,6 +9,7 @@ import { FC, useCallback, useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { templateDataTitles } from "../model/templateDataTitles.ts";
 import { RedirectPath } from "@shared/enums.ts";
+import { motion } from "framer-motion";
 
 function BackButton({ onClick }: { onClick: () => void }) {
   return (
@@ -108,10 +109,18 @@ export const TemplateConstructor: FC<TemplateConstructorType> = ({
               )}
               {createComplectStatus === "loading" && (
                 <Box sx={{ p: 1, display: "flex" }}>
-                  <CircularProgress color="inherit" size="1rem" />
-                  <Typography sx={{ px: 1 }}>
-                    Идет поиск комплекта РПД. Это может занять какое-то время
-                  </Typography>
+                  <motion.div
+                    animate={{ opacity: [1, 0.3, 1] }}
+                    transition={{
+                      duration: 1.5,
+                      repeat: Infinity,
+                      ease: "easeInOut",
+                    }}
+                  >
+                    <Typography sx={{ px: 1 }}>
+                      Идет поиск комплекта РПД. Это может занять какое-то время
+                    </Typography>
+                  </motion.div>
                 </Box>
               )}
               {createComplectStatus === "warning" && (

@@ -12,7 +12,12 @@ import { UserRole } from "@shared/ability";
 import { RedirectPath } from "@shared/enums";
 import { useStore } from "@shared/hooks";
 import type { ComplectData } from "@shared/types";
-import { Loader, PageTitle, StatusWithDate } from "@shared/ui";
+import {
+  Loader,
+  PageTitle,
+  StatusWithDate,
+  StatusWithSubtext,
+} from "@shared/ui";
 import { ComplectTableHeader } from "@widgets/table-header";
 import { orderBy } from "lodash";
 import {
@@ -32,6 +37,9 @@ export const RpdComplectsList: FC = () => {
   const [selectedOwnerId, setSelectedOwnerId] = useState<number | null>(null);
   const userRole = useAuth.getState().userRole;
   const { complects, isLoading } = useRpdComplectsQuery();
+  const ownerComplect = complects?.find(
+    (complect) => complect.id === selectedOwnerId
+  );
 
   const handleViewComplect = useCallback(
     (complect: ComplectData) => {
@@ -72,21 +80,35 @@ export const RpdComplectsList: FC = () => {
               header: "Владелец",
               accessorFn: (row: ComplectData) =>
                 row.owner?.map((owner) => owner.fullname).join(", ") ?? "",
-              Cell: ({ row }: { row: { original: ComplectData } }) => (
-                <Box>
-                  <Box>
-                    {row.original.owner
-                      ?.map((owner) => owner.fullname)
-                      .join(", ") || "Не назначен"}
+              Cell: ({ row }: { row: { original: ComplectData } }) => {
+                const open = () => setSelectedOwnerId(row.original.id);
+                const owners = row.original.owner ?? [];
+                // Оформление как у назначенных преподавателей в таблице комплекта.
+                if (!owners.length)
+                  return (
+                    <StatusWithSubtext
+                      label="Назначить РОП"
+                      onClick={open}
+                      underline
+                    />
+                  );
+                return (
+                  <Box component="ul" sx={{ m: 0, p: 0, listStyle: "none" }}>
+                    {owners.map((owner) => (
+                      <Box
+                        component="li"
+                        key={owner.userId}
+                        sx={{ "& + &": { mt: (theme) => theme.spacing(1) } }}
+                      >
+                        <StatusWithSubtext
+                          label={owner.fullname}
+                          onClick={open}
+                        />
+                      </Box>
+                    ))}
                   </Box>
-                  <Button
-                    size="small"
-                    onClick={() => setSelectedOwnerId(row.original.id)}
-                  >
-                    Назначить РОП
-                  </Button>
-                </Box>
-              ),
+                );
+              },
             } as MRT_ColumnDef<ComplectData>,
           ]
         : []),
@@ -223,9 +245,9 @@ export const RpdComplectsList: FC = () => {
       <Box sx={{ pt: 2 }}>
         <MaterialReactTable table={table} />
       </Box>
-      {selectedOwnerId !== null ? (
+      {ownerComplect ? (
         <AssignOwnerDialog
-          complectId={selectedOwnerId}
+          complect={ownerComplect}
           onClose={() => setSelectedOwnerId(null)}
         />
       ) : null}
