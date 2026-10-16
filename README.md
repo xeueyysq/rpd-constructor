@@ -163,7 +163,7 @@ cp .env.example .env
 ### CI/CD (GitHub Actions)
 
 - CI (`checks.yml`) — на PR в `develop` и `main`: gate клиента и сервера, затем E2E; также вызывается из CD.
-- CD (`release.yml`) — при публикации обычного релиза: CI, сборка и публикация образов в GHCR. PATCH/MINOR выкладываются по SSH; для MAJOR (`vN.0.0`) выполните ручные шаги из CHANGELOG и `./deploy.sh vX.Y.Z` на сервере. Prerelease пропускается.
+- CD (`release.yml`) — при публикации обычного релиза: CI, сборка и публикация образов в GHCR; если в заметках релиза нет `### Ручные шаги`, выкладка по SSH автоматическая, иначе выполните ручные шаги из CHANGELOG и `./deploy.sh vX.Y.Z` на сервере. Prerelease пропускается.
 
 Настройки GitHub:
 

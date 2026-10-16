@@ -60,7 +60,7 @@ jobs:
   deploy:
     name: Деплой
     needs: images
-    if: ${{ !endsWith(github.event.release.tag_name, '.0.0') }}
+    if: ${{ !contains(github.event.release.body, '### Ручные шаги') }}
     runs-on: ubuntu-latest
     environment: production
     concurrency: production
