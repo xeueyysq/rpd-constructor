@@ -55,4 +55,4 @@ CI в GitHub Actions на PR в `develop` и `main` выполняет gate об
   1. Ветка от `develop`: версия в обоих `package.json`, раздел CHANGELOG с датой и, если нужно, шагами обновления. Затем `but land`.
   2. PR `develop → main`, влить через «Create a merge commit». Squash и rebase разрывают общую историю веток, и следующий релиз даст конфликты.
   3. Тег и релиз на GitHub: `gh release create vX.Y.Z --target main --title vX.Y.Z --notes-file <раздел CHANGELOG>`.
-  4. На сервере из `~/rpd-app/rpd-constructor/deploy` запустите `./deploy.sh vX.Y.Z`; подробности — в [README.md](../README.md#развёртывание).
+  4. CD (`release.yml`) после CI публикует Docker-образы в GHCR; PATCH/MINOR выкладывает автоматически. MAJOR — `./deploy.sh vX.Y.Z` на сервере из `~/rpd-app/rpd-constructor/deploy` после ручных шагов из CHANGELOG. Инструкции — в [README.md](../README.md#развёртывание).
