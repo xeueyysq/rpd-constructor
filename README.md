@@ -144,6 +144,10 @@ docker compose -f compose.yaml -p rpd-server exec -T db sh -c 'pg_restore -U "$P
 
 После восстановления запустите нужную версию сервера и клиента через Compose и проверьте `/api/health`. Перед релизом, меняющим миграции или выкладку, выполните `cd e2e && bun run test:deploy`. Репетиция создаёт отдельный проект `rpd-deploy-test` и собирает образы, поэтому выполняется дольше обычных E2E.
 
+### CI/CD (GitHub Actions)
+
+- CI (`checks.yml`) — на PR в `develop` и `main`: gate клиента и сервера, затем E2E.
+
 ### Первый переход с 1.x
 
 Клонируйте монорепо в `~/rpd-app/rpd-constructor`, скопируйте `~/rpd-app/rpd-server/.env` в `~/rpd-app/rpd-constructor/deploy/.env` и дополните по `deploy/.env.example`. Старые отдельные клоны сохраните для ручного отката. Убедитесь, что том `rpd-server_postgres_data` существует, и запустите `./deploy.sh vX.Y.Z` из `~/rpd-app/rpd-constructor/deploy` без `--init`. Если откат не смог поднять прежнюю версию, выполните `cd ~/rpd-app/rpd-server && docker compose up -d`; состояние БД проверьте по логу выкладки.
