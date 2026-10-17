@@ -2,8 +2,7 @@
 name: rpd-server
 services:
   client:
-    image: rpd/client:${RPD_VERSION:-dev}
-    build: ../rpd-client-ts
+    image: ghcr.io/xeueyysq/rpd-client:${RPD_VERSION:?Задайте RPD_VERSION — тег vX.Y.Z}
     restart: unless-stopped
     ports:
       # HTTPS и домен обслуживает nginx хоста.
@@ -16,8 +15,7 @@ services:
         condition: service_started
 
   server:
-    image: rpd/server:${RPD_VERSION:-dev}
-    build: ../rpd-server
+    image: ghcr.io/xeueyysq/rpd-server:${RPD_VERSION:?Задайте RPD_VERSION — тег vX.Y.Z}
     restart: unless-stopped
     ports:
       - "127.0.0.1:${RPD_API_PORT:-8000}:8000"
@@ -32,8 +30,49 @@ services:
     networks:
       - app-network
     depends_on:
+      migrate:
+        condition: service_completed_successfully
+
+  backup:
+    image: postgres:17
+    restart: "no"
+    environment:
+      PGHOST: db
+      PGUSER: ${DB_USER:-postgres}
+      PGPASSWORD: ${DB_PASSWORD:?Задайте DB_PASSWORD в deploy/.env}
+      PGDATABASE: ${DB_NAME:-Rpd}
+      RPD_VERSION: ${RPD_VERSION:?Задайте RPD_VERSION — тег vX.Y.Z}
+    command:
+      - /bin/sh
+      - -ec
+      - |
+        umask 077
+        file="/backups/rpd-$${RPD_VERSION}-$$(date -u +%Y%m%dT%H%M%S%N).dump"
+        trap 'rm -f "$$file.tmp"' EXIT
+        pg_dump -Fc -f "$$file.tmp"
+        mv "$$file.tmp" "$$file"
+        ls -1t /backups/rpd-*.dump | tail -n +11 | while IFS= read -r old; do
+          rm -- "$$old"
+        done
+    volumes:
+      - ${RPD_BACKUP_DIR:-${HOME}/rpd-deploy/backups}:/backups
+    networks:
+      - app-network
+    depends_on:
       db:
         condition: service_healthy
+
+  migrate:
+    image: ghcr.io/xeueyysq/rpd-server:${RPD_VERSION:?Задайте RPD_VERSION — тег vX.Y.Z}
+    restart: "no"
+    env_file:
+      - ./.env
+    command: ["bun", "run", "migrate"]
+    networks:
+      - app-network
+    depends_on:
+      backup:
+        condition: service_completed_successfully
 
   db:
     # Том прода создан PostgreSQL 17: версия 16 его не откроет, 18+ меняет раскладку тома.

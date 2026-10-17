@@ -1,0 +1,80 @@
+name: CD
+
+on:
+  release:
+    types: [published]
+
+permissions:
+  contents: read
+
+jobs:
+  ci:
+    name: CI
+    if: ${{ !github.event.release.prerelease }}
+    uses: ./.github/workflows/checks.yml
+
+  images:
+    name: Образы GHCR
+    needs: ci
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    permissions:
+      contents: read
+      packages: write
+    steps:
+      - name: Получить исходники тега
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ github.event.release.tag_name }}
+          persist-credentials: false
+      - name: Проверить версии
+        env:
+          TAG: ${{ github.event.release.tag_name }}
+        run: |
+          [[ "$TAG" =~ ^v(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)$ ]] || { echo 'Тег должен иметь вид vX.Y.Z без ведущих нулей' >&2; exit 1; }
+          node --input-type=module <<'JS'
+          import { readFileSync } from 'node:fs';
+          for (const project of ['rpd-server', 'rpd-client-ts']) {
+            const { version } = JSON.parse(readFileSync(`${project}/package.json`, 'utf8'));
+            if (version !== process.env.TAG.slice(1)) {
+              throw new Error(`${project}: версия ${version} не соответствует ${process.env.TAG}`);
+            }
+          }
+          JS
+      - name: Собрать и опубликовать образы
+        env:
+          TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          OWNER: ${{ github.repository_owner }}
+          ACTOR: ${{ github.actor }}
+          SOURCE: https://github.com/${{ github.repository }}
+          TAG: ${{ github.event.release.tag_name }}
+        run: |
+          registry="ghcr.io/${OWNER,,}"
+          printf '%s' "$TOKEN" | docker login ghcr.io --username "$ACTOR" --password-stdin
+          trap 'docker logout ghcr.io >/dev/null' EXIT
+          docker build --label "org.opencontainers.image.source=$SOURCE" --tag "$registry/rpd-server:$TAG" rpd-server
+          docker build --label "org.opencontainers.image.source=$SOURCE" --tag "$registry/rpd-client:$TAG" rpd-client-ts
+          docker push "$registry/rpd-server:$TAG"
+          docker push "$registry/rpd-client:$TAG"
+
+  deploy:
+    name: Деплой
+    needs: images
+    if: ${{ !contains(github.event.release.body, '### Ручные шаги') }}
+    runs-on: ubuntu-latest
+    environment: production
+    concurrency: production
+    timeout-minutes: 60
+    steps:
+      - name: deploy.sh на сервере
+        env:
+          KEY: ${{ secrets.PROD_SSH_KEY }}
+          KNOWN_HOSTS: ${{ secrets.PROD_SSH_KNOWN_HOSTS }}
+          DEST: ${{ secrets.PROD_SSH_DEST }}
+          TAG: ${{ github.event.release.tag_name }}
+        run: |
+          umask 077
+          trap 'rm -f key known_hosts' EXIT
+          printf '%s\n' "$KEY" > key
+          printf '%s\n' "$KNOWN_HOSTS" > known_hosts
+          ssh -i key -o IdentitiesOnly=yes -o StrictHostKeyChecking=yes -o UserKnownHostsFile=known_hosts -o BatchMode=yes -o ConnectTimeout=15 "$DEST" "$TAG"
