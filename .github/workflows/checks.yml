@@ -1,0 +1,124 @@
+name: CI
+
+on:
+  pull_request:
+    branches: [develop, main]
+  workflow_call:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  client:
+    name: Клиент
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    defaults:
+      run:
+        working-directory: rpd-client-ts
+    steps:
+      - name: Получить исходники
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - name: Установить Node.js
+        uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: '22'
+      - name: Установить Bun
+        uses: oven-sh/setup-bun@0c5077e51419868618aeaa5fe8019c62421857d6 # v2.2.0
+        with:
+          bun-version: '1.3.14'
+      - name: Установить зависимости
+        run: bun install --frozen-lockfile
+      - name: Выполнить gate
+        env:
+          VITE_API_URL: ''
+        run: bun run lint && bun run typecheck && bun run build && bun run test
+
+  server:
+    name: Сервер
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    defaults:
+      run:
+        working-directory: rpd-server
+    steps:
+      - name: Получить исходники
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - name: Установить Node.js
+        uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: '22'
+      - name: Установить Bun
+        uses: oven-sh/setup-bun@0c5077e51419868618aeaa5fe8019c62421857d6 # v2.2.0
+        with:
+          bun-version: '1.3.14'
+      - name: Установить зависимости
+        env:
+          PUPPETEER_SKIP_DOWNLOAD: 'true'
+        run: bun install --frozen-lockfile
+      - name: Выполнить gate
+        run: bun run lint && bun run typecheck && bun run test
+
+  e2e:
+    name: E2E
+    needs: [client, server]
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    defaults:
+      run:
+        working-directory: e2e
+    steps:
+      - name: Получить исходники
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - name: Установить Node.js
+        uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: '22'
+      - name: Установить Bun
+        uses: oven-sh/setup-bun@0c5077e51419868618aeaa5fe8019c62421857d6 # v2.2.0
+        with:
+          bun-version: '1.3.14'
+      - name: Установить зависимости сервера
+        working-directory: rpd-server
+        env:
+          PUPPETEER_SKIP_DOWNLOAD: 'true'
+        run: bun install --frozen-lockfile
+      - name: Установить зависимости клиента
+        working-directory: rpd-client-ts
+        run: bun install --frozen-lockfile
+      - name: Установить зависимости E2E
+        run: bun install --frozen-lockfile
+      - name: Установить Chromium для Playwright
+        run: bunx playwright install --with-deps chromium
+      - name: Установить Chrome для Puppeteer
+        working-directory: rpd-server
+        run: bunx puppeteer browsers install chrome
+      - name: Выполнить E2E
+        env:
+          CI: 'true'
+        run: bun run test:e2e
+      - name: Показать журналы тестовой БД
+        if: failure()
+        run: docker compose --env-file e2e.env logs --no-color
+      - name: Сохранить отчёт E2E
+        if: failure()
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: e2e-results
+          path: |
+            e2e/playwright-report
+            e2e/test-results
+          retention-days: 7
+      - name: Остановить тестовую БД
+        if: always()
+        run: bun run db:down

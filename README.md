@@ -116,36 +116,65 @@ bun run test:e2e tests/editor -g "конфликт"           # тесты гр�
 
 ## Развёртывание
 
-На проде системный nginx завершает TLS для `rpd.uni-dubna.ru` и передаёт запросы на `127.0.0.1:8080`. Контейнер клиента проксирует `/api/` и `/auth/` в сервер. Порты клиента и API привязаны к localhost; PostgreSQL 17 хранит данные в томе `rpd-server_postgres_data`. Имя Compose-проекта `rpd-server` менять нельзя: от него зависит имя тома.
+На сервере нужны Git, Docker и Compose 2.17.0+. Системный nginx завершает TLS для `rpd.uni-dubna.ru` и передаёт запросы на `127.0.0.1:8080`. Контейнер клиента проксирует `/api/` и `/auth/` в сервер. Порты HTTP и API привязаны к localhost. Compose-проект — `rpd-server`, том PostgreSQL 17 — `rpd-server_postgres_data`.
 
-Создайте `deploy/.env` по [образцу](deploy/.env.example), задайте пароль БД, отдельные секреты и адреса домена. Файл исключён из git. `DB_USER`, `DB_PASSWORD` и `DB_NAME` задают учётные данные при первом создании тома; на существующем томе их изменение не меняет пользователя и пароль БД.
+Выкладка на сервере:
 
 ```bash
 cd ~/rpd-app/rpd-constructor/deploy
-./deploy.sh vX.Y.Z     # либо ./deploy.sh — последний тег v* из origin/main
+./deploy.sh vX.Y.Z
 ```
 
-Скрипт проверяет окружение и чистоту отслеживаемых файлов, загружает теги, проверяет версии пакетов, показывает план и собирает образы при работающей старой версии. Затем останавливает API, создаёт и проверяет дамп, применяет миграции и запускает сервер и клиент. После успешного `/api/health` выкладка завершена; ошибки записи `current`/`history.log` или очистки старых дампов и образов выводятся как предупреждения и не запускают откат. Сохраняются последние 10 дампов и образы текущего и предыдущего тегов. `--yes` отключает вопрос; `--init` нужен только для первой установки без тома и пропускает дамп.
+Скрипт получает тег, запускает дамп и миграции, обновляет контейнеры образами `ghcr.io/xeueyysq/rpd-{server,client}:vX.Y.Z` и ждёт готовности API до 180 секунд. Дампы лежат в `${RPD_BACKUP_DIR:-$HOME/rpd-deploy/backups}`; сохраняются последние 10 и образы текущего и предыдущего тегов. Переменные `RPD_HTTP_PORT` и `RPD_API_PORT` меняют порты `8080` и `8000`.
 
-При сбое между остановкой API и успешным health check скрипт сравнивает журнал миграций и при изменении или ошибке чтения восстанавливает БД из дампа. Затем возвращает прежний HEAD и образы, если они доступны. После успешного health check автоматического отката уже нет. При переходе с 1.x старые образы имеют другие имена; если прежний контейнер уже пересоздан, поднимите его из старого каталога. С `--init` данных для восстановления нет. Записи в БД после дампа при откате не сохраняются; результат проверяйте в логе.
-
-Состояние лежит в `${RPD_DEPLOY_DIR:-$HOME/rpd-deploy}`: `backups/` — дампы, `logs/` — журналы, `current` — последний успешный тег, `history.log` — история, `lock` — блокировка. После аварийного завершения проверьте состояние и вручную удалите оставшийся `lock`. Настройки окружения: `RPD_DEPLOY_DIR` (каталог состояния), `RPD_GIT_REMOTE` (`origin`), `RPD_KEEP_BACKUPS` (`10`), `RPD_WAIT_TIMEOUT` (`180` секунд), `RPD_HTTP_PORT` (`8080`) и `RPD_API_PORT` (`8000`). `COMPOSE_PROJECT_NAME` меняет имя проекта для отдельной среды или теста.
-
-Для ручного восстановления дампа остановите API и выполните из `deploy/` (подставьте путь к файлу):
+Откат образов из каталога `deploy/`:
 
 ```bash
-docker compose -f compose.yaml -p rpd-server stop server
-docker compose -f compose.yaml -p rpd-server exec -T db sh -c 'psql -X -U "$POSTGRES_USER" -d postgres -v ON_ERROR_STOP=1 -v dbname="$POSTGRES_DB"' <<'SQL'
+RPD_VERSION=vX.Y.Z docker compose up -d --wait
+```
+
+Если после дампа применялись миграции, перед запуском прежнего тега восстановите БД из дампа перед обновлением:
+
+```bash
+export RPD_VERSION=vX.Y.Z
+docker compose stop server
+docker compose exec -T db sh -c 'psql -X -U "$POSTGRES_USER" -d postgres -v ON_ERROR_STOP=1 -v dbname="$POSTGRES_DB"' <<'SQL'
 SELECT format('DROP DATABASE IF EXISTS %I WITH (FORCE)', :'dbname') \gexec
 SELECT format('CREATE DATABASE %I', :'dbname') \gexec
 SQL
-docker compose -f compose.yaml -p rpd-server exec -T db sh -c 'pg_restore -U "$POSTGRES_USER" -d "$POSTGRES_DB" --exit-on-error' < /путь/к/дампу.dump
+docker compose exec -T db sh -c 'pg_restore -U "$POSTGRES_USER" -d "$POSTGRES_DB" --exit-on-error' < "$HOME/rpd-deploy/backups/имя.dump"
+docker compose up -d --wait
 ```
 
-После восстановления запустите нужную версию сервера и клиента через Compose и проверьте `/api/health`. Перед релизом, меняющим миграции или выкладку, выполните `cd e2e && bun run test:deploy`. Репетиция создаёт отдельный проект `rpd-deploy-test` и собирает образы, поэтому выполняется дольше обычных E2E.
+Подставьте прежний тег и имя дампа; при заданном `RPD_BACKUP_DIR` используйте этот каталог. Восстановление возвращает данные на момент дампа.
 
-### Первый переход с 1.x
+### Первая установка
 
-Клонируйте монорепо в `~/rpd-app/rpd-constructor`, скопируйте `~/rpd-app/rpd-server/.env` в `~/rpd-app/rpd-constructor/deploy/.env` и дополните по `deploy/.env.example`. Старые отдельные клоны сохраните для ручного отката. Убедитесь, что том `rpd-server_postgres_data` существует, и запустите `./deploy.sh vX.Y.Z` из `~/rpd-app/rpd-constructor/deploy` без `--init`. Если откат не смог поднять прежнюю версию, выполните `cd ~/rpd-app/rpd-server && docker compose up -d`; состояние БД проверьте по логу выкладки.
+```bash
+git clone https://github.com/xeueyysq/rpd-constructor.git ~/rpd-app/rpd-constructor
+cd ~/rpd-app/rpd-constructor/deploy
+cp .env.example .env
+```
 
-Перед релизом прочитайте раздел версии в [CHANGELOG.md](CHANGELOG.md) и порядок выпуска в [CONVENTIONS.md](docs/CONVENTIONS.md#версии-и-релизы).
+Заполните `.env`: пароль БД, отдельные секреты токенов и адреса домена. `DB_USER`, `DB_PASSWORD` и `DB_NAME` задают учётные данные при первом создании тома. Затем выполните `./deploy.sh vX.Y.Z`; миграции создадут схему на пустом томе.
+
+Репетиция выкладки: `cd e2e && RPD_HTTP_PORT=18090 bun run test:deploy`. Тест собирает образы локально, использует отдельные контейнеры, том и каталог дампов и удаляет их после завершения. HTTP/API-порты задаются через `RPD_HTTP_PORT`/`RPD_API_PORT` (по умолчанию `18080`/`18000`).
+
+### CI/CD (GitHub Actions)
+
+- CI (`checks.yml`) — на PR в `develop` и `main`: gate клиента и сервера, затем E2E; также вызывается из CD.
+- CD (`release.yml`) — при публикации обычного релиза: CI, сборка и публикация образов в GHCR; если в заметках релиза нет `### Ручные шаги`, выкладка по SSH автоматическая, иначе выполните ручные шаги из CHANGELOG и `./deploy.sh vX.Y.Z` на сервере. Prerelease пропускается.
+
+Настройки GitHub:
+
+- Environment `production`: разрешены только теги `v*` (Deployment branches and tags → Selected branches and tags → Tags).
+- Секреты environment: `PROD_SSH_KEY` — приватный ключ; `PROD_SSH_KNOWN_HOSTS` — строки `known_hosts` сервера; `PROD_SSH_DEST` — `ssh://user@host:port`.
+- Пакеты `rpd-server` и `rpd-client` в GHCR — публичные.
+
+Ключ Actions в `~/.ssh/authorized_keys` пользователя деплоя на сервере:
+
+```text
+restrict,command="~/rpd-app/rpd-constructor/deploy/deploy.sh \"$SSH_ORIGINAL_COMMAND\"" ssh-ed25519 … rpd-actions
+```
+
+Порядок выпуска — в [CONVENTIONS.md](docs/CONVENTIONS.md#версии-и-релизы), ручные шаги версий — в [CHANGELOG.md](CHANGELOG.md).

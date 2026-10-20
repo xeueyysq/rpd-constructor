@@ -16,10 +16,13 @@ SELECT setval(pg_get_serial_sequence('users', 'id'), (SELECT max(id) FROM users)
 
 INSERT INTO rpd_complects (id, uuid, faculty, year, education_form, education_level, profile, direction, has_pending_changes, last_synced_at) VALUES
   (100, '11111111-1111-4111-8111-111111111111', 'Тестовый институт', 2025, 'Очная', 'Бакалавриат', 'Синтетический профиль', 'Тестовое направление', true, '2025-02-02T00:00:00Z'),
-  (101, '22222222-2222-4222-8222-222222222222', 'Другой тестовый институт', 2026, 'Очная', 'Бакалавриат', 'Другой синтетический профиль', 'Другое направление', false, NULL);
+  (101, '22222222-2222-4222-8222-222222222222', 'Другой тестовый институт', 2026, 'Очная', 'Бакалавриат', 'Другой синтетический профиль', 'Другое направление', false, NULL),
+  -- Смена владельца этого комплекта не меняет доступ к шаблонам параллельных тестов.
+  (102, '33333333-3333-4333-8333-333333333333', 'Тестовый институт', 2025, 'Очная', 'Бакалавриат', 'Профиль смены владельца', 'Тестовое направление', false, NULL);
 INSERT INTO user_complect (id, user_id, complect_id) VALUES
   (100, (SELECT id FROM users WHERE name = 'rop'), 100),
-  (101, 13, 101);
+  (101, 13, 101),
+  (102, (SELECT id FROM users WHERE name = 'rop'), 102);
 
 INSERT INTO rpd_1c_exchange (id, id_rpd_complect, department, discipline, teachers, zet, place, record_type, study_load, control_load, semester) VALUES
   (100, 100, 'Тестовая кафедра', 'Алгоритмы для теста', ARRAY['Альфина Тест Тестовна'], 3, 'Базовая часть', 'discipline', '{}'::jsonb, '{}'::jsonb, 1),
@@ -102,12 +105,12 @@ INSERT INTO planned_competencies (id, set_id, competence) VALUES (100, 100, 'Т�
 INSERT INTO planned_indicators (id, competence_id, indicator) VALUES (100, 100, 'ТЕСТ-1.1 Проверяет данные');
 INSERT INTO planned_indicator_disciplines (id, indicator_id, discipline) VALUES (100, 100, 'Алгоритмы для теста');
 
-SELECT setval(pg_get_serial_sequence('rpd_complects', 'id'), 101);
+SELECT setval(pg_get_serial_sequence('rpd_complects', 'id'), 102);
 SELECT setval(pg_get_serial_sequence('rpd_1c_exchange', 'id'), 113);
 SELECT setval(pg_get_serial_sequence('rpd_profile_templates', 'id'), 112);
 SELECT setval(pg_get_serial_sequence('template_status', 'id'), 113);
 SELECT setval(pg_get_serial_sequence('teacher_templates', 'id'), 114);
-SELECT setval(pg_get_serial_sequence('user_complect', 'id'), 101);
+SELECT setval(pg_get_serial_sequence('user_complect', 'id'), 102);
 SELECT setval(pg_get_serial_sequence('complect_sync_log', 'id'), 101);
 SELECT setval(pg_get_serial_sequence('template_field_changes', 'id'), 103);
 SELECT setval(pg_get_serial_sequence('planned_results_sets', 'id'), 100);
