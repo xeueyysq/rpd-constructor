@@ -121,4 +121,53 @@ test('РОП редактирует часы плана и видит сохра
   await openContent(page);
   await expect(page.getByRole('table', { name: 'Содержание дисциплины' })).toBeVisible();
   await expect(totalRow(page).getByRole('cell').nth(5).getByRole('spinbutton')).toHaveValue('32');
+
+  // Ноль из учебного плана остаётся числом, а не прочерком после сохранения.
+  await totalRow(page).getByRole('cell').nth(2).getByRole('spinbutton').fill('0');
+  const zeroSaved = page.waitForResponse((response) =>
+    response.request().method() === 'PUT' &&
+    response.url().includes('/api/rpd-profile-templates/103/study-load') && response.ok());
+  await rules(page).click();
+  await zeroSaved;
+  await page.reload();
+  await openContent(page);
+  await expect(totalRow(page).getByRole('cell').nth(2).getByRole('spinbutton')).toHaveValue('0');
+});
+
+test('пары плана и суммы остаются внутри своих итоговых ячеек', async ({ page }, testInfo) => {
+  await signIn(page, 'rop');
+  await openComplect(page);
+  await page.getByRole('row').filter({ hasText: discipline })
+    .getByRole('button', { name: 'Меню шаблона' }).click();
+  await page.getByRole('menuitem', { name: 'Открыть' }).click();
+  await openContent(page);
+
+  const table = page.getByRole('table', { name: 'Содержание дисциплины' });
+  const contentSaved = page.waitForResponse((response) =>
+    response.request().method() === 'PUT' &&
+    response.url().includes('/api/update-json-value/103') && response.ok());
+  await table.getByRole('row').filter({ hasText: 'Тема 1' }).getByRole('spinbutton').first().fill('1000.5');
+  const plannedTotal = totalRow(page).getByRole('cell').nth(1).getByRole('spinbutton');
+  await plannedTotal.fill('1127.5');
+  await contentSaved;
+  await expect(plannedTotal).toHaveValue('1127.5');
+  await expect(totalRow(page).getByRole('cell').nth(1)).toHaveText(/\/\s*1127\.5$/);
+
+  for (const width of [1280, 960, 1920]) {
+    await page.setViewportSize({ width, height: 900 });
+    await table.screenshot({ path: testInfo.outputPath(`content-layout-${width}.png`) });
+    const overflow = await totalRow(page).getByRole('cell').evaluateAll((cells) =>
+      cells.slice(1).flatMap((cell, index) => {
+        const bounds = cell.getBoundingClientRect();
+        const pair = cell.firstElementChild!;
+        const escaped = [pair, ...pair.querySelectorAll('input, span')].some((element) => {
+          const rect = element.getBoundingClientRect();
+          return rect.left < bounds.left - 1 || rect.right > bounds.right + 1;
+        });
+        const clippedInput = [...pair.querySelectorAll('input')].some((input) =>
+          input.scrollWidth > input.clientWidth + 1);
+        return escaped || clippedInput ? [index + 1] : [];
+      }));
+    expect(overflow, `Итоги вышли за границы ячеек при ширине ${width}`).toEqual([]);
+  }
 });

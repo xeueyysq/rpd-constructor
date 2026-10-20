@@ -187,7 +187,7 @@ export function DisciplineContentTable({
       <Box sx={{ position: "relative", my: 3 }}>
         <TableContainer component={Paper}>
           <Table
-            sx={{ minWidth: 650, mb: 6 }}
+            sx={{ minWidth: 650, mb: 6, "&.table": { tableLayout: "auto" } }}
             size="small"
             aria-label="Содержание дисциплины"
             className="table"
@@ -207,7 +207,7 @@ export function DisciplineContentTable({
                   onBlur={saveContent}
                 />
               ))}
-              <TableRow>
+              <TableRow sx={{ "& > td:not(:first-of-type)": { px: 0.5 } }}>
                 <TableCell>Итого за семестр / курс</TableCell>
                 {columns.map(({ key, editable }) => {
                   const comparable = isComparableHour(
@@ -234,9 +234,10 @@ export function DisciplineContentTable({
                       {/* Цвет — на вложенном Box: .table td в global.css перекрывает color ячейки. */}
                       <Box
                         sx={{
-                          display: "inline-flex",
+                          display: "flex",
                           alignItems: "center",
-                          gap: 0.5,
+                          justifyContent: "center",
+                          gap: 0.25,
                           color: comparable
                             ? matches
                               ? "success.main"
@@ -249,13 +250,7 @@ export function DisciplineContentTable({
                             type="number"
                             variant="outlined"
                             size="small"
-                            value={
-                              !manual.touched[
-                                key as keyof typeof manual.touched
-                              ] && planned === 0
-                                ? ""
-                                : planned
-                            }
+                            value={comparable || planned !== 0 ? planned : ""}
                             placeholder="—"
                             onChange={(event) => {
                               useTemplateSync
@@ -273,11 +268,16 @@ export function DisciplineContentTable({
                             }
                             slotProps={{ htmlInput: { min: 0 } }}
                             sx={{
-                              width: 70,
+                              width: `${String(planned).length + 2}ch`,
+                              fontSize: "inherit",
+                              flexShrink: 0,
                               "& .MuiInputBase-input": {
                                 fontSize: 14,
                                 textAlign: "right",
                                 p: 0.5,
+                                MozAppearance: "textfield",
+                                "&::-webkit-outer-spin-button, &::-webkit-inner-spin-button":
+                                  { WebkitAppearance: "none", m: 0 },
                               },
                               "& .MuiOutlinedInput-root": {
                                 color: "inherit",
