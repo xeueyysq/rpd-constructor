@@ -27,7 +27,7 @@ test('преподаватель сохраняет содержание без 
   const total = totalRow(page);
   await expect(total.getByRole('spinbutton')).toHaveCount(0);
   for (const [column, value] of [[1, 144], [4, 68], [5, 31], [6, 45]] as const) {
-    await expect(total.getByRole('cell').nth(column)).toContainText(new RegExp(`/\\s*${value}$`));
+    await expect(total.getByRole('cell').nth(column)).toHaveText(new RegExp(`^${value}\\s*/\\s*${value}$`));
   }
 
   // Значок правил стоит у заголовка страницы, а не в строке «Итого».
@@ -61,6 +61,7 @@ test('преподаватель сохраняет содержание без 
   // Расхождение: предупреждение с перечнем несовпавших категорий, после выравнивания исчезает.
   const lectures = firstRow.getByRole('spinbutton').first();
   await lectures.fill('18');
+  await expect(total.getByRole('cell').nth(2)).toHaveText(/^34\s*\/\s*35$/);
   await expect(mismatchAlert(page)).toHaveText(
     'Часы не совпадают с учебным планом: всего 145 из 144; лекции 35 из 34; контактная работа 69 из 68.');
   await expect(mismatchAlert(page)).not.toContainText('СРС');
@@ -83,8 +84,8 @@ test('преподаватель сохраняет содержание без 
   await openContent(page);
   await expect(page.getByRole('table', { name: 'Содержание дисциплины' })).toBeVisible();
   await expect(page.getByRole('table', { name: 'Содержание дисциплины' })).toContainText('Тема 1 уточнена');
-  await expect(totalRow(page).getByRole('cell').nth(1)).toContainText(/\/\s*144$/);
-  await expect(totalRow(page).getByRole('cell').nth(5)).toContainText(/\/\s*31$/);
+  await expect(totalRow(page).getByRole('cell').nth(1)).toHaveText(/^144\s*\/\s*144$/);
+  await expect(totalRow(page).getByRole('cell').nth(5)).toHaveText(/^31\s*\/\s*31$/);
 });
 
 test('РОП редактирует часы плана и видит сохранённое значение после перехода', async ({ page }) => {

@@ -244,8 +244,6 @@ export function DisciplineContentTable({
                             : "text.secondary",
                         }}
                       >
-                        <span>{summ[key]}</span>
-                        <span>/</span>
                         {canEdit && editable ? (
                           <TextField
                             type="number"
@@ -278,23 +276,24 @@ export function DisciplineContentTable({
                               width: 70,
                               "& .MuiInputBase-input": {
                                 fontSize: 14,
-                                textAlign: "center",
+                                textAlign: "right",
                                 p: 0.5,
                               },
                               "& .MuiOutlinedInput-root": {
+                                color: "inherit",
                                 borderRadius: 0,
                                 "& fieldset": { border: "none" },
                                 padding: 0,
                               },
                             }}
                           />
-                        ) : (key === "all"
-                            ? plan.has_total
-                            : plan.has_breakdown) || canEdit ? (
+                        ) : comparable || (canEdit && planned !== 0) ? (
                           planned
                         ) : (
                           "—"
                         )}
+                        <span>/</span>
+                        <span>{summ[key]}</span>
                       </Box>
                     </TableCell>
                   );
