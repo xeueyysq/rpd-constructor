@@ -11,7 +11,8 @@ INSERT INTO users (id, name, password, role, fullname) VALUES
   (12, 'retired', '$2b$08$19oXcVS2/xt8y7H73RhQ4uws75CgyFFw9QuRe9oxX/1cDhRqUcbza', 2, '{"surname":"Уходов","name":"Тест","patronymic":"Тестович"}'),
   (13, 'rop2', '$2b$08$19oXcVS2/xt8y7H73RhQ4uws75CgyFFw9QuRe9oxX/1cDhRqUcbza', 3, '{"surname":"Другов","name":"Тест","patronymic":"Тестович"}'),
   (14, 'teacher3', '$2b$08$19oXcVS2/xt8y7H73RhQ4uws75CgyFFw9QuRe9oxX/1cDhRqUcbza', 2, '{"surname":"Третьева","name":"Тест","patronymic":"Тестовна"}'),
-  (15, 'teacher4', '$2b$08$19oXcVS2/xt8y7H73RhQ4uws75CgyFFw9QuRe9oxX/1cDhRqUcbza', 2, '{"surname":"Отключева","name":"Тест","patronymic":"Тестовна"}');
+  (15, 'teacher4', '$2b$08$19oXcVS2/xt8y7H73RhQ4uws75CgyFFw9QuRe9oxX/1cDhRqUcbza', 2, '{"surname":"Отключева","name":"Тест","patronymic":"Тестовна"}'),
+  (20, 'sync-teacher', '$2b$08$19oXcVS2/xt8y7H73RhQ4uws75CgyFFw9QuRe9oxX/1cDhRqUcbza', 2, '{"surname":"Синхронова","name":"Тест","patronymic":"Тестовна"}');
 SELECT setval(pg_get_serial_sequence('users', 'id'), (SELECT max(id) FROM users));
 
 INSERT INTO rpd_complects (id, uuid, faculty, year, education_form, education_level, profile, direction, has_pending_changes, last_synced_at) VALUES
@@ -105,12 +106,31 @@ INSERT INTO planned_competencies (id, set_id, competence) VALUES (100, 100, 'Т�
 INSERT INTO planned_indicators (id, competence_id, indicator) VALUES (100, 100, 'ТЕСТ-1.1 Проверяет данные');
 INSERT INTO planned_indicator_disciplines (id, indicator_id, discipline) VALUES (100, 100, 'Алгоритмы для теста');
 
-SELECT setval(pg_get_serial_sequence('rpd_complects', 'id'), 102);
-SELECT setval(pg_get_serial_sequence('rpd_1c_exchange', 'id'), 113);
-SELECT setval(pg_get_serial_sequence('rpd_profile_templates', 'id'), 112);
-SELECT setval(pg_get_serial_sequence('template_status', 'id'), 113);
-SELECT setval(pg_get_serial_sequence('teacher_templates', 'id'), 114);
-SELECT setval(pg_get_serial_sequence('user_complect', 'id'), 102);
+-- Отдельные комплекты для проверки реальной записи часов: параллельные UI-тесты их не меняют.
+INSERT INTO rpd_complects (id, faculty, year, education_form, education_level, profile, direction) VALUES
+  (200, 'Тестовый институт', 2026, 'Очная', 'Бакалавриат', 'Проверка записи часов', 'Тестовое направление'),
+  (201, 'Тестовый институт', 2026, 'Очная', 'Бакалавриат', 'Защита чужих часов', 'Тестовое направление');
+INSERT INTO user_complect (id, user_id, complect_id) VALUES
+  (200, (SELECT id FROM users WHERE name = 'rop'), 200), (201, 13, 201);
+INSERT INTO rpd_1c_exchange (id, id_rpd_complect, department, discipline, teachers, zet, place, record_type, study_load, control_load, semester) VALUES
+  (200, 200, 'Кафедра синхронизации', 'Восстановление часов', ARRAY[]::text[], 4, 'Базовая часть', 'discipline', '{"Лекции":34,"Практические":34,"СРС":40}'::jsonb, '{"Экзамен":36}'::jsonb, 1),
+  (201, 200, 'Кафедра синхронизации', 'Соседняя РПД', ARRAY[]::text[], 2, 'Базовая часть', 'discipline', '{"Всего":72}'::jsonb, '{}'::jsonb, 1),
+  (202, 201, 'Другая кафедра', 'Чужая РПД', ARRAY[]::text[], 5, 'Базовая часть', 'discipline', '{"Всего":180}'::jsonb, '{}'::jsonb, 1);
+INSERT INTO rpd_profile_templates (id, public_id, id_rpd_complect, disciplins_name, department, semester, zet, certification, content, study_load, control_load) VALUES
+  (200, 'a200a200a200', 200, 'Восстановление часов', 'Кафедра синхронизации', 1, 3, 'Экзамен', '{"0":{"theme":"Сохранённая тема","lectures":10,"seminars":12,"independent_work":20}}'::jsonb, '[{"name":"Всего","id":"144"}]'::jsonb, '{"Экзамен":36}'::jsonb),
+  (201, 'a201a201a201', 200, 'Соседняя РПД', 'Кафедра синхронизации', 1, 2, NULL, '{"0":{"theme":"Соседняя тема","lectures":6}}'::jsonb, '{"Всего":72}'::jsonb, '{}'::jsonb),
+  (202, 'a202a202a202', 201, 'Чужая РПД', 'Другая кафедра', 1, 5, NULL, '{"0":{"theme":"Чужая тема","lectures":8}}'::jsonb, '{"Всего":180}'::jsonb, '{}'::jsonb);
+INSERT INTO template_status (id, id_1c_template, id_profile_template, current_status, history) VALUES
+  (200, 200, 200, 'in_progress', '[{"date":"2025-01-01T00:00:00.000Z","status":"in_progress","user":"sync-teacher"}]'::jsonb),
+  (201, 201, 201, 'created', '[]'::jsonb), (202, 202, 202, 'created', '[]'::jsonb);
+INSERT INTO teacher_templates (id, user_id, template_id, state) VALUES (200, 20, 200, 'in_progress');
+
+SELECT setval(pg_get_serial_sequence('rpd_complects', 'id'), 201);
+SELECT setval(pg_get_serial_sequence('rpd_1c_exchange', 'id'), 202);
+SELECT setval(pg_get_serial_sequence('rpd_profile_templates', 'id'), 202);
+SELECT setval(pg_get_serial_sequence('template_status', 'id'), 202);
+SELECT setval(pg_get_serial_sequence('teacher_templates', 'id'), 200);
+SELECT setval(pg_get_serial_sequence('user_complect', 'id'), 201);
 SELECT setval(pg_get_serial_sequence('complect_sync_log', 'id'), 101);
 SELECT setval(pg_get_serial_sequence('template_field_changes', 'id'), 103);
 SELECT setval(pg_get_serial_sequence('planned_results_sets', 'id'), 100);

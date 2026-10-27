@@ -77,6 +77,15 @@ describe("Нормализация справочных данных (specProfil
 });
 
 describe("Нормализация дисциплины из 1С (normalizeDisciplineFrom1c)", () => {
+  test("учитывает часы экзамена при пересчёте ЗЕТ из реальной нагрузки 1С", () => {
+    const result = normalizeDisciplineFrom1c({
+      study_load: { "СРС": 40, "Лекции": 34, "Практические": 34 },
+      control_load: { "Экзамен": 36 },
+      zets: 36,
+    });
+    assert.equal(result.zet, 4);
+    assert.equal(scope.getStudyPlanHours(result.study_load, result.control_load).all, 144);
+  });
   test("очищает поля, вычисляет ЗЕТ и часть учебного плана", () => {
     const result = normalizeDisciplineFrom1c({
       discipline: "  Программирование  ",
