@@ -26,16 +26,17 @@ const normalizeDisciplineFrom1c = (raw: unknown) => {
       : [];
   const normalizedStudyLoad =
     study_load && typeof study_load === "object" ? study_load : {};
-  const resolvedZet = resolveZetFromStudyLoad(
-    normalizedStudyLoad,
-    normalizedZets
-  );
   const normalizedControlLoad =
     control_load &&
     typeof control_load === "object" &&
     !Array.isArray(control_load)
       ? control_load
       : {};
+  const resolvedZet = resolveZetFromStudyLoad(
+    normalizedStudyLoad,
+    normalizedZets,
+    normalizedControlLoad
+  );
   const normalizedRecordType =
     typeof record_type === "string" ? record_type.trim() : "";
   const normalizedDiscipline =

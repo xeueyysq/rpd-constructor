@@ -1,7 +1,7 @@
 import { describe, test } from "node:test";
 import assert from "node:assert/strict";
 import type { Request, Response, NextFunction } from "express";
-import { getStudyPlanHours, patchStudyLoad, getContentRowHours, sumContentHours, parseHours } from "../app/modules/disciplineScope.ts";
+import { getStudyPlanHours, patchStudyLoad, getContentRowHours, sumContentHours, parseHours, extractTotalAcademicHours, resolveZetFromStudyLoad } from "../app/modules/disciplineScope.ts";
 import { isEditableTemplateField, studyLoadSchema } from "../app/validators/RpdProfileTemplates.ts";
 import requireRole from "../app/middleware/requireRole.ts";
 import { USER_ROLES } from "../app/models/constants.ts";
@@ -20,6 +20,31 @@ describe("Часы учебного плана", () => {
     const hours = getStudyPlanHours({ "Всего": 144, "Лекции": 34, "Практические": 34, "КРП": 1, "СРС": 39 }, null);
     assert.equal(hours.control, 0);
     assert.equal(hours.all, 144);
+  });
+  test("расчёт ЗЕТ использует общий итог, отдельный контроль и его дедупликацию", () => {
+    const breakdown = { "СРС": 40, "Лекции": 34, "Практические": 34 };
+    const control = { "Экзамен": "36" };
+    for (const studyLoad of [
+      breakdown,
+      { ...breakdown, "Всего": 144 },
+      { ...breakdown, "Контроль": "36" },
+      [{ name: "Всего", id: "144" }],
+    ]) {
+      assert.equal(getStudyPlanHours(studyLoad, control).all, 144);
+      assert.equal(extractTotalAcademicHours(studyLoad, control), 144);
+      assert.equal(resolveZetFromStudyLoad(studyLoad, 36, control), 4);
+    }
+  });
+  test("сохраняет резервные значения и не считает нечисловой контроль часами", () => {
+    assert.equal(resolveZetFromStudyLoad({ "Всего": 72 }, 36), 2);
+    assert.equal(extractTotalAcademicHours({ "Иная нагрузка": "72" }), 72);
+    assert.equal(extractTotalAcademicHours({}, { "Экзамен": "36" }), 36);
+    assert.equal(extractTotalAcademicHours({}, { "Экзамен": "да" }), null);
+    assert.equal(extractTotalAcademicHours({ "Всего": 0 }, { "Экзамен": 36 }), null);
+    assert.equal(resolveZetFromStudyLoad({ "Лекции": "72" }, 36, { "Экзамен": "да" }), 2);
+    assert.equal(resolveZetFromStudyLoad({}, "4", { "Экзамен": "да" }), 4);
+    assert.equal(resolveZetFromStudyLoad(null, "не число"), null);
+    assert.equal(resolveZetFromStudyLoad({}, null), 0);
   });
   test("совпадает с вектором учебного плана", () => {
     assert.deepEqual(getStudyPlanHours([

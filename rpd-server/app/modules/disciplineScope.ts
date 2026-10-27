@@ -160,10 +160,10 @@ function sumContentHours(content: unknown) {
   }, getContentRowHours(null));
 }
 
-function extractTotalAcademicHours(studyLoad: unknown) {
-  const hours = getStudyPlanHours(studyLoad, null);
+function extractTotalAcademicHours(studyLoad: unknown, controlLoad: unknown = null) {
+  const hours = getStudyPlanHours(studyLoad, controlLoad);
   const fallback = entriesOf(studyLoad).reduce((sum, entry) => sum + parseHours(entry.value), 0);
-  const total = hours.has_total ? hours.all : fallback;
+  const total = hours.has_total ? hours.all : fallback + hours.control;
   return total > 0 ? total : null;
 }
 
@@ -172,8 +172,8 @@ function computeZetFromHours(hours: number | null) {
   return Math.round(hours / ZET_HOURS_DIVISOR);
 }
 
-function resolveZetFromStudyLoad(studyLoad: unknown, fallbackZets: unknown) {
-  const computedZet = computeZetFromHours(extractTotalAcademicHours(studyLoad));
+function resolveZetFromStudyLoad(studyLoad: unknown, fallbackZets: unknown, controlLoad: unknown = null) {
+  const computedZet = computeZetFromHours(extractTotalAcademicHours(studyLoad, controlLoad));
   if (computedZet !== null) return computedZet;
   const fallback = Number(fallbackZets);
   return Number.isFinite(fallback) ? fallback : null;

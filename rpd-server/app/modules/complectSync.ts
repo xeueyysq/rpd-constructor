@@ -1,5 +1,5 @@
 import type { PoolClient } from "pg";
-import type { Rpd1cExchangeRow, RpdComplectRow } from "../types/db.ts";
+import type { Rpd1cExchangeRow, RpdComplectRow, RpdProfileTemplateRow } from "../types/db.ts";
 import { insertUnloadedStatus } from "./templateStatusHistory.ts";
 import { pool } from "../../config/db.ts";
 import { fetchUpLink } from "./1cExchange.ts";
@@ -32,6 +32,7 @@ const TEMPLATE_FIELD_MAP: Record<string, string> = {
 };
 
 const TEMPLATE_SYNC_FIELDS = new Set(Object.keys(TEMPLATE_FIELD_MAP));
+const WORKLOAD_FIELDS = new Set(["study_load", "control_load", "zet"]);
 
 const NEW_DISCIPLINE_MARKER = "__new__";
 
@@ -52,6 +53,9 @@ type LocalRow = {
   [key: string]: unknown;
 };
 type IncomingRow = ReturnType<typeof normalizeDisciplineFrom1c> & Record<string, unknown>;
+type ProfileFields = Pick<RpdProfileTemplateRow, "department" | "semester" | "zet" | "place" | "study_load" | "control_load" | "certification"> & { discipline: string | null };
+type LocalDatabaseRow = Rpd1cExchangeRow & { id_profile_template: number | null }
+  & { [K in keyof ProfileFields as `profile_${K}`]: ProfileFields[K] };
 type FieldChange = { field: string; old: unknown; new: unknown };
 type DiffResult = {
   new: { key: string; incoming: IncomingRow; fields: FieldChange[] }[];
@@ -119,7 +123,7 @@ const buildComplectApiData = (complectMeta: RpdComplectRow) => ({
 });
 
 const loadLocalDisciplines = async (complectId: number) => {
-  const { rows } = await pool.query<Rpd1cExchangeRow & { id_profile_template: number | null } & Record<string, unknown>>(
+  const { rows } = await pool.query<LocalDatabaseRow>(
     `
       SELECT
         r.id,
@@ -134,16 +138,38 @@ const loadLocalDisciplines = async (complectId: number) => {
         r.control_load,
         r.semester,
         r.removed_at,
-        ts.id_profile_template
+        p.id AS id_profile_template,
+        p.disciplins_name AS profile_discipline,
+        p.department AS profile_department,
+        p.semester AS profile_semester,
+        p.zet AS profile_zet,
+        p.place AS profile_place,
+        p.study_load AS profile_study_load,
+        p.control_load AS profile_control_load,
+        p.certification AS profile_certification
       FROM rpd_1c_exchange r
       LEFT JOIN template_status ts ON ts.id_1c_template = r.id
+      LEFT JOIN rpd_profile_templates p ON p.id = ts.id_profile_template
       WHERE r.id_rpd_complect = $1
         AND NULLIF(TRIM(r.discipline), '') IS NOT NULL
     `,
     [complectId]
   );
 
-  return rows.map(normalizeLocalRow);
+  const profiles = new Map<number, ProfileFields>();
+  for (const row of rows) {
+    if (row.id_profile_template) profiles.set(row.id, {
+      discipline: row.profile_discipline,
+      department: row.profile_department,
+      semester: row.profile_semester,
+      zet: row.profile_zet,
+      place: row.profile_place,
+      study_load: parseJsonField(row.profile_study_load),
+      control_load: parseJsonField(row.profile_control_load),
+      certification: row.profile_certification,
+    });
+  }
+  return { localRows: rows.map(normalizeLocalRow), profiles };
 };
 
 const incomingFrom1cList = (disciplines: unknown[]) =>
@@ -155,19 +181,20 @@ const incomingFrom1cList = (disciplines: unknown[]) =>
     })
     .filter((row): row is IncomingRow => row !== null);
 
-const diffFields = (localRow: Record<string, unknown>, incomingRow: Record<string, unknown>) => {
+const diffFields = (localRow: Record<string, unknown>, incomingRow: Record<string, unknown>, profile?: ProfileFields) => {
   const changes: FieldChange[] = [];
   for (const field of SYNC_FIELDS) {
-    const oldValue = localRow[field];
     const newValue = incomingRow[field];
-    if (!valuesEqual(oldValue, newValue)) {
-      changes.push({ field, old: oldValue, new: newValue });
+    const profileValue = profile && TEMPLATE_SYNC_FIELDS.has(field) ? profile[field as keyof ProfileFields] : localRow[field];
+    const profileChanged = profile && TEMPLATE_SYNC_FIELDS.has(field) && !valuesEqual(profileValue, newValue);
+    if (!valuesEqual(localRow[field], newValue) || WORKLOAD_FIELDS.has(field) && profileChanged) {
+      changes.push({ field, old: profileChanged ? profileValue : localRow[field], new: newValue });
     }
   }
   return changes;
 };
 
-const diffDisciplines = (localRows: LocalRow[], incomingRows: IncomingRow[]) => {
+const diffDisciplines = (localRows: LocalRow[], incomingRows: IncomingRow[], profiles: ReadonlyMap<number, ProfileFields> = new Map()) => {
   const activeLocal = localRows.filter((row) => !row.removed_at);
   const localByKey = new Map(activeLocal.map((row) => [matchDisciplineKey(row), row]));
   const incomingByKey = new Map(
@@ -196,7 +223,7 @@ const diffDisciplines = (localRows: LocalRow[], incomingRows: IncomingRow[]) => 
       continue;
     }
 
-    const fields = diffFields(local, incoming);
+    const fields = diffFields(local, incoming, profiles.get(local.id));
     if (fields.length) {
       result.updated.push({
         id_1c: local.id,
@@ -246,8 +273,8 @@ const preview1cSync = async (complectId: unknown) => {
 
   const incomingRaw = await fetchUpLink(buildComplectApiData(complectMeta));
   const incoming = incomingFrom1cList(incomingRaw);
-  const local = await loadLocalDisciplines(complectMeta.id);
-  const diff = diffDisciplines(local, incoming);
+  const { localRows, profiles } = await loadLocalDisciplines(complectMeta.id);
+  const diff = diffDisciplines(localRows, incoming, profiles);
 
   return {
     complect: {
@@ -306,9 +333,10 @@ const syncTemplateFields = async (
     id1c,
     idProfileTemplate,
     localRow,
+    profile,
     incomingRow,
     fieldsToApply,
-  }: { syncLogId: number; id1c: number; idProfileTemplate: number | null; localRow: LocalRow; incomingRow: IncomingRow; fieldsToApply: string[] }
+  }: { syncLogId: number; id1c: number; idProfileTemplate: number | null; localRow: LocalRow; profile?: ProfileFields; incomingRow: IncomingRow; fieldsToApply: string[] }
 ) => {
   if (!idProfileTemplate || !fieldsToApply.length) return;
 
@@ -321,7 +349,8 @@ const syncTemplateFields = async (
     if (!TEMPLATE_SYNC_FIELDS.has(field)) continue;
     const templateField = TEMPLATE_FIELD_MAP[field];
     const newValue = incomingRow[field];
-    const oldValue = localRow[field];
+    const oldValue = profile ? profile[field as keyof ProfileFields] : localRow[field];
+    if (valuesEqual(oldValue, newValue)) continue;
     updates.push(`${templateField} = $${paramIndex}`);
     editedFields.push(templateField);
     values.push(
@@ -341,9 +370,9 @@ const syncTemplateFields = async (
     });
   }
 
-  if (fieldsToApply.includes("control_load")) {
+  if (editedFields.includes("control_load")) {
     const certification = deriveCertification(incomingRow.control_load);
-    if (certification) {
+    if (certification && !valuesEqual(profile?.certification, certification)) {
       updates.push(`certification = $${paramIndex}`);
       editedFields.push("certification");
       values.push(certification);
@@ -353,7 +382,7 @@ const syncTemplateFields = async (
         id1c,
         idProfileTemplate,
         fieldKey: "certification",
-        oldValue: null,
+        oldValue: profile?.certification ?? null,
         newValue: certification,
       });
     }
@@ -403,7 +432,7 @@ const applySync = async ({ complectId, selections, actor }: { complectId: unknow
     );
     const syncLogId = syncLogRows[0].id;
 
-    const localRows = hasSyncSelections(selections) ? await loadLocalDisciplines(numericComplectId) : [];
+    const { localRows, profiles } = hasSyncSelections(selections) ? await loadLocalDisciplines(numericComplectId) : { localRows: [], profiles: new Map<number, ProfileFields>() };
     const localById = new Map(localRows.map((row) => [row.id, row]));
 
     for (const selection of (selections || []) as Selection[]) {
@@ -504,6 +533,7 @@ const applySync = async ({ complectId, selections, actor }: { complectId: unknow
         const incoming = selection.incoming;
         const local = localById.get(id1c!);
         if (!id1c || !incoming || !local) continue;
+        const profile = profiles.get(id1c);
 
         const exchangeUpdates = [];
         const exchangeValues = [];
@@ -558,17 +588,19 @@ const applySync = async ({ complectId, selections, actor }: { complectId: unknow
           id1c,
           idProfileTemplate: local.id_profile_template,
           localRow: local,
+          profile,
           incomingRow: incoming,
           fieldsToApply: templateFields,
         });
 
-        for (const field of fields.filter(
-          (f) => SYNC_FIELDS.includes(f) && f !== "teachers" && (!local.id_profile_template || !TEMPLATE_SYNC_FIELDS.has(f))
-        )) {
+        for (const field of fields.filter((f) => SYNC_FIELDS.includes(f) && f !== "teachers")) {
+          if (valuesEqual(local[field], incoming[field])) continue;
+          // Изменения РПД уже записаны выше; отличия только в обмене не создают уведомления редактора.
+          if (profile && TEMPLATE_SYNC_FIELDS.has(field) && !valuesEqual(profile[field as keyof ProfileFields], incoming[field])) continue;
           await recordFieldChange(client, {
             syncLogId,
             id1c,
-            idProfileTemplate: local.id_profile_template,
+            idProfileTemplate: null,
             fieldKey: field,
             oldValue: local[field],
             newValue: incoming[field],
