@@ -237,18 +237,10 @@ const PlannedResultsPage: FC = () => {
   };
 
   const complectId = useStore((state) => state.complectId);
-  const complectFetchKeyRef = useRef<string | null>(null);
 
   useEffect(() => {
-    const fetchKey = `${complectId ?? ""}:${disciplineName}`;
-
-    if (hasPlannedResultsData(initialData)) {
-      complectFetchKeyRef.current = fetchKey;
-      return;
-    }
+    if (hasPlannedResultsData(initialData)) return;
     if (!complectId || !disciplineName) return;
-    if (complectFetchKeyRef.current === fetchKey) return;
-    complectFetchKeyRef.current = fetchKey;
 
     let cancelled = false;
 

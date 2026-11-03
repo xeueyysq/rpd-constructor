@@ -1,5 +1,6 @@
 import type { Rpd1cExchangeRow } from "../types/db.ts";
 import type { Pool } from "pg";
+import { formatDisciplineName } from "../modules/disciplineNames.ts";
 
 type ResultRow = { competence_id: number; competence: string; indicator_id: number; indicator: string; discipline: string | null };
 type ResultEntry = { competence: string; indicator: string; disciplines: string[] };
@@ -183,7 +184,7 @@ class Rpd1cExchange {
         }
 
         if (row.discipline) {
-          indicatorsMap.get(row.indicator_id)!.disciplines.push(row.discipline);
+          indicatorsMap.get(row.indicator_id)!.disciplines.push(formatDisciplineName(row.discipline));
         }
       }
 
@@ -242,6 +243,7 @@ class Rpd1cExchange {
 
       return queryResult.rows.map((row) => ({
         ...row,
+        discipline: formatDisciplineName(row.discipline),
         syncStatus: row.sync_status,
         syncChangedAt: row.sync_changed_at ?? null,
         latestChanges: { count: row.latest_count, lastAppliedAt: row.sync_changed_at ?? null },

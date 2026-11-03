@@ -383,7 +383,9 @@ test("JWT старого формата и некорректные claims да�
 });
 
 test("0002 очищает старые сессии, меняет схему и повторно не выполняется через раннер", async () => {
-  const migrations = await loadMigrations(fileURLToPath(new URL("../app/migrations/versions/", import.meta.url)));
+  // Этот переход схемы проверяется на версиях 0001 → 0002 независимо от следующих миграций.
+  const migrations = (await loadMigrations(fileURLToPath(new URL("../app/migrations/versions/", import.meta.url))))
+    .filter(({ name }) => name <= "0002_refresh_sessions");
   const applied = [{ name: migrations[0].name, checksum: migrations[0].checksum }];
   const commands: string[] = [];
   let sessions = 2;

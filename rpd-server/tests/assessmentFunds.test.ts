@@ -41,12 +41,13 @@ test("без списков выбора выгружаются все вопр�
 test("DOCX использует общий разбор и по-прежнему возвращает выбранные вопросы", async () => {
   const db = { query: async (sql: string) => {
     if (sql.includes("FROM rpd_complects")) return { rows: [{ id: 7 }] };
-    if (sql.includes("FROM planned_results_sets")) return { rows: [] };
-    return { rows: [{ disciplins_name: "Алгоритмы", assessment_tools_questions: funds({ "ОПК-1": { openPool: [{ id: "a", text: "А" }, { id: "b", text: "Б" }], selectedOpenIds: ["b"] } }) }] };
+    if (sql.includes("FROM planned_results_sets")) return { rows: [{ direction: "09.03.01", profile: "Тест", disciplines: ["АЛГОРИТМЫ", "Базы данных и SQL"] }] };
+    return { rows: [{ disciplins_name: "АЛГОРИТМЫ", assessment_tools_questions: funds({ "ОПК-1": { openPool: [{ id: "a", text: "А" }, { id: "b", text: "Б" }], selectedOpenIds: ["b"] } }) }] };
   } } as unknown as Pool;
   const result = await new RpdProfileTemplates(db).getAssessmentFundsDocumentData(7, "ОПК-1");
   assert.deepEqual(result?.openQuestions, [{ text: "Б", answer: "", discipline: "Алгоритмы" }]);
   assert.deepEqual(result?.closedQuestions, []);
+  assert.deepEqual(result?.directions, [{ direction: "09.03.01", profile: "Тест", disciplines: ["Алгоритмы", "Базы данных и SQL"] }]);
 });
 
 test("строки сортируются по коду компетенции, типу, семестру, дисциплине и порядку пула", () => {
@@ -99,10 +100,11 @@ test("список назначаемых преподавателей возв�
 test("профиль дисциплины возвращает логин участника при пустом ФИО", async () => {
   const db = { query: async (sql: string) => {
     if (sql.includes("SELECT id FROM rpd_profile_templates")) return { rows: [{ id: 12 }] };
-    if (sql.includes("FROM rpd_profile_templates rpt")) return { rows: [{ id: 12, field_edits: {} }] };
+    if (sql.includes("FROM rpd_profile_templates rpt")) return { rows: [{ id: 12, disciplins_name: "АЛГОРИТМЫ", field_edits: {} }] };
     return { rows: [{ userId: 5, name: "nofio", fullname: null, isActive: true }] };
   } } as unknown as Pool;
   const profile = await new RpdProfileTemplates(db).getJsonProfile(12);
+  assert.equal(profile?.disciplins_name, "Алгоритмы");
   assert.deepEqual(profile?.teachers, [{ userId: 5, fullname: "nofio", isActive: true }]);
 });
 
@@ -113,7 +115,7 @@ test("маршрут XLSX отдаёт файл с UTF-8 именем и 404 д�
       return { rows: [{ id: 8, direction: "09.03.01", profile: "Разработка ПО", year: 2026 }] };
     }
     assert.deepEqual(values, [8]);
-    return { rows: [template("Базы", 2, { "ОПК-1": { openQuestions: "Вопрос" } })] };
+    return { rows: [template("БАЗЫ", 2, { "ОПК-1": { openQuestions: "Вопрос" } })] };
   } } as unknown as Pool;
   const headers = new Map<string, string>();
   let sent: unknown;
@@ -126,6 +128,9 @@ test("маршрут XLSX отдаёт файл с UTF-8 именем и 404 д�
   assert.equal(headers.get("Content-Disposition"), `attachment; filename*=UTF-8''${encodeURIComponent("ФОС Разработка ПО 2026.xlsx")}`);
   assert.ok(Buffer.isBuffer(sent));
   assert.equal(sent.subarray(0, 2).toString(), "PK");
+  const workbook = new ExcelJS.Workbook();
+  await workbook.xlsx.read(Readable.from([sent]));
+  assert.equal(workbook.getWorksheet("вопросы")?.getCell("G3").value, "Базы");
 
   const missing = { query: async () => ({ rows: [] }) } as unknown as Pool;
   await assert.rejects(new RpdProfileTemplatesController(missing).generateAssessmentFundsXlsx({ body: { complectId: 99 } } as Request, response), { status: 404 });

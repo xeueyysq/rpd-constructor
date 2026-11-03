@@ -10,6 +10,22 @@ import * as recordType from "../app/modules/disciplineRecordType.ts";
 import * as sync from "../app/modules/complectSync.ts";
 import * as spec from "../app/modules/specProfilesMapping.ts";
 import { normalizeDisciplineFrom1c } from "../app/modules/normalizeDisciplineFrom1c.ts";
+import { formatDisciplineName } from "../app/modules/disciplineNames.ts";
+
+test("отображение названий меняет только полностью прописные, начиная с первой буквы", () => {
+  const cases: Array<[string | null | undefined, string | null | undefined]> = [
+    ["ВВЕДЕНИЕ В ПРОГРАММИРОВАНИЕ", "Введение в программирование"],
+    ["  «1. БАЗЫ ДАННЫХ»", "  «1. Базы данных»"],
+    ["Базы данных и SQL", "Базы данных и SQL"],
+    ["введение в программирование", "введение в программирование"],
+    ["123 —", "123 —"],
+    ["", ""],
+    ["   ", "   "],
+    [null, null],
+    [undefined, undefined],
+  ];
+  for (const [source, expected] of cases) assert.equal(formatDisciplineName(source), expected);
+});
 
 describe("Пересчёт часов и ЗЕТ (disciplineScope)", () => {
   test("выводит форму аттестации из меток и затем из контроля", () => {

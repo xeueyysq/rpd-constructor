@@ -25,6 +25,11 @@ INSERT INTO user_complect (id, user_id, complect_id) VALUES
   (101, 13, 101),
   (102, (SELECT id FROM users WHERE name = 'rop'), 102);
 
+-- Изолированный комплект: регрессия титула, компетенций и повторного импорта создаёт строки через API.
+INSERT INTO rpd_complects (id, uuid, faculty, year, education_form, education_level, profile, direction) VALUES
+  (90, '90909090-9090-4090-8090-909090909090', 'Тестовый институт', 2026, 'Очная', 'Бакалавриат', 'Регрессия титула и компетенций', 'Тестовое направление');
+INSERT INTO user_complect (id, user_id, complect_id) VALUES (90, (SELECT id FROM users WHERE name = 'rop'), 90);
+
 INSERT INTO rpd_1c_exchange (id, id_rpd_complect, department, discipline, teachers, zet, place, record_type, study_load, control_load, semester) VALUES
   (100, 100, 'Тестовая кафедра', 'Алгоритмы для теста', ARRAY['Альфина Тест Тестовна'], 3, 'Базовая часть', 'discipline', '{}'::jsonb, '{}'::jsonb, 1),
   (101, 100, 'Тестовая кафедра', 'Базы данных для теста', ARRAY['Альфина Тест Тестовна'], 4, 'Базовая часть', 'discipline', '{}'::jsonb, '{}'::jsonb, 2),

@@ -4,6 +4,7 @@ import { pool } from "../../config/db.ts";
 import { Conflict, Forbidden, NotFound, Unprocessable } from "../utils/Errors.ts";
 import { ASSIGNABLE_TEACHER_ROLES, USER_ROLES } from "../models/constants.ts";
 import { formatShortName, fullnameText } from "../modules/teacherNames.ts";
+import { formatDisciplineName } from "../modules/disciplineNames.ts";
 import { allowedActions, decide, deriveStatus, statusChangedAt, type DecisionInput, type Participant, type TemplateStatus, type WorkflowAction, type ParticipationState } from "../modules/templateWorkflow.ts";
 import TemplateAccess from "./TemplateAccess.ts";
 
@@ -125,7 +126,7 @@ export default class TemplateWorkflow {
       FROM teacher_templates tt JOIN users u ON u.id=tt.user_id JOIN rpd_profile_templates rpt ON rpt.id=tt.template_id JOIN rpd_complects rc ON rc.id=rpt.id_rpd_complect
       WHERE tt.user_id=$1 AND u.is_active ORDER BY rpt.id`, [actor.id]);
     const snapshots = await this.snapshots(this.database, rows.map((row) => row.id), actor);
-    return rows.map((row) => ({ ...row, ...snapshots.get(row.id) }));
+    return rows.map((row) => ({ ...row, disciplins_name: formatDisciplineName(row.disciplins_name), ...snapshots.get(row.id) }));
   }
 
   async assignableTeachers(actor: UserClaims) {
