@@ -14,6 +14,8 @@ test('преподаватель открывает шаблон и возвра
 });
 
 test('титул из 1С, компетенции другого регистра и повторный импорт сохраняют существующую РПД', async ({ page, request }) => {
+  // Несколько полных перезагрузок редактора требуют большего общего бюджета в CI.
+  test.slow();
   const auth = await request.post(`${apiUrl}/auth/sign-in`, { data: { userName: 'rop', password } });
   expect(auth.status()).toBe(200);
   const headers = { Authorization: `Bearer ${(await auth.json()).accessToken as string}` };
