@@ -5,6 +5,18 @@ import Rpd1cExchange from "../app/models/rpd_1c_exchange.ts";
 import { findRpd } from "../app/services/Complects.ts";
 import { USER_ROLES } from "../app/models/constants.ts";
 
+test("планируемые результаты отображают названия, сохраняя порядок дисциплин и индикаторов", async () => {
+  const db = { query: async () => ({ rows: [
+    { competence_id: 1, competence: "УК-1", indicator_id: 10, indicator: "УК-1.1", discipline: "АЛГОРИТМЫ" },
+    { competence_id: 1, competence: "УК-1", indicator_id: 10, indicator: "УК-1.1", discipline: "Базы данных и SQL" },
+    { competence_id: 1, competence: "УК-1", indicator_id: 11, indicator: "УК-1.2", discipline: null },
+  ] }) } as unknown as Pool;
+  assert.deepEqual(await new Rpd1cExchange(db).getResultsData(2), [
+    { competence: "УК-1", indicator: "УК-1.1", disciplines: ["Алгоритмы", "Базы данных и SQL"] },
+    { competence: "УК-1", indicator: "УК-1.2", disciplines: [] },
+  ]);
+});
+
 test("findRpd выбирает максимальный sync_log_id пакетно и отдаёт latestChanges без pendingChanges", async () => {
   let query = "";
   let values: unknown[] | undefined;
@@ -12,11 +24,12 @@ test("findRpd выбирает максимальный sync_log_id пакетн
     query = sql;
     values = params;
     return { rows: [
-      { id: 11, discipline: "Тест", id_profile_template: null, status: "unloaded", sync_status: "updated", latest_count: 2, sync_changed_at: new Date("2025-02-02T00:00:00Z"), last_change_summary: ["zet"], has_profile_template: false },
+      { id: 11, discipline: "ТЕСТ", id_profile_template: null, status: "unloaded", sync_status: "updated", latest_count: 2, sync_changed_at: new Date("2025-02-02T00:00:00Z"), last_change_summary: ["zet"], has_profile_template: false },
       { id: 12, discipline: "Без изменений", id_profile_template: null, sync_status: "unchanged", latest_count: 0, sync_changed_at: null, last_change_summary: [], has_profile_template: false },
     ] };
   } } as unknown as Pool;
   const rows = await new Rpd1cExchange(db).findRpd(2);
+  assert.equal(rows[0].discipline, "Тест");
   assert.deepEqual(rows[0].latestChanges, { count: 2, lastAppliedAt: new Date("2025-02-02T00:00:00Z") });
   assert.deepEqual(rows[1].latestChanges, { count: 0, lastAppliedAt: null });
   assert.equal("pendingChanges" in rows[0], false);

@@ -16,7 +16,11 @@ export function mapComplectResultsToPlannedResults(
   rows: ComplectResultsRow[],
   disciplineName: string
 ): PlannedResultsData {
-  const filtered = rows.filter((r) => r.disciplines.includes(disciplineName));
+  const normalizedName = disciplineName.trim().toLowerCase();
+  if (!normalizedName) return {};
+  const filtered = rows.filter((r) =>
+    r.disciplines.some((name) => name.trim().toLowerCase() === normalizedName)
+  );
 
   const mapped: PlannedResultsData = {};
   let idx = 0;

@@ -148,18 +148,9 @@ export const useAssessmentToolsQuestions =
       };
     }, [complectId]);
 
-    const complectFetchKeyRef = useRef<string | null>(null);
-
     useEffect(() => {
-      const fetchKey = `${complectId ?? ""}:${disciplineName}`;
-
-      if (hasPlannedResultsData(initialPlannedResults)) {
-        complectFetchKeyRef.current = fetchKey;
-        return;
-      }
+      if (hasPlannedResultsData(initialPlannedResults)) return;
       if (!complectId || !disciplineName) return;
-      if (complectFetchKeyRef.current === fetchKey) return;
-      complectFetchKeyRef.current = fetchKey;
 
       let isActive = true;
 

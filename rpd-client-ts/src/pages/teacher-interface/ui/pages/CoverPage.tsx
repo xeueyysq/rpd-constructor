@@ -4,7 +4,7 @@ import { PageTitle } from "@shared/ui";
 import { FC } from "react";
 
 const CoverPage: FC = () => {
-  const jsonData = useStore.getState().jsonData;
+  const jsonData = useStore((state) => state.jsonData);
 
   return (
     <Box>
@@ -18,12 +18,12 @@ const CoverPage: FC = () => {
         <br />
       </Tg>
       <Tg sx={{ py: 2 }}>
-        Кафедра распределенных информационно-вычислительных систем
+        {jsonData.department}
         <br />
       </Tg>
       <Tg sx={{ py: 2 }}>
         Утверждаю <br />
-        и.о. проректора по учебно-методической работе <br />
+        ПРОРЕКТОР ПО ОБРАЗОВАТЕЛЬНОЙ ДЕЯТЕЛЬНОСТИ <br />
         __________________/ Анисимова О.В. <br />
         __________________202_ год <br />
       </Tg>

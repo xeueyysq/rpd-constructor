@@ -4,6 +4,7 @@ import { patchStudyLoad } from "../modules/disciplineScope.ts";
 import { isEditableTemplateField } from "../validators/RpdProfileTemplates.ts";
 import { fullnameText } from "../modules/teacherNames.ts";
 import { selectedFundsQuestions } from "../modules/assessmentFunds.ts";
+import { formatDisciplineName } from "../modules/disciplineNames.ts";
 import { fieldEditsSet, withEditorNames } from "../modules/fieldEdits.ts";
 import TemplateAccess from "../services/TemplateAccess.ts";
 import type { UserClaims } from "../types/express.d.ts";
@@ -122,7 +123,7 @@ class RpdProfileTemplates {
       FROM teacher_templates tt JOIN users u ON u.id=tt.user_id
       WHERE tt.template_id=$1 ORDER BY tt.id
     `, [numericId]);
-    return { ...profile, field_edits: await withEditorNames(this.pool, profile.field_edits), teachers: teachers.map((teacher) => ({ userId: teacher.userId, fullname: fullnameText(teacher.fullname) || teacher.name, isActive: teacher.isActive })) };
+    return { ...profile, disciplins_name: formatDisciplineName(profile.disciplins_name), field_edits: await withEditorNames(this.pool, profile.field_edits), teachers: teachers.map((teacher) => ({ userId: teacher.userId, fullname: fullnameText(teacher.fullname) || teacher.name, isActive: teacher.isActive })) };
   }
 
   async updateById(id: unknown, fieldToUpdate: string, value: unknown, baseAt: string | null, userId: number) {
@@ -430,14 +431,15 @@ class RpdProfileTemplates {
     const closedQuestions: { text: string; answer: string; discipline: string | null }[] = [];
     for (const row of questionsResult.rows) {
       const selected = selectedFundsQuestions(row.assessment_tools_questions, competence);
-      openQuestions.push(...selected.open.map((question) => ({ ...question, discipline: row.disciplins_name })));
-      closedQuestions.push(...selected.closed.map((question) => ({ ...question, discipline: row.disciplins_name })));
+      const discipline = formatDisciplineName(row.disciplins_name);
+      openQuestions.push(...selected.open.map((question) => ({ ...question, discipline })));
+      closedQuestions.push(...selected.closed.map((question) => ({ ...question, discipline })));
     }
 
     return {
       competence,
       complect,
-      directions: directionsResult.rows,
+      directions: directionsResult.rows.map((row) => ({ ...row, disciplines: row.disciplines.map((name) => formatDisciplineName(name)) })),
       openQuestions,
       closedQuestions,
     };
@@ -454,7 +456,7 @@ class RpdProfileTemplates {
       SELECT disciplins_name,semester,assessment_tools_questions FROM rpd_profile_templates
       WHERE id_rpd_complect=$1 AND assessment_tools_questions IS NOT NULL ORDER BY id
     `, [complect.id]);
-    return { complect, templates };
+    return { complect, templates: templates.map((row) => ({ ...row, disciplins_name: formatDisciplineName(row.disciplins_name) })) };
   }
 }
 

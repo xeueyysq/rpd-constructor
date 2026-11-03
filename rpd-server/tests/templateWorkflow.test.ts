@@ -11,6 +11,25 @@ const participants = (states: Array<Participant["state"] | [Participant["state"]
 
 const base = (changes: Partial<DecisionInput>): DecisionInput => ({ current: "on_teacher", participants: participants(["assigned", "assigned"]), action: "finish", actorId: 1, actorRole: USER_ROLES.TEACHER, canManage: false, userName: "Первый П.П.", ...changes });
 
+test("список преподавателя форматирует название, сохраняя ID и состояние участия", async () => {
+  const db = { query: async (sql: string) => {
+    if (sql.includes('tt.state AS "myState"')) return { rows: [
+      { id: 10, public_id: "existing", disciplins_name: "АЛГОРИТМЫ", myState: "in_progress" },
+      { id: 20, public_id: "mixed", disciplins_name: "Базы данных и SQL", myState: "done" },
+    ] };
+    if (sql.includes("FROM template_status")) return { rows: [
+      { id_profile_template: 10, current_status: "in_progress", history: [] },
+      { id_profile_template: 20, current_status: "ready", history: [] },
+    ] };
+    return { rows: [] };
+  } } as unknown as Pool;
+  const rows = await new TemplateWorkflow(db).myTemplates({ id: 7, role: USER_ROLES.TEACHER, userName: "teacher" });
+  assert.deepEqual(rows.map(({ id, public_id, disciplins_name, myState, status }) => ({ id, public_id, disciplins_name, myState, status })), [
+    { id: 10, public_id: "existing", disciplins_name: "Алгоритмы", myState: "in_progress", status: "in_progress" },
+    { id: 20, public_id: "mixed", disciplins_name: "Базы данных и SQL", myState: "done", status: "ready" },
+  ]);
+});
+
 test("готовность зависит от всех активных участников", () => {
   const firstStarted = decide(base({ action: "start" }));
   const first = decide(base({ current: firstStarted.status, participants: firstStarted.participants }));
