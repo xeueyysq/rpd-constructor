@@ -16,6 +16,7 @@ interface IComplectTableHeader {
   onAfterDelete?: () => void;
   onBuildFundsClick?: () => void;
   onSyncApplied?: () => void;
+  onImportClick?: () => void;
 }
 
 export function ComplectTableHeader({
@@ -25,6 +26,7 @@ export function ComplectTableHeader({
   onAfterDelete,
   onBuildFundsClick,
   onSyncApplied,
+  onImportClick,
 }: IComplectTableHeader) {
   const [openDeleteConfirm, setOpenDeleteConfirm] = useState<boolean>(false);
   const [openSyncDialog, setOpenSyncDialog] = useState(false);
@@ -98,6 +100,11 @@ export function ComplectTableHeader({
           onClick={() => setOpenDeleteConfirm(true)}
         >
           Удалить
+        </Button>
+      )}
+      {onImportClick && (
+        <Button variant="outlined" onClick={onImportClick}>
+          Импортировать все дисциплины
         </Button>
       )}
       {onBuildFundsClick && (

@@ -117,19 +117,24 @@ export const useAssessmentToolsQuestions =
       PlannedResultsData | undefined
     >(() => initialPlannedResults);
 
-    const [complectResultRows, setComplectResultRows] = useState<
-      ComplectResultsRow[]
-    >([]);
+    const [complectResults, setComplectResults] = useState<{
+      complectId: number;
+      rows: ComplectResultsRow[];
+    }>();
+    // Чужие/ещё не загруженные квоты не означают разрешённую квоту 0.
+    // Ключ проверяется уже при render, до effects перехода между комплектами.
+    const complectResultRows =
+      complectId && complectResults?.complectId === complectId
+        ? complectResults.rows
+        : undefined;
 
     useEffect(() => {
       setPlannedResults(initialPlannedResults);
     }, [initialPlannedResults]);
 
     useEffect(() => {
-      if (!complectId) {
-        setComplectResultRows([]);
-        return;
-      }
+      setComplectResults(undefined);
+      if (!complectId) return;
       let active = true;
       (async () => {
         try {
@@ -137,10 +142,11 @@ export const useAssessmentToolsQuestions =
             "get-results-data",
             { params: { complectId } }
           );
-          if (active) setComplectResultRows(Array.isArray(data) ? data : []);
+          if (active && Array.isArray(data)) {
+            setComplectResults({ complectId, rows: data });
+          }
         } catch (e) {
           console.error(e);
-          if (active) setComplectResultRows([]);
         }
       })();
       return () => {
@@ -186,7 +192,7 @@ export const useAssessmentToolsQuestions =
     const disciplineCountByCompetence = useMemo(() => {
       const counts: Record<string, number> = {};
       const sets = new Map<string, Set<string>>();
-      for (const row of complectResultRows) {
+      for (const row of complectResultRows ?? []) {
         const c = String(row.competence ?? "").trim();
         if (!c) continue;
         if (!sets.has(c)) sets.set(c, new Set());
@@ -204,22 +210,19 @@ export const useAssessmentToolsQuestions =
 
     const maxSelectableByCompetence = useMemo(() => {
       const caps: Record<string, number> = {};
-      if (!complectId) {
-        for (const g of competenceGroups) caps[g.competence] = 0;
-        return caps;
-      }
+      if (!complectResultRows) return caps;
       for (const g of competenceGroups) {
         const n = disciplineCountByCompetence[g.competence] ?? 0;
         caps[g.competence] = n >= 1 ? Math.ceil(25 / n) : 0;
       }
       return caps;
-    }, [complectId, competenceGroups, disciplineCountByCompetence]);
+    }, [complectResultRows, competenceGroups, disciplineCountByCompetence]);
 
     const canSelectFn = useMemo(() => {
       return (competence: string) =>
-        Boolean(complectId) &&
+        Boolean(complectResultRows) &&
         (maxSelectableByCompetence[competence] ?? 0) >= 1;
-    }, [complectId, maxSelectableByCompetence]);
+    }, [complectResultRows, maxSelectableByCompetence]);
 
     const quotaRef = useRef(maxSelectableByCompetence);
     // eslint-disable-next-line react-hooks/refs -- обработчики читают последнюю квоту выбора.
@@ -247,10 +250,10 @@ export const useAssessmentToolsQuestions =
     }, [storedFunds, competenceGroups, templateId, dirtyFunds]);
 
     useEffect(() => {
+      if (!complectResultRows) return;
       setFundsData((prev) => {
         let anyChange = false;
         const competencies = { ...prev.competencies };
-        const cid = complectIdRef.current;
         for (const g of competenceGroups) {
           const competence = g.competence;
           const raw = competencies[competence];
@@ -259,7 +262,7 @@ export const useAssessmentToolsQuestions =
           let selOpen = [...(raw.selectedOpenIds ?? [])];
           let selClosed = [...(raw.selectedClosedIds ?? [])];
           let rowChanged = false;
-          if (!cid || max <= 0) {
+          if (max <= 0) {
             if (selOpen.length > 0 || selClosed.length > 0) {
               selOpen = [];
               selClosed = [];
@@ -291,9 +294,9 @@ export const useAssessmentToolsQuestions =
         }
         return anyChange ? { ...prev, competencies } : prev;
       });
-    }, [maxSelectableByCompetence, complectId, competenceGroups]);
+    }, [maxSelectableByCompetence, complectResultRows, competenceGroups]);
 
-    const saveFundsData = (next = fundsDataRef.current) => {
+    const persistFundsData = (next: AssessmentToolsQuestionsData) => {
       const stored = useStore.getState().jsonData.assessment_tools_questions as
         AssessmentToolsQuestionsData | undefined;
       if (sameValue(next, normalizeFunds(stored, competenceGroups))) {
@@ -302,6 +305,8 @@ export const useAssessmentToolsQuestions =
       }
       void saveField("assessment_tools_questions", next);
     };
+
+    const saveFundsData = () => persistFundsData(fundsDataRef.current);
 
     const changeFunds = (
       update: (
@@ -315,7 +320,7 @@ export const useAssessmentToolsQuestions =
       fundsDataRef.current = next;
       setFundsData(next);
       useTemplateSync.getState().markDirty("assessment_tools_questions");
-      if (immediate) saveFundsData(next);
+      if (immediate) persistFundsData(next);
     };
 
     const handleControlQuestionsChange = (value: string) => {

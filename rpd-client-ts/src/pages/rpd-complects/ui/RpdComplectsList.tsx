@@ -115,13 +115,6 @@ export const RpdComplectsList: FC = () => {
       {
         accessorKey: "profile",
         header: "Профиль",
-        Cell: ({ table, row }) => {
-          const rows = table.getRowModel().rows;
-          const prev = rows[row.index - 1];
-          return prev && prev.original.profile === row.original.profile
-            ? null
-            : row.original.profile;
-        },
       },
       {
         accessorKey: "formEducation",

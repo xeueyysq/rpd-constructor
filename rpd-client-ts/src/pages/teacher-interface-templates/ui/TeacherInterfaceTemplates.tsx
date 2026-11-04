@@ -32,7 +32,20 @@ export function TeacherInterfaceTemplates() {
   const actionsColumn = useActionsColumn<MyTemplate>();
   const columns = useMemo<MRT_ColumnDef<MyTemplate>[]>(
     () => [
-      { accessorKey: "disciplins_name", header: "Название дисциплины" },
+      {
+        accessorKey: "disciplins_name",
+        header: "Название дисциплины",
+        filterFn: "contains",
+      },
+      {
+        id: "participants",
+        header: "Преподаватели",
+        filterFn: "contains",
+        accessorFn: (row) =>
+          row.participants
+            .map((participant) => participant.fullname)
+            .join(", "),
+      },
       { accessorKey: "faculty", header: "Институт" },
       { accessorKey: "education_level", header: "Уровень образования" },
       { accessorKey: "direction", header: "Направление" },
@@ -78,6 +91,7 @@ export function TeacherInterfaceTemplates() {
     data: data ?? [],
     getRowId: (row) => String(row.id),
     localization: MRT_Localization_RU,
+    globalFilterFn: "contains",
     enableColumnResizing: true,
     layoutMode: "grid",
     muiTableProps: { size: "small", className: "table" },

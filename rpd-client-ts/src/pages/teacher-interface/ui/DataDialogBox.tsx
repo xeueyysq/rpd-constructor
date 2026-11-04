@@ -16,30 +16,44 @@ import {
 import { useState, useRef, useCallback } from "react";
 import ExpandMore from "@mui/icons-material/ExpandMore";
 import ExpandLess from "@mui/icons-material/ExpandLess";
-import { getTemplateField } from "../model/api";
-import { useQuery } from "@tanstack/react-query";
+import { useImportFieldPreview, type ImportField } from "@entities/template";
 import CircularProgress from "@mui/material/CircularProgress";
 import { DisciplineContentTable } from "./changeable-elements/DisciplineContentTable";
 import { DisciplineContentData } from "../model/DisciplineContentPageTypes";
 
 interface TemplateObject {
-  id: number | undefined;
-  text: string | undefined;
-  year: number | undefined;
+  id: number;
+  text: string;
+  year: number | null;
 }
 
 interface DataDialogBoxProps {
   id: string;
   keepMounted?: boolean;
   open: boolean;
-  onClose: (type: string, value?: number) => void;
+  onClose: (type: string, value?: number) => Promise<boolean>;
   options: TemplateObject[];
   title: string;
-  fieldName: string;
+  fieldName: ImportField;
+  targetTemplateId: number;
+  busy: boolean;
+  errorMessage: string | null;
+  onReload: () => void;
 }
 
 export function DataDialogBox(props: DataDialogBoxProps) {
-  const { onClose, open, options, title, fieldName, ...other } = props;
+  const {
+    onClose,
+    open,
+    options,
+    title,
+    fieldName,
+    targetTemplateId,
+    busy,
+    errorMessage,
+    onReload,
+    ...other
+  } = props;
   const [value, setValue] = useState<string | number | null>();
   const [expandedItems, setExpandedItems] = useState<Set<number> | null>(
     new Set()
@@ -52,15 +66,8 @@ export function DataDialogBox(props: DataDialogBoxProps) {
     data: fieldData,
     isLoading,
     error,
-  } = useQuery({
-    queryKey: ["template-fields", ids, fieldName],
-    queryFn: () =>
-      getTemplateField({
-        ids,
-        rowName: fieldName,
-      }),
-    enabled: ids.length > 0 && !!fieldName,
-  });
+    refetch,
+  } = useImportFieldPreview(ids, fieldName, targetTemplateId, open);
 
   const handleEntering = () => {
     if (radioGroupRef.current != null) {
@@ -69,12 +76,13 @@ export function DataDialogBox(props: DataDialogBoxProps) {
   };
 
   const handleCancel = () => {
-    onClose(other.id);
+    if (busy) return;
+    void onClose(other.id);
     setExpandedItems(null);
     setValue(null);
   };
 
-  const handleOk = () => {
+  const handleOk = async () => {
     let parsedValue: number | undefined;
     if (value !== null && value !== undefined) {
       if (typeof value === "string") {
@@ -84,7 +92,7 @@ export function DataDialogBox(props: DataDialogBoxProps) {
         parsedValue = value as number;
       }
     }
-    onClose(other.id, parsedValue);
+    if (!(await onClose(other.id, parsedValue))) return;
     setExpandedItems(null);
     setValue(null);
   };
@@ -105,9 +113,7 @@ export function DataDialogBox(props: DataDialogBoxProps) {
 
   const getCurrentFieldData = useCallback(
     (option: TemplateObject) =>
-      fieldData?.find((row) => row.id === option.id)?.[
-        fieldName as keyof (typeof fieldData)[0]
-      ],
+      fieldData?.find((row) => row.id === option.id)?.[fieldName],
     [fieldData, fieldName]
   );
 
@@ -126,8 +132,31 @@ export function DataDialogBox(props: DataDialogBoxProps) {
     >
       <DialogTitle>{title}</DialogTitle>
       <DialogContent>
+        {errorMessage && (
+          <Alert
+            severity="error"
+            sx={{ mb: 1 }}
+            action={
+              <Button
+                disabled={busy}
+                onClick={() => {
+                  onReload();
+                  void refetch();
+                }}
+              >
+                Обновить данные
+              </Button>
+            }
+          >
+            {errorMessage}
+          </Alert>
+        )}
         {options.length ? (
-          <RadioGroup ref={radioGroupRef} value={value} onChange={handleChange}>
+          <RadioGroup
+            ref={radioGroupRef}
+            value={value ?? ""}
+            onChange={handleChange}
+          >
             {options.map((option) => {
               const currentFieldData = getCurrentFieldData(option);
               return (
@@ -145,8 +174,8 @@ export function DataDialogBox(props: DataDialogBoxProps) {
                   >
                     <FormControlLabel
                       value={option.id}
-                      control={<Radio />}
-                      label={`${option.text} (${option.year})`}
+                      control={<Radio disabled={busy} />}
+                      label={option.text}
                       sx={{ flex: 1 }}
                     />
                     <IconButton
@@ -178,7 +207,16 @@ export function DataDialogBox(props: DataDialogBoxProps) {
                         <Alert severity="error" sx={{ mb: 1 }}>
                           Ошибка загрузки данных: {error.message}
                         </Alert>
-                      ) : typeof currentFieldData === "object" &&
+                      ) : Array.isArray(currentFieldData) ? (
+                        <Box component="ol">
+                          {currentFieldData.map((entry, index) => (
+                            <Box component="li" key={index}>
+                              {String(entry)}
+                            </Box>
+                          ))}
+                        </Box>
+                      ) : fieldName === "content" &&
+                        typeof currentFieldData === "object" &&
                         currentFieldData !== null ? (
                         <Box>
                           <DisciplineContentTable
@@ -192,7 +230,9 @@ export function DataDialogBox(props: DataDialogBoxProps) {
                         <Box
                           dangerouslySetInnerHTML={{
                             __html:
-                              currentFieldData || "Нет данных для отображения",
+                              typeof currentFieldData === "string"
+                                ? currentFieldData
+                                : "Нет данных для отображения",
                           }}
                           sx={{ color: "text.secondary" }}
                         />
@@ -208,12 +248,23 @@ export function DataDialogBox(props: DataDialogBoxProps) {
         )}
       </DialogContent>
       <DialogActions>
-        <Button autoFocus onClick={handleCancel}>
+        <Button autoFocus disabled={busy} onClick={handleCancel}>
           Отмена
         </Button>
         {options.length ? (
-          <Button disabled={!value} variant="contained" onClick={handleOk}>
-            Выгрузить
+          <Button
+            disabled={
+              !value ||
+              !options.some((option) => option.id === Number(value)) ||
+              busy ||
+              isLoading ||
+              Boolean(error) ||
+              Boolean(errorMessage)
+            }
+            variant="contained"
+            onClick={() => void handleOk()}
+          >
+            Загрузить
           </Button>
         ) : null}
       </DialogActions>

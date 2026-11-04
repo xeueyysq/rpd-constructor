@@ -22,6 +22,7 @@ import { BooksMetaList } from "./BooksMetaList.tsx";
 import { motion } from "framer-motion";
 import ClearIcon from "@mui/icons-material/Clear";
 import SearchIcon from "@mui/icons-material/Search";
+import { ExportFromTemplates } from "../changeable-elements/ExportFromTemplates";
 
 interface AddBook {
   elementName: string;
@@ -100,7 +101,7 @@ const AddBook: FC<AddBook> = ({ elementName }) => {
 
   return (
     <>
-      <Box sx={{ pt: 3 }}>
+      <Box sx={{ pt: 3, display: "flex", justifyContent: "space-between" }}>
         <Button
           variant="outlined"
           onClick={handleOpenDialog}
@@ -108,6 +109,7 @@ const AddBook: FC<AddBook> = ({ elementName }) => {
         >
           Найти книги в библиотечной системе
         </Button>
+        <ExportFromTemplates elementName={elementName} />
       </Box>
       <List>
         {elementValue &&

@@ -35,11 +35,16 @@ import {
   sameValue,
   useTemplateSync,
   useUpdateTemplateField,
+  useClearTemplateControl,
+  useTemplateWorkflow,
+  templateImportError,
   type FieldEdits,
 } from "@entities/template";
 import { useStore } from "@shared/hooks";
 import { showErrorMessage } from "@shared/lib";
 import { useEffect } from "react";
+import { useAuth } from "@entities/auth";
+import { UserRole } from "@shared/ability";
 import { ExportFromTemplates } from "./ExportFromTemplates";
 import type {
   ContentTableType,
@@ -76,6 +81,17 @@ export function DisciplineContentTable({
   const jsonData = useStore((state) => state.jsonData);
   const updateJsonData = useStore((state) => state.updateJsonData);
   const saveField = useUpdateTemplateField();
+  const role = useAuth((state) => state.userRole);
+  const workflow = useTemplateWorkflow(readOnly ? undefined : jsonData.id);
+  const clearControl = useClearTemplateControl();
+  const hasDirty = useTemplateSync(
+    (state) => Object.keys(state.dirty).length > 0
+  );
+  const pending = useTemplateSync((state) => state.pending);
+  const canClearControl =
+    !readOnly &&
+    (role === UserRole.ROP || role === UserRole.ADMIN) &&
+    Boolean(workflow.data?.canEditTeachers);
   const plan =
     (jsonData?.study_plan_hours as StudyPlanHours | undefined) ?? emptyPlan;
   const { data, setData, nextId, setNextId, rowIds, summ } =
@@ -149,6 +165,27 @@ export function DisciplineContentTable({
     void saveField("content", content);
   };
 
+  const clearRowControl = async (rowId: string) => {
+    const sync = useTemplateSync.getState();
+    if (!canClearControl || sync.pending || Object.keys(sync.dirty).length) {
+      showErrorMessage(
+        "Сначала сохраните или отмените локальные изменения РПД"
+      );
+      return;
+    }
+    const current = useStore.getState().jsonData;
+    try {
+      await clearControl.mutateAsync({
+        templateId: current.id,
+        rowId,
+        baseAt:
+          (current.field_edits as FieldEdits | undefined)?.content?.at ?? null,
+      });
+    } catch (error) {
+      showErrorMessage(templateImportError(error));
+    }
+  };
+
   const savePlanHour = async (key: Exclude<keyof ObjectHours, "contact">) => {
     const value = manual.values[key];
     const current = useStore.getState().jsonData.study_plan_hours as
@@ -201,14 +238,25 @@ export function DisciplineContentTable({
                   key={rowId}
                   rowId={rowId}
                   row={data[rowId]}
-                  readOnly={readOnly}
+                  readOnly={readOnly || clearControl.isPending}
                   attestationTheme={attestationTheme}
                   onValueChange={changeRow}
                   onBlur={saveContent}
+                  onClearControl={
+                    canClearControl
+                      ? () => void clearRowControl(rowId)
+                      : undefined
+                  }
+                  clearDisabled={
+                    hasDirty || pending > 0 || clearControl.isPending
+                  }
                 />
               ))}
               <TableRow sx={{ "& > td:not(:first-of-type)": { px: 0.5 } }}>
-                <TableCell>Итого за семестр / курс</TableCell>
+                <TableCell>
+                  Итого за семестр / курс
+                  <br />В учебном плане / В РПД
+                </TableCell>
                 {columns.map(({ key, editable }) => {
                   const comparable = isComparableHour(
                     key,
@@ -307,7 +355,7 @@ export function DisciplineContentTable({
             <ExportFromTemplates
               elementName="content"
               setChangeableValue={(value) =>
-                setData(value as DisciplineContentData)
+                setData((value ?? {}) as DisciplineContentData)
               }
             />
           </Box>
@@ -320,7 +368,11 @@ export function DisciplineContentTable({
         </Alert>
       )}
       {!readOnly && (
-        <Button variant="outlined" onClick={addRow}>
+        <Button
+          variant="outlined"
+          disabled={clearControl.isPending}
+          onClick={addRow}
+        >
           Добавить строку
         </Button>
       )}

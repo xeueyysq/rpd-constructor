@@ -10,6 +10,35 @@ import { templateHistoryKey } from "./history";
 const workflowKey = (id: number) => ["template-workflow", id] as const;
 const myTemplatesKey = ["my-templates"] as const;
 
+export function useSetTemplateParticipants() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async ({
+      templateId,
+      ...body
+    }: {
+      templateId: number;
+      teacherIds: number[];
+      baseTeacherIds: number[];
+    }) =>
+      (
+        await axiosBase.put<TemplateWorkflow>(
+          `templates/${templateId}/participants`,
+          body
+        )
+      ).data,
+    onSuccess: (snapshot) => {
+      queryClient.setQueryData(workflowKey(snapshot.templateId), snapshot);
+      void queryClient.invalidateQueries({ queryKey: ["rpd-complect"] });
+      void queryClient.invalidateQueries({ queryKey: myTemplatesKey });
+      void queryClient.invalidateQueries({
+        queryKey: templateHistoryKey(snapshot.templateId),
+      });
+    },
+    retry: false,
+  });
+}
+
 export function useTemplateWorkflow(id: number | undefined) {
   return useQuery({
     queryKey: workflowKey(id ?? 0),
