@@ -1,5 +1,7 @@
 import {
-  useWorkflowAction,
+  useSetTemplateParticipants,
+  useTemplateWorkflow,
+  templateImportError,
   type TemplateParticipant,
 } from "@entities/template";
 import { useAssignableTeachers } from "@entities/user";
@@ -17,9 +19,7 @@ import {
   TextField,
   Typography,
 } from "@mui/material";
-import { showErrorMessage } from "@shared/lib";
 import { useId, useState, type ReactNode } from "react";
-import { diffAssignments } from "../lib/diffAssignments";
 import type { TeacherHint } from "../lib/orderTeacherOptions";
 import {
   assignmentsDisabled,
@@ -88,13 +88,11 @@ function TeacherSection({
 
 interface Props {
   discipline: string;
-  templateId?: number | null;
+  templateId: number;
   status: string;
   participants: TemplateParticipant[];
   hints: TeacherHint[];
   canEditTeachers: boolean;
-  selectedIds: number[];
-  onSelectedIdsChange: (ids: number[]) => void;
   onRefresh: () => Promise<void>;
   onClose: () => void;
 }
@@ -106,66 +104,85 @@ export function AssignTeachersDialog({
   participants,
   hints,
   canEditTeachers,
-  selectedIds,
-  onSelectedIdsChange,
   onRefresh,
   onClose,
 }: Props) {
   const titleId = useId();
   const { data: users = [], isPending, isError } = useAssignableTeachers();
-  const workflow = useWorkflowAction();
+  const workflow = useSetTemplateParticipants();
+  const snapshot = useTemplateWorkflow(templateId);
   const [search, setSearch] = useState("");
   const [busy, setBusy] = useState(false);
-  const valueIds =
-    templateId != null
-      ? participants.map((participant) => participant.userId)
-      : selectedIds;
+  const [error, setError] = useState<string | null>(null);
+  const [baseTeacherIds, setBaseTeacherIds] = useState(() =>
+    participants.map((participant) => participant.userId)
+  );
+  const [valueIds, setValueIds] = useState(baseTeacherIds);
+  const [currentParticipants, setCurrentParticipants] = useState(participants);
+  const [restrictions, setRestrictions] = useState({ status, canEditTeachers });
   const { from1c, others, unmatchedNames } = prepareTeacherOptions(
     users,
-    participants,
+    currentParticipants,
     valueIds,
     hints,
     search
   );
-  const disabled = busy || assignmentsDisabled(status, canEditTeachers);
+  const disabled =
+    busy ||
+    assignmentsDisabled(restrictions.status, restrictions.canEditTeachers);
 
-  const handleChange = async (userId: number, checked: boolean) => {
+  const handleChange = (userId: number, checked: boolean) => {
     if (disabled) return;
-    const nextIds = checked
-      ? [...valueIds, userId]
-      : valueIds.filter((id) => id !== userId);
-    if (templateId == null) {
-      onSelectedIdsChange(nextIds);
+    setValueIds((previous) =>
+      checked
+        ? [...new Set([...previous, userId])]
+        : previous.filter((id) => id !== userId)
+    );
+  };
+
+  const apply = async () => {
+    if (disabled) return;
+    setBusy(true);
+    setError(null);
+    try {
+      const saved = await workflow.mutateAsync({
+        templateId,
+        teacherIds: valueIds,
+        baseTeacherIds,
+      });
+      setBaseTeacherIds(
+        saved.participants.map((participant) => participant.userId)
+      );
+      setCurrentParticipants(saved.participants);
+      setRestrictions({
+        status: saved.status,
+        canEditTeachers: saved.canEditTeachers,
+      });
+      await onRefresh();
+      onClose();
+    } catch (error) {
+      setError(templateImportError(error));
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  const reload = async () => {
+    const result = await snapshot.refetch();
+    if (!result.data || result.isError) {
+      setError("Не удалось обновить состав преподавателей");
       return;
     }
-    const changes = diffAssignments(valueIds, nextIds);
-    setBusy(true);
-    try {
-      for (const id of changes.unassign)
-        await workflow.mutateAsync({
-          templateId,
-          action: "unassign",
-          userId: id,
-        });
-      for (const id of changes.assign)
-        await workflow.mutateAsync({
-          templateId,
-          action: "assign",
-          userId: id,
-        });
-    } catch (error) {
-      console.error(error);
-      showErrorMessage("Не удалось изменить состав преподавателей");
-    } finally {
-      try {
-        await onRefresh();
-      } catch (error) {
-        console.error(error);
-        showErrorMessage("Не удалось обновить состав преподавателей");
-      } finally {
-        setBusy(false);
-      }
-    }
+    const current = result.data;
+    const ids = current.participants.map((participant) => participant.userId);
+    setCurrentParticipants(current.participants);
+    setBaseTeacherIds(ids);
+    setValueIds(ids);
+    setRestrictions({
+      status: current.status,
+      canEditTeachers: current.canEditTeachers,
+    });
+    setError(null);
   };
 
   return (
@@ -180,11 +197,27 @@ export function AssignTeachersDialog({
     >
       <DialogTitle id={titleId}>Преподаватели: {discipline}</DialogTitle>
       <DialogContent>
-        {status === "ready" ? (
+        {error && (
+          <Alert
+            severity="error"
+            sx={{ mb: 2 }}
+            action={
+              <Button
+                disabled={busy || snapshot.isFetching}
+                onClick={() => void reload()}
+              >
+                Обновить состав
+              </Button>
+            }
+          >
+            {error} Обновление сбросит локальный выбор.
+          </Alert>
+        )}
+        {restrictions.status === "ready" ? (
           <Alert severity="info" sx={{ mb: 2 }}>
             Чтобы изменить состав, верните РПД на доработку
           </Alert>
-        ) : !canEditTeachers ? (
+        ) : !restrictions.canEditTeachers ? (
           <Alert severity="info" sx={{ mb: 2 }}>
             Изменение состава преподавателей недоступно
           </Alert>
@@ -244,7 +277,14 @@ export function AssignTeachersDialog({
       </DialogContent>
       <DialogActions>
         <Button disabled={busy} onClick={onClose}>
-          Закрыть
+          Отмена
+        </Button>
+        <Button
+          variant="contained"
+          disabled={disabled}
+          onClick={() => void apply()}
+        >
+          Применить
         </Button>
       </DialogActions>
     </Dialog>

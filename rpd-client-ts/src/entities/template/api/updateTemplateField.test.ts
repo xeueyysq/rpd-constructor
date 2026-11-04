@@ -81,4 +81,60 @@ describe("сохранение текстового черновика", () => {
       expect.stringContaining("Показано актуальное значение")
     );
   });
+
+  it("сохраняет вопросы, ответы и общие контрольные вопросы ФОС как JSON; новые правки остаются dirty до следующего сохранения", async () => {
+    const funds = {
+      controlQuestions: "Общий контрольный вопрос",
+      competencies: {
+        "УК-1": {
+          openQuestions: "Открытый вопрос",
+          closedQuestions: "",
+          openPool: [
+            {
+              id: "q1",
+              text: "Открытый вопрос",
+              correctAnswer: "Правильный ответ",
+            },
+          ],
+          closedPool: [],
+          selectedOpenIds: ["q1"],
+          selectedClosedIds: [],
+        },
+      },
+    };
+    let finish!: (value: unknown) => void;
+    vi.mocked(axiosBase.put).mockImplementationOnce(
+      () =>
+        new Promise((resolve) => {
+          finish = resolve;
+        })
+    );
+    const save = useUpdateTemplateField();
+    const saved = save("assessment_tools_questions", funds);
+    useTemplateSync.getState().markDirty("assessment_tools_questions");
+    finish({
+      data: { field: "assessment_tools_questions", value: funds, edit },
+    });
+    expect(await saved).toBe(true);
+    expect(useStore.getState().jsonData.assessment_tools_questions).toEqual(
+      funds
+    );
+    expect(
+      useTemplateSync.getState().dirty.assessment_tools_questions
+    ).toBeDefined();
+    const next = {
+      ...funds,
+      controlQuestions: "Дополненный контрольный вопрос",
+    };
+    vi.mocked(axiosBase.put).mockResolvedValueOnce({
+      data: { field: "assessment_tools_questions", value: next, edit },
+    });
+    expect(await save("assessment_tools_questions", next)).toBe(true);
+    expect(axiosBase.put).toHaveBeenLastCalledWith("update-json-value/12", {
+      fieldToUpdate: "assessment_tools_questions",
+      value: next,
+      baseAt: after,
+    });
+    expect(useTemplateSync.getState().dirty).toEqual({});
+  });
 });

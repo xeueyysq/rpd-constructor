@@ -1,4 +1,3 @@
-import type { ComplectData } from "@shared/types/complect";
 import type {
   TemplateParticipant,
   TemplateStatusCode,
@@ -29,4 +28,32 @@ export interface TemplateData {
   removed_at?: string | null;
 }
 
-export type ComplectMeta = ComplectData & { templates: TemplateData[] };
+// find-rpd возвращает метаданные rpd_complects без SQL-алиасов списка комплектов.
+export type ComplectRpdDto = {
+  id: number;
+  uuid: string;
+  faculty: string | null;
+  direction: string | null;
+  profile: string | null;
+  year: number | null;
+  education_form: string | null;
+  education_level: string | null;
+  last_synced_at: string | null;
+  has_pending_changes: boolean;
+  templates: TemplateData[];
+};
+
+export type ComplectMeta = Omit<
+  ComplectRpdDto,
+  | "direction"
+  | "education_form"
+  | "education_level"
+  | "last_synced_at"
+  | "has_pending_changes"
+> & {
+  directionOfStudy: string | null;
+  formEducation: string | null;
+  levelEducation: string | null;
+  lastSyncedAt: string | null;
+  hasPendingChanges: boolean;
+};

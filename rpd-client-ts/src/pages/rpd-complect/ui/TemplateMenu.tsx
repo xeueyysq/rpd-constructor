@@ -1,4 +1,3 @@
-import AddCircleOutlineOutlinedIcon from "@mui/icons-material/AddCircleOutlineOutlined";
 import HistoryIcon from "@mui/icons-material/History";
 import EditOutlinedIcon from "@mui/icons-material/EditOutlined";
 import MoreHorizIcon from "@mui/icons-material/MoreHoriz";
@@ -19,7 +18,7 @@ interface Props {
   id: number | null;
   allowedActions: WorkflowAction[];
   onOpenHistory: () => void;
-  onCreateTemplate: () => Promise<void>;
+  targetLabel: string;
   publicId?: string;
   fetchData: () => Promise<void>;
   canEditTeachers: boolean;
@@ -30,7 +29,7 @@ export default function TemplateMenu({
   id,
   allowedActions,
   onOpenHistory,
-  onCreateTemplate,
+  targetLabel,
   publicId,
   fetchData,
   canEditTeachers,
@@ -66,19 +65,6 @@ export default function TemplateMenu({
         open={Boolean(anchorEl)}
         onClose={close}
       >
-        {id == null ? (
-          <MenuItem
-            onClick={() => {
-              close();
-              void onCreateTemplate();
-            }}
-          >
-            <ListItemIcon>
-              <AddCircleOutlineOutlinedIcon />
-            </ListItemIcon>
-            Создать
-          </MenuItem>
-        ) : null}
         {id != null ? (
           <MenuItem
             onClick={() => {
@@ -94,7 +80,7 @@ export default function TemplateMenu({
             Открыть
           </MenuItem>
         ) : null}
-        {canEditTeachers ? (
+        {canEditTeachers && id != null ? (
           <MenuItem
             onClick={() => {
               close();
@@ -156,7 +142,7 @@ export default function TemplateMenu({
         <ImportFromComplectsDialog
           open
           targetTemplateId={id}
-          appendParagraph
+          targetLabel={targetLabel}
           onClose={() => setOpenImportDialog(false)}
           onImported={fetchData}
         />

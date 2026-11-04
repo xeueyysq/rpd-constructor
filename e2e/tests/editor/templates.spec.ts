@@ -45,11 +45,14 @@ test('титул из 1С, компетенции другого регистр�
     'Базы данных и SQL для регрессии', 'Введение в программирование для регрессии',
   ]);
   const exchangeId = initial.find((row) => row.discipline === 'Введение в программирование для регрессии')!.id;
-  const created = await request.post(`${apiUrl}/api/create-profile-template-from-1c`, {
-    headers, data: { complectId: 90, id_1c: exchangeId, teacherIds: [] },
-  });
-  expect(created.status()).toBe(200);
-  const { templateId } = await created.json() as { templateId: number };
+  const initialized = initial.find((row) => row.id === exchangeId)!;
+  expect(initialized.status).toBe('created');
+  expect(initialized.id_profile_template).toEqual(expect.any(Number));
+  expect(initialized.profile_template_public_id).toEqual(expect.any(String));
+  const templateId = initialized.id_profile_template!;
+  const initialWorkflow = await request.get(`${apiUrl}/api/templates/${templateId}/workflow`, { headers });
+  expect(initialWorkflow.status()).toBe(200);
+  expect((await initialWorkflow.json()).participants).toEqual([]);
   const results = await request.post(`${apiUrl}/api/set-results-data`, {
     headers,
     data: { complectId: 90, data: [{

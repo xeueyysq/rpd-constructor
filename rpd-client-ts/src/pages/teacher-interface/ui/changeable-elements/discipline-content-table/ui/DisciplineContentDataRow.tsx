@@ -1,4 +1,4 @@
-import { Box, TableCell, TableRow, TextField } from "@mui/material";
+import { Box, Button, TableCell, TableRow, TextField } from "@mui/material";
 import { EditableTableCell } from "../../EditableTableCell";
 import { DisciplineContentRow, EditableRowKey } from "../types";
 import { ATTESTATION_ROW_ID } from "@pages/teacher-interface/model/useDisciplineContentData";
@@ -15,6 +15,8 @@ type DisciplineContentDataRowProps = {
     value: string | number | null
   ) => void;
   onBlur: () => void;
+  onClearControl?: () => void;
+  clearDisabled: boolean;
 };
 
 export function DisciplineContentDataRow({
@@ -24,8 +26,14 @@ export function DisciplineContentDataRow({
   attestationTheme,
   onValueChange,
   onBlur,
+  onClearControl,
+  clearDisabled,
 }: DisciplineContentDataRowProps) {
   const rowHours = getRowHours(row);
+  const legacyControl =
+    typeof row.control === "number" || typeof row.control === "string"
+      ? Number(String(row.control).replace(/\s+/g, "").replace(",", "."))
+      : 0;
 
   return (
     <TableRow key={rowId}>
@@ -92,12 +100,30 @@ export function DisciplineContentDataRow({
         onBlur={onBlur}
         readOnly={readOnly}
       />
-      <EditableTableCell
-        value={row.control ?? null}
-        onValueChange={(value) => onValueChange(rowId, "control", value)}
-        onBlur={onBlur}
-        readOnly={readOnly || rowId !== ATTESTATION_ROW_ID}
-      />
+      {rowId !== ATTESTATION_ROW_ID &&
+      onClearControl &&
+      row.theme.trim() &&
+      Number.isFinite(legacyControl) &&
+      legacyControl !== 0 ? (
+        <TableCell sx={{ textAlign: "center" }}>
+          {row.control}
+          <Button
+            size="small"
+            disabled={readOnly || clearDisabled}
+            onClick={onClearControl}
+            aria-label={`Очистить контроль: ${row.theme}`}
+          >
+            Очистить
+          </Button>
+        </TableCell>
+      ) : (
+        <EditableTableCell
+          value={row.control ?? null}
+          onValueChange={(value) => onValueChange(rowId, "control", value)}
+          onBlur={onBlur}
+          readOnly={readOnly || rowId !== ATTESTATION_ROW_ID}
+        />
+      )}
     </TableRow>
   );
 }

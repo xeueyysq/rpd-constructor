@@ -7,8 +7,8 @@ export type StoredFieldEdits = Record<string, StoredFieldEdit>;
 
 const EDIT_AT = `to_char(clock_timestamp() AT TIME ZONE 'UTC', 'YYYY-MM-DD"T"HH24:MI:SS.US"Z"')`;
 
-export function fieldEditsSet(userParam: number, fieldsParam: number): string {
-  return `field_edits = field_edits || COALESCE((SELECT jsonb_object_agg(f, jsonb_build_object('userId', $${userParam}::int, 'at', ${EDIT_AT})) FROM unnest($${fieldsParam}::text[]) f), '{}'::jsonb)`;
+export function fieldEditsSet(userParam: number, fieldsParam: number, tableAlias?: string): string {
+  return `field_edits = ${tableAlias ? `${tableAlias}.` : ""}field_edits || COALESCE((SELECT jsonb_object_agg(f, jsonb_build_object('userId', $${userParam}::int, 'at', ${EDIT_AT})) FROM unnest($${fieldsParam}::text[]) f), '{}'::jsonb)`;
 }
 
 export async function withEditorNamesAndUsers(db: Pool | PoolClient, fieldEdits: StoredFieldEdits | null, extraIds: number[] = []) {

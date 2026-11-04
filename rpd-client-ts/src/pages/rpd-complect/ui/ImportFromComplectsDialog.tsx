@@ -18,387 +18,299 @@ import {
   Typography,
 } from "@mui/material";
 import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
-import { useCallback, useEffect, useMemo, useState } from "react";
-import { useRpdComplectsQuery } from "@entities/rpd-complect";
-import { axiosBase } from "@shared/api";
-import { showErrorMessage, showSuccessMessage } from "@shared/lib";
-import type { ComplectData } from "@shared/types";
-import type { ComplectMeta } from "../types";
+import { useEffect, useState } from "react";
+import { isAxiosError } from "axios";
+import {
+  importComplectLabel,
+  importSkipLabels,
+  matchesImportSource,
+  templateImportError,
+  useCopyTemplateContent,
+  useImportComplect,
+  useImportSources,
+  type ImportComplectResponse,
+  type ImportSources,
+} from "@entities/template";
+import { showSuccessMessage } from "@shared/lib";
 
-export type ImportFromComplectsDialogProps = {
+type Props = {
   open: boolean;
-  targetTemplateId: number;
-  appendParagraph?: boolean;
+  targetLabel: string;
   onClose: () => void;
   onImported: () => Promise<void> | void;
-};
+} & (
+  | { targetTemplateId: number; targetComplectId?: never }
+  | { targetComplectId: number | string; targetTemplateId?: never }
+);
 
 export function ImportFromComplectsDialog({
   open,
   targetTemplateId,
-  appendParagraph = true,
+  targetComplectId,
+  targetLabel,
   onClose,
   onImported,
-}: ImportFromComplectsDialogProps) {
-  const { complects, isLoading, isError } = useRpdComplectsQuery();
-  const [expandedComplectId, setExpandedComplectId] = useState<number | null>(
-    null
+}: Props) {
+  const bulk = targetComplectId != null;
+  const sources = useImportSources(
+    targetComplectId != null
+      ? { targetComplectId }
+      : { targetTemplateId: targetTemplateId! },
+    open
   );
-  const [templatesByComplectId, setTemplatesByComplectId] = useState<
-    Record<number, ComplectMeta["templates"]>
-  >({});
-  const [templatesLoading, setTemplatesLoading] = useState<
-    Record<number, boolean>
-  >({});
-  const [templatesError, setTemplatesError] = useState<
-    Record<number, string | null>
-  >({});
-  const [searchByComplectId, setSearchByComplectId] = useState<
-    Record<number, string>
-  >({});
-  const [selectedSourceProfileTemplateId, setSelectedSourceProfileTemplateId] =
-    useState<number | null>(null);
-  const [isImporting, setIsImporting] = useState(false);
-  const [openConfirmDialog, setOpenConfirmDialog] = useState(false);
+  const copy = useCopyTemplateContent();
+  const importComplect = useImportComplect();
+  const [catalog, setCatalog] = useState<ImportSources | null>(null);
+  const [expanded, setExpanded] = useState<number | null>(null);
+  const [search, setSearch] = useState<Record<number, string>>({});
+  const [selected, setSelected] = useState<number | null>(null);
+  const [confirm, setConfirm] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [needsReload, setNeedsReload] = useState(false);
+  const [result, setResult] = useState<ImportComplectResponse | null>(null);
+  const busy = copy.isPending || importComplect.isPending;
 
   useEffect(() => {
-    if (!open) {
-      setExpandedComplectId(null);
-      setTemplatesByComplectId({});
-      setTemplatesLoading({});
-      setTemplatesError({});
-      setSearchByComplectId({});
-      setSelectedSourceProfileTemplateId(null);
-      setIsImporting(false);
-      setOpenConfirmDialog(false);
-    }
-  }, [open]);
+    if (!catalog && sources.data && !sources.isFetching && !sources.isError)
+      setCatalog(sources.data);
+  }, [sources.data, sources.isFetching, sources.isError, catalog]);
 
-  const complectLabel = useCallback(
-    (c: ComplectData) => `${c.profile} ${c.year}`,
-    []
-  );
+  const reload = async () => {
+    const refreshed = await sources.refetch();
+    if (!refreshed.data || refreshed.isError) return;
+    setCatalog(refreshed.data);
+    setSelected(null);
+    setConfirm(false);
+    setNeedsReload(false);
+    setError(null);
+  };
 
-  const fetchComplectTemplates = useCallback(
-    async (complectId: number) => {
-      if (templatesByComplectId[complectId]) return;
-      if (templatesLoading[complectId]) return;
-
-      setTemplatesLoading((p) => ({ ...p, [complectId]: true }));
-      setTemplatesError((p) => ({ ...p, [complectId]: null }));
-
-      try {
-        const { data } = await axiosBase.post<ComplectMeta>("find-rpd", {
-          complectId,
-        });
-        setTemplatesByComplectId((p) => ({
-          ...p,
-          [complectId]: data.templates ?? [],
-        }));
-      } catch (e) {
-        console.error(e);
-        setTemplatesError((p) => ({
-          ...p,
-          [complectId]: "Не удалось загрузить шаблоны комплекта",
-        }));
-      } finally {
-        setTemplatesLoading((p) => ({ ...p, [complectId]: false }));
-      }
-    },
-    [templatesByComplectId, templatesLoading]
-  );
-
-  const handleToggleComplect = useCallback(
-    async (complectId: number) => {
-      const next = expandedComplectId === complectId ? null : complectId;
-      setExpandedComplectId(next);
-      if (next !== null) {
-        await fetchComplectTemplates(next);
-      }
-    },
-    [expandedComplectId, fetchComplectTemplates]
-  );
-
-  const handleImport = useCallback(async () => {
-    if (!selectedSourceProfileTemplateId) return;
-    if (selectedSourceProfileTemplateId === targetTemplateId) {
-      showErrorMessage("Нельзя импортировать шаблон сам в себя");
-      return;
-    }
-
-    setIsImporting(true);
+  const handleImport = async () => {
+    if (selected == null || !catalog || needsReload) return;
+    setError(null);
     try {
-      const { data } = await axiosBase.post<{
-        success?: boolean;
-        message?: string;
-      }>("copy-template-content", {
-        sourceTemplateId: selectedSourceProfileTemplateId,
-        targetTemplateId,
-        appendParagraph,
-      });
-      if (data?.success === false) {
-        showErrorMessage(data?.message || "Ошибка при импорте данных");
-      } else {
-        setOpenConfirmDialog(false);
-        showSuccessMessage("Данные успешно импортированы");
-        onClose();
+      if (targetComplectId != null) {
+        const imported = await importComplect.mutateAsync({
+          sourceComplectId: selected,
+          targetComplectId,
+          targetRevision: catalog.targetRevision,
+        });
+        setResult(imported);
+        setConfirm(false);
         await onImported();
+      } else {
+        await copy.mutateAsync({
+          sourceTemplateId: selected,
+          targetTemplateId: targetTemplateId!,
+          targetRevision: catalog.targetRevision,
+        });
+        showSuccessMessage("Данные успешно импортированы");
+        await onImported();
+        onClose();
       }
-    } catch (e) {
-      console.error(e);
-      showErrorMessage("Ошибка при импорте данных");
-    } finally {
-      setIsImporting(false);
+    } catch (error) {
+      setError(templateImportError(error));
+      setNeedsReload(isAxiosError(error) && error.response?.status === 409);
+      setConfirm(false);
     }
-  }, [
-    selectedSourceProfileTemplateId,
-    targetTemplateId,
-    appendParagraph,
-    onClose,
-    onImported,
-  ]);
+  };
 
-  const filteredTemplatesByComplectId = useMemo(() => {
-    const result: Record<number, ComplectMeta["templates"]> = {};
-    for (const [idStr, templates] of Object.entries(templatesByComplectId)) {
-      const complectId = Number(idStr);
-      const q = (searchByComplectId[complectId] ?? "").trim().toLowerCase();
-
-      const created = (templates ?? []).filter((t) => !!t.id_profile_template);
-      const withoutSelf = created.filter(
-        (t) => t.id_profile_template !== targetTemplateId
-      );
-
-      if (!q) {
-        result[complectId] = withoutSelf;
-        continue;
-      }
-
-      result[complectId] = withoutSelf.filter((t) => {
-        const hay =
-          `${t.discipline} ${t.participants.map((participant) => participant.fullname).join(", ")} ${t.semester}`.toLowerCase();
-        return hay.includes(q);
-      });
-    }
-    return result;
-  }, [templatesByComplectId, searchByComplectId, targetTemplateId]);
+  const selectedComplect = catalog?.complects.find((complect) =>
+    bulk
+      ? complect.id === selected
+      : complect.templates.some((template) => template.id === selected)
+  );
+  const selectedTemplate = selectedComplect?.templates.find(
+    (template) => template.id === selected
+  );
+  const sourceLabel = selectedComplect
+    ? [
+        bulk ? null : selectedTemplate?.disciplins_name,
+        bulk ? null : `семестр ${selectedTemplate?.semester ?? "—"}`,
+        importComplectLabel(selectedComplect),
+      ]
+        .filter(Boolean)
+        .join(" • ")
+    : "";
 
   return (
     <>
-      <Dialog open={open} onClose={onClose} maxWidth="md" fullWidth>
-        <DialogTitle>Импортировать данные из шаблона</DialogTitle>
+      <Dialog
+        open={open}
+        onClose={() => !busy && onClose()}
+        maxWidth="md"
+        fullWidth
+      >
+        <DialogTitle>
+          {bulk ? "Импортировать все дисциплины" : "Импортировать данные РПД"}
+        </DialogTitle>
         <DialogContent>
+          <Typography sx={{ mb: 1 }}>Цель: {targetLabel}</Typography>
           <Typography variant="body2" sx={{ color: "text.secondary" }}>
-            Выберите комплект, затем шаблон. Будут импортированы только
-            контентные поля (без дисциплины, семестра, нагрузки, формы
-            промежуточной аттестации и т.п.)
+            {bulk
+              ? "Выберите исходный комплект. Дисциплины сопоставляются по названию, точному семестру и типу записи."
+              : "Выберите комплект, затем РПД."}{" "}
+            Содержательные поля заменяются. Компетенции, оба раздела ФОС и
+            данные учебного плана сохраняются.
           </Typography>
           <Divider sx={{ my: 1.5 }} />
-
-          {isLoading ? (
-            <Typography sx={{ color: "text.secondary" }}>
-              Загрузка комплектов…
-            </Typography>
-          ) : isError ? (
-            <Alert severity="error">
-              Не удалось загрузить список комплектов
+          {(error || sources.isError) && (
+            <Alert severity="error" sx={{ mb: 2 }}>
+              {error ?? templateImportError(sources.error)}
             </Alert>
-          ) : complects.length === 0 ? (
-            <Typography sx={{ color: "text.secondary" }}>
-              Нет доступных комплектов
-            </Typography>
-          ) : (
+          )}
+          {(error || sources.isError) && (
+            <Button
+              disabled={busy || sources.isFetching}
+              onClick={() => void reload()}
+            >
+              Обновить данные
+            </Button>
+          )}
+          {result ? (
             <Box>
-              {complects.map((c) => {
-                const isExpanded = expandedComplectId === c.id;
-                const templates = filteredTemplatesByComplectId[c.id] ?? [];
-                const isTplLoading = templatesLoading[c.id];
-                const tplError = templatesError[c.id];
-
-                return (
-                  <Accordion
-                    key={c.id}
-                    expanded={isExpanded}
-                    onChange={() => handleToggleComplect(c.id)}
-                    disableGutters
-                    sx={{ mb: 1 }}
-                  >
-                    <AccordionSummary expandIcon={<ExpandMoreIcon />}>
-                      <Box>
-                        <Typography>{complectLabel(c)}</Typography>
-                        <Typography
-                          variant="caption"
-                          sx={{ color: "text.secondary" }}
-                        >
-                          {c.directionOfStudy} • {c.levelEducation} •{" "}
-                          {c.formEducation}
-                        </Typography>
-                      </Box>
-                    </AccordionSummary>
-                    <AccordionDetails>
-                      <TextField
-                        value={searchByComplectId[c.id] ?? ""}
-                        onChange={(e) =>
-                          setSearchByComplectId((p) => ({
-                            ...p,
-                            [c.id]: e.target.value,
-                          }))
-                        }
-                        size="small"
-                        fullWidth
-                        label="Поиск по шаблонам (дисциплина/преподаватель/семестр)"
-                        sx={{ mb: 1 }}
-                      />
-
-                      {tplError ? (
-                        <Alert severity="error" sx={{ mb: 1 }}>
-                          {tplError}
-                        </Alert>
-                      ) : null}
-
-                      {isTplLoading ? (
-                        <Typography sx={{ color: "text.secondary" }}>
-                          Загрузка шаблонов…
-                        </Typography>
-                      ) : templates.length === 0 ? (
-                        <Typography sx={{ color: "text.secondary" }}>
-                          В этом комплекте нет созданных шаблонов для импорта
-                        </Typography>
-                      ) : (
-                        <List dense disablePadding>
-                          {templates.map((t) => {
-                            const sourceId = t.id_profile_template!;
-                            const selected =
-                              selectedSourceProfileTemplateId === sourceId;
-                            return (
-                              <ListItemButton
-                                key={sourceId}
-                                selected={selected}
-                                onClick={() =>
-                                  setSelectedSourceProfileTemplateId(sourceId)
-                                }
-                                sx={{
-                                  border: "1px solid",
-                                  borderColor: selected
-                                    ? "primary.main"
-                                    : "divider",
-                                  borderRadius: 1,
-                                  mb: 1,
-                                }}
-                              >
-                                <Radio checked={selected} value={sourceId} />
-                                <ListItemText
-                                  primary={
-                                    <Box
-                                      sx={{
-                                        display: "flex",
-                                        justifyContent: "space-between",
-                                        gap: 2,
-                                      }}
-                                    >
-                                      <Box sx={{ minWidth: 0 }}>
-                                        <Typography
-                                          sx={{ fontWeight: 600 }}
-                                          noWrap
-                                        >
-                                          {t.discipline}
-                                        </Typography>
-                                        <Typography
-                                          variant="body2"
-                                          sx={{ color: "text.secondary" }}
-                                          noWrap
-                                        >
-                                          {t.participants
-                                            .map(
-                                              (participant) =>
-                                                participant.fullname
-                                            )
-                                            .join(", ") || "—"}{" "}
-                                          • семестр {t.semester}
-                                        </Typography>
-                                      </Box>
-                                      <Typography
-                                        variant="caption"
-                                        sx={{ color: "text.secondary" }}
-                                      >
-                                        ID {sourceId}
-                                      </Typography>
-                                    </Box>
-                                  }
-                                />
-                              </ListItemButton>
-                            );
-                          })}
-                        </List>
-                      )}
-                    </AccordionDetails>
-                  </Accordion>
-                );
-              })}
+              <Alert severity="success">
+                Импортировано: {result.counts.imported}. Пропущено:{" "}
+                {result.counts.skipped}. Всего: {result.counts.total}.
+              </Alert>
+              {result.skipped.length > 0 && (
+                <List dense>
+                  {result.skipped.map((entry) => (
+                    <ListItemText
+                      key={entry.targetExchangeId}
+                      primary={`${entry.discipline ?? "—"} • семестр ${entry.semester ?? "—"} • ${entry.record_type ?? "—"}`}
+                      secondary={importSkipLabels[entry.reason]}
+                    />
+                  ))}
+                </List>
+              )}
             </Box>
+          ) : !catalog ? (
+            <Typography sx={{ color: "text.secondary" }}>
+              {sources.isFetching
+                ? "Загрузка источников…"
+                : "Источники не загружены"}
+            </Typography>
+          ) : catalog.complects.length === 0 ? (
+            <Typography>Нет доступных комплектов для импорта</Typography>
+          ) : (
+            catalog.complects.map((complect) =>
+              bulk ? (
+                <ListItemButton
+                  key={complect.id}
+                  selected={selected === complect.id}
+                  onClick={() => setSelected(complect.id)}
+                >
+                  <Radio checked={selected === complect.id} />
+                  <ListItemText
+                    primary={importComplectLabel(complect)}
+                    secondary={`${complect.faculty ?? ""} • комплект №${complect.id}`}
+                  />
+                </ListItemButton>
+              ) : (
+                <Accordion
+                  key={complect.id}
+                  expanded={expanded === complect.id}
+                  onChange={() =>
+                    setExpanded(expanded === complect.id ? null : complect.id)
+                  }
+                  disableGutters
+                  sx={{ mb: 1 }}
+                >
+                  <AccordionSummary expandIcon={<ExpandMoreIcon />}>
+                    <Box>
+                      <Typography>{importComplectLabel(complect)}</Typography>
+                      <Typography
+                        variant="caption"
+                        sx={{ color: "text.secondary" }}
+                      >
+                        {complect.faculty} • комплект №{complect.id}
+                      </Typography>
+                    </Box>
+                  </AccordionSummary>
+                  <AccordionDetails>
+                    <TextField
+                      value={search[complect.id] ?? ""}
+                      onChange={(event) =>
+                        setSearch((previous) => ({
+                          ...previous,
+                          [complect.id]: event.target.value,
+                        }))
+                      }
+                      size="small"
+                      fullWidth
+                      label="Поиск по дисциплине или преподавателю"
+                      sx={{ mb: 1 }}
+                    />
+                    <List dense disablePadding>
+                      {complect.templates
+                        .filter((template) =>
+                          matchesImportSource(
+                            template,
+                            search[complect.id] ?? ""
+                          )
+                        )
+                        .map((template) => (
+                          <ListItemButton
+                            key={template.id}
+                            selected={selected === template.id}
+                            onClick={() => setSelected(template.id)}
+                          >
+                            <Radio checked={selected === template.id} />
+                            <ListItemText
+                              primary={template.disciplins_name ?? "—"}
+                              secondary={`${template.participants.map((participant) => participant.fullname).join(", ") || "Преподаватели не назначены"} • семестр ${template.semester ?? "—"} • ${template.record_type ?? "—"} • РПД №${template.id}`}
+                            />
+                          </ListItemButton>
+                        ))}
+                    </List>
+                  </AccordionDetails>
+                </Accordion>
+              )
+            )
           )}
         </DialogContent>
         <DialogActions>
-          <Button onClick={onClose} disabled={isImporting}>
-            Отмена
+          <Button onClick={onClose} disabled={busy}>
+            {result ? "Закрыть" : "Отмена"}
           </Button>
-          <Button
-            variant="contained"
-            onClick={() => setOpenConfirmDialog(true)}
-            disabled={!selectedSourceProfileTemplateId || isImporting}
-          >
-            Импортировать
-          </Button>
+          {!result && (
+            <Button
+              variant="contained"
+              onClick={() => setConfirm(true)}
+              disabled={selected == null || busy || !catalog || needsReload}
+            >
+              Импортировать
+            </Button>
+          )}
         </DialogActions>
       </Dialog>
       <Dialog
-        open={openConfirmDialog}
-        onClose={() => !isImporting && setOpenConfirmDialog(false)}
+        open={confirm}
+        onClose={() => !busy && setConfirm(false)}
         maxWidth="sm"
         fullWidth
       >
         <DialogTitle>Подтвердите импорт</DialogTitle>
         <DialogContent>
-          <Typography variant="body2" sx={{ mb: 1.5 }}>
-            Контентные данные текущего шаблона будут изменены данными из
-            выбранного шаблона:
+          <Typography sx={{ mb: 1 }}>Цель: {targetLabel}</Typography>
+          <Typography sx={{ mb: 1 }}>Источник: {sourceLabel}</Typography>
+          <Typography variant="body2">
+            {bulk
+              ? "Содержательные поля совпавших дисциплин будут полностью заменены данными выбранного комплекта. Несовпавшие и недоступные дисциплины будут пропущены."
+              : "Содержательные поля текущей РПД будут полностью заменены данными выбранной РПД."}{" "}
+            Компетенции, вопросы и шаблон ФОС, дисциплина, семестр, нагрузки и
+            аттестация останутся прежними.
           </Typography>
-          <Box
-            component="ul"
-            sx={{
-              m: 0,
-              pl: 2.5,
-              "& li": { mb: 1 },
-              "& li:last-child": { mb: 0 },
-            }}
-          >
-            <Typography component="li" variant="body2">
-              Полностью заменятся: содержание дисциплины, компетенции, вопросы
-              фонда оценочных средств.
-            </Typography>
-            <Typography component="li" variant="body2">
-              Дополнятся к уже заполненному тексту: цели, протокол,
-              дополнительные тексты разделов, шаблоны методической поддержки и
-              оценочных средств, учебники, информационные ресурсы, программное
-              обеспечение, материально-техническое обеспечение.
-            </Typography>
-            <Typography component="li" variant="body2">
-              Не изменятся: форма промежуточной аттестации, дисциплина, семестр,
-              нагрузка и другие служебные поля шаблона.
-            </Typography>
-          </Box>
         </DialogContent>
         <DialogActions>
-          <Button
-            onClick={() => setOpenConfirmDialog(false)}
-            disabled={isImporting}
-          >
+          <Button onClick={() => setConfirm(false)} disabled={busy}>
             Отмена
           </Button>
           <Button
             variant="contained"
-            onClick={handleImport}
-            disabled={isImporting}
+            onClick={() => void handleImport()}
+            disabled={busy || needsReload}
           >
             Импортировать
           </Button>

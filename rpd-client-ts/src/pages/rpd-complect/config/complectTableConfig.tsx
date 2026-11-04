@@ -5,6 +5,7 @@ import type { TemplateData } from "../types";
 export const complectTableOptions: Partial<MRT_TableOptions<TemplateData>> = {
   localization: MRT_Localization_RU,
   enableRowSelection: false,
+  globalFilterFn: "contains",
   enableColumnResizing: true,
   layoutMode: "grid",
   initialState: {

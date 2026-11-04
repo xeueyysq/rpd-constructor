@@ -2,23 +2,6 @@ import type { TemplateParticipant } from "@entities/template";
 import type { AssignableTeacher } from "@entities/user";
 import { orderTeacherOptions, type TeacherHint } from "./orderTeacherOptions";
 
-export function selectedParticipants(
-  templateId: number | null | undefined,
-  participants: TemplateParticipant[],
-  users: AssignableTeacher[],
-  selectedIds: number[]
-): Pick<TemplateParticipant, "userId" | "fullname" | "state" | "isActive">[] {
-  if (templateId != null) return participants;
-  return users
-    .filter((user) => selectedIds.includes(user.id))
-    .map((user) => ({
-      userId: user.id,
-      fullname: user.fullname,
-      state: "assigned",
-      isActive: true,
-    }));
-}
-
 export function prepareTeacherOptions(
   users: AssignableTeacher[],
   participants: TemplateParticipant[],

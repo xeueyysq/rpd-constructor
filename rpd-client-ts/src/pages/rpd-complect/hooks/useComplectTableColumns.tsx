@@ -7,19 +7,17 @@ import { StatusWithDate } from "@shared/ui";
 import type { MRT_ColumnDef } from "material-react-table";
 import { useMemo } from "react";
 import TemplateMenu from "../ui/TemplateMenu";
-import type { TemplateData } from "../types";
+import type { ComplectMeta, TemplateData } from "../types";
 
 type Params = {
-  selectedTeacherIds: Record<number, number[]>;
-  onCreateTemplate: (id: number) => Promise<void>;
+  complect: ComplectMeta | undefined;
   onFetchData: () => Promise<void>;
   onOpenTeachers: (exchangeId: number) => void;
   onOpenHistory: (templateId: number) => void;
 };
 
 export function useComplectTableColumns({
-  selectedTeacherIds,
-  onCreateTemplate,
+  complect,
   onFetchData,
   onOpenTeachers,
   onOpenHistory,
@@ -27,11 +25,12 @@ export function useComplectTableColumns({
   const actionsColumn = useActionsColumn<TemplateData>();
   return useMemo(
     () => [
-      { accessorKey: "discipline", header: "Дисциплина" },
+      { accessorKey: "discipline", header: "Дисциплина", filterFn: "contains" },
       { accessorKey: "semester", header: "Семестр", size: 100, grow: false },
       {
         id: "participants",
         header: "Преподаватели",
+        filterFn: "contains",
         minSize: 240,
         size: 280,
         accessorFn: (row) =>
@@ -42,7 +41,6 @@ export function useComplectTableColumns({
             status={row.original.status}
             participants={row.original.participants}
             canEditTeachers={row.original.canEditTeachers}
-            selectedIds={selectedTeacherIds[row.original.id] ?? []}
             onOpen={() => onOpenTeachers(row.original.id)}
           />
         ),
@@ -87,23 +85,16 @@ export function useComplectTableColumns({
             allowedActions={row.original.allowedActions}
             fetchData={onFetchData}
             canEditTeachers={row.original.canEditTeachers}
+            targetLabel={`${row.original.discipline} • семестр ${row.original.semester} • ${complect?.profile ?? ""} • ${complect?.year ?? ""}`}
             onEditTeachers={() => onOpenTeachers(row.original.id)}
             onOpenHistory={() => {
               if (row.original.id_profile_template != null)
                 onOpenHistory(row.original.id_profile_template);
             }}
-            onCreateTemplate={() => onCreateTemplate(row.original.id)}
           />
         ),
       },
     ],
-    [
-      actionsColumn,
-      selectedTeacherIds,
-      onCreateTemplate,
-      onFetchData,
-      onOpenTeachers,
-      onOpenHistory,
-    ]
+    [actionsColumn, complect, onFetchData, onOpenTeachers, onOpenHistory]
   );
 }

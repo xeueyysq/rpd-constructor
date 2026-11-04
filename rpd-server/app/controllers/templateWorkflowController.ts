@@ -27,4 +27,11 @@ export default class TemplateWorkflowController {
   static async assignableTeachers(req: Request, res: Response) {
     res.json(await workflow.assignableTeachers(TemplateAccess.actor(req.user)));
   }
+
+  static async setParticipants(req: Request, res: Response) {
+    const body: unknown = req.body;
+    if (!body || typeof body !== "object" || Array.isArray(body)) throw new Unprocessable("Укажите состав преподавателей");
+    const { teacherIds, baseTeacherIds } = body as Record<string, unknown>;
+    res.json(await workflow.setParticipants(req.params.id, TemplateAccess.actor(req.user), teacherIds, baseTeacherIds));
+  }
 }

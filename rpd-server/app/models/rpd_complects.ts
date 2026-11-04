@@ -89,7 +89,7 @@ class RpdComplects {
         profile: data.profile,
         direction: data.directionOfStudy,
       };
-      const RpdComplectId = await exchange1C(apiData, { actor });
+      const RpdComplectId = await exchange1C(apiData, { actor, database: this.pool });
       return RpdComplectId;
     } catch (error) {
       console.error(error);
