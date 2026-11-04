@@ -1,12 +1,13 @@
 import type { Pool, PoolClient } from "pg";
 import type { UserClaims } from "../types/express.d.ts";
 import { pool } from "../../config/db.ts";
-import { Conflict, Forbidden, NotFound, Unprocessable } from "../utils/Errors.ts";
+import { Forbidden, NotFound, Unprocessable } from "../utils/Errors.ts";
 import { ASSIGNABLE_TEACHER_ROLES, USER_ROLES } from "../models/constants.ts";
 import { formatShortName, fullnameText } from "../modules/teacherNames.ts";
 import { formatDisciplineName } from "../modules/disciplineNames.ts";
 import { allowedActions, decide, deriveStatus, statusChangedAt, type DecisionInput, type Participant, type TemplateStatus, type WorkflowAction, type ParticipationState } from "../modules/templateWorkflow.ts";
 import TemplateAccess from "./TemplateAccess.ts";
+import { initializeRpdFromExchange } from "../modules/initializeRpdFromExchange.ts";
 
 type Database = Pool | PoolClient;
 type ParticipantRow = Participant & { fullname: unknown; name: string; updatedAt: Date };
@@ -148,40 +149,21 @@ export default class TemplateWorkflow {
   }
 
   async createFrom1c(exchangeId: number, complectId: number, actor: UserClaims, teacherIds: number[]) {
+    // Старые клиенты ещё присылают teacherIds. Назначение теперь выполняется
+    // отдельным workflow: создание и его повтор не меняют участников.
+    void teacherIds;
     const client = await this.database.connect();
     try {
       await client.query("BEGIN");
       const { rows: complects } = await client.query<{ id: number }>("SELECT id FROM rpd_complects WHERE id=$1 FOR UPDATE", [complectId]);
       if (!complects[0]) throw new NotFound("Комплект не найден");
-      await client.query("SELECT id FROM users WHERE id=ANY($1::int[]) ORDER BY id FOR UPDATE", [[actor.id, ...teacherIds]]);
+      await client.query("SELECT id FROM users WHERE id=ANY($1::int[]) ORDER BY id FOR UPDATE", [[actor.id]]);
       await TemplateAccess.assertComplect(client, actor, complectId);
-      const { rows: exchange } = await client.query<{ id: number; discipline: string | null; department: string | null; place: string | null; semester: number | null; zet: number | null; study_load: unknown; control_load: unknown }>("SELECT id,discipline,department,place,semester,zet,study_load,control_load FROM rpd_1c_exchange WHERE id=$1 AND id_rpd_complect=$2 FOR UPDATE", [exchangeId, complectId]);
-      const row = exchange[0];
-      if (!row) throw new NotFound("Строка 1С не найдена в комплекте");
-      if (!row.discipline?.trim()) throw new Unprocessable("Не указана дисциплина");
-      const { rows: statuses } = await client.query<{ id: number; id_profile_template: number | null }>("SELECT id,id_profile_template FROM template_status WHERE id_1c_template=$1 FOR UPDATE", [exchangeId]);
-      if (statuses[0]?.id_profile_template) throw new Conflict("Шаблон уже создан");
-      const { rows: inserted } = await client.query<{ id: number }>(`
-        INSERT INTO rpd_profile_templates(id_rpd_complect,disciplins_name,department,place,semester,competencies,zet,study_load,control_load)
-        VALUES($1,$2,$3,$4,$5,$6::jsonb,$7,$8::jsonb,$9::jsonb) RETURNING id
-      `, [complectId, row.discipline, row.department, row.place, row.semester, "{}", row.zet, JSON.stringify(row.study_load), JSON.stringify(row.control_load ?? {})]);
-      const id = inserted[0].id;
       const { rows: author } = await client.query<{ fullname: unknown }>("SELECT fullname FROM users WHERE id=$1", [actor.id]);
       const user = formatShortName(author[0]?.fullname) || actor.userName;
-      const createdEvent = { date: new Date().toISOString(), status: "created", user, userId: actor.id, action: "create" };
-      if (statuses[0]) await client.query("UPDATE template_status SET id_profile_template=$1,current_status='created',history=COALESCE(history,'[]'::jsonb)||$2::jsonb WHERE id=$3", [id, JSON.stringify([createdEvent]), statuses[0].id]);
-      else await client.query("INSERT INTO template_status(id_1c_template,id_profile_template,current_status,history) VALUES($1,$2,'created',$3::jsonb)", [exchangeId, id, JSON.stringify([createdEvent])]);
-      let participants: Participant[] = [];
-      let status: TemplateStatus = "created";
-      for (const userId of teacherIds) {
-        const { rows: users } = await client.query<{ role: number; is_active: boolean }>("SELECT role,is_active FROM users WHERE id=$1", [userId]);
-        if (!users[0]) throw new NotFound("Пользователь не найден");
-        const decision = await this.assignParticipant(client, id, { current: status, participants, action: "assign", actorId: actor.id, actorRole: actor.role, canManage: true, userName: user, targetUserId: userId, targetIsActive: users[0].is_active, targetRole: users[0].role });
-        await client.query("UPDATE template_status SET current_status=$1,history=COALESCE(history,'[]'::jsonb)||$2::jsonb WHERE id_profile_template=$3", [decision.status, JSON.stringify([decision.event]), id]);
-        participants = decision.participants;
-        status = decision.status;
-      }
-      const snapshot = await this.snapshot(client, id, actor);
+      const initialized = await initializeRpdFromExchange(client, exchangeId, complectId, { user, userId: actor.id });
+      if (!initialized) throw new Unprocessable("Строка 1С удалена или не указана дисциплина");
+      const snapshot = await this.snapshot(client, initialized.templateId, actor);
       await client.query("COMMIT");
       return snapshot;
     } catch (error) {

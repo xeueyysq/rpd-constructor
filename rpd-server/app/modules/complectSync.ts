@@ -1,6 +1,6 @@
 import type { PoolClient } from "pg";
 import type { Rpd1cExchangeRow, RpdComplectRow, RpdProfileTemplateRow } from "../types/db.ts";
-import { insertUnloadedStatus } from "./templateStatusHistory.ts";
+import { initializeRpdFromExchange } from "./initializeRpdFromExchange.ts";
 import { pool } from "../../config/db.ts";
 import { fetchUpLink } from "./1cExchange.ts";
 import { normalizeDisciplineFrom1c } from "./normalizeDisciplineFrom1c.ts";
@@ -444,7 +444,7 @@ const applySync = async ({ complectId, selections, actor }: { complectId: unknow
 
       if (action === "add") {
         const incoming = selection.incoming;
-        if (!incoming?.discipline) continue;
+        if (!incoming?.discipline?.trim()) continue;
 
         const { rows: inserted } = await client.query<{ id: number }>(
           `
@@ -481,7 +481,7 @@ const applySync = async ({ complectId, selections, actor }: { complectId: unknow
           [
             numericComplectId,
             incoming.department,
-            incoming.discipline,
+            incoming.discipline.trim(),
             incoming.teachers,
             incoming.zet,
             incoming.place,
@@ -493,7 +493,7 @@ const applySync = async ({ complectId, selections, actor }: { complectId: unknow
         );
 
         const id1c = inserted[0].id;
-        await insertUnloadedStatus(client, id1c);
+        await initializeRpdFromExchange(client, id1c, numericComplectId);
         await recordFieldChange(client, {
           syncLogId,
           id1c,
