@@ -1,5 +1,6 @@
 import { expect, test, type Page } from '@playwright/test';
-import { openComplect, openTemplateFromTeacherList, signIn } from '../helpers';
+import { apiUrl, openComplect, openTemplateFromTeacherList, password, signIn, signInWithCredentials } from '../helpers';
+import { headersFor, list3, preservedImportData, profileFor, templateFromDb } from '../list3';
 
 test.describe.configure({ mode: 'serial' });
 
@@ -170,4 +171,55 @@ test('пары плана и суммы остаются внутри своих
       }));
     expect(overflow, `Итоги вышли за границы ячеек при ширине ${width}`).toEqual([]);
   }
+});
+
+test('legacy контроль: преподаватель не очищает, РОП явно уменьшает итог, остальные данные сохраняются', async ({ page, request }, testInfo) => {
+  const headers = await headersFor(request);
+  const before = await profileFor(request, headers, list3.control.id);
+  await signIn(page, 'teacher');
+  await page.goto(`/templates/${list3.control.publicId}/disciplineContent`);
+  const table = page.getByRole('table', { name: 'Содержание дисциплины' });
+  await expect(table).toBeVisible();
+  await expect(table.getByRole('button', { name: /^Очистить контроль:/ })).toHaveCount(0);
+  const topic = table.getByRole('row').filter({ hasText: 'Legacy тема' });
+  await expect(topic.getByRole('cell').nth(6)).toHaveText('2');
+  await expect(topic.getByRole('cell').nth(6).getByRole('spinbutton')).toHaveCount(0);
+  await expect(totalRow(page).getByRole('cell').first()).toContainText('В учебном плане / В РПД');
+  await expect(totalRow(page).getByRole('cell').nth(6)).toHaveText(/^36\s*\/\s*38$/);
+  await page.reload();
+  await expect(topic.getByRole('cell').nth(6)).toHaveText('2');
+  expect(templateFromDb(list3.control.id).content, 'Открытие не должно автоматически исправлять legacy часы').toEqual(before.content);
+
+  await page.getByRole('button', { name: 'Открыть меню аккаунта' }).click();
+  const loggedOut = page.waitForResponse((response) => response.url() === `${apiUrl}/auth/logout`
+    && response.request().method() === 'POST');
+  await page.getByRole('menuitem', { name: 'Выйти', exact: true }).click();
+  expect((await loggedOut).ok()).toBe(true);
+  await expect(page).toHaveURL(/\/sign-in$/);
+  await signInWithCredentials(page, 'rop', password);
+  await expect(page).toHaveURL(new RegExp(`/templates/${list3.control.publicId}/disciplineContent$`));
+  await expect(page.getByRole('button', { name: 'Открыть меню аккаунта' })).toContainText('Руководитель образовательной программы');
+  const clear = topic.getByRole('button', { name: 'Очистить контроль: Legacy тема', exact: true });
+  await expect(clear).toBeEnabled();
+  await expect(totalRow(page).getByRole('cell').nth(6).getByRole('spinbutton')).toHaveValue('36');
+  await expect(totalRow(page).getByRole('cell').nth(6)).toHaveText(/\/\s*38$/);
+  const saved = page.waitForResponse((response) => response.url() === `${apiUrl}/api/templates/316/content-control/clear`
+    && response.request().method() === 'POST');
+  await clear.click();
+  const response = await saved;
+  expect(response.status()).toBe(200);
+  expect(response.request().postDataJSON()).toEqual({ rowId: '0', baseAt: before.field_edits?.content?.at ?? null });
+  const expectedContent = { ...before.content, 0: { ...before.content[0], control: 0 } };
+  expect((await response.json()).value).toEqual(expectedContent);
+  await expect(clear).toHaveCount(0);
+  await expect(topic.getByRole('cell').nth(6)).toHaveText('0');
+  await expect(totalRow(page).getByRole('cell').nth(6)).toHaveText(/\/\s*36$/);
+  await table.screenshot({ path: testInfo.outputPath('legacy-control-cleared.png') });
+  await page.reload();
+  await expect(topic.getByRole('cell').nth(6)).toHaveText('0');
+  await expect(totalRow(page).getByRole('cell').nth(6)).toHaveText(/\/\s*36$/);
+  const after = await profileFor(request, headers, list3.control.id);
+  expect(after.content).toEqual(expectedContent);
+  expect(preservedImportData(after)).toEqual(preservedImportData(before));
+  expect(templateFromDb(list3.control.id)).toMatchObject({ content: expectedContent, ...preservedImportData(before) });
 });

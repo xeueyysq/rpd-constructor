@@ -1,5 +1,5 @@
 import { expect, test, type Page } from '@playwright/test';
-import { apiUrl, disciplines, filterColumn, openComplect, signIn } from '../helpers';
+import { apiUrl, disciplines, filterColumn, openComplect, showAllRows, signIn, teacherStatusCell } from '../helpers';
 import { openRowMenu } from '../teacherAssignments';
 
 // Колонка «Действия» по ширине содержимого: заголовок виден целиком, без ⋮, ячейка узкая.
@@ -22,7 +22,7 @@ test('фильтр статуса в комплекте', async ({ page }) => {
   await expect(page.getByRole('columnheader')).toHaveText([
     /^Дисциплина/, /^Семестр/, /^Преподаватели/, /^Статус/, /^Действия/,
   ]);
-  // У всех дисциплин, включая строки без шаблона, в действиях только одна кнопка меню.
+  // Все дисциплины уже связаны с РПД; в действиях только одна кнопка меню.
   const rows = page.getByRole('row').filter({ has: page.getByRole('cell') });
   for (const row of await rows.all()) {
     await expect(row.getByRole('cell').nth(4).getByRole('button')).toHaveCount(1);
@@ -48,15 +48,16 @@ test('фильтр статуса в комплекте', async ({ page }) => {
   await expect(history).toBeVisible();
   await expect(history).toContainText('В работе');
   await history.getByRole('button', { name: 'Закрыть', exact: true }).click();
-  const unloaded = page.getByRole('row').filter({ hasText: disciplines.unloaded }).getByRole('cell').nth(3);
-  await expect(unloaded.getByRole('button')).toHaveCount(0);
-  await expect(unloaded).toContainText(/\d{1,2} [а-я]+ \d{4}, \d{2}:\d{2}/);
+  const created = page.getByRole('row').filter({ hasText: disciplines.created }).getByRole('cell').nth(3);
+  // Другой параллельный сценарий может уже применить состав этой РПД.
+  await expect(created.getByRole('button')).toHaveCount(1);
+  await expect(created).toContainText(/\d{1,2} [а-я]+ \d{4}, \d{2}:\d{2}/);
 
   await expect(row.getByRole('combobox', { name: 'Преподаватели' })).toHaveCount(0);
   await filterColumn(page, 'Статус', 'В работе');
   await expect(page.getByRole('row').filter({ hasText: disciplines.inProgress })).toBeVisible();
   await expect(page.getByRole('row').filter({ hasText: disciplines.ready })).toHaveCount(0);
-  await expect(page.getByRole('row').filter({ hasText: disciplines.unloaded })).toHaveCount(0);
+  await expect(page.getByRole('row').filter({ hasText: disciplines.created })).toHaveCount(0);
 });
 
 test.describe('история шаблона', () => {
@@ -134,9 +135,63 @@ test('фильтр статуса у преподавателя', async ({ page 
   const row = page.getByRole('row').filter({ hasText: disciplines.inProgress });
   await expect(row).toBeVisible();
   // Как у РОП: один общий статус с датой, личная отметка — подтекстом; прогресса и состава нет.
-  const status = row.getByRole('cell').nth(7);
+  const status = teacherStatusCell(row);
   await expect(status.getByRole('button', { name: 'В работе', exact: true })).toContainText('Моя отметка: В работе');
   await expect(status).not.toContainText('0/2');
   await expect(status.getByRole('listitem')).toHaveCount(0);
   await expect(page.getByRole('row').filter({ hasText: disciplines.ready })).toHaveCount(0);
+});
+
+test('профиль виден у обоих годов при прямом и обратном порядке данных', async ({ page }) => {
+  let direction = 1;
+  // Фильтры и сортировка UI отключены. Меняем только порядок настоящего ответа,
+  // сохраняя соседство одного профиля: повторная ячейка не должна исчезать.
+  await page.route(`${apiUrl}/api/get-rpd-complects`, async (route) => {
+    const response = await route.fetch();
+    expect(response.status()).toBe(200);
+    const data = await response.json() as Array<{ id: number; profile: string; year: number | string }>;
+    data.sort((a, b) => a.profile.localeCompare(b.profile)
+      || direction * (Number(a.year) - Number(b.year)) || a.id - b.id);
+    await route.fulfill({ response, json: data });
+  });
+  await signIn(page, 'admin');
+  const rows = page.getByRole('row').filter({ has: page.getByRole('cell', { name: 'List3 Источники', exact: true }) });
+  const profiles = rows.getByRole('cell', { name: 'List3 Источники', exact: true });
+  for (const order of [1, -1]) {
+    direction = order;
+    if (order === -1) await page.reload();
+    await showAllRows(page);
+    await expect(rows).toHaveCount(2);
+    await expect(rows.first()).toContainText(order === 1 ? '2024' : '2026');
+    await expect(rows.last()).toContainText(order === 1 ? '2026' : '2024');
+    await expect(profiles).toHaveCount(2);
+    for (const row of await rows.all()) await expect(row.getByRole('cell', { name: 'List3 Источники', exact: true })).toBeVisible();
+  }
+});
+
+test('дисциплина «ин» — буквальная подстрока, фильтр преподавателя сохраняется', async ({ page }) => {
+  await signIn(page, 'rop');
+  await openComplect(page);
+  const fuzzyOnly = page.getByRole('row').filter({ hasText: disciplines.document });
+  await expect(fuzzyOnly).toBeVisible();
+  await filterColumn(page, 'Дисциплина', 'ин');
+  await expect(page.getByRole('row').filter({ hasText: disciplines.sync })).toBeVisible();
+  await expect(fuzzyOnly, 'В «Лист согласования» буквы и/н раздельные, подстроки «ин» нет').toHaveCount(0);
+  await page.getByRole('textbox', { name: 'Отфильтровать по Дисциплина' }).fill('');
+  await filterColumn(page, 'Преподаватели', 'альфина');
+  await expect(page.getByRole('row').filter({ hasText: disciplines.inProgress })).toBeVisible();
+  await expect(page.getByRole('row').filter({ hasText: 'Часы для теста' })).toHaveCount(0);
+});
+
+test('список преподавателя также исключает fuzzy-совпадения дисциплины', async ({ page }) => {
+  await signIn(page, 'teacher');
+  await expect(page.getByRole('row').filter({ hasText: disciplines.document })).toBeVisible();
+  await filterColumn(page, 'Название дисциплины', 'ин');
+  await expect(page.getByRole('row').filter({ hasText: disciplines.document })).toHaveCount(0);
+  await page.getByRole('textbox', { name: 'Отфильтровать по Название дисциплины' }).fill('алго');
+  await expect(page.getByRole('row').filter({ hasText: disciplines.inProgress })).toBeVisible();
+  await page.getByRole('textbox', { name: 'Отфильтровать по Название дисциплины' }).fill('');
+  await filterColumn(page, 'Преподаватели', 'яковлева');
+  await expect(page.getByRole('row').filter({ hasText: disciplines.document })).toBeVisible();
+  await expect(page.getByRole('row').filter({ hasText: disciplines.inProgress })).toHaveCount(0);
 });
