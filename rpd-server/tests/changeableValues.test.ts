@@ -3,6 +3,35 @@ import assert from "node:assert/strict";
 import type { Pool } from "pg";
 import RpdProfileTemplates from "../app/models/rpd_profile_templates.ts";
 import { USER_ROLES } from "../app/models/constants.ts";
+import express from "express";
+import { IncomingMessage } from "node:http";
+import { Socket } from "node:net";
+import type { Request, Response } from "express";
+import RpdProfileTemplatesController from "../app/controllers/rpdProfileTemplatesController.ts";
+
+test("реальный simple query parser Express: ids и ids[] в скалярной и массивной форме", async () => {
+  const db = { query: async (sql: string, values: unknown[]) => {
+    if (sql.includes("AS participant")) return { rows: [{ exists: true, owner: true, active: true }] };
+    if (sql.includes("AS active")) return { rows: [{ active: true }] };
+    if (sql.includes("SELECT id FROM")) return { rows: [{ id: Number(values[0]) }] };
+    return { rows: (values[0] as number[]).map((id) => ({ id, public_id: `rpd-${id}`, goals: `Цель ${id}` })) };
+  } } as unknown as Pool;
+  const controller = new RpdProfileTemplatesController(db);
+  const app = express();
+  assert.equal(app.get("query parser"), "simple");
+  for (const query of ["ids=1", "ids%5B%5D=1", "ids=1&ids=2", "ids%5B%5D=1&ids%5B%5D=2"]) {
+    // IncomingMessage + express.request.query: настоящий HTTP query parser без listen.
+    // Обработчик и SQL-I/O исполняются отдельно от сети.
+    const req = new IncomingMessage(new Socket()) as Request;
+    Object.setPrototypeOf(req, app.request);
+    req.app = app;
+    req.url = `/get-changeable-values?${query}&rowName=goals`;
+    req.user = { id: 7, role: USER_ROLES.ROP, userName: "rop" };
+    let response: unknown;
+    await controller.getChangeableValues(req, { json: (value: unknown) => { response = value; } } as Response);
+    assert.deepEqual(response, (query.includes("2") ? [1, 2] : [1]).map((id) => ({ id, public_id: `rpd-${id}`, goals: `Цель ${id}` })));
+  }
+});
 
 test("get-changeable-values отвергает имя колонки вне whitelist до SQL", async () => {
   let queries = 0;

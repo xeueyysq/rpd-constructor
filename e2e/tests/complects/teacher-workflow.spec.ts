@@ -1,6 +1,7 @@
 import { expect, test, type Locator, type Page } from '@playwright/test';
 import {
   apiUrl, disciplines, openComplect, openTeacherRowMenu, showAllRows, signIn, signInWithCredentials, password,
+  teacherStatusCell,
 } from '../helpers';
 import { assignTeacher, closeTeachersDialog, openTeachersDialog, openRowMenu } from '../teacherAssignments';
 
@@ -10,7 +11,7 @@ test.describe('состав и готовность отдельной РПД', 
   const discipline = disciplines.workflow;
   const row = (page: Page) => page.getByRole('row').filter({ hasText: discipline });
   const complectStatus = (page: Page) => row(page).getByRole('cell').nth(3);
-  const teacherStatus = (page: Page) => row(page).getByRole('cell').nth(7);
+  const teacherStatus = (page: Page) => teacherStatusCell(row(page));
 
   async function assign(page: Page, surname: string) {
     await assignTeacher(page, row(page), discipline, `${surname} Тест Тестовна`);
@@ -50,7 +51,7 @@ test.describe('состав и готовность отдельной РПД', 
     await expect(teacherStatus(page)).toContainText('Моя отметка: Назначен');
     await expect(teacherStatus(page)).not.toContainText(/\d+\/\d+/);
     await expect(teacherStatus(page).getByRole('listitem')).toHaveCount(0);
-    await expect(row(page).getByRole('cell').nth(8).getByRole('button')).toHaveCount(1);
+    await expect(row(page).getByRole('cell').last().getByRole('button')).toHaveCount(1);
     await expect(row(page).getByRole('button', { name: 'Взять в работу' })).toHaveCount(0);
 
     // До «Взять в работу» «Готово» недоступно; все действия — в меню «…», «Открыть» первым.
@@ -202,15 +203,15 @@ test.describe('деактивация назначенного преподав�
       const teacherPage = await teacherContext.newPage();
       await signIn(teacherPage, 'teacher2');
       const teacherRow = teacherPage.getByRole('row').filter({ hasText: disciplines.deactivation });
-      const teacherStatusCell = teacherRow.getByRole('cell').nth(7);
+      const teacherStatus = teacherStatusCell(teacherRow);
       let menu = await openTeacherRowMenu(teacherPage, teacherRow);
       await expect(menu.getByRole('menuitem', { name: 'Готово', exact: true })).toHaveCount(0);
       await menu.getByRole('menuitem', { name: 'Взять в работу', exact: true }).click();
-      await expect(teacherStatusCell).toContainText('Моя отметка: В работе');
+      await expect(teacherStatus).toContainText('Моя отметка: В работе');
       menu = await openTeacherRowMenu(teacherPage, teacherRow);
       await menu.getByRole('menuitem', { name: 'Готово', exact: true }).click();
-      await expect(teacherStatusCell.getByRole('button', { name: 'Готов', exact: true })).toBeVisible();
-      await expect(teacherStatusCell).toContainText('Моя отметка: Готово');
+      await expect(teacherStatus.getByRole('button', { name: 'Готов', exact: true })).toBeVisible();
+      await expect(teacherStatus).toContainText('Моя отметка: Готово');
 
       await ropPage.getByRole('button', { name: 'Конструктор РПД' }).click();
       await openComplect(ropPage);

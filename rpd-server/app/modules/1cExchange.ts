@@ -1,7 +1,7 @@
-import type { Pool } from "pg";
+import type { Pool, PoolClient } from "pg";
 import { pool } from "../../config/db.ts";
 import axios from "axios";
-import { insertUnloadedStatus } from "./templateStatusHistory.ts";
+import { initializeRpdFromExchange } from "./initializeRpdFromExchange.ts";
 import { normalizeDisciplineFrom1c } from "./normalizeDisciplineFrom1c.ts";
 import { mapApiDataFor1c, hashPayload, loadReferenceTree } from "./specProfilesMapping.ts";
 import { merge1cIntoReferenceTree } from "./specProfilesTransformer.ts";
@@ -45,19 +45,24 @@ const requestWithSingleRetry = async <T>(requestFn: () => Promise<T>, requestNam
   }
 };
 
-async function exchange1C(apiData: ApiData, { actor }: { actor?: UserClaims } = {}) {
+async function exchange1C(apiData: ApiData, { actor, database = pool }: { actor?: UserClaims; database?: Pool } = {}) {
+  const disciplines = await fetchUpLink(apiData);
+  const client = await database.connect();
   try {
-    const disciplines = await fetchUpLink(apiData);
-    const RpdComplectId = await createRpdComplect(apiData);
+    await client.query("BEGIN");
+    // Upsert блокирует комплект и сериализует повторные загрузки и sync/create.
+    const RpdComplectId = await createRpdComplect(client, apiData);
     if (actor) {
-      await insertUserComplectId(actor, RpdComplectId);
+      await insertUserComplectId(client, actor, RpdComplectId);
     }
-    await processDisciplines(disciplines, RpdComplectId);
+    await processDisciplines(client, disciplines, RpdComplectId);
+    await client.query("COMMIT");
     return RpdComplectId;
   } catch (error) {
+    await client.query("ROLLBACK");
     console.error("Ошибка загрузки комплекта:", error);
     throw error;
-  }
+  } finally { client.release(); }
 }
 
 const fetchUpLink = async (apiData: ApiData) => {
@@ -84,8 +89,8 @@ const fetchUpLink = async (apiData: ApiData) => {
   }
 };
 
-const createRpdComplect = async (apiData: ApiData) => {
-  const { rows } = await pool.query<{ id: number }>(
+const createRpdComplect = async (client: PoolClient, apiData: ApiData) => {
+  const { rows } = await client.query<{ id: number }>(
     `
     INSERT INTO rpd_complects (
       faculty,
@@ -127,11 +132,11 @@ const createRpdComplect = async (apiData: ApiData) => {
   return RpdComplectId;
 };
 
-const processDisciplines = async (disciplines: unknown[], RpdComplectId: number) => {
+const processDisciplines = async (client: PoolClient, disciplines: unknown[], RpdComplectId: number) => {
   const recordsLength = disciplines.length;
   console.log(`Всего дисциплин из запроса - ${recordsLength}`);
 
-  const promises = disciplines.map(async (disc, index) => {
+  for (const [index, disc] of disciplines.entries()) {
     console.log(`Дисциплина ${index + 1} из ${recordsLength} обрабатывается`);
     const normalized = normalizeDisciplineFrom1c(disc);
 
@@ -139,10 +144,10 @@ const processDisciplines = async (disciplines: unknown[], RpdComplectId: number)
       console.warn(
         `Дисциплина ${index + 1} из ${recordsLength} пропущена: пустое название`
       );
-      return;
+      continue;
     }
 
-    const insertedId = await insertDiscipline({
+    const insertedId = await insertDiscipline(client, {
       RpdComplectId,
       division: normalized.department,
       discipline: normalized.discipline,
@@ -156,36 +161,19 @@ const processDisciplines = async (disciplines: unknown[], RpdComplectId: number)
     });
 
     if (insertedId) {
-      await insertUnloadedStatus(pool, insertedId);
+      await initializeRpdFromExchange(client, insertedId, RpdComplectId);
     }
-  });
-
-  await Promise.all(promises);
+  }
 };
 
-const insertDiscipline = async (data: { RpdComplectId: number; division: string; discipline: string; teachers: string[]; zets: number | null; place: string; record_type: string; study_load: unknown; control_load: unknown; semester: number | null }) => {
+const insertDiscipline = async (client: PoolClient, data: { RpdComplectId: number; division: string; discipline: string; teachers: string[]; zets: number | null; place: string; record_type: string; study_load: unknown; control_load: unknown; semester: number | null }) => {
   const discipline = (data.discipline || "").trim();
   if (!discipline) return null;
 
   const recordType = data.record_type ?? "";
   const semester = data.semester ?? null;
 
-  const { rows: existing } = await pool.query<{ id: number }>(
-    `
-      SELECT id
-      FROM rpd_1c_exchange
-      WHERE id_rpd_complect = $1
-        AND discipline = $2
-        AND semester IS NOT DISTINCT FROM $3
-        AND COALESCE(record_type, '') = COALESCE($4, '')
-      LIMIT 1
-    `,
-    [data.RpdComplectId, discipline, semester, recordType]
-  );
-
-  if (existing[0]?.id) return null;
-
-  const { rows } = await pool.query<{ id: number }>(
+  const { rows } = await client.query<{ id: number }>(
     `
     INSERT INTO rpd_1c_exchange (
       id_rpd_complect,
@@ -201,6 +189,7 @@ const insertDiscipline = async (data: { RpdComplectId: number; division: string;
     ) VALUES (
       $1, $2, $3, $4, $5, $6, $7, $8, $9, $10
     )
+    ON CONFLICT (id_rpd_complect, discipline, COALESCE(semester, -1), COALESCE(record_type, '')) DO NOTHING
     RETURNING id
     `,
     [
@@ -217,22 +206,22 @@ const insertDiscipline = async (data: { RpdComplectId: number; division: string;
     ]
   );
 
-  return rows[0]?.id ?? null;
+  if (rows[0]) return rows[0].id;
+  const { rows: existing } = await client.query<{ id: number }>(`
+    SELECT id FROM rpd_1c_exchange
+    WHERE id_rpd_complect = $1 AND discipline = $2
+      AND COALESCE(semester, -1) = COALESCE($3::int, -1)
+      AND COALESCE(record_type, '') = COALESCE($4, '')
+    FOR UPDATE
+  `, [data.RpdComplectId, discipline, semester, recordType]);
+  if (!existing[0]) throw new Error("Строка 1С не найдена после загрузки");
+  return existing[0].id;
 };
 
-const insertUserComplectId = async (actor: UserClaims, complectId: number) => {
-  const client = await pool.connect();
-  try {
-    await client.query("BEGIN");
-    await client.query("SELECT id FROM rpd_complects WHERE id=$1 FOR UPDATE", [complectId]);
-    const { rows } = await client.query<{ user_id: number }>("SELECT user_id FROM user_complect WHERE complect_id=$1", [complectId]);
-    if (rows.length) await TemplateAccess.assertComplect(client, actor, complectId);
-    else await client.query("INSERT INTO user_complect(user_id,complect_id) VALUES($1,$2) ON CONFLICT(user_id,complect_id) DO NOTHING", [actor.id, complectId]);
-    await client.query("COMMIT");
-  } catch (error) {
-    await client.query("ROLLBACK");
-    throw error;
-  } finally { client.release(); }
+const insertUserComplectId = async (client: PoolClient, actor: UserClaims, complectId: number) => {
+  const { rows } = await client.query<{ user_id: number }>("SELECT user_id FROM user_complect WHERE complect_id=$1", [complectId]);
+  if (rows.length) await TemplateAccess.assertComplect(client, actor, complectId);
+  else await client.query("INSERT INTO user_complect(user_id,complect_id) VALUES($1,$2) ON CONFLICT(user_id,complect_id) DO NOTHING", [actor.id, complectId]);
 };
 
 const handle1cError = (error: unknown) => {

@@ -2,7 +2,7 @@ import { mkdirSync, readFileSync } from 'node:fs';
 import { parseEnv } from 'node:util';
 import { fileURLToPath } from 'node:url';
 import { expect, test, type ElementHandle, type Locator, type Page } from '@playwright/test';
-import { complects, disciplines, openComplect, openTemplateFromTeacherList, showAllRows, signIn } from '../helpers';
+import { complects, disciplines, openComplect, openTemplateFromTeacherList, showAllRows, signIn, teacherStatusCell } from '../helpers';
 import { closeTeachersDialog, openTeachersDialog } from '../teacherAssignments';
 
 test.use({ viewport: { width: 1280, height: 800 } });
@@ -262,7 +262,7 @@ test('снимки инструкции на синтетических данн
     await menuButton.scrollIntoViewIfNeeded();
     await teacherPage.mouse.move(0, 0);
     await save(teacherPage, 'teacher-templates', [
-      { target: templateRow.getByRole('cell').nth(7).getByRole('button'), label: 'Статус и моя отметка' },
+      { target: teacherStatusCell(templateRow).getByRole('button'), label: 'Статус и моя отметка' },
       { target: menuButton, label: 'Меню шаблона' },
     ]);
     await openTemplateFromTeacherList(teacherPage, templateRow);

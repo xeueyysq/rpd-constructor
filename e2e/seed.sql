@@ -47,6 +47,8 @@ INSERT INTO rpd_1c_exchange (id, id_rpd_complect, department, discipline, teache
 INSERT INTO rpd_profile_templates (id, public_id, id_rpd_complect, disciplins_name, department, semester, zet, competencies, content, study_load, control_load, assessment_tools_questions) VALUES
   (100, 'aaaaaaaaaaaa', 100, 'Алгоритмы для теста', 'Тестовая кафедра', 1, 3, '{}'::jsonb, '{}'::jsonb, '{}'::jsonb, '{}'::jsonb, '{}'::jsonb),
   (101, 'bbbbbbbbbbbb', 100, 'Базы данных для теста', 'Тестовая кафедра', 2, 4, '{}'::jsonb, '{}'::jsonb, '{}'::jsonb, '{}'::jsonb, '{}'::jsonb),
+  (102, 'a102a102a102', 100, 'Сети для теста', 'Тестовая кафедра', 3, 2, '{}'::jsonb, '{}'::jsonb, '{}'::jsonb, '{}'::jsonb, '{}'::jsonb),
+  (113, 'a113a113a113', 100, 'Создание без преподавателя для теста', 'Тестовая кафедра', 2, 3, '{}'::jsonb, '{}'::jsonb, '{}'::jsonb, '{}'::jsonb, '{}'::jsonb),
   (103, 'cccccccccccc', 100, 'Часы для теста', 'Тестовая кафедра', 4, 4, '{}'::jsonb, '{"0":{"theme":"Тема 1","lectures":17,"seminars":17,"control":0,"independent_work":15},"1":{"theme":"Тема 2","lectures":17,"seminars":17,"control":0,"independent_work":16},"__attestation__":{"theme":"Промежуточная аттестация: экзамен","lectures":0,"seminars":0,"control":45,"independent_work":0}}'::jsonb, '{"Всего":"144","Лекции":"34","Практика":"26","Лабораторные":"8","Контроль":"45","СРС":"31","КРП":"0"}'::jsonb, '{"Экзамен":"да"}'::jsonb, '{}'::jsonb),
   (105, 'eeeeeeeeeeee', 100, 'Совместная работа для теста', 'Тестовая кафедра', 1, 3, '{}'::jsonb, '{}'::jsonb, '{}'::jsonb, '{}'::jsonb, '{}'::jsonb),
   (106, 'ffffffffffff', 100, 'Деактивация для теста', 'Тестовая кафедра', 1, 3, '{}'::jsonb, '{}'::jsonb, '{}'::jsonb, '{}'::jsonb, '{}'::jsonb),
@@ -83,7 +85,7 @@ INSERT INTO teacher_templates (id, user_id, template_id, state) VALUES
 INSERT INTO template_status (id, id_1c_template, id_profile_template, current_status, history) VALUES
   (100, 100, 100, 'in_progress', '[{"date":"2025-01-01T00:00:00.000Z","status":"in_progress","user":"teacher"}]'::jsonb),
   (101, 101, 101, 'ready', '[{"date":"2025-01-02T00:00:00.000Z","status":"ready","user":"teacher"}]'::jsonb),
-  (102, 102, NULL, 'unloaded', '[{"date":"2025-01-03T00:00:00.000Z","status":"unloaded","user":"rop"}]'::jsonb),
+  (102, 102, 102, 'created', '[{"date":"2025-01-03T00:00:00.000Z","status":"created","user":"rop"}]'::jsonb),
   (103, 103, 103, 'in_progress', '[{"date":"2025-01-04T00:00:00.000Z","status":"in_progress","user":"teacher2"}]'::jsonb),
   (104, NULL, 104, 'in_progress', '[{"date":"2025-01-04T00:00:00.000Z","status":"in_progress","user":"teacher2"}]'::jsonb),
   (105, 105, 105, 'created', '[{"date":"2025-01-05T00:00:00.000Z","status":"created","user":"rop"}]'::jsonb),
@@ -94,7 +96,7 @@ INSERT INTO template_status (id, id_1c_template, id_profile_template, current_st
   (110, 110, 110, 'on_teacher', '[{"date":"2025-01-10T00:00:00.000Z","status":"on_teacher","user":"rop"}]'::jsonb),
   (111, 111, 111, 'on_teacher', '[{"date":"2025-01-11T00:00:00.000Z","status":"on_teacher","user":"rop"}]'::jsonb),
   (112, 112, 112, 'on_teacher', '[{"date":"2025-01-12T00:00:00.000Z","status":"on_teacher","user":"rop"}]'::jsonb),
-  (113, 113, NULL, 'unloaded', '[{"date":"2025-01-13T00:00:00.000Z","status":"unloaded","user":"rop"}]'::jsonb);
+  (113, 113, 113, 'created', '[{"date":"2025-01-13T00:00:00.000Z","status":"created","user":"rop"}]'::jsonb);
 
 INSERT INTO complect_sync_log (id, complect_id, user_id, source, created_at) VALUES
   (100, 100, (SELECT id FROM users WHERE name = 'rop'), '1c', '2025-02-01T00:00:00Z'),
@@ -130,15 +132,84 @@ INSERT INTO template_status (id, id_1c_template, id_profile_template, current_st
   (201, 201, 201, 'created', '[]'::jsonb), (202, 202, 202, 'created', '[]'::jsonb);
 INSERT INTO teacher_templates (id, user_id, template_id, state) VALUES (200, 20, 200, 'in_progress');
 
-SELECT setval(pg_get_serial_sequence('rpd_complects', 'id'), 201);
-SELECT setval(pg_get_serial_sequence('rpd_1c_exchange', 'id'), 202);
-SELECT setval(pg_get_serial_sequence('rpd_profile_templates', 'id'), 202);
-SELECT setval(pg_get_serial_sequence('template_status', 'id'), 202);
-SELECT setval(pg_get_serial_sequence('teacher_templates', 'id'), 200);
-SELECT setval(pg_get_serial_sequence('user_complect', 'id'), 201);
+-- List3: источники неизменяемы, у каждого изменяющего сценария свой комплект.
+-- Два года одного профиля также проверяют повторение профиля в каждой строке списка.
+INSERT INTO rpd_complects (id, faculty, year, education_form, education_level, profile, direction) VALUES
+  (300, 'Институт источников List3', 2026, 'Очная', 'Бакалавриат', 'List3 Источники', 'Другое направление List3'),
+  (301, 'Институт источников List3', 2024, 'Заочная', 'Магистратура', 'List3 Источники', 'Направление List3'),
+  (310, 'Институт цели List3', 2026, 'Очная', 'Бакалавриат', 'List3 Поле РОП', 'Направление List3'),
+  (311, 'Институт цели List3', 2026, 'Очная', 'Бакалавриат', 'List3 Поле преподавателя', 'Направление List3'),
+  (312, 'Институт цели List3', 2026, 'Очная', 'Бакалавриат', 'List3 Полный импорт', 'Направление List3'),
+  (313, 'Институт цели List3', 2026, 'Очная', 'Бакалавриат', 'List3 Массовый импорт', 'Направление List3'),
+  (316, 'Институт цели List3', 2026, 'Очная', 'Бакалавриат', 'List3 Контроль', 'Направление List3'),
+  (317, 'Институт цели List3', 2026, 'Очная', 'Бакалавриат', 'List3 ФОС', 'Направление List3');
+INSERT INTO user_complect (user_id, complect_id)
+  SELECT (SELECT id FROM users WHERE name = CASE WHEN fixture.id < 310 THEN 'rop2' ELSE 'rop' END), fixture.id
+  FROM rpd_complects fixture WHERE fixture.id IN (300, 301, 310, 311, 312, 313, 316, 317);
+
+INSERT INTO rpd_profile_templates
+  (id, public_id, id_rpd_complect, disciplins_name, department, semester, zet, place, certification,
+   goals, content, study_load, control_load, competencies, assessment_tools_questions, assessment_tools_template,
+   textbook, additional_textbook)
+SELECT id, public_id, complect_id, discipline,
+  CASE WHEN id < 310 THEN 'Кафедра источника List3' ELSE 'Кафедра List3' END, semester,
+  CASE WHEN id < 310 THEN 5 ELSE 3 END,
+  CASE WHEN id < 310 THEN 'Вариативная часть' ELSE 'Базовая часть' END,
+  CASE WHEN id < 310 THEN 'Зачёт' ELSE 'Экзамен' END,
+  CASE WHEN id < 310 THEN '<p>Цели источника ' || id || '</p>' ELSE '<p>Прежние цели цели</p>' END,
+  CASE WHEN id < 310 THEN '{"0":{"theme":"Тема источника","lectures":9,"seminars":7,"independent_work":8,"control":0}}'::jsonb
+    ELSE '{"0":{"theme":"Legacy тема","lectures":4,"seminars":6,"independent_work":8,"control":2},"__attestation__":{"theme":"Промежуточная аттестация: экзамен","lectures":0,"seminars":0,"independent_work":0,"control":36}}'::jsonb END,
+  CASE WHEN id < 310 THEN '{"Всего":90,"Лекции":9,"Практические":7,"СРС":8,"Контроль":66}'::jsonb
+    ELSE '{"Всего":54,"Лекции":4,"Практические":6,"СРС":8,"Контроль":36}'::jsonb END,
+  CASE WHEN id < 310 THEN '{"Зачёт":66}'::jsonb ELSE '{"Экзамен":36}'::jsonb END,
+  jsonb_build_object('0', jsonb_build_object('competence', 'ПК-L3 Авторская компетенция', 'indicator', 'ПК-L3.1 Индикатор',
+    'results', jsonb_build_object('know', CASE WHEN id < 310 THEN 'Источник' ELSE 'Авторский результат цели' END, 'beAble', '', 'own', ''))),
+  jsonb_build_object('controlQuestions', CASE WHEN id < 310 THEN 'ФОС источника' ELSE 'Общий вопрос цели' END,
+    'competencies', jsonb_build_object('ПК-L3 Авторская компетенция', jsonb_build_object(
+      'openQuestions', '', 'closedQuestions', '', 'selectedOpenIds', '[]'::jsonb, 'selectedClosedIds', '[]'::jsonb,
+      'openPool', jsonb_build_array(jsonb_build_object('id', 'list3-open', 'text', 'Открытый вопрос цели', 'correctAnswer', 'Открытый ответ цели')),
+      'closedPool', jsonb_build_array(jsonb_build_object('id', 'list3-closed', 'text', 'Закрытый вопрос цели', 'correctAnswer', 'Закрытый ответ цели'))))),
+  CASE WHEN id < 310 THEN '<p>Шаблон ФОС источника</p>' ELSE '<p>Шаблон ФОС цели</p>' END,
+  ARRAY['Основная книга ' || id, 'Вторая основная книга ' || id], ARRAY['Дополнительная книга ' || id]
+FROM (VALUES
+  (300, 'a300a300a300', 300, '  ИМПОРТ   ПОЛЯ LIST3  ', 1),
+  (301, 'a301a301a301', 300, 'Импорт поля List3', 2),
+  (302, 'a302a302a302', 301, '  ИМПОРТ   ПОЛЯ LIST3  ', 1),
+  (310, 'a310a310a310', 310, 'Импорт поля List3', 1),
+  (311, 'a311a311a311', 311, 'Импорт поля List3', 1),
+  (312, 'a312a312a312', 312, 'Импорт поля List3', 4),
+  (313, 'a313a313a313', 313, 'Импорт поля List3', 1),
+  (314, 'a314a314a314', 313, 'Импорт поля List3', 3),
+  (315, 'a315a315a315', 313, 'Импорт поля List3', 2),
+  (316, 'a316a316a316', 316, 'Legacy контроль List3', 1),
+  (317, 'a317a317a317', 317, 'Сохранение ФОС List3', 1),
+  (318, 'a318a318a318', 101, 'Режим РОП-преподавателя List3', 1)
+) AS fixture(id, public_id, complect_id, discipline, semester);
+INSERT INTO rpd_1c_exchange
+  (id, id_rpd_complect, department, discipline, teachers, zet, place, record_type, study_load, control_load, semester)
+SELECT id, id_rpd_complect, department, disciplins_name, ARRAY[]::text[], zet, place,
+  CASE WHEN id = 315 THEN 'practice' ELSE 'discipline' END, study_load, control_load, semester
+FROM rpd_profile_templates WHERE id BETWEEN 300 AND 318;
+INSERT INTO template_status (id, id_1c_template, id_profile_template, current_status, history)
+SELECT id, id, id, CASE WHEN id IN (301, 311, 316, 317) THEN 'on_teacher' ELSE 'created' END, '[]'::jsonb
+FROM rpd_profile_templates WHERE id BETWEEN 300 AND 318;
+INSERT INTO teacher_templates (user_id, template_id, state)
+SELECT (SELECT id FROM users WHERE name = CASE WHEN fixture.id = 301 THEN 'teacher2' ELSE 'teacher' END), fixture.id, 'assigned'
+FROM rpd_profile_templates fixture WHERE fixture.id IN (301, 311, 316, 317);
+INSERT INTO planned_results_sets (id, complect_id) VALUES (317, 317);
+INSERT INTO planned_competencies (id, set_id, competence) VALUES (317, 317, 'ПК-L3 Авторская компетенция');
+INSERT INTO planned_indicators (id, competence_id, indicator) VALUES (317, 317, 'ПК-L3.1 Индикатор');
+INSERT INTO planned_indicator_disciplines (id, indicator_id, discipline) VALUES (317, 317, 'Сохранение ФОС List3');
+
+SELECT setval(pg_get_serial_sequence('rpd_complects', 'id'), (SELECT max(id) FROM rpd_complects));
+SELECT setval(pg_get_serial_sequence('rpd_1c_exchange', 'id'), (SELECT max(id) FROM rpd_1c_exchange));
+SELECT setval(pg_get_serial_sequence('rpd_profile_templates', 'id'), (SELECT max(id) FROM rpd_profile_templates));
+SELECT setval(pg_get_serial_sequence('template_status', 'id'), (SELECT max(id) FROM template_status));
+SELECT setval(pg_get_serial_sequence('teacher_templates', 'id'), (SELECT max(id) FROM teacher_templates));
+SELECT setval(pg_get_serial_sequence('user_complect', 'id'), (SELECT max(id) FROM user_complect));
 SELECT setval(pg_get_serial_sequence('complect_sync_log', 'id'), 101);
 SELECT setval(pg_get_serial_sequence('template_field_changes', 'id'), 103);
-SELECT setval(pg_get_serial_sequence('planned_results_sets', 'id'), 100);
-SELECT setval(pg_get_serial_sequence('planned_competencies', 'id'), 100);
-SELECT setval(pg_get_serial_sequence('planned_indicators', 'id'), 100);
-SELECT setval(pg_get_serial_sequence('planned_indicator_disciplines', 'id'), 100);
+SELECT setval(pg_get_serial_sequence('planned_results_sets', 'id'), (SELECT max(id) FROM planned_results_sets));
+SELECT setval(pg_get_serial_sequence('planned_competencies', 'id'), (SELECT max(id) FROM planned_competencies));
+SELECT setval(pg_get_serial_sequence('planned_indicators', 'id'), (SELECT max(id) FROM planned_indicators));
+SELECT setval(pg_get_serial_sequence('planned_indicator_disciplines', 'id'), (SELECT max(id) FROM planned_indicator_disciplines));

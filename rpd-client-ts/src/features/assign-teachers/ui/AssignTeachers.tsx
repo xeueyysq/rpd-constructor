@@ -1,19 +1,14 @@
 import type { TemplateParticipant } from "@entities/template";
-import { useAssignableTeachers } from "@entities/user";
 import { Box } from "@mui/material";
 import { StatusWithSubtext } from "@shared/ui";
 import { participantSubtext } from "../lib/participantSubtext";
-import {
-  assignmentsDisabled,
-  selectedParticipants,
-} from "../lib/teacherSelection";
+import { assignmentsDisabled } from "../lib/teacherSelection";
 
 interface Props {
   templateId?: number | null;
   status: string;
   participants: TemplateParticipant[];
   canEditTeachers: boolean;
-  selectedIds: number[];
   onOpen: () => void;
 }
 
@@ -22,17 +17,11 @@ export function AssignTeachers({
   status,
   participants,
   canEditTeachers,
-  selectedIds,
   onOpen,
 }: Props) {
-  const { data: users = [] } = useAssignableTeachers();
-  const canEdit = !assignmentsDisabled(status, canEditTeachers);
-  const selected = selectedParticipants(
-    templateId,
-    participants,
-    users,
-    selectedIds
-  );
+  const canEdit =
+    templateId != null && !assignmentsDisabled(status, canEditTeachers);
+  const selected = participants;
   if (!selected.length) {
     return (
       <StatusWithSubtext

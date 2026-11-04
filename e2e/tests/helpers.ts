@@ -9,7 +9,7 @@ export const password = 'e2e-password';
 export const disciplines = {
   inProgress: 'Алгоритмы для теста',
   ready: 'Базы данных для теста',
-  unloaded: 'Сети для теста',
+  created: 'Сети для теста',
   workflow: 'Совместная работа для теста',
   deactivation: 'Деактивация для теста',
   sync: 'Синхронизация для теста',
@@ -57,11 +57,18 @@ export async function openTemplateFromTeacherList(page: Page, row: Locator) {
   await menu.getByRole('menuitem', { name: 'Открыть', exact: true }).click();
 }
 
+export function teacherStatusCell(row: Locator) {
+  return row.getByRole('cell').filter({ hasText: 'Моя отметка:' });
+}
+
 export async function filterColumn(page: Page, column: string, value: string) {
-  await page.getByRole('columnheader', { name: new RegExp(column) })
-    .getByRole('button', { name: 'Действие колонки' }).click();
-  await page.getByRole('menuitem', { name: `Отфильтровать по ${column}` }).click();
-  await page.getByRole('textbox', { name: `Отфильтровать по ${column}` }).fill(value);
+  const input = page.getByRole('textbox', { name: `Отфильтровать по ${column}`, exact: true });
+  if (!await input.isVisible()) {
+    await page.getByRole('columnheader', { name: new RegExp(column) })
+      .getByRole('button', { name: 'Действие колонки' }).click();
+    await page.getByRole('menuitem', { name: `Отфильтровать по ${column}`, exact: true }).click();
+  }
+  await input.fill(value);
 }
 
 export async function showAllRows(page: Page) {

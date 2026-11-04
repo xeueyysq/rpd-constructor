@@ -1,10 +1,11 @@
 import { expect, test } from '@playwright/test';
-import { apiUrl, disciplines, openComplect, openTeacherRowMenu, signIn } from '../helpers';
-import { closeTeachersDialog, openTeachersDialog, openRowMenu, selectTeacher } from '../teacherAssignments';
+import { apiUrl, openComplect, openTeacherRowMenu, signIn, teacherStatusCell } from '../helpers';
+import { applyTeachersDialog, openTeachersDialog, openRowMenu, selectTeacher } from '../teacherAssignments';
+import { list3 } from '../list3';
 
 test('РОП видит действия активного режима и открывает свою РПД как преподаватель', async ({ page, request }) => {
-  // Второй РОП и его комплект не участвуют в сценарии совместной готовности.
-  const templateId = 109;
+  // Отдельная РПД: API-тест параллельно назначает другого участника на 109.
+  const templateId = list3.ropMode.id;
   const userId = 13;
   const login = page.waitForResponse((response) =>
     response.url() === `${apiUrl}/auth/sign-in` && response.request().method() === 'POST');
@@ -15,14 +16,11 @@ test('РОП видит действия активного режима и от
 
   try {
     await openComplect(page, 'other');
-    const row = page.getByRole('row').filter({ hasText: disciplines.otherRop });
-    const teachers = await openTeachersDialog(page, row, disciplines.otherRop);
-    const assignment = page.waitForResponse((response) =>
-      response.url() === `${apiUrl}/api/templates/${templateId}/workflow` && response.request().method() === 'POST');
+    const row = page.getByRole('row').filter({ hasText: list3.ropMode.discipline });
+    const teachers = await openTeachersDialog(page, row, list3.ropMode.discipline);
     await selectTeacher(teachers, 'Другов Тест Тестович');
-    expect((await assignment).status()).toBe(200);
+    await applyTeachersDialog(page, teachers);
     assigned = true;
-    await closeTeachersDialog(teachers);
 
     await expect(row).toContainText('Другов Тест Тестович');
     await row.getByRole('cell').nth(3).getByRole('button', { name: 'Назначены преподаватели', exact: true }).click();
@@ -60,14 +58,14 @@ test('РОП видит действия активного режима и от
     await page.getByRole('menuitem', { name: 'Преподаватель', exact: true }).click();
     await expect(page).toHaveURL(/\/templates$/);
 
-    const teacherRow = page.getByRole('row').filter({ hasText: disciplines.otherRop });
+    const teacherRow = page.getByRole('row').filter({ hasText: list3.ropMode.discipline });
     // Как у РОП: в строке одна кнопка «…», прямых кнопок действий нет.
-    await expect(teacherRow.getByRole('cell').nth(8).getByRole('button')).toHaveCount(1);
+    await expect(teacherRow.getByRole('cell').last().getByRole('button')).toHaveCount(1);
     for (const name of ['Открыть', 'Взять в работу', 'Готово', 'Принять']) {
       await expect(teacherRow.getByRole('button', { name, exact: true })).toHaveCount(0);
     }
     // История открывается по клику на статус, как у РОП; личная отметка — подтекстом.
-    const teacherStatus = teacherRow.getByRole('cell').nth(7);
+    const teacherStatus = teacherStatusCell(teacherRow);
     await expect(teacherStatus).toContainText('Моя отметка: Назначен');
     await teacherStatus.getByRole('button', { name: 'На доработке', exact: true }).click();
     await expect(history).toContainText('Продолжить проверку режима преподавателя');
@@ -83,9 +81,9 @@ test('РОП видит действия активного режима и от
     teacherMenu = await openTeacherRowMenu(page, teacherRow);
     await expect(teacherMenu.getByRole('menuitem')).toHaveText(['Открыть', 'История шаблона', 'Готово']);
     await teacherMenu.getByRole('menuitem', { name: 'Открыть', exact: true }).click();
-    await expect(page).toHaveURL(/\/templates\/a109a109a109(?:\/.*)?$/);
+    await expect(page).toHaveURL(/\/templates\/a318a318a318(?:\/.*)?$/);
     await expect(page.getByText('Титульный лист', { exact: true }).last()).toBeVisible();
-    await expect(page.getByText(disciplines.otherRop, { exact: true }).last()).toBeVisible();
+    await expect(page.getByText(list3.ropMode.discipline, { exact: true }).last()).toBeVisible();
   } finally {
     if (assigned) {
       const response = await request.post(`${apiUrl}/api/templates/${templateId}/workflow`, {

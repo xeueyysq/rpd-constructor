@@ -14,6 +14,10 @@ import { complectTableOptions } from "../config";
 import type { TemplateData } from "../types";
 import { BuildFundsByComplectDialog } from "./BuildFundsByComplectDialog";
 import { AssignTeachersDialog } from "@features/assign-teachers";
+import { ImportFromComplectsDialog } from "./ImportFromComplectsDialog";
+import { useAuth } from "@entities/auth";
+import { useRpdComplectsQuery } from "@entities/rpd-complect";
+import { UserRole } from "@shared/ability";
 
 export function RpdComplectPage() {
   const { id: complectId } = useParams();
@@ -23,20 +27,16 @@ export function RpdComplectPage() {
   );
   const history = useTemplateHistory(historyTemplateId);
   const [openBuildFunds, setOpenBuildFunds] = useState(false);
+  const [openImport, setOpenImport] = useState(false);
+  const role = useAuth((state) => state.userRole);
+  const { complects: ownedComplects } = useRpdComplectsQuery();
   const [teachersExchangeId, setTeachersExchangeId] = useState<number | null>(
     null
   );
-  const {
-    complectMeta,
-    selectedTeacherIds,
-    setSelectedTeacherIds,
-    filteredData,
-    fetchComplectData,
-    createTemplateData,
-  } = useComplectData(complectId);
+  const { complectMeta, filteredData, fetchComplectData } =
+    useComplectData(complectId);
   const columns = useComplectTableColumns({
-    selectedTeacherIds,
-    onCreateTemplate: createTemplateData,
+    complect: complectMeta,
     onFetchData: fetchComplectData,
     onOpenTeachers: setTeachersExchangeId,
     onOpenHistory: setHistoryTemplateId,
@@ -53,6 +53,12 @@ export function RpdComplectPage() {
         onAfterDelete={() => navigate(RedirectPath.COMPLECTS)}
         onBuildFundsClick={() => setOpenBuildFunds(true)}
         onSyncApplied={fetchComplectData}
+        onImportClick={
+          (role === UserRole.ADMIN || role === UserRole.ROP) &&
+          ownedComplects.some((complect) => complect.id === complectMeta?.id)
+            ? () => setOpenImport(true)
+            : undefined
+        }
       />
     ),
   });
@@ -80,7 +86,16 @@ export function RpdComplectPage() {
         isError={history.isError}
         onClose={() => setHistoryTemplateId(null)}
       />
-      {teachersRow ? (
+      {openImport && complectId && (
+        <ImportFromComplectsDialog
+          open
+          targetComplectId={complectMeta.id}
+          targetLabel={`${complectMeta.directionOfStudy} • ${complectMeta.profile} • ${complectMeta.year} • ${complectMeta.formEducation}`}
+          onClose={() => setOpenImport(false)}
+          onImported={fetchComplectData}
+        />
+      )}
+      {teachersRow?.id_profile_template != null ? (
         <AssignTeachersDialog
           key={teachersRow.id}
           discipline={teachersRow.discipline}
@@ -89,13 +104,6 @@ export function RpdComplectPage() {
           participants={teachersRow.participants}
           hints={teachersRow.teacherHints}
           canEditTeachers={teachersRow.canEditTeachers}
-          selectedIds={selectedTeacherIds[teachersRow.id] ?? []}
-          onSelectedIdsChange={(ids) =>
-            setSelectedTeacherIds((previous) => ({
-              ...previous,
-              [teachersRow.id]: ids,
-            }))
-          }
           onRefresh={fetchComplectData}
           onClose={() => setTeachersExchangeId(null)}
         />

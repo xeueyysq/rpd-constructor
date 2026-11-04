@@ -1,10 +1,6 @@
 import { describe, expect, it } from "vitest";
 import type { TemplateParticipant } from "@entities/template";
-import {
-  assignmentsDisabled,
-  prepareTeacherOptions,
-  selectedParticipants,
-} from "./teacherSelection";
+import { assignmentsDisabled, prepareTeacherOptions } from "./teacherSelection";
 
 const participants: TemplateParticipant[] = [
   {
@@ -28,20 +24,6 @@ const users = [
 ];
 
 describe("список и диалог преподавателей", () => {
-  it("до создания показывает только локальный выбор, после — серверные отметки, включая неактивных", () => {
-    expect(selectedParticipants(null, participants, users, [2])).toEqual([
-      {
-        userId: 2,
-        fullname: "Яковлева Тест Тестовна",
-        state: "assigned",
-        isActive: true,
-      },
-    ]);
-    expect(selectedParticipants(100, participants, users, [2])).toEqual(
-      participants
-    );
-  });
-
   it("делит на «из 1С» и остальных без автоматического выбора, неоднозначные ФИО выносит в справку", () => {
     const result = prepareTeacherOptions(
       users,
