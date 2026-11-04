@@ -14,6 +14,7 @@ import TemplatePresence from "../services/TemplatePresence.ts";
 import TemplateAccess from "../services/TemplateAccess.ts";
 import { NotFound } from "../utils/Errors.ts";
 import { replaceComplectOwner } from "../services/ComplectOwnership.ts";
+import TemplateImportController from "../controllers/templateImportController.ts";
 
 const template = (selector: (req: express.Request) => unknown, mode: "read" | "edit" | "manage") => templateAuthorization(pool, selector, mode);
 const complect = (selector: (req: express.Request) => unknown) => complectAuthorization(pool, selector);
@@ -26,6 +27,11 @@ const byComment: express.RequestHandler = async (req, _res, next) => {
 
 router.get("/templates/:id/workflow", TokenService.checkAccess, TemplateWorkflowController.get);
 router.post("/templates/:id/workflow", TokenService.checkAccess, validateWorkflow, TemplateWorkflowController.post);
+router.put("/templates/:id/participants", TokenService.checkAccess, requireRole(USER_ROLES.ADMIN, USER_ROLES.ROP), TemplateWorkflowController.setParticipants);
+const templateImportController = new TemplateImportController(pool);
+router.get("/template-import/sources", TokenService.checkAccess, templateImportController.sources);
+router.post("/template-import/complect", TokenService.checkAccess, requireRole(USER_ROLES.ADMIN, USER_ROLES.ROP), templateImportController.complect);
+router.post("/templates/:id/content-control/clear", TokenService.checkAccess, requireRole(USER_ROLES.ADMIN, USER_ROLES.ROP), templateImportController.clearControl);
 const templatePresence = new TemplatePresence(pool);
 router.post("/templates/:id/presence", TokenService.checkAccess, template((req) => req.params.id, "read"), async (req, res) => {
   const id = await resolveTemplate(pool, req.params.id);
@@ -78,8 +84,6 @@ router.delete(
 router.post(
   "/copy-template-data",
   TokenService.checkAccess,
-  template((req) => req.body.sourceTemplateId, "read"),
-  template((req) => req.body.targetTemplateId, "edit"),
   rpdProfileTemplatesController.copyTemplateData.bind(
     rpdProfileTemplatesController
   )
@@ -87,8 +91,6 @@ router.post(
 router.post(
   "/copy-template-content",
   TokenService.checkAccess,
-  template((req) => req.body.sourceTemplateId, "read"),
-  template((req) => req.body.targetTemplateId, "edit"),
   rpdProfileTemplatesController.copyTemplateContent.bind(
     rpdProfileTemplatesController
   )

@@ -7,6 +7,7 @@ import { deriveCertification, getStudyPlanHours } from "../modules/disciplineSco
 import { isEditableTemplateField } from "../validators/RpdProfileTemplates.ts";
 import RpdProfileTemplates from "../models/rpd_profile_templates.ts";
 import TemplateAccess from "../services/TemplateAccess.ts";
+import TemplateImport from "../services/TemplateImport.ts";
 import { NotFound, Unprocessable } from "../utils/Errors.ts";
 import { buildFosWorkbook, fosRows } from "../services/documents/fosWorkbook.ts";
 import {
@@ -257,8 +258,10 @@ function buildAssessmentFundsDoc(data: AssessmentFundsData) {
 
 class RpdProfileTemplatesController {
   model: RpdProfileTemplates;
+  imports: TemplateImport;
   constructor(pool: Pool) {
     this.model = new RpdProfileTemplates(pool);
+    this.imports = new TemplateImport(pool);
   }
 
   async getJsonProfile(req: Request<ParamsDictionary, unknown, Record<string, unknown>>, res: Response) {
@@ -340,68 +343,26 @@ class RpdProfileTemplatesController {
   }
 
   async copyTemplateData(req: Request<ParamsDictionary, unknown, Record<string, unknown>>, res: Response) {
-    try {
-      const { sourceTemplateId, targetTemplateId, fieldToCopy } = req.body;
-
-      if (!sourceTemplateId || !targetTemplateId || !fieldToCopy) {
-        return res.status(400).json({
-          message: "Нет необходимых параметров",
-        });
-      }
-      if (!isEditableTemplateField(fieldToCopy)) {
-        return res.status(400).json({ message: "Недопустимое поле шаблона" });
-      }
-
-      const result = await this.model.copyTemplateData(
-        sourceTemplateId,
-        targetTemplateId,
-        fieldToCopy as string,
-        TemplateAccess.actor(req.user).id
-      );
-
-      res.json(result);
-    } catch (err) {
-      console.error("Ошибка контроллера:", err);
-      res.status(500).json({ message: errorMessage(err) });
-    }
+    const { sourceTemplateId, targetTemplateId, fieldToCopy, baseAt } = req.body ?? {};
+    if (fieldToCopy === undefined) throw new Unprocessable("Укажите поле импорта");
+    res.json(await this.imports.copy(TemplateAccess.actor(req.user), sourceTemplateId, targetTemplateId, { field: fieldToCopy, baseAt }));
   }
 
   async copyTemplateContent(req: Request<ParamsDictionary, unknown, Record<string, unknown>>, res: Response) {
-    try {
-      const { sourceTemplateId, targetTemplateId } = req.body;
-
-      if (!sourceTemplateId || !targetTemplateId) {
-        return res.status(400).json({
-          message: "Нет необходимых параметров",
-        });
-      }
-
-      const sourceId = await this.model.resolveTemplateId(sourceTemplateId);
-      const targetId = await this.model.resolveTemplateId(targetTemplateId);
-      if (sourceId != null && targetId != null && sourceId === targetId) {
-        return res.status(400).json({
-          message: "Нельзя импортировать шаблон сам в себя",
-        });
-      }
-
-      const result = await this.model.copyTemplateContent(
-        sourceTemplateId,
-        targetTemplateId,
-        TemplateAccess.actor(req.user).id
-      );
-
-      res.json(result);
-    } catch (err) {
-      console.error("Ошибка контроллера:", err);
-      res.status(500).json({ message: errorMessage(err) });
-    }
+    const { sourceTemplateId, targetTemplateId, targetRevision } = req.body ?? {};
+    res.json(await this.imports.copy(TemplateAccess.actor(req.user), sourceTemplateId, targetTemplateId, { targetRevision }));
   }
 
   async getChangeableValues(req: Request<ParamsDictionary, unknown, Record<string, unknown>>, res: Response) {
-      const { ids, rowName } = req.query;
-      if (!ids || !rowName) throw new Unprocessable("Укажите ids и rowName");
-      const result = await this.model.getChangeableValues(ids, rowName, TemplateAccess.actor(req.user));
-      res.json(result);
+    const { rowName, targetTemplateId } = req.query;
+    const inputs = [req.query.ids, req.query["ids[]"]].filter((value) => value !== undefined);
+    const ids = inputs.flatMap((value) => Array.isArray(value) ? value : [value]);
+    if (!ids.length || !rowName) throw new Unprocessable("Укажите ids и rowName");
+    if (ids.some((id) => typeof id !== "string" && typeof id !== "number")) throw new Unprocessable("Некорректные ids");
+    const actor = TemplateAccess.actor(req.user);
+    res.json(targetTemplateId === undefined
+      ? await this.model.getChangeableValues(ids, rowName, actor)
+      : await this.imports.preview(actor, ids, rowName, targetTemplateId));
   }
 
   async generateAssessmentFundsDocx(req: Request<ParamsDictionary, unknown, Record<string, unknown>>, res: Response) {

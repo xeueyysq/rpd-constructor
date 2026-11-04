@@ -1,7 +1,7 @@
 import type { Pool, PoolClient } from "pg";
 import type { UserClaims } from "../types/express.d.ts";
 import { pool } from "../../config/db.ts";
-import { Forbidden, NotFound, Unprocessable } from "../utils/Errors.ts";
+import { Conflict, Forbidden, NotFound, Unprocessable } from "../utils/Errors.ts";
 import { ASSIGNABLE_TEACHER_ROLES, USER_ROLES } from "../models/constants.ts";
 import { formatShortName, fullnameText } from "../modules/teacherNames.ts";
 import { formatDisciplineName } from "../modules/disciplineNames.ts";
@@ -128,6 +128,58 @@ export default class TemplateWorkflow {
       WHERE tt.user_id=$1 AND u.is_active ORDER BY rpt.id`, [actor.id]);
     const snapshots = await this.snapshots(this.database, rows.map((row) => row.id), actor);
     return rows.map((row) => ({ ...row, disciplins_name: formatDisciplineName(row.disciplins_name), ...snapshots.get(row.id) }));
+  }
+
+  async setParticipants(identifier: unknown, actor: UserClaims, teacherIds: unknown, baseTeacherIds: unknown) {
+    const parseIds = (value: unknown): number[] => {
+      if (!Array.isArray(value) || value.some((id) => typeof id !== "number" || !Number.isSafeInteger(id) || id <= 0)
+        || new Set(value).size !== value.length) throw new Unprocessable("Укажите уникальные teacherIds и baseTeacherIds");
+      return [...value].sort((a, b) => a - b);
+    };
+    const nextIds = parseIds(teacherIds);
+    const baseIds = parseIds(baseTeacherIds);
+    const client = await this.database.connect();
+    try {
+      await client.query("BEGIN");
+      const template = await this.resolveId(client, identifier);
+      await client.query("SELECT id FROM rpd_complects WHERE id=$1 FOR UPDATE", [template.id_rpd_complect]);
+      await client.query("SELECT id FROM users WHERE id=ANY($1::int[]) ORDER BY id FOR UPDATE", [[...new Set([actor.id, ...nextIds, ...baseIds])].sort((a, b) => a - b)]);
+      await TemplateAccess.assertTemplate(client, actor, template.id, "manage");
+      const status = await this.status(client, template.id, true);
+      let participants: Participant[] = await this.participants(client, template.id);
+      const currentIds = participants.map((part) => part.userId).sort((a, b) => a - b);
+      if (JSON.stringify(currentIds) !== JSON.stringify(baseIds)) throw new Conflict({ message: "Состав преподавателей уже изменён", teacherIds: currentIds });
+      if (status.current_status === "ready") throw new Conflict("Сначала верните РПД на доработку");
+      const additions = nextIds.filter((id) => !currentIds.includes(id));
+      const removals = currentIds.filter((id) => !nextIds.includes(id));
+      const { rows: users } = await client.query<{ id: number; is_active: boolean; role: number }>("SELECT id,is_active,role FROM users WHERE id=ANY($1::int[])", [additions]);
+      const { rows: authors } = await client.query<{ fullname: unknown }>("SELECT fullname FROM users WHERE id=$1", [actor.id]);
+      const userName = formatShortName(authors[0]?.fullname) || actor.userName;
+      const events = [];
+      let nextStatus: TemplateStatus = status.current_status;
+      // Проверяем весь набор до записи. Промежуточное ready при снятии участника
+      // не закрывает оставшиеся изменения одного атомарного Apply.
+      for (const [action, ids] of [["assign", additions], ["unassign", removals]] as const) {
+        for (const targetUserId of ids) {
+          const target = users.find((user) => user.id === targetUserId);
+          if (action === "assign" && !target) throw new NotFound("Пользователь не найден");
+          const decision = decide({ current: status.current_status, participants, action, actorId: actor.id, actorRole: actor.role,
+            canManage: true, userName, targetUserId, targetIsActive: target?.is_active, targetRole: target?.role });
+          participants = decision.participants;
+          nextStatus = decision.status;
+          events.push(decision.event);
+        }
+      }
+      if (removals.length) await client.query("DELETE FROM teacher_templates WHERE template_id=$1 AND user_id=ANY($2::int[])", [template.id, removals]);
+      for (const id of additions) await client.query("INSERT INTO teacher_templates(user_id,template_id,state) VALUES($1,$2,'assigned')", [id, template.id]);
+      if (events.length) await client.query("UPDATE template_status SET current_status=$1,history=COALESCE(history,'[]'::jsonb)||$2::jsonb WHERE id=$3", [nextStatus, JSON.stringify(events), status.id]);
+      const result = await this.snapshot(client, template.id, actor);
+      await client.query("COMMIT");
+      return result;
+    } catch (error) {
+      await client.query("ROLLBACK");
+      throw error;
+    } finally { client.release(); }
   }
 
   async assignableTeachers(actor: UserClaims) {
