@@ -63,6 +63,7 @@ for (const role of ['rop', 'teacher'] as const) {
     await page.reload();
     await expect(page.getByText('Цели источника 300', { exact: true })).toBeVisible();
     await page.getByRole('button', { name: 'Ресурсное обеспечение', exact: true }).click();
+    await expect(page.getByRole('main').getByText('Основная литература', { exact: true })).toBeVisible();
     for (const [index, field, value] of [
       [0, 'textbook', ['Основная книга 302', 'Вторая основная книга 302']],
       [1, 'additional_textbook', ['Дополнительная книга 302']],
