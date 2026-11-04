@@ -117,7 +117,7 @@ test('массовый импорт: точный семестр и тип, ит
   const before = await Promise.all([313, 314, 315].map((id) => profileFor(request, headers, id)));
   await signIn(page, 'rop');
   await openFixtureComplect(page, list3.bulk.complectId);
-  await page.getByRole('button', { name: 'Импортировать все дисциплины', exact: true }).click();
+  await page.getByRole('button', { name: 'Импорт', exact: true }).click();
   const dialog = page.getByRole('dialog', { name: 'Импортировать все дисциплины', exact: true });
   await expect(dialog).not.toContainText('Цель:');
   await expect(dialog.getByRole('checkbox')).toHaveCount(0);

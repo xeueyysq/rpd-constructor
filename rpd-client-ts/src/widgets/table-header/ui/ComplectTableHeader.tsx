@@ -1,5 +1,6 @@
 import CachedIcon from "@mui/icons-material/Cached";
 import DeleteIcon from "@mui/icons-material/Delete";
+import FileDownloadIcon from "@mui/icons-material/FileDownload";
 import PlaylistAddCheckIcon from "@mui/icons-material/PlaylistAddCheck";
 import SchoolOutlinedIcon from "@mui/icons-material/SchoolOutlined";
 import { Box, Button, Tooltip } from "@mui/material";
@@ -107,8 +108,12 @@ export function ComplectTableHeader({
         </Button>
       )}
       {onImportClick && (
-        <Button variant="outlined" onClick={onImportClick}>
-          Импортировать все дисциплины
+        <Button
+          variant="outlined"
+          startIcon={<FileDownloadIcon />}
+          onClick={onImportClick}
+        >
+          Импорт
         </Button>
       )}
       {onBuildFundsClick && (
