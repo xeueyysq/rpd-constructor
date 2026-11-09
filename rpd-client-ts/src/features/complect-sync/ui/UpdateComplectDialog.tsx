@@ -11,7 +11,7 @@ import {
   Typography,
 } from "@mui/material";
 import { useQueryClient } from "@tanstack/react-query";
-import { useCallback, useMemo, useState } from "react";
+import { useCallback, useLayoutEffect, useMemo, useRef, useState } from "react";
 import { showErrorMessage, showSuccessMessage } from "@shared/lib";
 import { ConfirmActionDialog } from "@shared/ui";
 import { SyncDiffTable } from "./SyncDiffTable";
@@ -29,6 +29,8 @@ type UpdateComplectDialogProps = {
   onClose: () => void;
   onApplied?: () => void;
 };
+
+type DialogOpening = { complectUuid: string; generation: number };
 
 const buildDefaultFieldSelection = (diff: SyncDiff) => {
   const state: Record<string, Record<string, boolean>> = {};
@@ -109,7 +111,16 @@ export function UpdateComplectDialog({
   const queryClient = useQueryClient();
   const previewMutation = useSyncPreviewMutation();
   const applyMutation = useSyncApplyMutation();
-  const [preview, setPreview] = useState<SyncPreviewResponse | null>(null);
+  const generationRef = useRef(0);
+  const openingRef = useRef<DialogOpening | null>(null);
+  const [opening, setOpening] = useState<DialogOpening | null>(null);
+  const [loadedPreview, setLoadedPreview] = useState<{
+    opening: DialogOpening;
+    data: SyncPreviewResponse;
+  } | null>(null);
+  const [loadingOpening, setLoadingOpening] = useState<DialogOpening | null>(
+    null
+  );
   const [fieldSelection, setFieldSelection] = useState<
     Record<string, Record<string, boolean>>
   >({});
@@ -117,31 +128,56 @@ export function UpdateComplectDialog({
   const [openApplyConfirm, setOpenApplyConfirm] = useState(false);
 
   const resetState = useCallback(() => {
-    setPreview(null);
+    setLoadedPreview(null);
+    setLoadingOpening(null);
     setFieldSelection({});
     setRowSelection({});
     setOpenApplyConfirm(false);
   }, []);
 
+  // Инвалидируем открытие до отрисовки новой цели, включая закрытие извне.
+  useLayoutEffect(() => {
+    const current =
+      open && complectUuid
+        ? { complectUuid, generation: ++generationRef.current }
+        : null;
+    openingRef.current = current;
+    setOpening(current);
+    resetState();
+    return () => {
+      openingRef.current = null;
+    };
+  }, [open, complectUuid, resetState]);
+
+  const preview =
+    open &&
+    opening?.complectUuid === complectUuid &&
+    loadedPreview?.opening === opening
+      ? loadedPreview.data
+      : null;
+
   const handleClose = () => {
+    openingRef.current = null;
     resetState();
     onClose();
   };
 
-  const applyPreview = (data: SyncPreviewResponse) => {
-    setPreview(data);
-    setFieldSelection(buildDefaultFieldSelection(data.diff));
-    setRowSelection(buildDefaultRowSelection(data.diff));
-  };
-
   const handleLoadFrom1c = async () => {
-    if (!complectUuid) return;
+    const current = openingRef.current;
+    if (!current || current.complectUuid !== complectUuid) return;
+    setLoadingOpening(current);
     try {
-      const data = await previewMutation.mutateAsync(complectUuid);
-      applyPreview(data);
+      const data = await previewMutation.mutateAsync(current.complectUuid);
+      if (openingRef.current !== current) return;
+      setLoadedPreview({ opening: current, data });
+      setFieldSelection(buildDefaultFieldSelection(data.diff));
+      setRowSelection(buildDefaultRowSelection(data.diff));
     } catch (error) {
+      if (openingRef.current !== current) return;
       console.error(error);
       showErrorMessage("Не удалось загрузить данные из 1С");
+    } finally {
+      if (openingRef.current === current) setLoadingOpening(null);
     }
   };
 
@@ -152,7 +188,7 @@ export function UpdateComplectDialog({
   );
 
   const handleApplyClick = () => {
-    if (!complectUuid || !preview) return;
+    if (!preview || openingRef.current !== loadedPreview?.opening) return;
     if (!selections.length) {
       showErrorMessage("Выберите хотя бы одно изменение");
       return;
@@ -161,24 +197,50 @@ export function UpdateComplectDialog({
   };
 
   const handleApply = async () => {
-    if (!complectUuid || !preview || !selections.length) return;
+    const current = openingRef.current;
+    if (
+      !current ||
+      current !== loadedPreview?.opening ||
+      !preview ||
+      !selections.length
+    )
+      return;
     setOpenApplyConfirm(false);
+    setLoadingOpening(current);
     try {
-      await applyMutation.mutateAsync({
-        complectId: complectUuid,
+      const result = await applyMutation.mutateAsync({
+        complectId: current.complectUuid,
         selections,
       });
-      await queryClient.invalidateQueries({ queryKey: ["rpd-complects"] });
+      // Завершённый запрос обновляет свою цель даже после закрытия диалога.
+      const targetIds = new Set([
+        current.complectUuid,
+        String(result.complectId),
+      ]);
+      if (preview.complect.uuid) targetIds.add(preview.complect.uuid);
+      await Promise.all([
+        queryClient.invalidateQueries({ queryKey: ["rpd-complects"] }),
+        queryClient.invalidateQueries({
+          predicate: (query) =>
+            query.queryKey[0] === "rpd-complect" &&
+            targetIds.has(String(query.queryKey[1])),
+        }),
+        queryClient.invalidateQueries({ queryKey: ["exchange-changes"] }),
+      ]);
+      if (openingRef.current !== current) return;
       showSuccessMessage("Изменения применены");
       onApplied?.();
       handleClose();
     } catch (error) {
+      if (openingRef.current !== current) return;
       console.error(error);
       showErrorMessage("Не удалось применить изменения");
+    } finally {
+      if (openingRef.current === current) setLoadingOpening(null);
     }
   };
 
-  const isLoading = previewMutation.isPending || applyMutation.isPending;
+  const isLoading = opening !== null && loadingOpening === opening;
 
   return (
     <Dialog open={open} onClose={handleClose} maxWidth="md" fullWidth>

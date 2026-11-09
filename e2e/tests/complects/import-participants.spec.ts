@@ -61,6 +61,8 @@ test('полный импорт чужого черновика того же г
   const confirmation = page.getByRole('dialog', { name: 'Подтвердите импорт', exact: true });
   await expect(confirmation).toContainText('Цель: Импорт поля List3 • семестр 4 • List3 Полный импорт • 2026');
   await expect(confirmation).toContainText(/Источник:.*Импорт\s+поля list3.*семестр 1.*2026/i);
+  await expect(confirmation).toContainText('Содержательные поля текущей РПД будут полностью заменены данными выбранной РПД.');
+  await expect(confirmation).toContainText('Компетенции, вопросы и шаблон ФОС, дисциплина, семестр, нагрузки и аттестация останутся прежними.');
   await confirmation.screenshot({ path: testInfo.outputPath('full-import-target-context.png') });
   const copied = page.waitForResponse((response) => response.url() === `${apiUrl}/api/copy-template-content`
     && response.request().method() === 'POST');

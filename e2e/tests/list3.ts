@@ -22,6 +22,55 @@ export const list3 = {
     owner: 'field-reopen-rop', discipline: 'Повторное открытие импорта List3' },
 } as const;
 
+export const syncFixtures = {
+  owner: 'sync-owner-rop',
+  foreignOwner: 'sync-other-rop',
+  dialogOwner: 'sync-dialog-rop',
+  own: { id: 330, exchangeId: 330 },
+  foreign: { id: 331, exchangeId: 331 },
+  lifecycle: { id: 332, uuid: '33000000-0000-4000-8000-000000000332' },
+  dialogA: { id: 333, uuid: '33000000-0000-4000-8000-000000000333', profile: 'Sync dialog A' },
+  dialogB: { id: 334, uuid: '33000000-0000-4000-8000-000000000334', profile: 'Sync dialog B' },
+} as const;
+
+type SyncFixtureState = {
+  complects: Record<string, unknown>[];
+  exchange: Array<{ id: number; id_rpd_complect: number; discipline: string; removed_at: string | null }>;
+  templates: Record<string, unknown>[];
+  statuses: Record<string, unknown>[];
+  participants: Record<string, unknown>[];
+  fieldChanges: Array<{ id: number; sync_log_id: number; id_1c_exchange: number; field_key: string }>;
+  syncLog: Array<{ id: number; complect_id: number; user_id: number; source: string }>;
+};
+
+// Снимок только выделенных sync-комплектов: rollback и retention проверяются в настоящей БД.
+export function syncStateFromDb(ids: number[]): SyncFixtureState {
+  if (!ids.length || ids.some((id) => ![330, 331, 332, 333, 334].includes(id))) {
+    throw new Error('Допустимы только выделенные sync fixtures');
+  }
+  const scope = `ARRAY[${ids.join(',')}]`;
+  const directory = fileURLToPath(new URL('../', import.meta.url));
+  const env = parseEnv(readFileSync(new URL('../e2e.env', import.meta.url), 'utf8'));
+  const json = execFileSync('docker', [
+    'compose', '--env-file', 'e2e.env', 'exec', '-T', 'db',
+    'psql', '-X', '-A', '-t', '-v', 'ON_ERROR_STOP=1', '-U', env.DB_USER!, '-d', env.DB_NAME!,
+    '-c', `WITH e AS (SELECT * FROM rpd_1c_exchange WHERE id_rpd_complect = ANY(${scope})),
+      p AS (SELECT * FROM rpd_profile_templates WHERE id_rpd_complect = ANY(${scope}))
+      SELECT jsonb_build_object(
+        'complects', COALESCE((SELECT jsonb_agg(to_jsonb(t) ORDER BY id) FROM rpd_complects t WHERE id = ANY(${scope})), '[]'::jsonb),
+        'exchange', COALESCE((SELECT jsonb_agg(to_jsonb(e) ORDER BY id) FROM e), '[]'::jsonb),
+        'templates', COALESCE((SELECT jsonb_agg(to_jsonb(p) ORDER BY id) FROM p), '[]'::jsonb),
+        'statuses', COALESCE((SELECT jsonb_agg(to_jsonb(t) ORDER BY id) FROM template_status t
+          WHERE id_1c_template IN (SELECT id FROM e) OR id_profile_template IN (SELECT id FROM p)), '[]'::jsonb),
+        'participants', COALESCE((SELECT jsonb_agg(to_jsonb(t) ORDER BY id) FROM teacher_templates t WHERE template_id IN (SELECT id FROM p)), '[]'::jsonb),
+        'fieldChanges', COALESCE((SELECT jsonb_agg(to_jsonb(t) ORDER BY id) FROM template_field_changes t
+          WHERE id_1c_exchange IN (SELECT id FROM e) OR sync_log_id IN
+            (SELECT id FROM complect_sync_log WHERE complect_id = ANY(${scope}))), '[]'::jsonb),
+        'syncLog', COALESCE((SELECT jsonb_agg(to_jsonb(t) ORDER BY id) FROM complect_sync_log t WHERE complect_id = ANY(${scope})), '[]'::jsonb))`,
+  ], { cwd: directory, encoding: 'utf8', timeout: 10_000 }).trim();
+  return JSON.parse(json) as SyncFixtureState;
+}
+
 export async function headersFor(request: APIRequestContext, userName = 'rop') {
   const auth = await request.post(`${apiUrl}/auth/sign-in`, { data: { userName, password } });
   expect(auth.status()).toBe(200);
