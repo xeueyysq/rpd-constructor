@@ -13,6 +13,11 @@ INSERT INTO users (id, name, password, role, fullname) VALUES
   (14, 'teacher3', '$2b$08$19oXcVS2/xt8y7H73RhQ4uws75CgyFFw9QuRe9oxX/1cDhRqUcbza', 2, '{"surname":"Третьева","name":"Тест","patronymic":"Тестовна"}'),
   (15, 'teacher4', '$2b$08$19oXcVS2/xt8y7H73RhQ4uws75CgyFFw9QuRe9oxX/1cDhRqUcbza', 2, '{"surname":"Отключева","name":"Тест","patronymic":"Тестовна"}'),
   (20, 'sync-teacher', '$2b$08$19oXcVS2/xt8y7H73RhQ4uws75CgyFFw9QuRe9oxX/1cDhRqUcbza', 2, '{"surname":"Синхронова","name":"Тест","patronymic":"Тестовна"}');
+-- Отдельный владелец жизненного цикла каталога: другие сценарии не меняют его комплекты.
+INSERT INTO users (id, name, password, role, fullname)
+SELECT 30, 'field-reopen-rop', password, 3,
+  '{"surname":"Каталогов","name":"Тест","patronymic":"Тестович"}'::jsonb
+FROM users WHERE name = 'rop';
 SELECT setval(pg_get_serial_sequence('users', 'id'), (SELECT max(id) FROM users));
 
 INSERT INTO rpd_complects (id, uuid, faculty, year, education_form, education_level, profile, direction, has_pending_changes, last_synced_at) VALUES
@@ -200,6 +205,23 @@ INSERT INTO planned_results_sets (id, complect_id) VALUES (317, 317);
 INSERT INTO planned_competencies (id, set_id, competence) VALUES (317, 317, 'ПК-L3 Авторская компетенция');
 INSERT INTO planned_indicators (id, competence_id, indicator) VALUES (317, 317, 'ПК-L3.1 Индикатор');
 INSERT INTO planned_indicator_disciplines (id, indicator_id, discipline) VALUES (317, 317, 'Сохранение ФОС List3');
+
+-- Источник в комплекте 321 появится через sync/add после первого открытия поля 320.
+INSERT INTO rpd_complects (id, faculty, year, education_form, education_level, profile, direction) VALUES
+  (320, 'Институт каталога List3', 2026, 'Очная', 'Бакалавриат', 'List3 Повторное открытие', 'Направление каталога List3'),
+  (321, 'Институт каталога List3', 2024, 'Очная', 'Бакалавриат', 'List3 Новый источник', 'Направление каталога List3');
+INSERT INTO user_complect (user_id, complect_id) VALUES (30, 320), (30, 321);
+INSERT INTO rpd_profile_templates
+  (id, public_id, id_rpd_complect, disciplins_name, department, semester, zet, goals, content, study_load, control_load, field_edits)
+VALUES (320, 'a320a320a320', 320, 'Повторное открытие импорта List3', 'Кафедра каталога List3', 1, 3,
+  '<p>Исходные цели повторного открытия</p>', '{}'::jsonb, '{"Всего":108}'::jsonb, '{}'::jsonb,
+  '{"goals":{"userId":30,"at":"2026-01-01T00:00:00.000Z"}}'::jsonb);
+INSERT INTO rpd_1c_exchange
+  (id, id_rpd_complect, department, discipline, teachers, zet, record_type, study_load, control_load, semester)
+VALUES (320, 320, 'Кафедра каталога List3', 'Повторное открытие импорта List3', ARRAY[]::text[], 3,
+  'discipline', '{"Всего":108}'::jsonb, '{}'::jsonb, 1);
+INSERT INTO template_status (id, id_1c_template, id_profile_template, current_status, history)
+VALUES (320, 320, 320, 'created', '[]'::jsonb);
 
 SELECT setval(pg_get_serial_sequence('rpd_complects', 'id'), (SELECT max(id) FROM rpd_complects));
 SELECT setval(pg_get_serial_sequence('rpd_1c_exchange', 'id'), (SELECT max(id) FROM rpd_1c_exchange));

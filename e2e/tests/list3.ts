@@ -5,7 +5,7 @@ import { parseEnv } from 'node:util';
 import { expect, type APIRequestContext, type Page } from '@playwright/test';
 import { apiUrl, password } from './helpers';
 
-// Только синтетические строки e2e/seed.sql. Источники тесты не изменяют.
+// Только синтетические строки e2e/seed.sql. Предсозданные источники тесты не изменяют.
 export const list3 = {
   discipline: 'Импорт поля List3',
   competence: 'ПК-L3 Авторская компетенция',
@@ -18,6 +18,8 @@ export const list3 = {
   control: { id: 316, complectId: 316, publicId: 'a316a316a316' },
   funds: { id: 317, complectId: 317, publicId: 'a317a317a317' },
   ropMode: { id: 318, complectId: 101, publicId: 'a318a318a318', discipline: 'Режим РОП-преподавателя List3' },
+  fieldReopen: { id: 320, complectId: 320, publicId: 'a320a320a320', sourceComplectId: 321,
+    owner: 'field-reopen-rop', discipline: 'Повторное открытие импорта List3' },
 } as const;
 
 export async function headersFor(request: APIRequestContext, userName = 'rop') {

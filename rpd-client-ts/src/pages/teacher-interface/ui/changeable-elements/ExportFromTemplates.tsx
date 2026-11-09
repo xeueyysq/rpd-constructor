@@ -13,7 +13,6 @@ import { DataDialogBox } from "../DataDialogBox";
 import { useState } from "react";
 import {
   fieldImportOptions,
-  prepareTemplateImport,
   templateImportError,
   useCopyTemplateField,
   useImportSources,
@@ -36,26 +35,25 @@ export function ExportFromTemplates({
   const [baseAt, setBaseAt] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [preparing, setPreparing] = useState(false);
-  const sources = useImportSources(
-    { targetTemplateId: jsonData.id },
-    mode != null || Boolean(anchorEl)
-  );
+  const sources = useImportSources({ targetTemplateId: jsonData.id }, false);
   const copy = useCopyTemplateField();
 
   const openDialog = async (nextMode: "year" | "direction") => {
     setAnchorEl(null);
     setPreparing(true);
     try {
-      await prepareTemplateImport(jsonData.id);
+      await sources.refetch({ throwOnError: true });
+      const target = useStore.getState().jsonData;
+      if (target.id !== jsonData.id) return;
       setBaseAt(
-        (useStore.getState().jsonData.field_edits as FieldEdits | undefined)?.[
-          elementName
-        ]?.at ?? null
+        (target.field_edits as FieldEdits | undefined)?.[elementName]?.at ??
+          null
       );
       setError(null);
       setMode(nextMode);
     } catch (error) {
-      showErrorMessage(templateImportError(error));
+      if (useStore.getState().jsonData.id === jsonData.id)
+        showErrorMessage(templateImportError(error));
     } finally {
       setPreparing(false);
     }
@@ -86,11 +84,10 @@ export function ExportFromTemplates({
 
   const reload = async () => {
     const refreshed = await sources.refetch();
-    if (refreshed.isError) return;
+    const target = useStore.getState().jsonData;
+    if (refreshed.isError || target.id !== jsonData.id) return;
     setBaseAt(
-      (useStore.getState().jsonData.field_edits as FieldEdits | undefined)?.[
-        elementName
-      ]?.at ?? null
+      (target.field_edits as FieldEdits | undefined)?.[elementName]?.at ?? null
     );
     setError(null);
   };
