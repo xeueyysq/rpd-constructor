@@ -1,8 +1,8 @@
 import { expect, test, type Locator, type Page } from '@playwright/test';
-import { apiUrl, signIn } from '../helpers';
+import { apiUrl, password, signIn, signInWithCredentials } from '../helpers';
 import { headersFor, list3, profileFor, templateFromDb } from '../list3';
 
-async function fieldDialog(page: Page, button: Locator, mode: 'year' | 'direction', field: string) {
+async function fieldDialog(page: Page, button: Locator, mode: 'year' | 'direction', field: string, sourceName?: RegExp) {
   await button.click();
   const preview = page.waitForResponse((response) => {
     const url = new URL(response.url());
@@ -12,7 +12,11 @@ async function fieldDialog(page: Page, button: Locator, mode: 'year' | 'directio
   const dialog = page.getByRole('dialog', { name: mode === 'year'
     ? 'Загрузить из другого комплекта' : 'Загрузить из другого направления', exact: true });
   await expect(dialog).toBeVisible();
-  const response = await preview;
+  const [response] = await Promise.all([
+    preview,
+    ...(sourceName ? [expect(dialog.getByRole('radio', { name: sourceName }),
+      'Повторное открытие должно показать новый источник без ручного обновления').toBeVisible()] : []),
+  ]);
   expect(response.status(), 'Предпросмотр через настоящий HTTP не должен возвращать 422/403').toBe(200);
   return { dialog, response };
 }
@@ -27,7 +31,76 @@ async function copyField(page: Page, dialog: Locator, source: Locator, targetId:
   expect(response.request().postDataJSON()).toMatchObject({ targetTemplateId: targetId, fieldToCopy: field });
   expect((await response.json()).value).toEqual(value);
   await expect(dialog).toBeHidden();
+  return response;
 }
+
+test('повторное открытие импорта поля обновляет каталог после добавления источника', async ({ page, request }, testInfo) => {
+  test.slow();
+  const target = list3.fieldReopen;
+  const headers = await headersFor(request, target.owner);
+  const before = await profileFor(request, headers, target.id);
+  await signInWithCredentials(page, target.owner, password);
+  await expect(page).toHaveURL(/\/complects$/);
+  await page.goto(`/templates/${target.publicId}/aimsPage`);
+  await expect(page.getByText('Исходные цели повторного открытия', { exact: true })).toBeVisible();
+  const button = page.getByRole('button', { name: 'Импортировать поле', exact: true });
+  const firstCatalog = page.waitForResponse((response) => {
+    const url = new URL(response.url());
+    return url.pathname === '/api/template-import/sources'
+      && url.searchParams.get('targetTemplateId') === String(target.id);
+  });
+  await button.click();
+  await page.getByRole('menuitem', { name: /другого комплекта/ }).click();
+  expect((await firstCatalog).status()).toBe(200);
+  const empty = page.getByRole('dialog', { name: 'Загрузить из другого комплекта', exact: true });
+  await expect(empty.getByText('Нет данных по другим шаблонам', { exact: true })).toBeVisible();
+  await expect(empty.getByRole('radio')).toHaveCount(0);
+  await empty.getByRole('button', { name: 'Отмена', exact: true }).click();
+  await expect(empty).toBeHidden();
+
+  // Единственный изменяемый источник этого сценария создаётся настоящей синхронизацией.
+  // Страница цели остаётся смонтированной до повторного открытия того же поля.
+  const added = await request.post(`${apiUrl}/api/complects/sync/apply`, { headers, data: {
+    complectId: target.sourceComplectId,
+    selections: [{ action: 'add', incoming: {
+      discipline: target.discipline, semester: 1, record_type: 'discipline',
+      department: 'Кафедра каталога List3', teachers: [], zet: 3, place: 'Базовая часть',
+      study_load: { 'Всего': 108 }, control_load: {},
+    } }],
+  } });
+  expect(added.status()).toBe(200);
+  const sourceComplect = await request.post(`${apiUrl}/api/find-rpd`, {
+    headers, data: { complectId: target.sourceComplectId },
+  });
+  expect(sourceComplect.status()).toBe(200);
+  const { templates } = await sourceComplect.json();
+  expect(templates).toHaveLength(1);
+  expect(templates[0]).toMatchObject({ discipline: target.discipline, id_profile_template: expect.any(Number) });
+  const sourceId = templates[0].id_profile_template as number;
+  const source = await profileFor(request, headers, sourceId);
+  const value = '<p>Цели нового источника после открытия</p>';
+  const filled = await request.put(`${apiUrl}/api/update-json-value/${sourceId}`, { headers, data: {
+    fieldToUpdate: 'goals', value, baseAt: source.field_edits?.goals?.at ?? null,
+  } });
+  expect(filled.status()).toBe(200);
+
+  // Без reload страницы, ручного обновления каталога или инвалидирования кеша.
+  const { dialog, response } = await fieldDialog(page, button, 'year', 'goals', /Повторное открытие импорта list3.*2024/i);
+  expect(await response.json()).toEqual([expect.objectContaining({ id: sourceId, goals: value })]);
+  const option = dialog.getByRole('radio', { name: /Повторное открытие импорта list3.*2024/i });
+  await expect(option).toBeVisible();
+  await option.locator('xpath=ancestor::label[1]').locator('..').getByRole('button').click();
+  await expect(dialog.getByText('Цели нового источника после открытия', { exact: true })).toBeVisible();
+  await dialog.screenshot({ path: testInfo.outputPath('field-import-refreshed.png') });
+  const copied = await copyField(page, dialog, option, target.id, 'goals', value);
+  expect(copied.request().postDataJSON().baseAt).toBe(before.field_edits.goals.at);
+  const saved = await profileFor(request, headers, target.id);
+  expect(saved.goals).toBe(value);
+  expect(templateFromDb(target.id)).toMatchObject({ goals: value,
+    field_edits: { goals: { userId: 30, at: saved.field_edits.goals.at } } });
+  await page.reload();
+  await expect(page.getByText('Цели нового источника после открытия', { exact: true })).toBeVisible();
+});
 
 for (const role of ['rop', 'teacher'] as const) {
   test(`${role}: импорт поля из чужого черновика, разные годы/регистр, text[] литературы и reload`, async ({ page, request }) => {

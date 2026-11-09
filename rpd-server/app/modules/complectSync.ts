@@ -507,22 +507,24 @@ const applySync = async ({ complectId, selections, actor }: { complectId: unknow
 
       if (action === "remove") {
         const id1c = selection.id_1c;
-        if (!id1c) continue;
-        await client.query(
+        if (!id1c) throw new NotFound("Дисциплина не найдена в комплекте");
+        const { rows: removed } = await client.query<{ id: number; discipline: string }>(
           `
             UPDATE rpd_1c_exchange
             SET removed_at = NOW()
             WHERE id = $1 AND id_rpd_complect = $2
+            RETURNING id, discipline
           `,
           [id1c, numericComplectId]
         );
-        const local = localById.get(id1c!);
+        if (!removed.length) throw new NotFound("Дисциплина не найдена в комплекте");
+        const local = localById.get(id1c);
         await recordFieldChange(client, {
           syncLogId,
           id1c,
           idProfileTemplate: local?.id_profile_template ?? null,
           fieldKey: "removed",
-          oldValue: { discipline: local?.discipline },
+          oldValue: { discipline: removed[0].discipline },
           newValue: null,
         });
         continue;
