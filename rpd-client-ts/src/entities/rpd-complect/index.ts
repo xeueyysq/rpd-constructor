@@ -1,5 +1,5 @@
 export {
   useRpdComplectsQuery,
   useDeleteRpdComplectsMutation,
-  useAssignComplectOwner,
+  useAssignComplectOwners,
 } from "./model/queries";

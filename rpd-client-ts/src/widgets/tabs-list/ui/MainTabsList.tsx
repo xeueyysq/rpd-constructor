@@ -14,6 +14,7 @@ import { useContext } from "react";
 import { AuthContext } from "@entities/auth";
 import { mainTabs, TabItem } from "../model/consts";
 import { Can } from "@shared/ability";
+import { RedirectPath } from "@shared/enums";
 
 export const MainTabsList: FC = () => {
   const { handleLogOut } = useContext(AuthContext);
@@ -44,7 +45,9 @@ export const MainTabsList: FC = () => {
     <Box sx={{ overflow: "auto" }}>
       <List disablePadding>
         {mainTabs.map((value) => {
-          const isAdminOnly = value.name === "Пользователи";
+          const isAdminOnly =
+            value.path === RedirectPath.USER_MANAGEMENT ||
+            value.path === RedirectPath.MANAGER;
 
           if (isAdminOnly) {
             return (

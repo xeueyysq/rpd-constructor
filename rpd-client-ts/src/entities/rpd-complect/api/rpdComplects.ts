@@ -10,15 +10,21 @@ export const deleteRpdComplects = async (ids: string[]): Promise<void> => {
   await axiosBase.post("delete_rpd_complect", ids);
 };
 
-export const assignComplectOwner = async ({
+export const assignComplectOwners = async ({
   complectId,
-  userId,
+  userIds,
+  baseUserIds,
 }: {
   complectId: number;
-  userId: number;
+  userIds: number[];
+  baseUserIds: number[];
 }) => {
-  const { data } = await axiosBase.put(`complects/${complectId}/owner`, {
-    userId,
+  const { data } = await axiosBase.put<{
+    complectId: number;
+    userIds: number[];
+  }>(`complects/${complectId}/owners`, {
+    userIds,
+    baseUserIds,
   });
   return data;
 };

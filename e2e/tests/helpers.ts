@@ -38,8 +38,16 @@ export async function signIn(page: Page, userName: 'admin' | 'rop' | 'rop2' | 't
 
 export async function openComplect(page: Page, key: keyof typeof complects = 'main') {
   const complect = complects[key];
-  await page.getByRole('row').filter({ has: page.getByRole('cell', { name: complect.profile, exact: true }) })
-    .getByRole('button', { name: 'Комплект РПД' }).click();
+  await showAllRows(page);
+  const row = page.getByRole('row').filter({ has: page.getByRole('cell', { name: complect.profile, exact: true }) });
+  const next = page.getByRole('button', { name: 'Перейти на следующую страницу', exact: true });
+  while (await row.count() === 0 && await next.isEnabled()) {
+    const firstRow = page.locator('tbody tr').first();
+    const previous = await firstRow.innerText();
+    await next.click();
+    await expect(firstRow).not.toHaveText(previous);
+  }
+  await row.getByRole('button', { name: 'Комплект РПД' }).click();
   await expect(page).toHaveURL(new RegExp(`/complects/${complect.uuid}$`));
   await expect(page.getByRole('row').filter({ hasText: key === 'main' ? disciplines.inProgress : disciplines.otherRop })).toBeVisible();
 }

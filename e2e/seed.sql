@@ -25,6 +25,13 @@ SELECT fixture.id, fixture.name, rop.password, 3,
 FROM users rop CROSS JOIN (VALUES
   (32, 'sync-owner-rop'), (33, 'sync-other-rop'), (34, 'sync-dialog-rop')
 ) fixture(id, name) WHERE rop.name = 'rop';
+-- Независимые РОП для множественного назначения и проверки неактивного адресата.
+INSERT INTO users (id, name, password, role, fullname, is_active)
+SELECT fixture.id, fixture.name, rop.password, 3,
+  jsonb_build_object('surname', fixture.surname, 'name', 'Тест', 'patronymic', 'Тестович'), fixture.active
+FROM users rop CROSS JOIN (VALUES
+  (35, 'owner-third-rop', 'Троев', true), (36, 'owner-inactive-rop', 'Неактивов', false)
+) fixture(id, name, surname, active) WHERE rop.name = 'rop';
 SELECT setval(pg_get_serial_sequence('users', 'id'), (SELECT max(id) FROM users));
 
 INSERT INTO rpd_complects (id, uuid, faculty, year, education_form, education_level, profile, direction, has_pending_changes, last_synced_at) VALUES
@@ -36,6 +43,16 @@ INSERT INTO user_complect (id, user_id, complect_id) VALUES
   (100, (SELECT id FROM users WHERE name = 'rop'), 100),
   (101, 13, 101),
   (102, (SELECT id FROM users WHERE name = 'rop'), 102);
+
+-- Owner acceptance: production exchange1C связывает новый комплект с создателем-admin.
+-- Второй комплект дополнительно хранит неактивного РОП, прежнего РОП с ролью teacher и действующего РОП.
+INSERT INTO rpd_complects (id, faculty, year, education_form, education_level, profile, direction) VALUES
+  (360, 'Институт назначения РОП', 2026, 'Очная', 'Бакалавриат', 'Первое назначение РОП после создания', 'Синтетическое направление'),
+  (361, 'Институт назначения РОП', 2026, 'Очная', 'Бакалавриат', 'Прежние недопустимые владельцы', 'Синтетическое направление');
+INSERT INTO user_complect (user_id, complect_id)
+SELECT id, 360 FROM users WHERE name = 'admin';
+INSERT INTO user_complect (user_id, complect_id)
+SELECT id, 361 FROM users WHERE name = 'admin' OR id IN (10, 13, 36);
 
 -- Изолированный комплект: регрессия титула, компетенций и повторного импорта создаёт строки через API.
 INSERT INTO rpd_complects (id, uuid, faculty, year, education_form, education_level, profile, direction) VALUES
@@ -254,6 +271,13 @@ FROM rpd_profile_templates WHERE id IN (330, 331);
 INSERT INTO template_status (id, id_1c_template, id_profile_template, current_status, history)
 SELECT id, id, id, 'on_teacher', '[]'::jsonb FROM rpd_profile_templates WHERE id IN (330, 331);
 INSERT INTO teacher_templates (user_id, template_id, state) VALUES (20, 330, 'assigned'), (20, 331, 'assigned');
+
+-- Назначение преподавателем независимо от управления комплектом 102.
+INSERT INTO rpd_profile_templates (id, public_id, id_rpd_complect, disciplins_name, department, semester, zet, goals)
+VALUES (350, 'a350a350a350', 102, 'Множественные РОП для теста', 'Кафедра назначения РОП', 1, 3, '<p>Сохранённое содержание владельцев</p>');
+INSERT INTO template_status (id, id_profile_template, current_status, history)
+VALUES (350, 350, 'on_teacher', '[]'::jsonb);
+INSERT INTO teacher_templates (user_id, template_id, state) VALUES (35, 350, 'assigned');
 
 SELECT setval(pg_get_serial_sequence('rpd_complects', 'id'), (SELECT max(id) FROM rpd_complects));
 SELECT setval(pg_get_serial_sequence('rpd_1c_exchange', 'id'), (SELECT max(id) FROM rpd_1c_exchange));

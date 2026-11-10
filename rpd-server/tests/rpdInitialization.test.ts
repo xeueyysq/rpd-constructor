@@ -2,11 +2,13 @@ import test, { type TestContext } from "node:test";
 import assert from "node:assert/strict";
 import type { PoolClient } from "pg";
 import axios from "axios";
+import type { Request, Response } from "express";
 import { pool } from "../config/db.ts";
 import { exchange1C } from "../app/modules/1cExchange.ts";
 import { applySync } from "../app/modules/complectSync.ts";
 import TemplateWorkflow from "../app/services/TemplateWorkflow.ts";
 import { USER_ROLES } from "../app/models/constants.ts";
+import RpdComplectsController from "../app/controllers/rpdComplectsController.ts";
 
 const actor = { id: 7, role: USER_ROLES.ROP, userName: "rop" };
 const apiData = { faculty: "Факультет", year: 2026, educationForm: "Очная", educationLevel: "Бакалавриат", profile: "Профиль", direction: "09.03.01" };
@@ -17,7 +19,7 @@ type State = { complects: Row[]; owners: Row[]; exchange: Row[]; profiles: Row[]
 
 // Только адаптер внешней БД: реальные загрузчик, sync и workflow выполняются целиком.
 // Этот double не доказывает SQL, ограничения и конкурентные блокировки PostgreSQL.
-function database(t: TestContext) {
+function database(t: TestContext, currentActor = actor) {
   let state: State = { complects: [], owners: [], exchange: [], profiles: [], statuses: [], participants: [], changes: [] };
   let transaction: State | undefined;
   let failStatus = false;
@@ -32,7 +34,7 @@ function database(t: TestContext) {
     if (text === "ROLLBACK") { transaction = undefined; return { rows: [] }; }
     const db = connected && transaction ? transaction : state;
     if (text.includes("AS owner")) return { rows: [{ exists: db.complects.some((row) => row.id === values[0]), owner: db.owners.some((row) => row.complect_id === values[0] && row.user_id === values[1]), active }] };
-    if (from === "users") return { rows: [{ id: actor.id, role: actor.role, is_active: active, fullname: { surname: "Руководитель" } }] };
+    if (from === "users") return { rows: [{ id: currentActor.id, role: currentActor.role, is_active: active, fullname: { surname: "Руководитель" } }] };
     if (text.startsWith("INSERT INTO complect_sync_log")) return { rows: [{ id: 30 }] };
     const insert = /^INSERT INTO (\w+)\s*\(([^)]+)\) VALUES\s*\(([^)]+)\)/.exec(text);
     if (insert && tables[insert[1]]) {
@@ -108,6 +110,26 @@ test("первичная загрузка сразу создаёт одну Р�
   assert.deepEqual(db.state.profiles[0].competencies, {});
   assert.deepEqual(db.state.profiles[0].study_load, { "Лекции": 36 });
   assert.deepEqual(db.state.participants, []);
+});
+
+test("администратор создаёт комплект через controller и настоящий импорт; повтор сохраняет назначенных РОП", async (t) => {
+  const admin = { ...actor, role: USER_ROLES.ADMIN };
+  const db = database(t, admin);
+  const controller = new RpdComplectsController(pool);
+  const request = { user: admin, body: { data: {
+    faculty: apiData.faculty, year: apiData.year, formEducation: apiData.educationForm,
+    levelEducation: apiData.educationLevel, profile: apiData.profile, directionOfStudy: apiData.direction,
+  } } } as Request;
+  let response: unknown;
+  const res = { json: (value: unknown) => { response = value; } } as Response;
+  await controller.createRpdComplect(request, res);
+  assert.equal(response, 1);
+  assert.equal(db.state.complects.length, 1);
+  assert.equal(db.state.profiles.length, 1);
+  db.state.owners.splice(0, db.state.owners.length, ...[20, 21, 22].map((user_id) => ({ user_id, complect_id: 1 })));
+  const before = structuredClone(db.state);
+  await controller.createRpdComplect(request, res);
+  assert.deepEqual(db.state, before);
 });
 
 test("ошибка инициализации откатывает весь комплект вместе с владельцем и обменом", async (t) => {
