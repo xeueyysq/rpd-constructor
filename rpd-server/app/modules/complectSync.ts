@@ -9,6 +9,8 @@ import { fieldEditsSet } from "./fieldEdits.ts";
 import TemplateAccess from "../services/TemplateAccess.ts";
 import type { UserClaims } from "../types/express.d.ts";
 import { NotFound, Unprocessable } from "../utils/Errors.ts";
+import { importTeacherCards } from "./teacherImport.ts";
+import { issueTeacherImportManifest, verifyTeacherImportManifest } from "./teacherImportManifest.ts";
 
 const SYNC_FIELDS = [
   "discipline",
@@ -258,7 +260,7 @@ const diffDisciplines = (localRows: LocalRow[], incomingRows: IncomingRow[], pro
   return result;
 };
 
-const preview1cSync = async (complectId: unknown) => {
+const preview1cSync = async (complectId: unknown, actor?: UserClaims) => {
   const { rows: complectRows } = await pool.query<RpdComplectRow & Record<string, unknown>>(
     `
       SELECT *
@@ -270,6 +272,7 @@ const preview1cSync = async (complectId: unknown) => {
   );
   const complectMeta = complectRows[0];
   if (!complectMeta) throw new NotFound("Комплект не найден");
+  if (actor) await TemplateAccess.assertComplect(pool, actor, complectMeta.id);
 
   const incomingRaw = await fetchUpLink(buildComplectApiData(complectMeta));
   const incoming = incomingFrom1cList(incomingRaw);
@@ -290,6 +293,8 @@ const preview1cSync = async (complectId: unknown) => {
       has_pending_changes: complectMeta.has_pending_changes,
     },
     diff,
+    ...(actor ? { teacherImportManifest: issueTeacherImportManifest(
+      incomingRaw.flatMap((disc) => normalizeDisciplineFrom1c(disc).teachers), complectMeta.id, actor) } : {}),
   };
 };
 
@@ -403,7 +408,9 @@ const syncTemplateFields = async (
 
 const hasSyncSelections = (selections: unknown): selections is Selection[] => Array.isArray(selections) && selections.length > 0;
 
-const applySync = async ({ complectId, selections, actor }: { complectId: unknown; selections?: unknown; actor: UserClaims }) => {
+const applySync = async ({ complectId, selections, actor, teacherImportManifest }: {
+  complectId: unknown; selections?: unknown; actor: UserClaims; teacherImportManifest?: unknown;
+}) => {
   const { rows: complectRows } = await pool.query<{ id: number }>(
     `
       SELECT id
@@ -416,11 +423,16 @@ const applySync = async ({ complectId, selections, actor }: { complectId: unknow
   const numericComplectId = complectRows[0]?.id;
   if (!numericComplectId) throw new NotFound("Комплект не найден");
   if (selections !== undefined && !Array.isArray(selections)) throw new Unprocessable("Некорректный список изменений");
+  // Legacy/direct apply сохраняет прежний sync-контракт, но client incoming
+  // никогда не становится основанием для создания пользователей.
+  const teacherNames = teacherImportManifest === undefined ? null
+    : verifyTeacherImportManifest(teacherImportManifest, numericComplectId, actor);
   const client = await pool.connect();
   try {
     await client.query("BEGIN");
     await client.query("SELECT id FROM rpd_complects WHERE id=$1 FOR UPDATE", [numericComplectId]);
     await TemplateAccess.assertComplect(client, actor, numericComplectId);
+    const teacherImport = teacherNames === null ? null : await importTeacherCards(client, teacherNames);
 
     const { rows: syncLogRows } = await client.query<{ id: number }>(
       `
@@ -469,7 +481,7 @@ const applySync = async ({ complectId, selections, actor }: { complectId: unknow
             )
             DO UPDATE SET
               department = EXCLUDED.department,
-              teachers = EXCLUDED.teachers,
+              teachers = CASE WHEN $11::boolean THEN EXCLUDED.teachers ELSE rpd_1c_exchange.teachers END,
               zet = EXCLUDED.zet,
               place = EXCLUDED.place,
               study_load = EXCLUDED.study_load,
@@ -489,6 +501,7 @@ const applySync = async ({ complectId, selections, actor }: { complectId: unknow
             JSON.stringify(incoming.control_load ?? {}),
             incoming.semester,
             incoming.record_type ?? "",
+            fields.includes("teachers"),
           ]
         );
 
@@ -635,7 +648,7 @@ const applySync = async ({ complectId, selections, actor }: { complectId: unknow
     );
 
     await client.query("COMMIT");
-    return { complectId: numericComplectId, syncLogId };
+    return { complectId: numericComplectId, syncLogId, ...(teacherImport ? { teacherImport } : {}) };
   } catch (error) {
     await client.query("ROLLBACK");
     throw error;

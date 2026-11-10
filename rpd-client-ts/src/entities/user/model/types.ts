@@ -2,7 +2,8 @@ import type { UserRole } from "@shared/ability";
 
 export interface User {
   id: number;
-  name: string;
+  name: string | null;
+  has_credentials: boolean;
   role: UserRole;
   fullname: {
     surname: string;
@@ -12,7 +13,8 @@ export interface User {
   is_active: boolean;
 }
 
-export type UserPayload = Pick<User, "name" | "role"> & {
+export type UserPayload = Pick<User, "role"> & {
+  name: string;
   fullname: NonNullable<User["fullname"]>;
   password?: string;
 };

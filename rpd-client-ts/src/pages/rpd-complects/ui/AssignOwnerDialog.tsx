@@ -20,7 +20,8 @@ import type { ComplectData } from "@shared/types";
 import { useId, useRef, useState } from "react";
 import { isAxiosError } from "axios";
 
-const userName = (user: User) => formatFullName(user.fullname) || user.name;
+const userName = (user: User) =>
+  formatFullName(user.fullname) || user.name || `Пользователь №${user.id}`;
 
 // Оформление как у диалога «Преподаватели: …»: поиск, список, выбор применяется сразу.
 export function AssignOwnerDialog({

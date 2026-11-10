@@ -10,6 +10,7 @@ class RefreshSessionRepository {
        FROM refresh_sessions JOIN users ON users.id = refresh_sessions.user_id
        WHERE (token_hash = $1 OR (prev_token_hash = $1 AND prev_valid_until > NOW()))
          AND expires_at > NOW()
+         AND users.name IS NOT NULL AND users.password IS NOT NULL
        FOR UPDATE OF refresh_sessions`,
       [tokenHash]
     );
