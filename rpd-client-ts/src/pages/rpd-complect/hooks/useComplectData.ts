@@ -1,11 +1,7 @@
-import { TemplateStatusEnum } from "@entities/template";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useMemo } from "react";
 import { isAxiosError } from "axios";
 import { fetchComplectRpd } from "../api";
-import { sortTemplatesByStatus } from "../utils/sortTemplates";
-
-const statusPriority = { [TemplateStatusEnum.UNLOADED]: 1 };
 
 export function useComplectData(complectId: string | undefined) {
   const queryClient = useQueryClient();
@@ -25,7 +21,7 @@ export function useComplectData(complectId: string | undefined) {
     ]);
   };
   const filteredData = useMemo(
-    () => sortTemplatesByStatus(complectMeta?.templates ?? [], statusPriority),
+    () => complectMeta?.templates ?? [],
     [complectMeta?.templates]
   );
 

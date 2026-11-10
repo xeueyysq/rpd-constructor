@@ -279,6 +279,72 @@ INSERT INTO template_status (id, id_profile_template, current_status, history)
 VALUES (350, 350, 'on_teacher', '[]'::jsonb);
 INSERT INTO teacher_templates (user_id, template_id, state) VALUES (35, 350, 'assigned');
 
+-- Ordering acceptance: отдельный комплект, 45 строк, Е/Ё, одинаковые названия и выгруженная строка.
+-- ID идут против алфавита; одинаковая «Математика» различается семестром и сортируется по exchange ID.
+INSERT INTO rpd_complects (id, uuid, faculty, year, education_form, education_level, profile, direction) VALUES
+  (370, '37037037-0370-4370-8370-370370370370', 'Институт порядка дисциплин', 2026, 'Очная', 'Бакалавриат', 'Алфавит и сохранение страницы', 'Синтетическое направление');
+INSERT INTO user_complect (user_id, complect_id)
+SELECT id, 370 FROM users WHERE name = 'rop';
+INSERT INTO rpd_1c_exchange
+  (id, id_rpd_complect, department, discipline, teachers, zet, record_type, study_load, control_load, semester)
+SELECT fixture.id, 370, 'Кафедра порядка дисциплин', fixture.discipline, ARRAY[]::text[], 3, 'discipline', '{}'::jsonb, '{}'::jsonb, fixture.semester
+FROM (VALUES
+  (3744, 'Алгебра', 1),
+  (3743, 'Алгоритмы', 1),
+  (3742, 'Анализ данных', 1),
+  (3741, 'Архитектура', 1),
+  (3740, 'Базы данных', 1),
+  (3739, 'Безопасность', 1),
+  (3738, 'Биология', 1),
+  (3737, 'Веб технологии', 1),
+  (3736, 'География', 1),
+  (3735, 'Геометрия', 1),
+  (3734, 'Дизайн', 1),
+  (3733, 'Дискретная математика', 1),
+  (3732, 'Ежовые данные', 1),
+  (3731, 'Ёжовые данные', 1),
+  (3730, 'Жизненный цикл', 1),
+  (3729, 'Защита данных', 1),
+  (3728, 'Инженерия', 1),
+  (3727, 'Информатика', 1),
+  (3726, 'История', 1),
+  (3725, 'Компьютерная графика', 1),
+  (3724, 'Линейная алгебра', 1),
+  (3723, 'Логика', 1),
+  (3722, 'Математика', 1),
+  (3721, 'Математика', 2),
+  (3720, 'Машинное обучение', 1),
+  (3719, 'Моделирование', 1),
+  (3718, 'Операционные системы', 1),
+  (3717, 'Оптимизация', 1),
+  (3716, 'Программирование', 1),
+  (3715, 'Проектирование', 1),
+  (3714, 'Разработка', 1),
+  (3713, 'Робототехника', 1),
+  (3712, 'Сети', 1),
+  (3711, 'Системный анализ', 1),
+  (3710, 'Статистика', 1),
+  (3709, 'Теория вероятностей', 1),
+  (3708, 'Теория графов', 1),
+  (3707, 'Тестирование', 1),
+  (3706, 'Управление', 1),
+  (3705, 'Физика', 1),
+  (3704, 'Философия', 1),
+  (3703, 'Химия', 1),
+  (3702, 'Экология', 1),
+  (3701, 'Экономика', 1),
+  (3700, 'Языки программирования', 1)
+) fixture(id, discipline, semester);
+INSERT INTO rpd_profile_templates (id, public_id, id_rpd_complect, disciplins_name, department, semester, zet)
+SELECT id, lpad(id::text, 12, '0'), id_rpd_complect, discipline, department, semester, zet
+FROM rpd_1c_exchange WHERE id_rpd_complect = 370 AND id <> 3744;
+INSERT INTO template_status (id, id_1c_template, id_profile_template, current_status, history)
+SELECT exchange.id, exchange.id, profile.id,
+  CASE exchange.id WHEN 3744 THEN 'unloaded' WHEN 3716 THEN 'on_teacher' ELSE 'created' END, '[]'::jsonb
+FROM rpd_1c_exchange exchange LEFT JOIN rpd_profile_templates profile ON profile.id = exchange.id
+WHERE exchange.id_rpd_complect = 370;
+INSERT INTO teacher_templates (user_id, template_id, state) VALUES (10, 3716, 'assigned');
+
 SELECT setval(pg_get_serial_sequence('rpd_complects', 'id'), (SELECT max(id) FROM rpd_complects));
 SELECT setval(pg_get_serial_sequence('rpd_1c_exchange', 'id'), (SELECT max(id) FROM rpd_1c_exchange));
 SELECT setval(pg_get_serial_sequence('rpd_profile_templates', 'id'), (SELECT max(id) FROM rpd_profile_templates));

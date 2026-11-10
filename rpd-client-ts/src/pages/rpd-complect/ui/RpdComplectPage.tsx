@@ -5,7 +5,7 @@ import {
   MaterialReactTable,
   useMaterialReactTable,
 } from "material-react-table";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { RedirectPath } from "@shared/enums";
 import { ComplectTableHeader } from "@widgets/table-header";
@@ -67,6 +67,10 @@ export function RpdComplectPage() {
       />
     ),
   });
+  const { columnFilters, globalFilter, sorting } = table.getState();
+  useEffect(() => {
+    table.setPageIndex(0);
+  }, [columnFilters, globalFilter, sorting, complectId, table]);
   if (isError)
     return (
       <Alert severity="error">
