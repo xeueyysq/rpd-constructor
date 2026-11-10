@@ -25,9 +25,17 @@ let sessionError: unknown;
 let refreshPromise: Promise<AuthSession> | null = null;
 let refreshController: AbortController | null = null;
 let handlers: SessionHandlers | null = null;
+const generationListeners = new Set<() => void>();
 
 export const getAccessToken = () => accessToken;
 export const getSessionGeneration = () => generation;
+
+export function subscribeToSessionGeneration(listener: () => void) {
+  generationListeners.add(listener);
+  return () => {
+    generationListeners.delete(listener);
+  };
+}
 
 export function subscribeToSession(next: SessionHandlers) {
   handlers = next;
@@ -43,6 +51,7 @@ export function beginSession() {
   accessToken = null;
   refreshPromise = null;
   sessionError = undefined;
+  generationListeners.forEach((listener) => listener());
   return generation;
 }
 

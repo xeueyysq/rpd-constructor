@@ -10,7 +10,10 @@ vi.mock("react", async (importOriginal) => ({
   ...(await importOriginal<typeof import("react")>()),
   useCallback: (callback: unknown) => callback,
 }));
-vi.mock("@shared/api", () => ({ axiosBase: { put: vi.fn() } }));
+vi.mock("@shared/api", async (importOriginal) => ({
+  ...(await importOriginal<typeof import("@shared/api")>()),
+  axiosBase: { put: vi.fn() },
+}));
 vi.mock("@shared/lib", () => ({ showErrorMessage: vi.fn() }));
 
 const before = "2026-09-30T10:00:00Z";

@@ -1,11 +1,15 @@
-import { Box } from "@mui/material";
+import { Alert, Box } from "@mui/material";
 import { useAuth } from "@entities/auth";
 import { useTemplateSync } from "@entities/template";
-import { axiosBase } from "@shared/api";
+import {
+  axiosBase,
+  getSessionGeneration,
+  SessionChangedError,
+} from "@shared/api";
+import { isAxiosError } from "axios";
 import { UserRole } from "@shared/ability";
 import { useStore } from "@shared/hooks";
-import { showErrorMessage } from "@shared/lib/showMessage.ts";
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { useParams } from "react-router-dom";
 import { TemplatePagesPath } from "@shared/enums";
 import AimsPage from "./pages/AimsPage.tsx";
@@ -28,21 +32,27 @@ export function TeacherInterface() {
   const userRole = useAuth((state) => state.userRole);
   const isTeacher = userRole === UserRole.TEACHER;
   const { id: templateId, page = TemplatePagesPath.COVER_PAGE } = useParams();
+  const [loadError, setLoadError] = useState<{
+    id: string | undefined;
+    message: string;
+  } | null>(null);
   const activeTemplateId =
     String(jsonData?.id) === templateId || jsonData?.public_id === templateId
       ? Number(jsonData.id)
       : undefined;
 
   useEffect(() => {
+    const generation = getSessionGeneration();
     useTemplateSync.getState().reset();
     setJsonData({});
+    setLoadError(null);
     let active = true;
     const uploadTemplateData = async () => {
       try {
         const response = await axiosBase.post("rpd-profile-templates", {
           id: templateId,
         });
-        if (!active) return;
+        if (!active || generation !== getSessionGeneration()) return;
         setJsonData({
           ...response.data,
           certification:
@@ -50,9 +60,19 @@ export function TeacherInterface() {
         });
         setComplectId(response.data.id_rpd_complect);
       } catch (error) {
-        if (!active) return;
-        showErrorMessage("Ошибка при получении данных");
-        console.error(error);
+        if (
+          !active ||
+          generation !== getSessionGeneration() ||
+          error instanceof SessionChangedError
+        )
+          return;
+        setLoadError({
+          id: templateId,
+          message:
+            isAxiosError(error) && error.response?.status === 403
+              ? "Доступ к РПД запрещён."
+              : "Не удалось загрузить РПД.",
+        });
       }
     };
     void uploadTemplateData();
@@ -84,6 +104,8 @@ export function TeacherInterface() {
     [TemplatePagesPath.TEST_PDF]: <TestPdf />,
   };
 
+  if (loadError && loadError.id === templateId)
+    return <Alert severity="error">{loadError.message}</Alert>;
   if (!activeTemplateId) return <Loader />;
 
   return (

@@ -11,7 +11,11 @@ import {
   Typography,
 } from "@mui/material";
 import { UserRole } from "@shared/ability";
-import { axiosBase } from "@shared/api";
+import {
+  axiosBase,
+  getSessionGeneration,
+  SessionChangedError,
+} from "@shared/api";
 import { useStore } from "@shared/hooks";
 import { showErrorMessage } from "@shared/lib";
 import { useEffect, useMemo, useState } from "react";
@@ -91,6 +95,7 @@ export function CommentChangeValue({
       : "—";
 
   const saveComment = async (htmlValue: string, changed: boolean) => {
+    const generation = getSessionGeneration();
     if (!changed) {
       setIsEdittedComment(false);
       return;
@@ -107,15 +112,22 @@ export function CommentChangeValue({
         })
       );
 
+      if (generation !== getSessionGeneration()) return;
       updateJsonComment(templateField, data ?? htmlValue);
       setIsEdittedComment(false);
     } catch (error) {
+      if (
+        generation !== getSessionGeneration() ||
+        error instanceof SessionChangedError
+      )
+        return;
       showErrorMessage("Ошибка сохранения данных");
       console.error(error);
     }
   };
 
   const deleteComment = async () => {
+    const generation = getSessionGeneration();
     setAnchorEl(null);
     try {
       if (!commentId) {
@@ -123,9 +135,15 @@ export function CommentChangeValue({
         return;
       }
       await axiosBase.delete(`delete-template-comment/${commentId}`);
+      if (generation !== getSessionGeneration()) return;
       updateJsonComment(templateField, undefined);
       setIsEdittedComment(false);
     } catch (error) {
+      if (
+        generation !== getSessionGeneration() ||
+        error instanceof SessionChangedError
+      )
+        return;
       showErrorMessage("Ошибка сохранения данных");
       console.error(error);
     }

@@ -1,6 +1,6 @@
 import { TemplateHistoryDialog, useTemplateHistory } from "@entities/template";
 import { Loader, PageTitle } from "@shared/ui";
-import { Box } from "@mui/material";
+import { Alert, Box } from "@mui/material";
 import {
   MaterialReactTable,
   useMaterialReactTable,
@@ -33,8 +33,13 @@ export function RpdComplectPage() {
   const [teachersExchangeId, setTeachersExchangeId] = useState<number | null>(
     null
   );
-  const { complectMeta, filteredData, fetchComplectData } =
-    useComplectData(complectId);
+  const {
+    complectMeta,
+    filteredData,
+    fetchComplectData,
+    isError,
+    isForbidden,
+  } = useComplectData(complectId);
   const columns = useComplectTableColumns({
     complect: complectMeta,
     onFetchData: fetchComplectData,
@@ -62,6 +67,14 @@ export function RpdComplectPage() {
       />
     ),
   });
+  if (isError)
+    return (
+      <Alert severity="error">
+        {isForbidden
+          ? "Доступ к комплекту запрещён."
+          : "Не удалось загрузить комплект."}
+      </Alert>
+    );
   if (!complectMeta) return <Loader />;
   return (
     <Box>

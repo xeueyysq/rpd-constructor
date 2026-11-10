@@ -17,6 +17,44 @@ type SessionCallbacks = {
   onUserLogged: (logged: boolean) => void;
 };
 
+let pendingLogout: Promise<unknown> = Promise.resolve();
+const returnPolicyKey = "authReturnPolicy:v1";
+
+function readReturnPolicy(): { version: number; remember: boolean } {
+  try {
+    const policy: unknown = JSON.parse(
+      sessionStorage.getItem(returnPolicyKey) ?? "null"
+    );
+    if (
+      policy &&
+      typeof policy === "object" &&
+      "version" in policy &&
+      typeof policy.version === "number" &&
+      Number.isSafeInteger(policy.version) &&
+      policy.version >= 0 &&
+      "remember" in policy &&
+      typeof policy.remember === "boolean"
+    )
+      return { version: policy.version, remember: policy.remember };
+  } catch {
+    /* sessionStorage может быть недоступен. */
+  }
+  return { version: 0, remember: true };
+}
+
+let returnPolicy = readReturnPolicy();
+
+function setReturnPolicy(policy: typeof returnPolicy) {
+  returnPolicy = policy;
+  try {
+    sessionStorage.setItem(returnPolicyKey, JSON.stringify(policy));
+  } catch {
+    /* В текущем SPA политика сохраняется и без sessionStorage. */
+  }
+}
+
+export const getAuthReturnPolicy = () => returnPolicy;
+
 // Жизненный цикл без React: одна подписка применяет любой результат refresh.
 export function createAuthSession({
   onAppReady,
@@ -80,12 +118,17 @@ export function createAuthSession({
       const generation = beginSession();
       clearTimer();
       try {
+        // Ответ logout удаляет cookie: он должен прийти раньше нового sign-in.
+        await pendingLogout;
+        if (!active || generation !== getSessionGeneration())
+          throw new SessionChangedError();
         const { data } = await AuthClient.post<AuthSession>(
           "/sign-in",
           credentials
         );
         if (!active) throw new SessionChangedError();
         applySession(data, generation);
+        setReturnPolicy({ ...returnPolicy, remember: true });
         onAppReady();
       } catch (error) {
         if (!active || generation !== getSessionGeneration())
@@ -95,9 +138,12 @@ export function createAuthSession({
     },
     logOut() {
       // Локальный выход не зависит от сети и срока действия refresh cookie.
+      setReturnPolicy({ version: returnPolicy.version + 1, remember: false });
       endSession();
       reset();
-      void AuthClient.post("/logout").catch(() => {});
+      pendingLogout = pendingLogout
+        .then(() => AuthClient.post("/logout"))
+        .catch(() => {});
     },
     dispose() {
       active = false;

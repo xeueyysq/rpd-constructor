@@ -1,4 +1,5 @@
 export { useAuth } from "./lib/useAuth.ts";
+export { getAuthReturnPolicy } from "./lib/authSession";
 export { AuthContext } from "./model/authContext.ts";
 export { useAuthContextValue } from "./lib/useAuthContextValue.ts";
 export { getRoleLabel } from "./model/roleLabels.ts";
