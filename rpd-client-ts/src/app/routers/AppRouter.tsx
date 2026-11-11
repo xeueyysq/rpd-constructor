@@ -6,10 +6,12 @@ import { BrowserRouter, Route, Routes } from "react-router-dom";
 import { ProtectedRoute, RoleBasedRedirect } from "@app/routers/ProtectedRoute";
 import { routes } from "./routeConfig";
 import { RedirectPath } from "@shared/enums";
+import { DiagnosticsRouteBridge } from "@app/providers/DiagnosticsBridge";
 
 export const AppRouter = () => {
   return (
     <BrowserRouter>
+      <DiagnosticsRouteBridge />
       <Suspense fallback={<Loader />}>
         <Routes>
           <Route element={<ClippedDrawer />}>

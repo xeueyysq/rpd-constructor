@@ -13,6 +13,7 @@ import {
 import { useAuth } from "@entities/auth";
 import { UserRole } from "@shared/ability";
 import { getSessionQueryClient } from "./sessionState";
+import { DiagnosticsSessionBridge } from "./DiagnosticsBridge";
 
 const theme = createTheme(themeOptions);
 
@@ -28,7 +29,10 @@ function SessionContent({ children }: Props) {
   const loggedIn = useAuth((state) => state.userRole !== UserRole.ANONYMOUS);
   return (
     <QueryClientProvider client={getSessionQueryClient()}>
-      <Fragment key={loggedIn ? generation : "anonymous"}>{children}</Fragment>
+      <Fragment key={loggedIn ? generation : "anonymous"}>
+        {loggedIn ? <DiagnosticsSessionBridge /> : null}
+        {children}
+      </Fragment>
     </QueryClientProvider>
   );
 }

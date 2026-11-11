@@ -6,7 +6,7 @@ import {
   useMaterialReactTable,
 } from "material-react-table";
 import { useEffect, useState } from "react";
-import { useParams, useNavigate } from "react-router-dom";
+import { useParams, useNavigate, useLocation } from "react-router-dom";
 import { RedirectPath } from "@shared/enums";
 import { ComplectTableHeader } from "@widgets/table-header";
 import { useComplectData, useComplectTableColumns } from "../hooks";
@@ -18,10 +18,13 @@ import { ImportFromComplectsDialog } from "./ImportFromComplectsDialog";
 import { useAuth } from "@entities/auth";
 import { useRpdComplectsQuery } from "@entities/rpd-complect";
 import { UserRole } from "@shared/ability";
+import { getSessionGeneration } from "@shared/api";
+import { setDiagnosticEntity } from "@shared/diagnostics";
 
 export function RpdComplectPage() {
   const { id: complectId } = useParams();
   const navigate = useNavigate();
+  const location = useLocation();
   const [historyTemplateId, setHistoryTemplateId] = useState<number | null>(
     null
   );
@@ -40,6 +43,26 @@ export function RpdComplectPage() {
     isError,
     isForbidden,
   } = useComplectData(complectId);
+  useEffect(() => {
+    if (
+      !complectMeta ||
+      (complectMeta.uuid !== complectId &&
+        String(complectMeta.id) !== complectId)
+    )
+      return;
+    setDiagnosticEntity(
+      {
+        complectId: complectMeta.id,
+        faculty: complectMeta.faculty ?? undefined,
+        direction: complectMeta.directionOfStudy ?? undefined,
+        profile: complectMeta.profile ?? undefined,
+        form: complectMeta.formEducation ?? undefined,
+        year: complectMeta.year == null ? undefined : String(complectMeta.year),
+      },
+      location.pathname,
+      getSessionGeneration()
+    );
+  }, [complectMeta, complectId, location.pathname]);
   const columns = useComplectTableColumns({
     complect: complectMeta,
     onFetchData: fetchComplectData,
