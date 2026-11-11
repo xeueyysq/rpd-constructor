@@ -13,7 +13,7 @@ import { complectAuthorization, resolveTemplate, templateAuthorization } from ".
 import TemplatePresence from "../services/TemplatePresence.ts";
 import TemplateAccess from "../services/TemplateAccess.ts";
 import { NotFound } from "../utils/Errors.ts";
-import { replaceComplectOwner } from "../services/ComplectOwnership.ts";
+import { replaceComplectOwner, replaceComplectOwners } from "../services/ComplectOwnership.ts";
 import TemplateImportController from "../controllers/templateImportController.ts";
 
 const template = (selector: (req: express.Request) => unknown, mode: "read" | "edit" | "manage") => templateAuthorization(pool, selector, mode);
@@ -168,7 +168,7 @@ router.post(
 router.post(
   "/create_rpd_complect",
   TokenService.checkAccess,
-  requireRole(USER_ROLES.ROP, USER_ROLES.ADMIN),
+  requireRole(USER_ROLES.ADMIN),
   rpdComplectsController.createRpdComplect.bind(rpdComplectsController)
 );
 router.get(
@@ -177,6 +177,9 @@ router.get(
   requireRole(USER_ROLES.ROP, USER_ROLES.ADMIN),
   rpdComplectsController.getRpdComplects.bind(rpdComplectsController)
 );
+router.put("/complects/:id/owners", TokenService.checkAccess, requireRole(USER_ROLES.ADMIN), async (req, res) => {
+  res.json(await replaceComplectOwners(pool, TemplateAccess.actor(req.user), req.params.id, req.body.userIds, req.body.baseUserIds));
+});
 router.put("/complects/:id/owner", TokenService.checkAccess, requireRole(USER_ROLES.ADMIN), async (req, res) => {
   res.json(await replaceComplectOwner(pool, TemplateAccess.actor(req.user), req.params.id, req.body.userId));
 });

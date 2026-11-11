@@ -1,7 +1,29 @@
 export type NameUser = { id: number; fullname: unknown };
 
+const serviceLabels = new Set(["нет данных", "не назначен", "не указан", "не определен", "нет преподавателя", "без преподавателя"]);
+
 export function normalizeName(value: string): string {
   return value.toLocaleLowerCase("ru-RU").replace(/ё/g, "е").replace(/\./g, " ").replace(/\s+/g, " ").trim();
+}
+
+// 1С отдаёт ФИО, а не идентификатор человека. Снимаем только подтверждённые
+// пометки занятости; остальные слова/скобки не интерпретируем как часть личности.
+export function canonicalTeacherLabel(value: string): string | null {
+  const label = value.trim().replace(/\s*\((?:внеш|вн)\.совм\.\)$/iu, "").replace(/\s+/g, " ").trim();
+  return !label || /^вакансия/iu.test(label) || serviceLabels.has(normalizeName(label)) ? null : label;
+}
+
+export function teacherPerson(value: string) {
+  const label = canonicalTeacherLabel(value);
+  if (!label) return null;
+  const parts = label.split(" ");
+  // Два полных имени допустимы: отсутствующее отчество остаётся пустым.
+  // Инициалы и служебные строки не дают оснований создавать человека.
+  if (![2, 3].includes(parts.length) || parts.some((part) =>
+    !/^[\p{L}][\p{L}'’-]*[\p{L}]$/u.test(part))) return null;
+  return { label, key: normalizeName(label), fullname: {
+    surname: parts[0], name: parts[1], patronymic: parts[2] ?? "",
+  } };
 }
 
 function nameParts(value: unknown): string[] {
@@ -33,7 +55,12 @@ export function splitNames(value: unknown): string[] {
 }
 
 export function matchTeacherNames(names: string[], users: NameUser[]): { name: string; userId: number | null; ambiguous: boolean }[] {
-  return names.map((name) => {
+  const labels = new Map<string, string>();
+  for (const source of names) {
+    const label = canonicalTeacherLabel(source);
+    if (label && !labels.has(normalizeName(label))) labels.set(normalizeName(label), label);
+  }
+  return [...labels.values()].map((name) => {
     const wanted = nameParts(name);
     const matches = users.filter((user) => {
       const actual = nameParts(user.fullname);

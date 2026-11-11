@@ -197,6 +197,8 @@ test('legacy контроль: преподаватель не очищает, �
   expect((await loggedOut).ok()).toBe(true);
   await expect(page).toHaveURL(/\/sign-in$/);
   await signInWithCredentials(page, 'rop', password);
+  await expect(page).toHaveURL(/\/complects$/);
+  await page.goto(`/templates/${list3.control.publicId}/disciplineContent`);
   await expect(page).toHaveURL(new RegExp(`/templates/${list3.control.publicId}/disciplineContent$`));
   await expect(page.getByRole('button', { name: 'Открыть меню аккаунта' })).toContainText('Руководитель образовательной программы');
   const clear = topic.getByRole('button', { name: 'Очистить контроль: Legacy тема', exact: true });

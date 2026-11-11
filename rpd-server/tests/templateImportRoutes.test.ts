@@ -4,9 +4,10 @@ import express, { type ErrorRequestHandler } from "express";
 import { IncomingMessage, ServerResponse } from "node:http";
 import { Socket } from "node:net";
 import jwt from "jsonwebtoken";
+import axios from "axios";
 import router from "../app/routes/routes.ts";
 import { pool } from "../config/db.ts";
-import { rop, teacher, templateDatabase } from "./helpers/templateImportDatabase.ts";
+import { admin, rop, teacher, templateDatabase } from "./helpers/templateImportDatabase.ts";
 
 const secret = "packet2-local-test-secret";
 
@@ -71,4 +72,36 @@ test("реальные маршруты: JWT, manager-only, ids[] preview чуж
   assert.equal((cleared.body as Record<string, unknown>).field, "content");
   const bulkCatalog = await request(app, "GET", "/api/template-import/sources?targetComplectId=2", rop);
   assert.equal((await request(app, "POST", "/api/template-import/complect", rop, { sourceComplectId: 1, targetComplectId: 2, targetRevision: (bulkCatalog.body as Record<string, unknown>).targetRevision })).status, 200);
+});
+
+test("create: реальные router/JWT отклоняют РОП, teacher и устаревшего admin до внешнего 1С и записи", async (t) => {
+  const oldSecret = process.env.ACCESS_TOKEN_SECRET;
+  process.env.ACCESS_TOKEN_SECRET = secret;
+  t.after(() => { if (oldSecret === undefined) delete process.env.ACCESS_TOKEN_SECRET; else process.env.ACCESS_TOKEN_SECRET = oldSecret; });
+  const db = templateDatabase();
+  let writes = 0;
+  t.mock.method(pool, "query", db.db.query.bind(db.db));
+  // Любой вход в записывающую транзакцию и внешний HTTP — отрицательные контроли.
+  t.mock.method(pool, "connect", async () => { writes++; throw new Error("Запись запрещённого create"); });
+  const upstream = t.mock.method(axios, "post", async () => ({ data: [] }));
+  const app = express();
+  app.use(express.json());
+  app.use("/api", router);
+  app.use(((error, _req, res, next) => { void next; res.status(error.status ?? 500).json({ error: error.error }); }) as ErrorRequestHandler);
+  const before = structuredClone(db.state);
+  const path = "/api/create_rpd_complect";
+  assert.equal((await request(app, "POST", path, undefined, { data: {} })).status, 401);
+  for (const actor of [rop, teacher]) {
+    assert.equal((await request(app, "POST", path, actor, { data: {} })).status, 403);
+  }
+  const currentAdmin = db.state.users.find((user) => user.id === admin.id)!;
+  currentAdmin.role = teacher.role;
+  assert.equal((await request(app, "POST", path, admin, { data: {} })).status, 403);
+  currentAdmin.role = admin.role;
+  currentAdmin.is_active = false;
+  assert.equal((await request(app, "POST", path, admin, { data: {} })).status, 403);
+  currentAdmin.is_active = true;
+  assert.equal(upstream.mock.callCount(), 0);
+  assert.equal(writes, 0);
+  assert.deepEqual(db.state, before);
 });

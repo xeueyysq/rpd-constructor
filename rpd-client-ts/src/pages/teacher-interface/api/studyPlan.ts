@@ -1,4 +1,9 @@
-import { axiosBase } from "@shared/api";
+import {
+  axiosBase,
+  getSessionGeneration,
+  SessionChangedError,
+  subscribeToSessionGeneration,
+} from "@shared/api";
 import type { FieldEdits } from "@entities/template";
 import type { StudyPlanHours } from "../model/DisciplineContentPageTypes";
 
@@ -10,6 +15,7 @@ type StudyPlanResult = {
 };
 
 const queues = new Map<number, Promise<StudyPlanResult>>();
+subscribeToSessionGeneration(() => queues.clear());
 
 export async function saveStudyPlan(
   templateId: number,
@@ -23,10 +29,13 @@ export async function saveStudyPlan(
     zet?: number;
   }
 ): Promise<StudyPlanResult> {
+  const generation = getSessionGeneration();
   const previous = queues.get(templateId);
   const request = (previous ?? Promise.resolve())
     .catch(() => undefined)
     .then(async () => {
+      if (generation !== getSessionGeneration())
+        throw new SessionChangedError();
       const response = await axiosBase.put<StudyPlanResult>(
         `rpd-profile-templates/${templateId}/study-load`,
         patch

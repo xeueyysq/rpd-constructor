@@ -1,6 +1,10 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { isAxiosError } from "axios";
-import { axiosBase } from "@shared/api";
+import {
+  axiosBase,
+  getSessionGeneration,
+  SessionChangedError,
+} from "@shared/api";
 import { useStore } from "@shared/hooks";
 import { showErrorMessage } from "@shared/lib";
 import { useTemplateSync } from "../model/templateSync";
@@ -16,6 +20,7 @@ import type {
 
 // Дожидаемся уже начатых сохранений. Несохранённый редактор не закрываем.
 export async function prepareTemplateImport(templateId: number) {
+  const generation = getSessionGeneration();
   if (useStore.getState().jsonData.id !== templateId) return;
   while (useTemplateSync.getState().pending) {
     await new Promise<void>((resolve) => {
@@ -29,6 +34,7 @@ export async function prepareTemplateImport(templateId: number) {
     // track завершает HTTP раньше, чем очередь useUpdateTemplateField снимает
     // dirty. Следующая задача даёт завершиться всей цепочке Promise очереди.
     await new Promise<void>((resolve) => setTimeout(resolve, 0));
+    requireSession(generation);
   }
   if (
     useStore.getState().jsonData.id === templateId &&
@@ -36,6 +42,10 @@ export async function prepareTemplateImport(templateId: number) {
   ) {
     throw new Error("Сначала сохраните или отмените локальные изменения РПД");
   }
+}
+
+function requireSession(generation: number) {
+  if (generation !== getSessionGeneration()) throw new SessionChangedError();
 }
 
 export function templateImportError(error: unknown) {
@@ -51,6 +61,7 @@ export function useImportSources(context: ImportContext, enabled = true) {
   return useQuery({
     queryKey: ["template-import-sources", context],
     queryFn: async () => {
+      const generation = getSessionGeneration();
       if (context.targetTemplateId != null)
         await prepareTemplateImport(Number(context.targetTemplateId));
       else {
@@ -61,6 +72,7 @@ export function useImportSources(context: ImportContext, enabled = true) {
         )
           await prepareTemplateImport(active.id);
       }
+      requireSession(generation);
       return (
         await axiosBase.get<ImportSources>("template-import/sources", {
           params: context,
@@ -120,16 +132,20 @@ async function changeField<T extends { value?: unknown; edit?: FieldEdit }>(
   field: string,
   send: () => Promise<T>
 ) {
+  const generation = getSessionGeneration();
   await prepareTemplateImport(templateId);
+  requireSession(generation);
   const active = useStore.getState().jsonData.id === templateId;
   const revision = active
     ? useTemplateSync.getState().markDirty(field)
     : undefined;
   try {
     const data = await useTemplateSync.getState().track(send());
+    requireSession(generation);
     if (data.edit) syncField(templateId, field, data.value, data.edit);
     return data;
   } catch (error) {
+    requireSession(generation);
     if (
       isAxiosError<{ error?: { value: unknown; edit: FieldEdit | null } }>(
         error
@@ -141,7 +157,11 @@ async function changeField<T extends { value?: unknown; edit?: FieldEdit }>(
     }
     throw error;
   } finally {
-    if (active && useStore.getState().jsonData.id === templateId)
+    if (
+      generation === getSessionGeneration() &&
+      active &&
+      useStore.getState().jsonData.id === templateId
+    )
       useTemplateSync.getState().clearDirty(field, revision);
   }
 }
@@ -203,12 +223,15 @@ export function useCopyTemplateContent() {
       targetTemplateId: number;
       targetRevision: string;
     }) => {
+      const generation = getSessionGeneration();
       await prepareTemplateImport(params.targetTemplateId);
+      requireSession(generation);
       const data = await useTemplateSync
         .getState()
         .track(
           axiosBase.post<CopyTemplateResponse>("copy-template-content", params)
         );
+      requireSession(generation);
       const { jsonData, setJsonData } = useStore.getState();
       if (jsonData.id === params.targetTemplateId)
         setJsonData({
@@ -232,12 +255,14 @@ export function useCopyTemplateContent() {
 
 export function useImportComplect() {
   const client = useQueryClient();
+  const generation = getSessionGeneration();
   return useMutation({
     mutationFn: async (params: {
       sourceComplectId: number;
       targetComplectId: number | string;
       targetRevision: string;
     }) => {
+      requireSession(generation);
       const active = useStore.getState().jsonData;
       if (
         active.id &&
@@ -245,6 +270,7 @@ export function useImportComplect() {
           active.complect_uuid === params.targetComplectId)
       )
         await prepareTemplateImport(active.id);
+      requireSession(generation);
       return (
         await axiosBase.post<ImportComplectResponse>(
           "template-import/complect",
@@ -253,6 +279,7 @@ export function useImportComplect() {
       ).data;
     },
     onSuccess: async (result) => {
+      if (generation !== getSessionGeneration()) return;
       const { jsonData, setJsonData } = useStore.getState();
       if (
         result.imported.some(
@@ -267,6 +294,7 @@ export function useImportComplect() {
             { id: jsonData.id }
           );
           if (
+            generation === getSessionGeneration() &&
             useStore.getState().jsonData.id === jsonData.id &&
             !useTemplateSync.getState().pending &&
             !Object.keys(useTemplateSync.getState().dirty).length
@@ -276,7 +304,12 @@ export function useImportComplect() {
               ...data,
               certification: data.certification || data.derived_certification,
             });
-        } catch {
+        } catch (error) {
+          if (
+            generation !== getSessionGeneration() ||
+            error instanceof SessionChangedError
+          )
+            return;
           showErrorMessage(
             "Импорт завершён, но открытую РПД не удалось обновить. Перезагрузите её."
           );

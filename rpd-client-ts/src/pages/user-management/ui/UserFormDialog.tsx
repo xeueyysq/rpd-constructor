@@ -1,5 +1,6 @@
 import { yupResolver } from "@hookform/resolvers/yup";
 import {
+  Alert,
   Box,
   Button,
   Dialog,
@@ -34,7 +35,11 @@ interface UserFormDialogProps {
 
 export function UserFormDialog({ open, user, onClose }: UserFormDialogProps) {
   const isEditing = user !== null;
-  const schema = useMemo(() => getUserFormSchema(isEditing), [isEditing]);
+  const needsCredentials = user?.has_credentials === false;
+  const schema = useMemo(
+    () => getUserFormSchema(isEditing, needsCredentials),
+    [isEditing, needsCredentials]
+  );
   const createUser = useCreateUser();
   const updateUser = useUpdateUser();
   const {
@@ -93,6 +98,11 @@ export function UserFormDialog({ open, user, onClose }: UserFormDialogProps) {
         </DialogTitle>
         <DialogContent>
           <Box sx={{ display: "flex", flexDirection: "column", gap: 2 }}>
+            {needsCredentials ? (
+              <Alert severity="info">
+                Вход не настроен. Задайте реальные логин и пароль вместе.
+              </Alert>
+            ) : null}
             <TextField
               label="Логин"
               autoComplete="off"
@@ -153,12 +163,14 @@ export function UserFormDialog({ open, user, onClose }: UserFormDialogProps) {
               type="password"
               autoComplete="new-password"
               fullWidth
-              required={!isEditing}
+              required={!isEditing || needsCredentials}
               size="small"
               error={Boolean(errors.password)}
               helperText={
                 errors.password?.message ??
-                (isEditing ? "Оставьте пустым, чтобы не менять" : undefined)
+                (isEditing && !needsCredentials
+                  ? "Оставьте пустым, чтобы не менять"
+                  : undefined)
               }
               {...register("password")}
             />

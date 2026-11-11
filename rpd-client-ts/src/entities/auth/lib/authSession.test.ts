@@ -271,4 +271,36 @@ describe("жизненный цикл клиентской сессии без �
     expect(current.onUserLogged).toHaveBeenCalledExactlyOnceWith(false);
     expect(vi.getTimerCount()).toBe(0);
   });
+
+  it("новый вход ждёт ответ logout, который удаляет refresh cookie, а локальный выход немедленный", async () => {
+    const gate = deferred<void>();
+    const current = lifecycle();
+    applySession(user, getSessionGeneration());
+    let cookie: string | null = "A";
+    const requests: string[] = [];
+    axiosAuth.defaults.adapter = async (config) => {
+      requests.push(config.url!);
+      if (config.url === "/logout") {
+        await gate.promise;
+        cookie = null;
+        return response(config, {});
+      }
+      cookie = "B";
+      return response(config, { ...user, accessToken: "user-B" });
+    };
+    current.session.logOut();
+    expect(getAccessToken()).toBeNull();
+    expect(useAuth.getState().userRole).toBe(UserRole.ANONYMOUS);
+    const signIn = current.session.signIn({
+      userName: "rop2",
+      password: "test",
+    });
+    await vi.advanceTimersByTimeAsync(0);
+    const beforeLogoutResponse = [...requests];
+    gate.resolve();
+    await signIn;
+    expect(beforeLogoutResponse).toEqual(["/logout"]);
+    expect(cookie).toBe("B");
+    expect(getAccessToken()).toBe("user-B");
+  });
 });

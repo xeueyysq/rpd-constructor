@@ -18,16 +18,17 @@ class ComplectSyncController {
   async preview(req: Request<ParamsDictionary, unknown, Record<string, unknown>>, res: Response) {
       const { complectId } = req.body;
       if (!complectId) throw new Unprocessable("Не указан идентификатор комплекта");
-      const result = await preview1cSync(complectId);
+      const result = await preview1cSync(complectId, TemplateAccess.actor(req.user));
       res.json(result);
   }
 
   async apply(req: Request<ParamsDictionary, unknown, Record<string, unknown>>, res: Response) {
-      const { complectId, selections } = req.body;
+      const { complectId, selections, teacherImportManifest } = req.body;
       if (!complectId) throw new Unprocessable("Не указан идентификатор комплекта");
       const result = await applySync({
         complectId,
         selections,
+        teacherImportManifest,
         actor: TemplateAccess.actor(req.user),
       });
       res.json(result);

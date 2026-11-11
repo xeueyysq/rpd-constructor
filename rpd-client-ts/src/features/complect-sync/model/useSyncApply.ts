@@ -7,5 +7,6 @@ export const useSyncApplyMutation = () =>
     mutationFn: (payload: {
       complectId: string;
       selections: SyncApplySelection[];
+      teacherImportManifest?: string;
     }) => applySyncChanges(payload),
   });

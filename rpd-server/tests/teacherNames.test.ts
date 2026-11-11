@@ -20,3 +20,14 @@ test("совпадение по полному ФИО или инициалам 
     { name: "Нет Н.Н.", userId: null, ambiguous: false },
   ]);
 });
+
+test("подсказки снимают только известные пометки занятости и исключают вакансии", () => {
+  const users = [{ id: 8, fullname: { surname: "Ёлкин", name: "Семён", patronymic: "" } }];
+  assert.deepEqual(matchTeacherNames([
+    "Елкин Семен (внеш.совм.)", " Ёлкин  Семён (вн.совм.) ",
+    "Вакансия кафедра тестирования", "Ёлкин Семён (другое)",
+  ], users), [
+    { name: "Елкин Семен", userId: 8, ambiguous: false },
+    { name: "Ёлкин Семён (другое)", userId: null, ambiguous: false },
+  ]);
+});

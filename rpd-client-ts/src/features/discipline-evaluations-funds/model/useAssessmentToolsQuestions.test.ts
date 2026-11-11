@@ -6,7 +6,10 @@ import { useStore } from "@shared/hooks";
 import { useTemplateSync } from "@entities/template";
 import { useAssessmentToolsQuestions } from "./useAssessmentToolsQuestions";
 
-vi.mock("@shared/api", () => ({ axiosBase: { put: vi.fn() } }));
+vi.mock("@shared/api", async (importOriginal) => ({
+  ...(await importOriginal<typeof import("@shared/api")>()),
+  axiosBase: { put: vi.fn() },
+}));
 vi.mock("@shared/lib/showMessage.ts", () => ({
   showErrorMessage: vi.fn(),
   showSuccessMessage: vi.fn(),

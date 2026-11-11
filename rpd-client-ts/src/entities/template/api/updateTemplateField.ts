@@ -1,6 +1,11 @@
 import { useCallback } from "react";
 import { isAxiosError } from "axios";
-import { axiosBase } from "@shared/api";
+import {
+  axiosBase,
+  getSessionGeneration,
+  SessionChangedError,
+  subscribeToSessionGeneration,
+} from "@shared/api";
 import { useStore } from "@shared/hooks";
 import { showErrorMessage } from "@shared/lib";
 import type {
@@ -23,15 +28,23 @@ type SaveField = (
 const queues = new Map<string, Promise<SaveResult>>();
 const latestValues = new Map<string, unknown>();
 
+subscribeToSessionGeneration(() => {
+  queues.clear();
+  latestValues.clear();
+});
+
 export function useUpdateTemplateField() {
   return useCallback<SaveField>((field, value, options) => {
     const templateId = useStore.getState().jsonData.id;
     if (!templateId) return Promise.resolve(false);
     const key = `${templateId}:${field}`;
+    const generation = getSessionGeneration();
     latestValues.set(key, value);
     const revision = useTemplateSync.getState().markDirty(field);
 
     const run = async (): Promise<SaveResult> => {
+      if (generation !== getSessionGeneration())
+        return { success: false, clearDirty: false };
       const { jsonData, updateJsonData } = useStore.getState();
       if (jsonData.id !== templateId)
         return { success: false, clearDirty: false };
@@ -48,6 +61,8 @@ export function useUpdateTemplateField() {
             }
           )
         );
+        if (generation !== getSessionGeneration())
+          return { success: false, clearDirty: false };
         if (useStore.getState().jsonData.id === templateId) {
           updateJsonData(field, data.value);
           if (latestValues.get(key) !== value) {
@@ -61,6 +76,11 @@ export function useUpdateTemplateField() {
         }
         return { success: true, clearDirty: true };
       } catch (error) {
+        if (
+          error instanceof SessionChangedError ||
+          generation !== getSessionGeneration()
+        )
+          return { success: false, clearDirty: false };
         if (
           isAxiosError<ConflictResponse>(error) &&
           error.response?.status === 409
@@ -101,6 +121,7 @@ export function useUpdateTemplateField() {
       : run();
     queues.set(key, queued);
     void queued.then((result) => {
+      if (generation !== getSessionGeneration()) return;
       if (queues.get(key) !== queued) return;
       queues.delete(key);
       latestValues.delete(key);

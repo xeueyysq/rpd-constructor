@@ -1,18 +1,18 @@
-import { TemplateStatusEnum } from "@entities/template";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useMemo } from "react";
+import { isAxiosError } from "axios";
 import { fetchComplectRpd } from "../api";
-import { sortTemplatesByStatus } from "../utils/sortTemplates";
-
-const statusPriority = { [TemplateStatusEnum.UNLOADED]: 1 };
 
 export function useComplectData(complectId: string | undefined) {
   const queryClient = useQueryClient();
-  const { data: complectMeta, refetch } = useQuery({
+  const { data, error, isError, refetch } = useQuery({
     queryKey: ["rpd-complect", complectId],
     queryFn: () => fetchComplectRpd(complectId),
     enabled: Boolean(complectId),
+    retry: (count, error) =>
+      !(isAxiosError(error) && error.response?.status === 403) && count < 3,
   });
+  const complectMeta = isError ? undefined : data;
 
   const fetchComplectData = async () => {
     await Promise.all([
@@ -21,12 +21,14 @@ export function useComplectData(complectId: string | undefined) {
     ]);
   };
   const filteredData = useMemo(
-    () => sortTemplatesByStatus(complectMeta?.templates ?? [], statusPriority),
+    () => complectMeta?.templates ?? [],
     [complectMeta?.templates]
   );
 
   return {
     complectMeta,
+    isError,
+    isForbidden: isAxiosError(error) && error.response?.status === 403,
     filteredData,
     fetchComplectData,
   };

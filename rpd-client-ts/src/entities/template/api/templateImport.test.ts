@@ -7,7 +7,13 @@ import {
   type AxiosResponse,
   type InternalAxiosRequestConfig,
 } from "axios";
-import { axiosBase } from "@shared/api";
+import {
+  applySession,
+  axiosBase,
+  beginSession,
+  endSession,
+  SessionChangedError,
+} from "@shared/api";
 import { useStore } from "@shared/hooks";
 import { useTemplateSync } from "../model/templateSync";
 import {
@@ -58,6 +64,7 @@ function body(config: InternalAxiosRequestConfig): unknown {
 }
 
 beforeEach(() => {
+  beginSession();
   client = new QueryClient({
     defaultOptions: {
       queries: { retry: false, gcTime: Infinity },
@@ -92,11 +99,48 @@ beforeEach(() => {
   });
 });
 afterEach(() => {
+  endSession();
   axiosBase.defaults.adapter = originalAdapter;
   client.clear();
 });
 
 describe("HTTP-контракты клиентского импорта", () => {
+  it("ожидающий сохранения импорт A не отправляется после смены сессии на B", async () => {
+    let finish!: () => void;
+    const saving = useTemplateSync.getState().track(
+      new Promise<void>((resolve) => {
+        finish = resolve;
+      })
+    );
+    reply = () => ({ success: true, value: "Поздний импорт A", edit });
+    const imported = renderHook(useCopyTemplateField).mutateAsync({
+      sourceTemplateId: 21,
+      targetTemplateId: 12,
+      fieldToCopy: "goals",
+      baseAt: before,
+    });
+    const result = Promise.allSettled([imported]);
+    await new Promise<void>((resolve) => setTimeout(resolve, 0));
+    applySession(
+      {
+        accessToken: "B",
+        accessTokenExpiration: 10000,
+        role: 3,
+        fullname: { name: "B", surname: "", patronymic: "" },
+      },
+      beginSession()
+    );
+    useTemplateSync.getState().reset();
+    useStore.getState().setJsonData({ id: 12, goals: "B" });
+    finish();
+    await saving;
+    expect(await result).toEqual([
+      { status: "rejected", reason: expect.any(SessionChangedError) },
+    ]);
+    expect(requests).toEqual([]);
+    expect(useStore.getState().jsonData.goals).toBe("B");
+  });
+
   it("открывает каталог после полного завершения очереди сохранения, включая снятие dirty", async () => {
     let finish!: (value: unknown) => void;
     reply = (config) =>

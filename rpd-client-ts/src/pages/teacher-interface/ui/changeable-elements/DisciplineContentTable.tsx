@@ -30,6 +30,7 @@ import {
   parseHours,
 } from "@pages/teacher-interface/lib/hours";
 import { saveStudyPlan } from "@pages/teacher-interface/api/studyPlan";
+import { getSessionGeneration, SessionChangedError } from "@shared/api";
 import { normalizeContent } from "@pages/teacher-interface/lib/normalizeContent";
 import {
   sameValue,
@@ -197,11 +198,15 @@ export function DisciplineContentTable({
     }
     const templateId = jsonData.id;
     if (!templateId) return;
+    const generation = getSessionGeneration();
     try {
       const updated = await useTemplateSync
         .getState()
         .track(saveStudyPlan(templateId, { hours: { [key]: value } }));
-      if (useStore.getState().jsonData.id === templateId) {
+      if (
+        generation === getSessionGeneration() &&
+        useStore.getState().jsonData.id === templateId
+      ) {
         updateJsonData("study_load", updated.study_load);
         updateJsonData("zet", updated.zet);
         updateJsonData("study_plan_hours", updated.study_plan_hours);
@@ -214,6 +219,11 @@ export function DisciplineContentTable({
           useTemplateSync.getState().clearDirty("study_load");
       }
     } catch (error) {
+      if (
+        generation !== getSessionGeneration() ||
+        error instanceof SessionChangedError
+      )
+        return;
       showErrorMessage("Ошибка сохранения данных");
       console.error(error);
     }

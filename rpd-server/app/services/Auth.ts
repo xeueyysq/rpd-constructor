@@ -26,6 +26,7 @@ class AuthService {
       throw new NotFound("Пользователь не найден");
     }
 
+    if (!userData.name || !userData.password) throw new Forbidden("Неверное имя или пароль");
     const isPasswordValid = bcrypt.compareSync(password, userData.password);
 
     if (!isPasswordValid) {
@@ -79,7 +80,7 @@ class AuthService {
       await client.query("BEGIN");
       const refreshSession = await RefreshSessionRepository.getRefreshSession(tokenHash, client);
       if (!refreshSession || refreshSession.sid !== payload.sid || refreshSession.user_id !== payload.id
-        || !fingerprint.hash || refreshSession.finger_print !== fingerprint.hash || !refreshSession.is_active) {
+        || !fingerprint.hash || refreshSession.finger_print !== fingerprint.hash || !refreshSession.is_active || !refreshSession.name) {
         throw new Unauthorized("Пользователь не авторизован в системе");
       }
 

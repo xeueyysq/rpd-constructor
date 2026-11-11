@@ -1,11 +1,11 @@
 import { TemplateHistoryDialog, useTemplateHistory } from "@entities/template";
 import { Loader, PageTitle } from "@shared/ui";
-import { Box } from "@mui/material";
+import { Alert, Box } from "@mui/material";
 import {
   MaterialReactTable,
   useMaterialReactTable,
 } from "material-react-table";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { RedirectPath } from "@shared/enums";
 import { ComplectTableHeader } from "@widgets/table-header";
@@ -33,8 +33,13 @@ export function RpdComplectPage() {
   const [teachersExchangeId, setTeachersExchangeId] = useState<number | null>(
     null
   );
-  const { complectMeta, filteredData, fetchComplectData } =
-    useComplectData(complectId);
+  const {
+    complectMeta,
+    filteredData,
+    fetchComplectData,
+    isError,
+    isForbidden,
+  } = useComplectData(complectId);
   const columns = useComplectTableColumns({
     complect: complectMeta,
     onFetchData: fetchComplectData,
@@ -62,6 +67,18 @@ export function RpdComplectPage() {
       />
     ),
   });
+  const { columnFilters, globalFilter, sorting } = table.getState();
+  useEffect(() => {
+    table.setPageIndex(0);
+  }, [columnFilters, globalFilter, sorting, complectId, table]);
+  if (isError)
+    return (
+      <Alert severity="error">
+        {isForbidden
+          ? "Доступ к комплекту запрещён."
+          : "Не удалось загрузить комплект."}
+      </Alert>
+    );
   if (!complectMeta) return <Loader />;
   return (
     <Box>
