@@ -23,7 +23,7 @@ export const mainPages = [
 ];
 
 export const roleToAvailablePath: Record<UserRole, RedirectPath[]> = {
-  [UserRole.ROP]: mainPages,
+  [UserRole.ROP]: [...mainPages, RedirectPath.MANAGER],
   [UserRole.TEACHER]: [
     RedirectPath.TEMPLATES,
     RedirectPath.TEMPLATE,

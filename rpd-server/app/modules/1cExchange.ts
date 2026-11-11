@@ -8,12 +8,14 @@ import { merge1cIntoReferenceTree } from "./specProfilesTransformer.ts";
 import type { UserClaims } from "../types/express.d.ts";
 import TemplateAccess from "../services/TemplateAccess.ts";
 import { importTeacherCards } from "./teacherImport.ts";
+import { USER_ROLES } from "../models/constants.ts";
+import { Forbidden, Unprocessable } from "../utils/Errors.ts";
 
 const apiUrl = "https://1c-api.uni-dubna.ru/v1/api/persons/reports";
 const CACHE_ROW_ID = 1;
 const SPEC_PROFILES_TIMEOUT_MS = 5000;
 
-type ApiData = { faculty: string | null; year: number | null; educationForm: string | null; educationLevel: string | null; profile: string | null; direction: string | null };
+type ApiData = { faculty: string | null; year: number | string | null; educationForm: string | null; educationLevel: string | null; profile: string | null; direction: string | null };
 type ServiceError = Error & { statusCode?: number };
 function errorDetails(error: unknown): { statusCode?: unknown; code?: unknown; response?: { status?: number } } {
   return error && typeof error === "object" ? error as { statusCode?: unknown; code?: unknown; response?: { status?: number } } : {};
@@ -46,15 +48,44 @@ const requestWithSingleRetry = async <T>(requestFn: () => Promise<T>, requestNam
   }
 };
 
+async function assertActiveCreator(db: Pick<Pool | PoolClient, "query">, actor: UserClaims) {
+  if (actor.role !== USER_ROLES.ROP && actor.role !== USER_ROLES.ADMIN) {
+    throw new Forbidden("Создание комплекта доступно только РОП и администратору");
+  }
+  const { rows } = await db.query<{ role: number; is_active: boolean }>(
+    "SELECT id,role,is_active FROM users WHERE id=$1 FOR SHARE", [actor.id],
+  );
+  if (!rows[0]?.is_active || rows[0].role !== actor.role) {
+    throw new Forbidden("Создание комплекта доступно только активному пользователю с текущей ролью");
+  }
+}
+
+function validateComplectCriteria(apiData: ApiData) {
+  const strings = [apiData.faculty, apiData.educationForm, apiData.educationLevel, apiData.profile, apiData.direction];
+  const year = typeof apiData.year === "number" ? apiData.year
+    : typeof apiData.year === "string" && /^\d+$/.test(apiData.year) ? Number(apiData.year) : NaN;
+  if (strings.some((value) => typeof value !== "string" || !value.trim())
+    || !Number.isInteger(year) || year <= 0 || year > 2147483647) {
+    throw new Unprocessable("Укажите полные данные комплекта и корректный год набора");
+  }
+}
+
 async function exchange1C(apiData: ApiData, { actor, database = pool }: { actor?: UserClaims; database?: Pool } = {}) {
+  if (actor) await assertActiveCreator(database, actor);
+  validateComplectCriteria(apiData);
   const disciplines = await fetchUpLink(apiData);
   const client = await database.connect();
   try {
     await client.query("BEGIN");
-    // Upsert блокирует комплект и сериализует повторные загрузки и sync/create.
-    const RpdComplectId = await createRpdComplect(client, apiData);
+    const { id: RpdComplectId, created } = await createRpdComplect(client, apiData);
     if (actor) {
-      await insertUserComplectId(client, actor, RpdComplectId);
+      // Как в sync/назначении РОП: сначала комплект, затем пользователь до COMMIT.
+      await assertActiveCreator(client, actor);
+      if (created) {
+        await client.query("INSERT INTO user_complect(user_id,complect_id) VALUES($1,$2) ON CONFLICT(user_id,complect_id) DO NOTHING", [actor.id, RpdComplectId]);
+      } else {
+        await TemplateAccess.assertComplect(client, actor, RpdComplectId);
+      }
     }
     await importTeacherCards(client, disciplines.flatMap((disc) => normalizeDisciplineFrom1c(disc).teachers));
     await processDisciplines(client, disciplines, RpdComplectId);
@@ -92,46 +123,45 @@ const fetchUpLink = async (apiData: ApiData) => {
 };
 
 const createRpdComplect = async (client: PoolClient, apiData: ApiData) => {
-  const { rows } = await client.query<{ id: number }>(
-    `
-    INSERT INTO rpd_complects (
-      faculty,
-      year,
-      education_form,
-      education_level,
-      profile,
-      direction
-    ) VALUES (
-      $1, $2, $3, $4, $5, $6
-    )
-    ON CONFLICT (
-      faculty,
-      year,
-      education_form,
-      education_level,
-      profile,
-      direction
-    )
-    DO UPDATE SET
-      faculty = EXCLUDED.faculty
-    RETURNING id
-    `,
-    [
-      apiData.faculty,
-      apiData.year,
-      apiData.educationForm,
-      apiData.educationLevel,
-      apiData.profile,
-      apiData.direction,
-    ]
-  );
-
-  const RpdComplectId = rows[0]?.id;
-  if (!RpdComplectId) {
-    throw new Error("Ошибка создания комплекта РПД");
+  const values = [apiData.faculty, apiData.year, apiData.educationForm, apiData.educationLevel, apiData.profile, apiData.direction];
+  for (;;) {
+    const { rows } = await client.query<{ id: number }>(
+      `
+      INSERT INTO rpd_complects (
+        faculty,
+        year,
+        education_form,
+        education_level,
+        profile,
+        direction
+      ) VALUES (
+        $1, $2, $3, $4, $5, $6
+      )
+      ON CONFLICT (
+        faculty,
+        year,
+        education_form,
+        education_level,
+        profile,
+        direction
+      )
+      DO NOTHING
+      RETURNING id
+      `,
+      values
+    );
+    if (rows[0]) return { id: rows[0].id, created: true };
+    // Отдельная команда видит конкурентную вставку после ON CONFLICT.
+    // Блокировка сериализует импорт с sync и изменением владельцев.
+    const { rows: existing } = await client.query<{ id: number }>(`
+      SELECT id FROM rpd_complects
+      WHERE faculty=$1 AND year=$2 AND education_form=$3 AND education_level=$4
+        AND profile=$5 AND direction=$6
+      FOR UPDATE
+    `, values);
+    if (existing[0]) return { id: existing[0].id, created: false };
+    // Между конфликтом и SELECT строку могли удалить: повторяем вставку.
   }
-
-  return RpdComplectId;
 };
 
 const processDisciplines = async (client: PoolClient, disciplines: unknown[], RpdComplectId: number) => {
@@ -218,12 +248,6 @@ const insertDiscipline = async (client: PoolClient, data: { RpdComplectId: numbe
   `, [data.RpdComplectId, discipline, semester, recordType]);
   if (!existing[0]) throw new Error("Строка 1С не найдена после загрузки");
   return existing[0].id;
-};
-
-const insertUserComplectId = async (client: PoolClient, actor: UserClaims, complectId: number) => {
-  const { rows } = await client.query<{ user_id: number }>("SELECT user_id FROM user_complect WHERE complect_id=$1", [complectId]);
-  if (rows.length) await TemplateAccess.assertComplect(client, actor, complectId);
-  else await client.query("INSERT INTO user_complect(user_id,complect_id) VALUES($1,$2) ON CONFLICT(user_id,complect_id) DO NOTHING", [actor.id, complectId]);
 };
 
 const handle1cError = (error: unknown) => {
