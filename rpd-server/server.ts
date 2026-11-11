@@ -22,6 +22,7 @@ if (!packageData || typeof packageData !== "object" || !("version" in packageDat
 const version = packageData.version;
 
 app.use(cookieParser());
+app.post("/api/complects/sync/apply", express.json({ limit: "1mb" }));
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
