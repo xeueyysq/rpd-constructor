@@ -4,6 +4,7 @@ import type { UserClaims } from "../types/express.ts";
 import { USER_ROLES } from "../models/constants.ts";
 import { Forbidden, NotFound } from "../utils/Errors.ts";
 import { diagnosticFingerprint, type DiagnosticInput, type ManualInput } from "../modules/feedbackValidation.ts";
+import { sheetConfig } from "./feedbackSheets.ts";
 
 type Receipt = { id: string; code: string; warning?: string };
 type GroupReceipt = { id: string; code: string; count: number };
@@ -144,12 +145,18 @@ export class FeedbackService {
   async deliveryStatus(actor: UserClaims) {
     return transaction(this.database, async (client) => {
       await activeActor(client, actor, true);
-      const { rows } = await client.query<{ pending: number; leased: number; lastError: string | null }>(`
+      const { rows } = await client.query<{ pending: number; leased: number; oldestPending: Date | null;
+        lastError: string | null; cooldownUntil: Date | null }>(`
         SELECT count(*) FILTER (WHERE state='pending')::int AS pending,
           count(*) FILTER (WHERE state='leased')::int AS leased,
-          (SELECT last_error FROM feedback_outbox WHERE last_error IS NOT NULL ORDER BY updated_at DESC LIMIT 1) AS "lastError"
+          min(updated_at) FILTER (WHERE state='pending') AS "oldestPending",
+          COALESCE((SELECT last_error FROM feedback_delivery_control WHERE id=true),
+            (SELECT last_error FROM feedback_outbox WHERE last_error IS NOT NULL ORDER BY updated_at DESC LIMIT 1)) AS "lastError",
+          (SELECT cooldown_until FROM feedback_delivery_control WHERE id=true) AS "cooldownUntil"
         FROM feedback_outbox`);
-      return { ...rows[0], deliveryEnabled: process.env.FEEDBACK_GOOGLE_ENABLED === "true" };
+      const config = sheetConfig();
+      return { ...rows[0], deliveryEnabled: config.enabled, deliveryReady: config.ready,
+        configError: config.enabled ? config.reason : null };
     });
   }
 }
@@ -213,5 +220,41 @@ export class FeedbackOutbox {
     const errorCode = /^[A-Z][A-Z0-9_:-]{0,79}$/.test(safeError) ? safeError : "DELIVERY_ERROR";
     await this.database.query(`UPDATE feedback_outbox SET state='pending',lease_until=NULL,last_error=$2,
       next_attempt_at=$3,updated_at=now() WHERE id=$1 AND state='leased'`, [id, errorCode, retryAt]);
+  }
+
+  async cooldown(safeError: string, until: Date): Promise<void> {
+    const errorCode = /^[A-Z][A-Z0-9_:-]{0,79}$/.test(safeError) ? safeError : "DELIVERY_ERROR";
+    await this.database.query(`UPDATE feedback_delivery_control SET cooldown_until=$1,last_error=$2,updated_at=now()
+      WHERE id=true`, [until, errorCode]);
+  }
+
+  async cooldownUntil(): Promise<Date | null> {
+    const { rows } = await this.database.query<{ cooldown_until: Date | null }>(
+      "SELECT cooldown_until FROM feedback_delivery_control WHERE id=true");
+    return rows[0]?.cooldown_until ?? null;
+  }
+
+  async retention(): Promise<boolean> {
+    const screenshots = await this.database.query(`WITH old AS (
+      SELECT id FROM feedback_reports WHERE created_at<now()-interval '30 days' AND screenshot IS NOT NULL
+      ORDER BY created_at LIMIT 100 FOR UPDATE SKIP LOCKED)
+      UPDATE feedback_reports r SET screenshot=NULL,screenshot_mime=NULL,screenshot_size=0
+      FROM old WHERE r.id=old.id`);
+    const reports = await this.database.query(`WITH old AS (
+      SELECT r.id FROM feedback_reports r WHERE r.created_at<now()-interval '90 days'
+        AND NOT EXISTS (SELECT 1 FROM feedback_outbox o WHERE o.report_id=r.id AND o.state<>'delivered')
+      ORDER BY r.created_at LIMIT 100 FOR UPDATE OF r SKIP LOCKED)
+      DELETE FROM feedback_reports r USING old WHERE r.id=old.id`);
+    const groups = await this.database.query(`WITH old AS (
+      SELECT g.id FROM diagnostic_groups g WHERE g.last_seen<now()-interval '90 days'
+        AND NOT EXISTS (SELECT 1 FROM feedback_outbox o WHERE o.group_id=g.id AND o.state<>'delivered')
+      ORDER BY g.last_seen LIMIT 100 FOR UPDATE OF g SKIP LOCKED)
+      DELETE FROM diagnostic_groups g USING old WHERE g.id=old.id`);
+    const receipts = await this.database.query(`WITH old AS (
+      SELECT actor_id,client_event_id FROM diagnostic_event_receipts
+      WHERE created_at<now()-interval '90 days' ORDER BY created_at LIMIT 100 FOR UPDATE SKIP LOCKED)
+      DELETE FROM diagnostic_event_receipts r USING old
+      WHERE r.actor_id=old.actor_id AND r.client_event_id=old.client_event_id`);
+    return [screenshots, reports, groups, receipts].some((result) => result.rowCount === 100);
   }
 }

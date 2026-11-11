@@ -1,5 +1,6 @@
 import type { ParamsDictionary } from "express-serve-static-core";
 import { errorMessage } from "../utils/Errors.ts";
+import { markFeedbackFailure } from "../middleware/feedbackDiagnostics.ts";
 import type { Pool } from "pg";
 import type { Request, Response } from "express";
 import { getLatestFieldChanges } from "../modules/complectSync.ts";
@@ -274,6 +275,7 @@ class RpdProfileTemplatesController {
       const fieldChanges = await getLatestFieldChanges(value.id);
       res.json({ ...value, fieldChanges, study_plan_hours: getStudyPlanHours(value.study_load, value.control_load), derived_certification: deriveCertification(value.study_load, value.control_load) });
     } catch (err) {
+      markFeedbackFailure(res, err);
       res.status(500).json({ message: errorMessage(err) });
     }
   }
@@ -318,6 +320,7 @@ class RpdProfileTemplatesController {
 
       res.json(updatedItem);
     } catch (error) {
+      markFeedbackFailure(res, error);
       res.status(500).json({ message: errorMessage(error) });
       console.error("Ошибка сохранения комментария");
     }
@@ -337,6 +340,7 @@ class RpdProfileTemplatesController {
 
       res.status(204).send();
     } catch (error) {
+      markFeedbackFailure(res, error);
       res.status(500).json({ message: errorMessage(error) });
       console.error("Ошибка удаления комментария");
     }
@@ -395,6 +399,7 @@ class RpdProfileTemplatesController {
       );
       res.send(buffer);
     } catch (error) {
+      markFeedbackFailure(res, error);
       console.error("Ошибка генерации ФОС DOCX");
       res.status(500).json({ message: errorMessage(error) });
     }

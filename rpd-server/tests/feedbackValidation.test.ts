@@ -10,12 +10,13 @@ const id = "4d091b12-8797-41ec-b5a2-605815cb67f3";
 
 test("контекст оставляет только разрешённые поля и пути без query/fragment", () => {
   const result = sanitizeContext({
-    clientRelease: "2.4.2", route: "/editor/12?token=private#part", teacherName: "Петров",
+    clientRelease: "2.4.2", route: "/editor/12?token=private#part", discipline: "Математика", teacherName: "Петров",
     editorContent: "секрет", cookies: "secret", auth: "Bearer secret",
     breadcrumbs: [{ at: "2026-11-11T10:00:00Z", kind: "http", method: "POST", route: "/api/save/12?secret=1",
       requestId: id, body: "secret", headers: { Authorization: "secret" } }],
   });
   assert.equal(result.route, "/editor/12");
+  assert.equal(result.discipline, "Математика");
   assert.equal(result.breadcrumbs?.[0]?.route, "/api/save/12");
   const serialized = JSON.stringify(result);
   for (const secret of ["teacherName", "Петров", "editorContent", "секрет", "cookies", "Bearer", "secret=1"]) {
@@ -37,11 +38,16 @@ test("диагностика отсекает ожидаемые ошибки, �
     stack: "Error: private message\n at saveTemplate (https://example.test/secret.js?token=1:12:3)",
     context: { clientRelease: "2.4.2", route: "/api/templates/123?secret=1" } });
   const second = parseDiagnostic({ clientEventId: "77a78ceb-d783-40fe-9676-5a4f1344b9e6", operation: "save.template", errorCode: "HTTP_500", status: 500,
-    stack: "Error: another private message\n at saveTemplate (/different/private.js:15:9)",
+    stack: "Error: another private message\n at saveTemplate (/different/secret.js:12:3)",
     context: { clientRelease: "2.4.2", route: "/api/templates/456" } });
-  assert.equal(first.stack, "saveTemplate");
+  assert.equal(first.stack, "saveTemplate@secret.js:12:3");
   assert.equal(cleanStack("Error: secret"), undefined);
   assert.equal(diagnosticFingerprint(first), diagnosticFingerprint(second));
+  const uuidRoute = { ...first, context: { ...first.context, route: `/api/templates/${id}` } };
+  const anotherUuidRoute = { ...first, context: { ...first.context, route: "/api/templates/77a78ceb-d783-40fe-9676-5a4f1344b9e6" } };
+  assert.equal(diagnosticFingerprint(uuidRoute), diagnosticFingerprint(anotherUuidRoute));
+  assert.notEqual(diagnosticFingerprint(first), diagnosticFingerprint({ ...first, stack: "saveTemplate@other.js:12:3" }));
+  assert.equal(cleanStack("Error: secret\nfn@https://example.test/private/app.js?token=secret:21:4"), "fn@app.js:21:4");
   assert.throws(() => parseDiagnostic({ ...first, status: 404 }), { status: 422, error: "Ожидаемые ошибки не регистрируются" });
   assert.throws(() => parseDiagnostic({ ...first, errorCode: "SessionChangedError" }), { status: 422, error: "Ожидаемые действия не регистрируются" });
   assert.throws(() => parseDiagnostic({ ...first, context: { route: "/api/feedback" } }), { status: 422, error: "Ожидаемые действия не регистрируются" });
@@ -85,6 +91,7 @@ test("feature flag закрывает только новые маршруты; 
   });
   process.env.FEEDBACK_ENABLED = "false";
   assert.equal(await request(app, "/api/feedback/delivery-status"), 503);
+  assert.equal(await request(app, "/api/feedback/config"), 401);
   assert.equal(await request(app, "/api/health"), 200);
   process.env.FEEDBACK_ENABLED = "true";
   assert.equal(await request(app, "/api/feedback/delivery-status"), 401);

@@ -1,5 +1,6 @@
 import type { ParamsDictionary } from "express-serve-static-core";
 import { errorMessage } from "../utils/Errors.ts";
+import { markFeedbackFailure } from "../middleware/feedbackDiagnostics.ts";
 import type { Pool } from "pg";
 import type { Request, Response } from "express";
 import Rpd1cExchange from "../models/rpd_1c_exchange.ts";
@@ -44,6 +45,7 @@ class Rpd1cExchangeController {
       );
       res.json(records);
     } catch (err) {
+      markFeedbackFailure(res, err);
       res.status(500).json({ message: errorMessage(err) });
     }
   }
@@ -69,6 +71,7 @@ class Rpd1cExchangeController {
       const records = await this.model.getResultsData(complectMeta.id);
       res.json(records);
     } catch (err) {
+      markFeedbackFailure(res, err);
       res.status(500).json({ message: errorMessage(err) });
     }
   }

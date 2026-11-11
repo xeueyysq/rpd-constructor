@@ -13,7 +13,8 @@ import AuthRootRouter from "./app/routes/Auth.ts";
 import TokenService from "./app/services/Token.ts";
 import { ErrorUtils } from "./app/utils/Errors.ts";
 import feedbackRouter from "./app/routes/feedback.ts";
-import { feedbackDiagnostics } from "./app/middleware/feedbackDiagnostics.ts";
+import { feedbackDiagnostics, markFeedbackFailure } from "./app/middleware/feedbackDiagnostics.ts";
+import { startFeedbackWorker } from "./app/services/feedbackWorker.ts";
 
 const { PORT, CLIENT_URL, API_URL, ALLOWED_ORIGINS } = process.env;
 const packageData: unknown = JSON.parse(readFileSync(new URL("./package.json", import.meta.url), "utf8"));
@@ -75,8 +76,10 @@ app.use(
 
 pool
   .connect()
-  .then(() => {
+  .then((client) => {
+    client.release();
     console.log("Подключено к PostgreSQL");
+    startFeedbackWorker();
 
     app.get("/api/health", async (_req, res) => {
       try {
@@ -96,6 +99,7 @@ pool
 
     app.use((err: unknown, _req: Request, res: Response, _next: NextFunction) => {
       void _next;
+      markFeedbackFailure(res, err);
       if (err && typeof err === "object" && "status" in err && err.status === 413) {
         res.status(413).json({ error: "Тело запроса слишком велико" });
         return;

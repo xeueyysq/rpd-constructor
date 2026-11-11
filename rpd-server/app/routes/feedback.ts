@@ -10,7 +10,7 @@ import { MAX_SCREENSHOT_BYTES, parseDiagnostic, parseManual, screenshotMime, uui
 const router = express.Router();
 const feedback = new FeedbackService();
 const MAX_MULTIPART_BYTES = 3 * 1024 * 1024;
-const buckets = new Map<number, { until: number; count: number; active: number }>();
+const buckets = new Map<number, { until: number; manual: number; automatic: number; active: number }>();
 let activeUploads = 0;
 
 const enabled: RequestHandler = (_req, res, next) => {
@@ -36,13 +36,14 @@ function limit(perMinute: number, upload: boolean): RequestHandler {
         for (const [key, value] of buckets) if (value.until <= now && value.active === 0) buckets.delete(key);
       }
       if (buckets.size >= 1024) { res.status(429).json({ error: "Слишком много обращений" }); return; }
-      state = { until: now + 60_000, count: 0, active: 0 };
+      state = { until: now + 60_000, manual: 0, automatic: 0, active: 0 };
       buckets.set(id, state);
     }
-    if (state.count >= perMinute || upload && (state.active >= 1 || activeUploads >= 2)) {
+    const category = upload ? "manual" : "automatic";
+    if (state[category] >= perMinute || upload && (state.active >= 1 || activeUploads >= 2)) {
       res.status(429).json({ error: "Слишком много обращений" }); return;
     }
-    state.count++;
+    state[category]++;
     if (upload) {
       state.active++;
       activeUploads++;
@@ -96,6 +97,10 @@ const admin: RequestHandler = (req, _res, next) => {
   next();
 };
 
+router.get("/feedback/config", TokenService.checkAccess, active, (_req, res) => {
+  res.set("Cache-Control", "no-store");
+  res.json({ enabled: process.env.FEEDBACK_ENABLED === "true" });
+});
 router.get("/feedback/delivery-status", enabled, TokenService.checkAccess, active, admin, async (req, res) => {
   res.json(await feedback.deliveryStatus(req.user!));
 });

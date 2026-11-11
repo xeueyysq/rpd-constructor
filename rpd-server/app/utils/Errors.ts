@@ -1,4 +1,5 @@
 import type { Response } from "express";
+import { classifyFeedbackFailure } from "../modules/feedbackStack.ts";
 
 class WebError {
   status: number;
@@ -60,6 +61,10 @@ class ErrorUtils {
       ? "status" in error && typeof error.status === "number" ? error.status
         : "statusCode" in error && typeof error.statusCode === "number" ? error.statusCode : undefined
       : undefined;
+    if ((!status || status >= 500 || status === 413) && res.locals) {
+      const failure = classifyFeedbackFailure(error);
+      if (failure) res.locals.feedbackFailure = failure;
+    }
     if (!status || status >= 500) console.error("Ошибка HTTP-запроса", status ?? 500);
     return res.status(status || 500).json(error);
   }

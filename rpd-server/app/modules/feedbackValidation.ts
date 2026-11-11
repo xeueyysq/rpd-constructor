@@ -1,5 +1,7 @@
 import { createHash } from "node:crypto";
 import { Unprocessable } from "../utils/Errors.ts";
+import { cleanStack } from "./feedbackStack.ts";
+export { cleanStack } from "./feedbackStack.ts";
 
 export const MAX_SCREENSHOT_BYTES = 2 * 1024 * 1024;
 export const MAX_METADATA_BYTES = 32 * 1024;
@@ -8,7 +10,7 @@ type Plain = Record<string, unknown>;
 type Context = {
   clientRelease?: string; route?: string; primaryRole?: string; activeRole?: string;
   complectId?: number; templateId?: number; section?: string;
-  faculty?: string; direction?: string; profile?: string; form?: string; year?: string;
+  faculty?: string; direction?: string; profile?: string; form?: string; year?: string; discipline?: string;
   browser?: string;
   breadcrumbs?: Array<{ at: string; kind: string; operation?: string; method?: string; route?: string; status?: number; durationMs?: number; requestId?: string; requestBytes?: number }>;
 };
@@ -48,20 +50,10 @@ function stableOperation(value: unknown, name: string): string {
   return text;
 }
 
-export function cleanStack(value: unknown): string | undefined {
-  if (typeof value !== "string") return undefined;
-  const frames = value.split("\n").slice(1, 9).map((line) => {
-    const match = line.match(/^\s*at\s+([\w.$<>-]{1,100})(?:\s|$)/);
-    if (!match) return undefined;
-    return match[1];
-  }).filter((line): line is string => Boolean(line));
-  return frames.length ? frames.join("\n").slice(0, 1200) : undefined;
-}
-
 export function sanitizeContext(value: unknown): Context {
   const source = plain(value);
   const context: Context = {};
-  const labels = ["clientRelease", "primaryRole", "activeRole", "section", "faculty", "direction", "profile", "form", "year", "browser"] as const;
+  const labels = ["clientRelease", "primaryRole", "activeRole", "section", "faculty", "direction", "profile", "form", "year", "discipline", "browser"] as const;
   for (const key of labels) {
     const text = optionalText(source[key], key === "browser" ? 120 : 160);
     if (text) context[key] = Array.from(text, (char) => char.charCodeAt(0) < 32 ? " " : char).join("");
@@ -134,7 +126,8 @@ export function parseDiagnostic(value: unknown): DiagnosticInput {
 }
 
 export function diagnosticFingerprint(event: Omit<DiagnosticInput, "clientEventId">): string {
-  const route = event.context.route?.replace(/\b\d+\b/g, ":id").replace(/[0-9a-f]{8}-[0-9a-f-]{27,}/gi, ":id");
+  const route = event.context.route?.replace(/[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}/gi, ":id")
+    .replace(/(?<=\/)\d+(?=\/|$)/g, ":id");
   return createHash("sha256").update(JSON.stringify([
     event.context.clientRelease ?? "", event.operation, route ?? "", event.status ?? null,
     event.errorCode, event.stack?.split("\n", 1)[0] ?? "",
