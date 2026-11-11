@@ -6,13 +6,14 @@ import { pool } from "./config/db.ts";
 import routes from "./app/routes/routes.ts";
 const app = express();
 import cors from "cors";
-import fileUpload from "express-fileupload";
 
 import cookieParser from "cookie-parser";
 import Fingerprint from "./app/middleware/fingerprint.ts";
 import AuthRootRouter from "./app/routes/Auth.ts";
 import TokenService from "./app/services/Token.ts";
 import { ErrorUtils } from "./app/utils/Errors.ts";
+import feedbackRouter from "./app/routes/feedback.ts";
+import { feedbackDiagnostics } from "./app/middleware/feedbackDiagnostics.ts";
 
 const { PORT, CLIENT_URL, API_URL, ALLOWED_ORIGINS } = process.env;
 const packageData: unknown = JSON.parse(readFileSync(new URL("./package.json", import.meta.url), "utf8"));
@@ -21,10 +22,8 @@ if (!packageData || typeof packageData !== "object" || !("version" in packageDat
 }
 const version = packageData.version;
 
+app.use(feedbackDiagnostics(version));
 app.use(cookieParser());
-app.post("/api/complects/sync/apply", express.json({ limit: "1mb" }));
-app.use(express.json());
-app.use(express.urlencoded({ extended: true }));
 
 const allowedOrigins = [
   "http://localhost:5173",
@@ -50,7 +49,7 @@ app.use(
       }
     },
     credentials: true,
-    exposedHeaders: ["Content-Disposition"],
+    exposedHeaders: ["Content-Disposition", "X-Request-ID"],
     methods: ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
     allowedHeaders: [
       "Content-Type",
@@ -58,11 +57,15 @@ app.use(
       "X-Requested-With",
       "Accept",
       "Origin",
+      "X-Request-ID",
     ],
   })
 );
 
-app.use(fileUpload());
+app.use("/api", feedbackRouter);
+app.post("/api/complects/sync/apply", express.json({ limit: "1mb" }));
+app.use(express.json());
+app.use(express.urlencoded({ extended: true }));
 
 app.use(
   Fingerprint({
@@ -93,6 +96,10 @@ pool
 
     app.use((err: unknown, _req: Request, res: Response, _next: NextFunction) => {
       void _next;
+      if (err && typeof err === "object" && "status" in err && err.status === 413) {
+        res.status(413).json({ error: "Тело запроса слишком велико" });
+        return;
+      }
       ErrorUtils.catchError(res, err);
     });
 

@@ -29,7 +29,6 @@ class BadGateway extends WebError {
 
 class NotFound extends WebError {
   constructor(error?: unknown) {
-    console.log(error);
     super(404, error);
   }
 }
@@ -57,11 +56,11 @@ function errorStatusCode(error: unknown): number | undefined {
 
 class ErrorUtils {
   static catchError(res: Response, error: unknown) {
-    console.log(error);
     const status = error && typeof error === "object"
       ? "status" in error && typeof error.status === "number" ? error.status
         : "statusCode" in error && typeof error.statusCode === "number" ? error.statusCode : undefined
       : undefined;
+    if (!status || status >= 500) console.error("Ошибка HTTP-запроса", status ?? 500);
     return res.status(status || 500).json(error);
   }
 }

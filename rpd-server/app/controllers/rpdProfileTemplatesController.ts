@@ -319,7 +319,7 @@ class RpdProfileTemplatesController {
       res.json(updatedItem);
     } catch (error) {
       res.status(500).json({ message: errorMessage(error) });
-      console.error(error);
+      console.error("Ошибка сохранения комментария");
     }
   }
 
@@ -338,7 +338,7 @@ class RpdProfileTemplatesController {
       res.status(204).send();
     } catch (error) {
       res.status(500).json({ message: errorMessage(error) });
-      console.error(error);
+      console.error("Ошибка удаления комментария");
     }
   }
 
@@ -395,7 +395,7 @@ class RpdProfileTemplatesController {
       );
       res.send(buffer);
     } catch (error) {
-      console.error(error);
+      console.error("Ошибка генерации ФОС DOCX");
       res.status(500).json({ message: errorMessage(error) });
     }
   }
