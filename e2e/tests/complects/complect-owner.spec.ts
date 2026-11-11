@@ -1,4 +1,8 @@
 import { expect, test, type APIRequestContext, type Page } from '@playwright/test';
+import { execFileSync } from 'node:child_process';
+import { readFileSync } from 'node:fs';
+import { fileURLToPath } from 'node:url';
+import { parseEnv } from 'node:util';
 import { apiUrl, password, signIn } from '../helpers';
 
 const complect = { id: 102, uuid: '33333333-3333-4333-8333-333333333333', profile: 'Профиль смены владельца', year: 2025 };
@@ -215,25 +219,12 @@ test('первое назначение после создания и преж�
   }
 });
 
-test('create по HTTP запрещён РОП и преподавателю для нового и существующего комплекта', async ({ request }) => {
-  const headers = await headersFor(request);
-  const before = await request.get(`${apiUrl}/api/get-rpd-complects`, { headers });
-  const previous = await before.json();
-  for (const name of ['rop', 'teacher']) {
-    const actor = await headersFor(request, name);
-    for (const year of [2026, 2099]) {
-      const response = await request.post(`${apiUrl}/api/create_rpd_complect`, { headers: actor, data: { data: {
-        faculty: 'Другой тестовый институт', year, formEducation: 'Очная', levelEducation: 'Бакалавриат',
-        profile: 'Другой синтетический профиль', directionOfStudy: 'Другое направление',
-      } } });
-      expect(response.status()).toBe(403);
-    }
-  }
-  expect((await request.post(`${apiUrl}/api/create_rpd_complect`, { data: { data: {} } })).status()).toBe(401);
-  const after = await request.get(`${apiUrl}/api/get-rpd-complects`, { headers });
-  // Другие параллельные сценарии могут добавлять свои комплекты; проверяем точную область запроса.
-  const scope = (rows: Array<{ id: number; profile: string; year: number; owner: unknown }>) => rows
-    .filter((row) => row.profile === 'Другой синтетический профиль')
-    .map(({ id, profile, year, owner }) => ({ id, profile, year, owner }));
-  expect(scope(await after.json())).toEqual(scope(previous));
+test('создание РОП: production HTTP/JWT/PG, полные и пустые владельцы, атомарность и блокировки', async () => {
+  test.setTimeout(90_000);
+  // Как teacherCards: реальный listener и PG, единственная подмена — внешняя axios1C.
+  const env = parseEnv(readFileSync(new URL('../../e2e.env', import.meta.url), 'utf8'));
+  const path = fileURLToPath(new URL('../../../rpd-server/tests/integration/complectCreation.ts', import.meta.url));
+  const output = execFileSync('node', [path], { env: { ...process.env, ...env },
+    encoding: 'utf8', timeout: 60_000 });
+  expect(JSON.parse(output)).toEqual({ completed: true });
 });

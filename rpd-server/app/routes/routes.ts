@@ -168,7 +168,7 @@ router.post(
 router.post(
   "/create_rpd_complect",
   TokenService.checkAccess,
-  requireRole(USER_ROLES.ADMIN),
+  requireRole(USER_ROLES.ROP, USER_ROLES.ADMIN),
   rpdComplectsController.createRpdComplect.bind(rpdComplectsController)
 );
 router.get(

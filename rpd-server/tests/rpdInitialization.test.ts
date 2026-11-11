@@ -24,6 +24,7 @@ function database(t: TestContext, currentActor = actor) {
   let transaction: State | undefined;
   let failStatus = false;
   let active = true;
+  let currentRole = currentActor.role;
   let rawRows: unknown[] = [raw];
   const tables: Record<string, keyof State> = { rpd_complects: "complects", user_complect: "owners", rpd_1c_exchange: "exchange", rpd_profile_templates: "profiles", template_status: "statuses", teacher_templates: "participants", template_field_changes: "changes" };
   async function query(sql: string, values: unknown[] = [], connected = false): Promise<{ rows: Row[] }> {
@@ -34,7 +35,7 @@ function database(t: TestContext, currentActor = actor) {
     if (text === "ROLLBACK") { transaction = undefined; return { rows: [] }; }
     const db = connected && transaction ? transaction : state;
     if (text.includes("AS owner")) return { rows: [{ exists: db.complects.some((row) => row.id === values[0]), owner: db.owners.some((row) => row.complect_id === values[0] && row.user_id === values[1]), active }] };
-    if (from === "users") return { rows: [{ id: currentActor.id, role: currentActor.role, is_active: active, fullname: { surname: "Руководитель" } }] };
+    if (from === "users") return { rows: [{ id: currentActor.id, role: currentRole, is_active: active, fullname: { surname: "Руководитель" } }] };
     if (text.startsWith("INSERT INTO complect_sync_log")) return { rows: [{ id: 30 }] };
     const insert = /^INSERT INTO (\w+)\s*\(([^)]+)\) VALUES\s*\(([^)]+)\)/.exec(text);
     if (insert && tables[insert[1]]) {
@@ -50,7 +51,7 @@ function database(t: TestContext, currentActor = actor) {
         if (token.includes("::jsonb") || ["study_load", "control_load"].includes(field) && typeof row[field] === "string") row[field] = JSON.parse(String(row[field]));
       });
       let existing: Row | undefined;
-      if (insert[1] === "rpd_complects") existing = records[0];
+      if (insert[1] === "rpd_complects") existing = records.find((item) => fields.every((field) => String(item[field]) === String(row[field])));
       if (insert[1] === "rpd_1c_exchange") existing = records.find((item) => item.id_rpd_complect === row.id_rpd_complect && item.discipline === row.discipline && (item.semester ?? -1) === (row.semester ?? -1) && (item.record_type ?? "") === (row.record_type ?? ""));
       if (insert[1] === "template_status") existing = records.find((item) => row.id_1c_template != null && item.id_1c_template === row.id_1c_template || row.id_profile_template != null && item.id_profile_template === row.id_profile_template);
       if (existing) {
@@ -68,7 +69,9 @@ function database(t: TestContext, currentActor = actor) {
       return { rows: [] };
     }
     if (text.startsWith("UPDATE rpd_complects")) return { rows: [] };
-    if (from === "rpd_complects") return { rows: db.complects.filter((row) => String(row.id) === String(values[0]) || row.uuid === values[0]) };
+    if (from === "rpd_complects") return { rows: db.complects.filter((row) => values.length === 6
+      ? [row.faculty, row.year, row.education_form, row.education_level, row.profile, row.direction].every((value, i) => String(value) === String(values[i]))
+      : String(row.id) === String(values[0]) || row.uuid === values[0]) };
     if (from === "user_complect") return { rows: db.owners.filter((row) => row.complect_id === values[0]) };
     if (from === "rpd_1c_exchange") {
       if (text.includes("LEFT JOIN template_status")) return { rows: db.exchange.filter((row) => row.id_rpd_complect === values[0]).map((row) => ({ ...row, id_profile_template: db.statuses.find((status) => status.id_1c_template === row.id)?.id_profile_template ?? null })) };
@@ -88,7 +91,7 @@ function database(t: TestContext, currentActor = actor) {
     assert.equal(transaction, undefined, "HTTP-запрос должен завершиться до начала транзакции");
     return { data: rawRows };
   });
-  return { get state() { return state; }, set rawRows(rows: unknown[]) { rawRows = rows; }, failStatus() { failStatus = true; }, deactivate() { active = false; } };
+  return { get state() { return state; }, set rawRows(rows: unknown[]) { rawRows = rows; }, failStatus() { failStatus = true; }, deactivate() { active = false; }, demote() { currentRole = USER_ROLES.TEACHER; } };
 }
 
 function seed(db: ReturnType<typeof database>, removed = false) {
@@ -112,24 +115,38 @@ test("первичная загрузка сразу создаёт одну Р�
   assert.deepEqual(db.state.participants, []);
 });
 
-test("администратор создаёт комплект через controller и настоящий импорт; повтор сохраняет назначенных РОП", async (t) => {
-  const admin = { ...actor, role: USER_ROLES.ADMIN };
-  const db = database(t, admin);
-  const controller = new RpdComplectsController(pool);
-  const request = { user: admin, body: { data: {
-    faculty: apiData.faculty, year: apiData.year, formEducation: apiData.educationForm,
-    levelEducation: apiData.educationLevel, profile: apiData.profile, directionOfStudy: apiData.direction,
-  } } } as Request;
-  let response: unknown;
-  const res = { json: (value: unknown) => { response = value; } } as Response;
-  await controller.createRpdComplect(request, res);
-  assert.equal(response, 1);
-  assert.equal(db.state.complects.length, 1);
-  assert.equal(db.state.profiles.length, 1);
-  db.state.owners.splice(0, db.state.owners.length, ...[20, 21, 22].map((user_id) => ({ user_id, complect_id: 1 })));
-  const before = structuredClone(db.state);
-  await controller.createRpdComplect(request, res);
-  assert.deepEqual(db.state, before);
+for (const [name, role] of [["РОП", USER_ROLES.ROP], ["администратор", USER_ROLES.ADMIN]] as const) {
+  test(`${name} создаёт комплект через controller и настоящий импорт; повтор сохраняет назначенных РОП`, async (t) => {
+    const creator = { ...actor, role };
+    const db = database(t, creator);
+    const controller = new RpdComplectsController(pool);
+    const request = { user: creator, body: { data: {
+      faculty: apiData.faculty, year: String(apiData.year), formEducation: apiData.educationForm,
+      levelEducation: apiData.educationLevel, profile: apiData.profile, directionOfStudy: apiData.direction,
+    } } } as Request;
+    let response: unknown;
+    const res = { json: (value: unknown) => { response = value; } } as Response;
+    await controller.createRpdComplect(request, res);
+    assert.equal(response, 1);
+    assert.equal(db.state.complects.length, 1);
+    assert.equal(db.state.profiles.length, 1);
+    assert.deepEqual(db.state.owners.map((row) => row.user_id), [creator.id]);
+    db.state.owners.splice(0, db.state.owners.length, ...[creator.id, 20, 21].map((user_id) => ({ user_id, complect_id: 1 })));
+    const before = structuredClone(db.state);
+    await controller.createRpdComplect(request, res);
+    assert.deepEqual(db.state, before);
+  });
+}
+
+test("изменение активности или роли во время 1С откатывает создание до импорта", async (t) => {
+  for (const change of ["deactivate", "demote"] as const) {
+    await t.test(change, async (t) => {
+      const db = database(t);
+      t.mock.method(axios, "post", async () => { db[change](); return { data: [raw] }; });
+      await assert.rejects(exchange1C(apiData, { actor }), { status: 403 });
+      assert.deepEqual(db.state, { complects: [], owners: [], exchange: [], profiles: [], statuses: [], participants: [], changes: [] });
+    });
+  }
 });
 
 test("ошибка инициализации откатывает весь комплект вместе с владельцем и обменом", async (t) => {

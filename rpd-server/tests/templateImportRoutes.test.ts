@@ -74,7 +74,7 @@ test("реальные маршруты: JWT, manager-only, ids[] preview чуж
   assert.equal((await request(app, "POST", "/api/template-import/complect", rop, { sourceComplectId: 1, targetComplectId: 2, targetRevision: (bulkCatalog.body as Record<string, unknown>).targetRevision })).status, 200);
 });
 
-test("create: реальные router/JWT отклоняют РОП, teacher и устаревшего admin до внешнего 1С и записи", async (t) => {
+test("create: реальные router/JWT проверяют текущие роли и полный ключ до внешнего 1С и записи", async (t) => {
   const oldSecret = process.env.ACCESS_TOKEN_SECRET;
   process.env.ACCESS_TOKEN_SECRET = secret;
   t.after(() => { if (oldSecret === undefined) delete process.env.ACCESS_TOKEN_SECRET; else process.env.ACCESS_TOKEN_SECRET = oldSecret; });
@@ -90,17 +90,30 @@ test("create: реальные router/JWT отклоняют РОП, teacher и 
   app.use(((error, _req, res, next) => { void next; res.status(error.status ?? 500).json({ error: error.error }); }) as ErrorRequestHandler);
   const before = structuredClone(db.state);
   const path = "/api/create_rpd_complect";
-  assert.equal((await request(app, "POST", path, undefined, { data: {} })).status, 401);
-  for (const actor of [rop, teacher]) {
-    assert.equal((await request(app, "POST", path, actor, { data: {} })).status, 403);
+  const body = { data: { faculty: "Синтетический институт", year: "2026", formEducation: "Очная",
+    levelEducation: "Бакалавриат", profile: "Синтетический профиль", directionOfStudy: "09.03.01" } };
+  assert.equal((await request(app, "POST", path, undefined, body)).status, 401);
+  assert.equal((await request(app, "POST", path, teacher, body)).status, 403);
+  for (const actor of [rop, admin]) {
+    const current = db.state.users.find((user) => user.id === actor.id)!;
+    for (const role of [teacher.role, actor.role === rop.role ? admin.role : rop.role]) {
+      current.role = role;
+      assert.equal((await request(app, "POST", path, actor, body)).status, 403);
+    }
+    current.role = actor.role;
+    current.is_active = false;
+    assert.equal((await request(app, "POST", path, actor, body)).status, 403);
+    current.is_active = true;
   }
-  const currentAdmin = db.state.users.find((user) => user.id === admin.id)!;
-  currentAdmin.role = teacher.role;
-  assert.equal((await request(app, "POST", path, admin, { data: {} })).status, 403);
-  currentAdmin.role = admin.role;
-  currentAdmin.is_active = false;
-  assert.equal((await request(app, "POST", path, admin, { data: {} })).status, 403);
-  currentAdmin.is_active = true;
+  // Полный ключ обязателен до внешнего запроса и транзакции, в том числе для ADMIN.
+  const invalid: unknown[] = [undefined, null, [], {}, "invalid"];
+  for (const key of ["faculty", "formEducation", "levelEducation", "profile", "directionOfStudy", "year"]) {
+    for (const value of [undefined, null, "", " "]) invalid.push({ ...body.data, [key]: value });
+  }
+  for (const year of [0, -1, 2026.5, "2026.5", "abc", "0x7ea", true, {}, 2147483648]) invalid.push({ ...body.data, year });
+  for (const data of invalid) {
+    assert.equal((await request(app, "POST", path, admin, { data })).status, 422);
+  }
   assert.equal(upstream.mock.callCount(), 0);
   assert.equal(writes, 0);
   assert.deepEqual(db.state, before);

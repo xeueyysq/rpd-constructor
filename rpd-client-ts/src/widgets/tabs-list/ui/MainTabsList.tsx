@@ -45,9 +45,7 @@ export const MainTabsList: FC = () => {
     <Box sx={{ overflow: "auto" }}>
       <List disablePadding>
         {mainTabs.map((value) => {
-          const isAdminOnly =
-            value.path === RedirectPath.USER_MANAGEMENT ||
-            value.path === RedirectPath.MANAGER;
+          const isAdminOnly = value.path === RedirectPath.USER_MANAGEMENT;
 
           if (isAdminOnly) {
             return (

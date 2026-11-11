@@ -6,7 +6,7 @@ import type { ComplectCriteria } from "../models/rpd_complects.ts";
 import { USER_ROLE } from "../../constants.ts";
 import TemplateAccess from "../services/TemplateAccess.ts";
 import { deleteComplects } from "../services/ComplectOwnership.ts";
-import { assertActiveAdmin } from "../services/AdminAccess.ts";
+import { Unprocessable } from "../utils/Errors.ts";
 
 class RpdComplectsController {
   model: RpdComplects;
@@ -24,8 +24,8 @@ class RpdComplectsController {
   }
 
   async createRpdComplect(req: Request<ParamsDictionary, unknown, Record<string, unknown>>, res: Response) {
-      await assertActiveAdmin(this.model.pool, TemplateAccess.actor(req.user));
       const { data } = req.body;
+      if (!data || typeof data !== "object" || Array.isArray(data)) throw new Unprocessable("Укажите данные комплекта");
       const record = await this.model.createRpdComplect({ data: data as ComplectCriteria, actor: TemplateAccess.actor(req.user) });
       res.json(record);
   }
