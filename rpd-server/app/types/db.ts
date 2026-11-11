@@ -1,7 +1,7 @@
 export interface UserRow {
   id: number;
-  name: string;
-  password: string;
+  name: string | null;
+  password: string | null;
   role: number;
   fullname: unknown | null;
   is_active: boolean;

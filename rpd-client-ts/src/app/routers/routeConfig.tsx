@@ -16,7 +16,6 @@ const TeacherInterfaceTemplates = lazy(
 
 export const mainPages = [
   RedirectPath.COMPLECTS,
-  RedirectPath.MANAGER,
   RedirectPath.PLANNED_RESULTS,
   RedirectPath.COMPLECT,
   RedirectPath.TEMPLATE,
@@ -30,7 +29,11 @@ export const roleToAvailablePath: Record<UserRole, RedirectPath[]> = {
     RedirectPath.TEMPLATE,
     RedirectPath.TEMPLATE_SUBPAGE,
   ],
-  [UserRole.ADMIN]: [...mainPages, RedirectPath.USER_MANAGEMENT],
+  [UserRole.ADMIN]: [
+    ...mainPages,
+    RedirectPath.MANAGER,
+    RedirectPath.USER_MANAGEMENT,
+  ],
   [UserRole.ANONYMOUS]: [RedirectPath.SIGN_IN],
 };
 

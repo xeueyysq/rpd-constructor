@@ -7,6 +7,7 @@ import { mapApiDataFor1c, hashPayload, loadReferenceTree } from "./specProfilesM
 import { merge1cIntoReferenceTree } from "./specProfilesTransformer.ts";
 import type { UserClaims } from "../types/express.d.ts";
 import TemplateAccess from "../services/TemplateAccess.ts";
+import { importTeacherCards } from "./teacherImport.ts";
 
 const apiUrl = "https://1c-api.uni-dubna.ru/v1/api/persons/reports";
 const CACHE_ROW_ID = 1;
@@ -55,6 +56,7 @@ async function exchange1C(apiData: ApiData, { actor, database = pool }: { actor?
     if (actor) {
       await insertUserComplectId(client, actor, RpdComplectId);
     }
+    await importTeacherCards(client, disciplines.flatMap((disc) => normalizeDisciplineFrom1c(disc).teachers));
     await processDisciplines(client, disciplines, RpdComplectId);
     await client.query("COMMIT");
     return RpdComplectId;

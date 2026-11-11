@@ -68,10 +68,11 @@ test('админ получает безопасный список и ошиб�
     expect(user).not.toHaveProperty('password');
     expect(user).toEqual(expect.objectContaining({
       id: expect.any(Number),
-      name: expect.any(String),
       role: expect.any(Number),
       is_active: expect.any(Boolean),
+      has_credentials: expect.any(Boolean),
     }));
+    expect(user.name).toEqual(user.has_credentials ? expect.any(String) : null);
   }
 });
 

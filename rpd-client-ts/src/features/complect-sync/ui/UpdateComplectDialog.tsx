@@ -19,6 +19,7 @@ import type {
   SyncApplySelection,
   SyncDiff,
   SyncPreviewResponse,
+  TeacherImportResult,
 } from "../model/types";
 import { useSyncPreviewMutation } from "../model/useSyncPreview";
 import { useSyncApplyMutation } from "../model/useSyncApply";
@@ -126,6 +127,9 @@ export function UpdateComplectDialog({
   >({});
   const [rowSelection, setRowSelection] = useState<Record<string, boolean>>({});
   const [openApplyConfirm, setOpenApplyConfirm] = useState(false);
+  const [importResult, setImportResult] = useState<TeacherImportResult | null>(
+    null
+  );
 
   const resetState = useCallback(() => {
     setLoadedPreview(null);
@@ -133,6 +137,7 @@ export function UpdateComplectDialog({
     setFieldSelection({});
     setRowSelection({});
     setOpenApplyConfirm(false);
+    setImportResult(null);
   }, []);
 
   // Инвалидируем открытие до отрисовки новой цели, включая закрытие извне.
@@ -170,6 +175,7 @@ export function UpdateComplectDialog({
       const data = await previewMutation.mutateAsync(current.complectUuid);
       if (openingRef.current !== current) return;
       setLoadedPreview({ opening: current, data });
+      setImportResult(null);
       setFieldSelection(buildDefaultFieldSelection(data.diff));
       setRowSelection(buildDefaultRowSelection(data.diff));
     } catch (error) {
@@ -186,10 +192,13 @@ export function UpdateComplectDialog({
       preview ? buildSelections(preview, rowSelection, fieldSelection) : [],
     [preview, rowSelection, fieldSelection]
   );
+  const canApply =
+    !importResult &&
+    (selections.length > 0 || Boolean(preview?.teacherImportManifest));
 
   const handleApplyClick = () => {
     if (!preview || openingRef.current !== loadedPreview?.opening) return;
-    if (!selections.length) {
+    if (!canApply) {
       showErrorMessage("Выберите хотя бы одно изменение");
       return;
     }
@@ -198,12 +207,7 @@ export function UpdateComplectDialog({
 
   const handleApply = async () => {
     const current = openingRef.current;
-    if (
-      !current ||
-      current !== loadedPreview?.opening ||
-      !preview ||
-      !selections.length
-    )
+    if (!current || current !== loadedPreview?.opening || !preview || !canApply)
       return;
     setOpenApplyConfirm(false);
     setLoadingOpening(current);
@@ -211,6 +215,7 @@ export function UpdateComplectDialog({
       const result = await applyMutation.mutateAsync({
         complectId: current.complectUuid,
         selections,
+        teacherImportManifest: preview.teacherImportManifest,
       });
       // Завершённый запрос обновляет свою цель даже после закрытия диалога.
       const targetIds = new Set([
@@ -226,11 +231,19 @@ export function UpdateComplectDialog({
             targetIds.has(String(query.queryKey[1])),
         }),
         queryClient.invalidateQueries({ queryKey: ["exchange-changes"] }),
+        queryClient.invalidateQueries({ queryKey: ["users"] }),
+        queryClient.invalidateQueries({ queryKey: ["assignable-teachers"] }),
       ]);
       if (openingRef.current !== current) return;
-      showSuccessMessage("Изменения применены");
+      showSuccessMessage(
+        result.teacherImport
+          ? `Изменения применены. Добавлено преподавателей: ${result.teacherImport.created}`
+          : "Изменения применены"
+      );
       onApplied?.();
-      handleClose();
+      if (result.teacherImport?.unresolved.length)
+        setImportResult(result.teacherImport);
+      else handleClose();
     } catch (error) {
       if (openingRef.current !== current) return;
       console.error(error);
@@ -267,6 +280,26 @@ export function UpdateComplectDialog({
         {preview ? (
           <>
             <Divider sx={{ my: 2 }} />
+            <Alert severity="info" sx={{ mb: 2 }}>
+              При применении преподаватели из полной нагрузки будут добавлены в
+              список пользователей. Вход новым преподавателям настроит
+              администратор.
+            </Alert>
+            {importResult?.unresolved.map((item) => (
+              <Alert
+                severity="warning"
+                key={`${item.reason}:${item.name}`}
+                sx={{ mb: 1 }}
+              >
+                {item.name}:{" "}
+                {item.reason === "ambiguous"
+                  ? "найдено несколько пользователей, сопоставление требует проверки"
+                  : item.reason === "unavailable"
+                    ? "существующего пользователя нельзя назначить: проверьте активность и роль"
+                    : "недостаточно данных для создания карточки"}
+                .
+              </Alert>
+            ))}
             <SyncDiffTable
               diff={preview.diff}
               fieldSelection={fieldSelection}
@@ -288,7 +321,7 @@ export function UpdateComplectDialog({
         <Button
           variant="contained"
           onClick={handleApplyClick}
-          disabled={!preview || !selections.length || isLoading}
+          disabled={!preview || !canApply || isLoading}
         >
           Применить выбранное
         </Button>
@@ -296,7 +329,7 @@ export function UpdateComplectDialog({
       <ConfirmActionDialog
         open={openApplyConfirm}
         title="Подтвердите обновление"
-        description={`Выбранные изменения (${selections.length}) будут применены к комплекту. Часть текущих данных может быть перезаписана. Продолжить?`}
+        description={`Выбранные изменения (${selections.length}) будут применены к комплекту; отсутствующие преподаватели нагрузки появятся в пользователях. Продолжить?`}
         confirmText="Применить"
         confirmColor="warning"
         onConfirm={handleApply}

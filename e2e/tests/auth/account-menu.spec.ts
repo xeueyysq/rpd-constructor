@@ -5,6 +5,10 @@ const ropLabel = 'Руководитель образовательной про
 
 test('меню РОП: роли, затем «Настройки» и «Выйти»; переключение ролей', async ({ page }) => {
   await signIn(page, 'rop');
+  await expect(page.getByRole('button', { name: 'Создание комплекта', exact: true })).toHaveCount(0);
+  await page.goto('/manager');
+  await expect(page).toHaveURL(/\/complects$/);
+  await expect(page.getByText('Создание комплекта РПД на основе учебного плана', { exact: true })).toHaveCount(0);
   // Единственный интерактивный элемент с этим именем — без вложенной кнопки.
   const trigger = page.getByRole('button', { name: 'Открыть меню аккаунта' });
   await expect(trigger).toHaveCount(1);
@@ -27,6 +31,9 @@ test('меню РОП: роли, затем «Настройки» и «Выйт
   await menu.getByRole('menuitem', { name: 'Преподаватель', exact: true }).click();
   await expect(page).toHaveURL(/\/templates$/);
   await expect(menu).toBeHidden();
+  await expect(page.getByRole('button', { name: 'Создание комплекта', exact: true })).toHaveCount(0);
+  await page.goto('/manager');
+  await expect(page).toHaveURL(/\/templates$/);
 
   await trigger.click();
   await menu.getByRole('menuitem', { name: ropLabel }).click();
@@ -36,6 +43,9 @@ test('меню РОП: роли, затем «Настройки» и «Выйт
 
 test('меню администратора без переключателя: «Настройки», «Выйти», без разделителя', async ({ page }) => {
   await signIn(page, 'admin');
+  await page.getByRole('button', { name: 'Создание комплекта', exact: true }).click();
+  await expect(page).toHaveURL(/\/manager$/);
+  await expect(page.getByText('Создание комплекта РПД на основе учебного плана', { exact: true })).toBeVisible();
   await page.getByRole('button', { name: 'Открыть меню аккаунта' }).click();
   const menu = page.getByRole('menu');
   await expect(menu.getByRole('menuitem')).toHaveText(['Настройки', 'Выйти']);

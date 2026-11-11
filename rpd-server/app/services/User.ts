@@ -1,7 +1,7 @@
 import bcrypt from "bcryptjs";
 import UserRepository, { type Fullname } from "../repositories/User.ts";
 import RefreshSessionRepository from "../repositories/RefreshSession.ts";
-import { Conflict, NotFound } from "../utils/Errors.ts";
+import { Conflict, NotFound, Unprocessable } from "../utils/Errors.ts";
 import { pool } from "../../config/db.ts";
 import TemplateWorkflow from "./TemplateWorkflow.ts";
 import { USER_ROLES } from "../models/constants.ts";
@@ -23,6 +23,10 @@ function normalize({ name, role, fullname }: UserInput) {
 }
 
 function rethrowDuplicate(error: unknown): never {
+  if (error && typeof error === "object" && "code" in error && error.code === "23514"
+    && "constraint" in error && error.constraint === "users_credentials_pair") {
+    throw new Unprocessable("Для настройки входа укажите логин и пароль вместе");
+  }
   if (error && typeof error === "object" && "code" in error && error.code === "23505") {
     throw new Conflict("Пользователь с таким логином уже существует");
   }

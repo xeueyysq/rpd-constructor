@@ -1,4 +1,4 @@
-import { useAuth } from "@entities/auth";
+import { getAuthReturnPolicy, useAuth } from "@entities/auth";
 import { UserRole } from "@shared/ability";
 import { Navigate, useLocation } from "react-router-dom";
 import { RedirectPath } from "@shared/enums";
@@ -19,9 +19,17 @@ export function RoleBasedRedirect() {
 export function ProtectedRoute({ path }: IProtectedRoute) {
   const userRole = useAuth((state) => state.userRole);
   const location = useLocation();
+  const returnPolicy = getAuthReturnPolicy();
 
   if (userRole !== UserRole.ANONYMOUS && path === RedirectPath.SIGN_IN) {
-    const from = (location.state as { from?: unknown } | null)?.from;
+    const state = location.state as {
+      from?: unknown;
+      returnPathVersion?: number;
+    } | null;
+    const from =
+      (state?.returnPathVersion ?? 0) === returnPolicy.version
+        ? state?.from
+        : undefined;
     const redirectPath = resolveReturnPath(
       from,
       roleToAvailablePath[userRole],
@@ -34,7 +42,14 @@ export function ProtectedRoute({ path }: IProtectedRoute) {
     return (
       <Navigate
         to={RedirectPath.SIGN_IN}
-        state={{ from: location.pathname + location.search + location.hash }}
+        state={
+          returnPolicy.remember
+            ? {
+                from: location.pathname + location.search + location.hash,
+                returnPathVersion: returnPolicy.version,
+              }
+            : null
+        }
         replace
       />
     );

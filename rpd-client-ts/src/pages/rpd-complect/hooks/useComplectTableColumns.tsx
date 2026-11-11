@@ -9,6 +9,8 @@ import { useMemo } from "react";
 import TemplateMenu from "../ui/TemplateMenu";
 import type { ComplectMeta, TemplateData } from "../types";
 
+const disciplineCollator = new Intl.Collator("ru");
+
 type Params = {
   complect: ComplectMeta | undefined;
   onFetchData: () => Promise<void>;
@@ -25,11 +27,21 @@ export function useComplectTableColumns({
   const actionsColumn = useActionsColumn<TemplateData>();
   return useMemo(
     () => [
-      { accessorKey: "discipline", header: "Дисциплина", filterFn: "contains" },
+      {
+        accessorKey: "discipline",
+        header: "Дисциплина",
+        filterFn: "contains",
+        sortingFn: (a, b) =>
+          disciplineCollator.compare(
+            a.original.discipline,
+            b.original.discipline
+          ) || a.original.id - b.original.id,
+      },
       { accessorKey: "semester", header: "Семестр", size: 100, grow: false },
       {
         id: "participants",
         header: "Преподаватели",
+        enableSorting: false,
         filterFn: "contains",
         minSize: 240,
         size: 280,

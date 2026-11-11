@@ -1,25 +1,44 @@
-import { FC, ReactNode } from "react";
+import { FC, Fragment, ReactNode, useSyncExternalStore } from "react";
 import { ThemeProvider, createTheme } from "@mui/material/styles";
 import CaslProvider from "./CaslProvider";
 import AuthProvider from "./AuthProvider";
 import { SnackbarProvider } from "notistack";
 import { themeOptions } from "../../shared/config";
 import { CssBaseline } from "@mui/material";
-import { QueryClientProvider, QueryClient } from "@tanstack/react-query";
+import { QueryClientProvider } from "@tanstack/react-query";
+import {
+  getSessionGeneration,
+  subscribeToSessionGeneration,
+} from "@shared/api";
+import { useAuth } from "@entities/auth";
+import { UserRole } from "@shared/ability";
+import { getSessionQueryClient } from "./sessionState";
 
 const theme = createTheme(themeOptions);
-const queryClient = new QueryClient();
 
 type Props = {
   children: ReactNode;
 };
 
+function SessionContent({ children }: Props) {
+  const generation = useSyncExternalStore(
+    subscribeToSessionGeneration,
+    getSessionGeneration
+  );
+  const loggedIn = useAuth((state) => state.userRole !== UserRole.ANONYMOUS);
+  return (
+    <QueryClientProvider client={getSessionQueryClient()}>
+      <Fragment key={loggedIn ? generation : "anonymous"}>{children}</Fragment>
+    </QueryClientProvider>
+  );
+}
+
 export const AppProviders: FC<Props> = ({ children }) => {
   return (
-    <QueryClientProvider client={queryClient}>
-      <ThemeProvider theme={theme}>
-        <CssBaseline />
-        <AuthProvider>
+    <ThemeProvider theme={theme}>
+      <CssBaseline />
+      <AuthProvider>
+        <SessionContent>
           <CaslProvider>
             <SnackbarProvider
               maxSnack={3}
@@ -31,8 +50,8 @@ export const AppProviders: FC<Props> = ({ children }) => {
               {children}
             </SnackbarProvider>
           </CaslProvider>
-        </AuthProvider>
-      </ThemeProvider>
-    </QueryClientProvider>
+        </SessionContent>
+      </AuthProvider>
+    </ThemeProvider>
   );
 };

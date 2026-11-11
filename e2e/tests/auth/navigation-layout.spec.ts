@@ -41,7 +41,7 @@ test('главная панель admin: между иконкой и текст
 
 test('главная панель rop: между иконкой и текстом есть зазор', async ({ page }) => {
   await signIn(page, 'rop');
-  await expectMainPanelGaps(page, 5);
+  await expectMainPanelGaps(page, 4);
 });
 
 test('главная панель teacher: между иконкой и текстом есть зазор', async ({ page }) => {

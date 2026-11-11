@@ -50,6 +50,7 @@ export type SyncDiff = {
 };
 
 export type SyncPreviewResponse = {
+  teacherImportManifest?: string;
   complect: {
     id: number;
     uuid?: string;
@@ -57,6 +58,14 @@ export type SyncPreviewResponse = {
     has_pending_changes?: boolean;
   };
   diff: SyncDiff;
+};
+
+export type TeacherImportResult = {
+  created: number;
+  unresolved: {
+    name: string;
+    reason: "incomplete" | "ambiguous" | "unavailable";
+  }[];
 };
 
 export type SyncApplySelection = {

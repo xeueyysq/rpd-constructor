@@ -67,7 +67,12 @@ export function UserManagementPage() {
 
   const columns = useMemo<MRT_ColumnDef<User>[]>(
     () => [
-      { accessorKey: "name", header: "Логин" },
+      {
+        id: "name",
+        header: "Логин",
+        accessorFn: (row) =>
+          row.has_credentials ? row.name : "Вход не настроен",
+      },
       {
         id: "fullname",
         header: "ФИО",

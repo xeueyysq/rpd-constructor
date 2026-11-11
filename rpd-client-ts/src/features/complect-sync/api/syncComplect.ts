@@ -1,5 +1,9 @@
 import { axiosBase } from "@shared/api";
-import type { SyncApplySelection, SyncPreviewResponse } from "../model/types";
+import type {
+  SyncApplySelection,
+  SyncPreviewResponse,
+  TeacherImportResult,
+} from "../model/types";
 import type { TemplateFieldChange } from "@shared/types/templateFieldChange";
 
 export const fetchSyncPreview = async (complectId: string) => {
@@ -13,10 +17,12 @@ export const fetchSyncPreview = async (complectId: string) => {
 export const applySyncChanges = async (payload: {
   complectId: string;
   selections: SyncApplySelection[];
+  teacherImportManifest?: string;
 }) => {
   const { data } = await axiosBase.post<{
     complectId: number;
     syncLogId: number | null;
+    teacherImport?: TeacherImportResult;
   }>("complects/sync/apply", payload);
   return data;
 };

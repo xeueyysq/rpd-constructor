@@ -1,6 +1,7 @@
 import { saveStudyPlan } from "../api/studyPlan";
 import { useTemplateSync, type FieldEdits } from "@entities/template";
 import { useStore } from "@shared/hooks";
+import { getSessionGeneration, SessionChangedError } from "@shared/api";
 import { showErrorMessage } from "@shared/lib";
 import { useCallback, useEffect, useState } from "react";
 import type { StudyPlanHours } from "./DisciplineContentPageTypes";
@@ -70,6 +71,7 @@ export function useScopeDisciplineForm() {
         return;
       }
       if (!templateId) return;
+      const generation = getSessionGeneration();
       try {
         const updated = await useTemplateSync
           .getState()
@@ -79,7 +81,10 @@ export function useScopeDisciplineForm() {
               field === "zet" ? { zet: value } : { hours: { all: value } }
             )
           );
-        if (useStore.getState().jsonData.id === templateId) {
+        if (
+          generation === getSessionGeneration() &&
+          useStore.getState().jsonData.id === templateId
+        ) {
           updateJsonData("study_load", updated.study_load);
           updateJsonData("zet", updated.zet);
           updateJsonData("study_plan_hours", updated.study_plan_hours);
@@ -91,6 +96,11 @@ export function useScopeDisciplineForm() {
           useTemplateSync.getState().clearDirty(field);
         }
       } catch (error) {
+        if (
+          generation !== getSessionGeneration() ||
+          error instanceof SessionChangedError
+        )
+          return;
         showErrorMessage("Ошибка сохранения данных");
         console.error(error);
       }

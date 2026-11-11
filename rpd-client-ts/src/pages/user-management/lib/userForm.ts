@@ -41,7 +41,10 @@ export function buildUserPayload(
   };
 }
 
-export function getUserFormSchema(isEditing: boolean) {
+export function getUserFormSchema(
+  isEditing: boolean,
+  needsCredentials = false
+) {
   return yup.object({
     name: yup
       .string()
@@ -55,19 +58,21 @@ export function getUserFormSchema(isEditing: boolean) {
       .mixed<AssignableRole>()
       .oneOf([UserRole.TEACHER, UserRole.ROP])
       .required("Роль обязательна"),
-    password: isEditing
-      ? yup
-          .string()
-          .defined()
-          .test(
-            "optional-password",
-            "От 3 до 50 символов",
-            (value) => value === "" || (value.length >= 3 && value.length <= 50)
-          )
-      : yup
-          .string()
-          .required("Пароль обязателен")
-          .min(3, "Не менее 3 символов")
-          .max(50, "Не более 50 символов"),
+    password:
+      isEditing && !needsCredentials
+        ? yup
+            .string()
+            .defined()
+            .test(
+              "optional-password",
+              "От 3 до 50 символов",
+              (value) =>
+                value === "" || (value.length >= 3 && value.length <= 50)
+            )
+        : yup
+            .string()
+            .required("Пароль обязателен")
+            .min(3, "Не менее 3 символов")
+            .max(50, "Не более 50 символов"),
   });
 }

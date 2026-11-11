@@ -10,6 +10,7 @@ import {
 const user: User = {
   id: 2,
   name: "teacher",
+  has_credentials: true,
   role: UserRole.TEACHER,
   fullname: null,
   is_active: true,
@@ -85,5 +86,24 @@ describe("форма пользователя", () => {
     await expect(
       getUserFormSchema(true).validate({ ...values, password: "  " })
     ).rejects.toThrow("От 3 до 50 символов");
+  });
+
+  it("требует пароль при настройке входа карточки и сохраняет пустое отчество", async () => {
+    const values = {
+      ...getUserFormDefaults({ ...user, name: null, has_credentials: false }),
+      name: "real-login",
+      surname: "Тестов",
+      givenName: "Семён",
+      patronymic: "",
+    };
+    await expect(
+      getUserFormSchema(true, true).validate(values)
+    ).rejects.toThrow("Пароль обязателен");
+    await expect(
+      getUserFormSchema(true, true).validate({
+        ...values,
+        password: "new-pass",
+      })
+    ).resolves.toMatchObject({ patronymic: "" });
   });
 });

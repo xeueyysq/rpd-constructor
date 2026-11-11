@@ -17,6 +17,7 @@ export {
   refreshSession,
   SessionChangedError,
   subscribeToSession,
+  subscribeToSessionGeneration,
 } from "./lib/session";
 export type { AuthSession } from "./lib/session";
 
@@ -25,29 +26,48 @@ type SessionRequest = InternalAxiosRequestConfig & {
   _sessionGeneration?: number;
 };
 
-axiosBase.interceptors.request.use((config: SessionRequest) => {
-  const generation = getSessionGeneration();
-  if (
-    config._sessionGeneration !== undefined &&
-    config._sessionGeneration !== generation
-  ) {
-    throw new SessionChangedError();
-  }
-  config._sessionGeneration = generation;
-  const token = getAccessToken();
-  if (token) {
-    config.headers.set("Authorization", `Bearer ${token}`);
-  } else {
-    config.headers.delete("Authorization");
-  }
-  return config;
-});
+axiosBase.interceptors.request.use(
+  (config: SessionRequest) => {
+    const generation = getSessionGeneration();
+    if (
+      config._sessionGeneration !== undefined &&
+      config._sessionGeneration !== generation
+    ) {
+      throw new SessionChangedError();
+    }
+    config._sessionGeneration = generation;
+    const token = getAccessToken();
+    if (token) {
+      config.headers.set("Authorization", `Bearer ${token}`);
+    } else {
+      config.headers.delete("Authorization");
+    }
+    return config;
+  },
+  (error: unknown) => {
+    throw error;
+  },
+  { synchronous: true }
+);
 
 axiosBase.interceptors.response.use(
-  (response) => response,
+  (response) => {
+    if (
+      (response.config as SessionRequest)._sessionGeneration !==
+      getSessionGeneration()
+    )
+      throw new SessionChangedError();
+    return response;
+  },
   async (error: unknown) => {
     if (!axios.isAxiosError(error)) throw error;
     const originalRequest = error.config as SessionRequest | undefined;
+    if (
+      originalRequest &&
+      originalRequest._sessionGeneration !== getSessionGeneration()
+    ) {
+      throw new SessionChangedError();
+    }
     if (
       error.response?.status !== 401 ||
       !originalRequest ||
@@ -55,10 +75,6 @@ axiosBase.interceptors.response.use(
     ) {
       throw error;
     }
-    if (originalRequest._sessionGeneration !== getSessionGeneration()) {
-      throw new SessionChangedError();
-    }
-
     originalRequest._retry = true;
     const token = getAccessToken();
     // Ответ на старый токен мог прийти после уже завершившегося refresh.

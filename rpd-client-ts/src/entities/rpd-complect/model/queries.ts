@@ -2,10 +2,11 @@ import { useQuery, useQueryClient, useMutation } from "@tanstack/react-query";
 import {
   getRpdComplects,
   deleteRpdComplects,
-  assignComplectOwner,
+  assignComplectOwners,
 } from "../api/rpdComplects";
 import { ComplectData } from "@shared/types";
 import { showErrorMessage } from "@shared/lib";
+import { isAxiosError } from "axios";
 
 const rpdComplectsQueryKey = ["rpd-complects"] as const;
 
@@ -35,11 +36,18 @@ export const useDeleteRpdComplectsMutation = () => {
   });
 };
 
-export const useAssignComplectOwner = () => {
+export const useAssignComplectOwners = () => {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: assignComplectOwner,
+    mutationFn: assignComplectOwners,
     onSuccess: () =>
       queryClient.invalidateQueries({ queryKey: rpdComplectsQueryKey }),
+    onError: (error) => {
+      if (isAxiosError(error) && error.response?.status === 409) {
+        return queryClient.invalidateQueries({
+          queryKey: rpdComplectsQueryKey,
+        });
+      }
+    },
   });
 };

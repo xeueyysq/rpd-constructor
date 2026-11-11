@@ -117,7 +117,7 @@ test('sync add → remove → reload → restore сохраняет РПД, со
   const headers = await headersFor(request, syncFixtures.owner);
   const incoming = {
     discipline: 'Сохранение РПД при синхронизации', department: 'Кафедра sync',
-    semester: 1, record_type: 'discipline', teachers: [], zet: 3, place: 'Базовая часть',
+    semester: 1, record_type: 'discipline', teachers: ['Старов Синтетик Проверкович'], zet: 3, place: 'Базовая часть',
     study_load: { 'Всего': 108, 'Лекции': 8 }, control_load: {},
   };
   expect(await rowsFor(request, headers, target.id)).toEqual([]);
@@ -183,7 +183,8 @@ test('sync add → remove → reload → restore сохраняет РПД, со
   await changes.getByRole('button', { name: 'Закрыть', exact: true }).click();
 
   const restored = await request.post(`${apiUrl}/api/complects/sync/apply`, {
-    headers, data: { complectId: target.uuid, selections: [{ action: 'add', incoming }] },
+    headers, data: { complectId: target.uuid, selections: [{ action: 'add',
+      incoming: { ...incoming, teachers: ['Новов Синтетик Проверкович'] }, fields: ['zet'] }] },
   });
   expect(restored.status()).toBe(200);
   const restoreLogId = (await restored.json()).syncLogId as number;
@@ -202,6 +203,25 @@ test('sync add → remove → reload → restore сохраняет РПД, со
   expect(afterRestore.syncLog).toEqual([addLogId, removeLogId, restoreLogId].map((id) =>
     expect.objectContaining({ id, complect_id: target.id, user_id: 32, source: '1c' })));
   expect(await profileFor(request, headers, templateId)).toEqual(profileBefore);
+  // При выбранном teachers восстановление заменяет источник, в том числе на [].
+  // РПД и отдельно назначенные участники не меняются ни в одном варианте.
+  for (const teachers of [['Новов Синтетик Проверкович'], []]) {
+    const removeAgain = await request.post(`${apiUrl}/api/complects/sync/apply`, { headers, data: {
+      complectId: target.uuid, selections: [{ action: 'remove', id_1c: created!.id }],
+    } });
+    expect(removeAgain.status()).toBe(200);
+    const restoreSelected = await request.post(`${apiUrl}/api/complects/sync/apply`, { headers, data: {
+      complectId: target.uuid, selections: [{ action: 'add', incoming: { ...incoming, teachers }, fields: ['teachers'] }],
+    } });
+    expect(restoreSelected.status()).toBe(200);
+    const selectedState = syncStateFromDb([target.id]);
+    expect(selectedState.exchange[0]).toMatchObject({ teachers, removed_at: null });
+    expect(selectedState.templates).toEqual(before.templates);
+    expect(selectedState.statuses).toEqual(before.statuses);
+    expect(selectedState.participants).toEqual(before.participants);
+    expect(selectedState.fieldChanges.slice(0, afterRestore.fieldChanges.length)).toEqual(afterRestore.fieldChanges);
+    expect(await profileFor(request, headers, templateId)).toEqual(profileBefore);
+  }
   await page.goto(`/templates/${publicId}/aimsPage`);
   await expect(page.getByText('Авторские цели sync', { exact: true })).toBeVisible();
   await page.reload();

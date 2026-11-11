@@ -96,8 +96,10 @@ describe("единый refresh сессии", () => {
     const pending = Array.from({ length: 4 }, (_, i) =>
       axiosBase.get(`/protected/${i}`)
     );
-    await vi.waitFor(() => expect(requests).toHaveBeenCalledTimes(4));
-    expect(refresh).toHaveBeenCalledTimes(1);
+    await vi.waitFor(() => {
+      expect(requests).toHaveBeenCalledTimes(4);
+      expect(refresh).toHaveBeenCalledTimes(1);
+    });
     gate.resolve(session);
     const results = await Promise.all(pending);
     expect(results.map(({ data }) => data)).toEqual(
@@ -314,4 +316,27 @@ describe("единый refresh сессии", () => {
     await rejected;
     expect(getAccessToken()).toBe("another-user");
   });
+
+  it.each([200, 409])(
+    "поздний ответ %s прежней сессии не попадает потребителю новой",
+    async (status) => {
+      const gate = deferred<void>();
+      const started = deferred<void>();
+      axiosBase.defaults.adapter = async (config) => {
+        started.resolve();
+        await gate.promise;
+        if (status !== 200) throw failure(config, status);
+        return response(config, { owner: "A" });
+      };
+      const pending = axiosBase.get("/protected");
+      const result = Promise.allSettled([pending]);
+      await started.promise;
+      applySession({ ...session, accessToken: "user-B" }, beginSession());
+      gate.resolve();
+      expect(await result).toEqual([
+        { status: "rejected", reason: expect.any(SessionChangedError) },
+      ]);
+      expect(getAccessToken()).toBe("user-B");
+    }
+  );
 });

@@ -7,8 +7,10 @@ export const complectTableOptions: Partial<MRT_TableOptions<TemplateData>> = {
   enableRowSelection: false,
   globalFilterFn: "contains",
   enableColumnResizing: true,
+  autoResetPageIndex: false,
   layoutMode: "grid",
   initialState: {
+    sorting: [{ id: "discipline", desc: false }],
     pagination: {
       pageIndex: 0,
       pageSize: 20,
