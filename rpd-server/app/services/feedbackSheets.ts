@@ -59,7 +59,7 @@ export function sheetRow(payload: OutboxPayload, publicBaseUrl: string): string[
       .join(" · ").toLocaleLowerCase("ru-RU").replace(/[.\s]+$/g, "");
   const high = payload.type === "manual" ? payload.blocking
     : /(?:save|create|sync|import|participant|generate|document|pdf|docx|complect|template|assessment-funds)/i.test(`${payload.operation} ${context.route ?? ""}`)
-      && (payload.status === undefined || payload.status === null || payload.status >= 500);
+      && (payload.status === undefined || payload.status === null || payload.status === 413 || payload.status >= 500);
   const curricular = [context.complectId ? `№ ${context.complectId}` : "", safeLabel(context.discipline),
     safeLabel(context.faculty), safeLabel(context.direction), safeLabel(context.profile),
     safeLabel(context.form), safeLabel(context.year)].filter(Boolean).join(" / ").slice(0, 400);

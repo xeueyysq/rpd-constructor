@@ -30,6 +30,10 @@ test("диагностическая группа передаёт повтор�
     lastSeen: manual.createdAt, operation: "http.post", errorCode: "TypeError", status: 500,
     count: 1, context: { route: "/api/complects/7" } }, base);
   assert.equal(serverRow[4], "Высокий");
+  const rejectedSync = sheetRow({ type: "diagnostic", id: manual.id, code: "RPD-45", createdAt: manual.createdAt,
+    lastSeen: manual.createdAt, operation: "complect.sync", errorCode: "HTTP_413", status: 413,
+    count: 1, context: { route: "/api/complects/sync/apply" } }, base);
+  assert.equal(rejectedSync[4], "Высокий");
 });
 
 test("поиск кода учитывает текущую сортировку и останавливается на дубликате", () => {

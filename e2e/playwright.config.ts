@@ -6,7 +6,7 @@ const e2eEnv = parseEnv(readFileSync(new URL('./e2e.env', import.meta.url), 'utf
 
 const apiUrl = e2eEnv.API_URL!;
 const clientUrl = e2eEnv.CLIENT_URL!;
-const serverEnv = { ...process.env, ...e2eEnv };
+const serverEnv = { ...process.env, ...e2eEnv, FEEDBACK_ENABLED: 'true', FEEDBACK_GOOGLE_ENABLED: 'false' };
 
 export default defineConfig({
   testDir: './tests',

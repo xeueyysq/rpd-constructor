@@ -39,13 +39,13 @@ async function tick(): Promise<void> {
         const payload = await outbox.payload(item.id);
         if (!payload) continue; // Новое событие уже вернуло группу в pending.
         await sheets.sync(payload);
-        await outbox.delivered(item.id, null);
+        await outbox.delivered(item.id, item.attempts, null);
       } catch (error) {
         const code = error instanceof DeliveryError ? error.code : "DELIVERY_ERROR";
         const providerCooldown = error instanceof DeliveryError && error.providerCooldown;
         const retryAt = new Date(Date.now() + (providerCooldown
           ? Math.max(300_000, deliveryRetryDelay(item.attempts)) : deliveryRetryDelay(item.attempts)));
-        await outbox.failed(item.id, code, retryAt);
+        await outbox.failed(item.id, item.attempts, code, retryAt);
         if (providerCooldown) {
           await outbox.cooldown(code, retryAt);
           break;

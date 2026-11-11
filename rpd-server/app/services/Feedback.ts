@@ -211,15 +211,17 @@ export class FeedbackOutbox {
     return null;
   }
 
-  async delivered(id: string, providerRowId: string | null): Promise<void> {
+  async delivered(id: string, attempts: number, providerRowId: string | null): Promise<void> {
     await this.database.query(`UPDATE feedback_outbox SET state='delivered',lease_until=NULL,delivered_at=now(),
-      provider_row_id=$2,last_error=NULL,updated_at=now() WHERE id=$1 AND state='leased'`, [id, providerRowId]);
+      provider_row_id=$3,last_error=NULL,updated_at=now() WHERE id=$1 AND state='leased' AND attempts=$2`,
+    [id, attempts, providerRowId]);
   }
 
-  async failed(id: string, safeError: string, retryAt: Date): Promise<void> {
+  async failed(id: string, attempts: number, safeError: string, retryAt: Date): Promise<void> {
     const errorCode = /^[A-Z][A-Z0-9_:-]{0,79}$/.test(safeError) ? safeError : "DELIVERY_ERROR";
-    await this.database.query(`UPDATE feedback_outbox SET state='pending',lease_until=NULL,last_error=$2,
-      next_attempt_at=$3,updated_at=now() WHERE id=$1 AND state='leased'`, [id, errorCode, retryAt]);
+    await this.database.query(`UPDATE feedback_outbox SET state='pending',lease_until=NULL,last_error=$3,
+      next_attempt_at=$4,updated_at=now() WHERE id=$1 AND state='leased' AND attempts=$2`,
+    [id, attempts, errorCode, retryAt]);
   }
 
   async cooldown(safeError: string, until: Date): Promise<void> {
