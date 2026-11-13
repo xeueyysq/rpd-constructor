@@ -93,6 +93,8 @@ export function useComplectTableColumns({
         Cell: ({ row }) => (
           <TemplateMenu
             id={row.original.id_profile_template}
+            status={row.original.status}
+            removedAt={row.original.removed_at}
             publicId={row.original.profile_template_public_id}
             allowedActions={row.original.allowedActions}
             fetchData={onFetchData}

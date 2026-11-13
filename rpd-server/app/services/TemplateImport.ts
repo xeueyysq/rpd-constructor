@@ -137,25 +137,25 @@ export default class TemplateImport {
   }
 
   async catalog(actor: UserClaims, query: Record<string, unknown>) {
-    const { complectId, targetRevision, targetName } = await this.sourceContext(actor, query.targetTemplateId, query.targetComplectId);
+    const { complectId, templateId, targetRevision, targetName } = await this.sourceContext(actor, query.targetTemplateId, query.targetComplectId);
     const filters = this.catalogFilters(query, targetName);
     const targetYear = await TemplateImportCatalogModel.targetYear(this.database, complectId);
     const params = TemplateImportCatalogModel.params(complectId,
-      this.assignedOnly(actor, query.ownOnly) ? actor.id : undefined, targetYear, targetName, filters);
+      this.assignedOnly(actor, query.ownOnly) ? actor.id : undefined, targetYear, targetName, templateId === undefined, filters);
     const result = await TemplateImportCatalogModel.catalog(this.database, params);
     return { targetRevision, ...result, page: filters.page, pageSize: filters.pageSize };
   }
 
   async sources(actor: UserClaims, targetTemplateId: unknown, targetComplectId: unknown,
     ownOnly?: unknown, query?: Record<string, unknown>): Promise<ImportSourcesResponse> {
-    const { complectId, targetRevision, targetName } = await this.sourceContext(actor, targetTemplateId, targetComplectId);
+    const { complectId, templateId, targetRevision, targetName } = await this.sourceContext(actor, targetTemplateId, targetComplectId);
     let sources;
     if (query?.sourceComplectId !== undefined) {
       const sourceId = await resolveComplect(this.database, query.sourceComplectId);
       const filters = this.catalogFilters(query, targetName);
       const targetYear = await TemplateImportCatalogModel.targetYear(this.database, complectId);
       const params = TemplateImportCatalogModel.params(complectId,
-        this.assignedOnly(actor, ownOnly) ? actor.id : undefined, targetYear, targetName, filters);
+        this.assignedOnly(actor, ownOnly) ? actor.id : undefined, targetYear, targetName, templateId === undefined, filters);
       sources = await TemplateImportCatalogModel.details(this.database, params, sourceId);
     } else {
       sources = await TemplateImportModel.sources(this.database, complectId, this.assignedOnly(actor, ownOnly) ? actor.id : undefined);

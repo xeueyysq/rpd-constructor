@@ -88,6 +88,10 @@ test("HTTP + PostgreSQL: каталог, назначения, Word preview/appl
   const details = await get(`/template-import/sources?${targetQuery}&sourceComplectId=${ids.ownComplect}`);
   assert.equal(details.status, 200);
   assert.deepEqual(((await details.json()) as { complects: Array<{ templates: Array<{ id: number }> }> }).complects[0].templates.map((item) => item.id), [ids.own]);
+  const legacyPreview = await get(`/get-changeable-values?ids%5B%5D=${ids.own}&rowName=goals&${targetQuery}`);
+  assert.equal(legacyPreview.status, 200);
+  const legacyRows = await legacyPreview.json() as Array<{ id: number; goals: string }>;
+  assert.deepEqual(legacyRows.map(({ id, goals }) => ({ id, goals })), [{ id: ids.own, goals: "Свои цели" }]);
   const foreignDetails = await get(`/template-import/sources?${targetQuery}&sourceComplectId=${ids.foreignComplect}`);
   assert.deepEqual(((await foreignDetails.json()) as { complects: unknown[] }).complects, []);
   assert.equal((await get(`/get-changeable-values?ids%5B%5D=${ids.foreign}&rowName=goals&${targetQuery}`)).status, 403);
@@ -102,6 +106,26 @@ test("HTTP + PostgreSQL: каталог, назначения, Word preview/appl
   assert.equal(((await emptyPage.json()) as { total: number; complects: unknown[] }).total, 0);
   const managerOwn = await get(`/template-import/catalog?${targetQuery}&ownOnly=true`, rop);
   assert.equal(((await managerOwn.json()) as { total: number }).total, 0);
+  const standaloneSingle = await get(`/template-import/sources?${targetQuery}&sourceComplectId=${ids.foreignComplect}&status=ready`, rop);
+  assert.deepEqual(((await standaloneSingle.json()) as { complects: Array<{ templates: Array<{ id: number }> }> }).complects[0].templates.map((row) => row.id), [ids.foreign],
+    "самостоятельная РПД остаётся доступна для импорта одной дисциплины");
+  const fixtureFacultyFilter = `&faculty=${encodeURIComponent(`HTTP PG ${nonce}`)}`;
+  const standaloneBulk = await get(`/template-import/catalog?targetComplectId=${ids.targetComplect}&status=ready${fixtureFacultyFilter}`, rop);
+  const standaloneBulkData = await standaloneBulk.json() as { total: number; facets: { faculties: string[]; educationLevels: string[] } };
+  assert.equal(standaloneBulkData.total, 0, "массовый каталог не показывает РПД без записи 1С");
+  assert.ok(!standaloneBulkData.facets.faculties.includes(`HTTP PG ${nonce}`));
+  assert.deepEqual(standaloneBulkData.facets.educationLevels, []);
+  await pool.query(`INSERT INTO rpd_1c_exchange
+    (id,id_rpd_complect,department,discipline,teachers,zet,record_type,study_load,control_load,semester,removed_at)
+    VALUES($1,$2,'Синтетическая кафедра','Алгоритмы',ARRAY[]::text[],3,'discipline','{}'::jsonb,'{}'::jsonb,1,NOW())`,
+    [base + 64, ids.olderComplect]);
+  await pool.query("INSERT INTO template_status(id,id_1c_template,id_profile_template,current_status) VALUES($1,$2,$3,'ready')",
+    [base + 55, base + 64, ids.older]);
+  const removedBulk = await get(`/template-import/catalog?targetComplectId=${ids.targetComplect}&status=ready${fixtureFacultyFilter}`, rop);
+  const removedBulkData = await removedBulk.json() as { total: number; facets: { faculties: string[] } };
+  assert.equal(removedBulkData.total, 0,
+    "удалённая запись 1С не открывает источник для массового импорта");
+  assert.ok(!removedBulkData.facets.faculties.includes(`HTTP PG ${nonce}`));
 
   // Два точных совпадения в одном комплекте имеют разные статусы. Фильтр
   // массового импорта проверяется после блокировки, на реальных строках БД.
@@ -121,8 +145,16 @@ test("HTTP + PostgreSQL: каталог, назначения, Word preview/appl
     VALUES($1,$2,$3,'ready'),($4,$5,$6,'in_progress'),($7,$8,$9,'in_progress')`,
     [base + 52, base + 61, ids.own, base + 53, base + 62, base + 25,
       base + 54, base + 63, base + 24]);
-  const bulkCatalog = await get(`/template-import/catalog?targetComplectId=${ids.targetComplect}&status=ready`, rop);
-  const bulkRevision = (await bulkCatalog.json() as { targetRevision: string }).targetRevision;
+  const bulkCatalog = await get(`/template-import/catalog?targetComplectId=${ids.targetComplect}&status=ready${fixtureFacultyFilter}`, rop);
+  const bulkData = await bulkCatalog.json() as { targetRevision: string; total: number;
+    complects: Array<{ id: number }>; facets: { faculties: string[]; educationLevels: string[] } };
+  assert.deepEqual(bulkData.complects.map((row) => row.id), [ids.ownComplect]);
+  assert.equal(bulkData.total, 1);
+  assert.ok(bulkData.facets.faculties.includes(`HTTP PG ${nonce}`));
+  assert.deepEqual(bulkData.facets.educationLevels, ["Бакалавриат"], "фасеты не учитывают самостоятельную РПД");
+  const bulkDetails = await get(`/template-import/sources?targetComplectId=${ids.targetComplect}&sourceComplectId=${ids.foreignComplect}&status=ready`, rop);
+  assert.deepEqual(((await bulkDetails.json()) as { complects: unknown[] }).complects, []);
+  const bulkRevision = bulkData.targetRevision;
   const bulkBody = { sourceComplectId: ids.ownComplect, targetComplectId: ids.targetComplect,
     targetRevision: bulkRevision, sourceStatus: "ready" };
   assert.equal((await post("/template-import/complect", { ...bulkBody, sourceStatus: "invalid" }, rop)).status, 422);
@@ -135,7 +167,7 @@ test("HTTP + PostgreSQL: каталог, назначения, Word preview/appl
   assert.equal((await pool.query("SELECT goals FROM rpd_profile_templates WHERE id=$1", [base + 24])).rows[0].goals, "Другие старые цели");
   await pool.query("UPDATE template_status SET current_status='in_progress' WHERE id_profile_template=$1", [ids.own]);
   await pool.query("UPDATE rpd_profile_templates SET goals='Не копировать' WHERE id=$1", [ids.own]);
-  const changedCatalog = await get(`/template-import/catalog?targetComplectId=${ids.targetComplect}&status=ready`, rop);
+  const changedCatalog = await get(`/template-import/catalog?targetComplectId=${ids.targetComplect}&status=ready${fixtureFacultyFilter}`, rop);
   const changedRevision = (await changedCatalog.json() as { targetRevision: string }).targetRevision;
   const changedResult = await post("/template-import/complect", { ...bulkBody, targetRevision: changedRevision }, rop);
   assert.equal(changedResult.status, 200);

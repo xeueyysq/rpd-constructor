@@ -483,6 +483,7 @@ export function useImportComplect() {
       sourceComplectId: number;
       targetComplectId: number | string;
       targetRevision: string;
+      sourceStatus?: ImportCatalogQuery["status"] | null;
     }) => {
       requireSession(generation);
       const active = useStore.getState().jsonData;

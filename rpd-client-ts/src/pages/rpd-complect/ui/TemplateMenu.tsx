@@ -4,7 +4,7 @@ import MoreHorizIcon from "@mui/icons-material/MoreHoriz";
 import OpenInBrowserIcon from "@mui/icons-material/OpenInBrowser";
 import FileDownloadOutlinedIcon from "@mui/icons-material/FileDownloadOutlined";
 import { IconButton, ListItemIcon, Menu, MenuItem } from "@mui/material";
-import type { WorkflowAction } from "@entities/template";
+import type { TemplateStatusCode, WorkflowAction } from "@entities/template";
 import {
   useTemplateWorkflowController,
   WorkflowActionIcon,
@@ -16,6 +16,8 @@ import { ImportFromComplectsDialog } from "./ImportFromComplectsDialog";
 
 interface Props {
   id: number | null;
+  status: TemplateStatusCode;
+  removedAt?: string | null;
   allowedActions: WorkflowAction[];
   onOpenHistory: () => void;
   targetLabel: string;
@@ -27,6 +29,8 @@ interface Props {
 
 export default function TemplateMenu({
   id,
+  status,
+  removedAt,
   allowedActions,
   onOpenHistory,
   targetLabel,
@@ -95,7 +99,7 @@ export default function TemplateMenu({
               : "Изменить преподавателей"}
           </MenuItem>
         ) : null}
-        {id != null ? (
+        {id != null && status !== "ready" && !removedAt ? (
           <MenuItem
             onClick={() => {
               close();

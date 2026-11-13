@@ -46,12 +46,7 @@ export {
   useWordImportApply,
   templateImportError,
 } from "./api/templateImport";
-export {
-  importComplectLabel,
-  matchesImportSource,
-  fieldImportOptions,
-  importSkipLabels,
-} from "./model/templateImport";
+export { importComplectLabel, importSkipLabels } from "./model/templateImport";
 export type {
   ImportField,
   ImportSources,

@@ -31,47 +31,40 @@ test('полный импорт чужого черновика того же г
   await openFixtureComplect(page, list3.full.complectId);
   await openRowMenu(page, page.getByRole('row').filter({ hasText: list3.discipline }));
   const catalogResponse = page.waitForResponse((response) =>
-    response.url().includes('/api/template-import/sources') && response.request().method() === 'GET');
+    response.url().includes('/api/template-import/catalog') && response.request().method() === 'GET');
   await page.getByRole('menuitem', { name: 'Импортировать' }).click();
   const catalog = await catalogResponse;
   expect(catalog.status()).toBe(200);
   const data = await catalog.json();
   expect(data.complects.map((entry: { id: number }) => entry.id)).not.toContain(list3.full.complectId);
-  expect(data.complects).toContainEqual(expect.objectContaining({ id: 300, year: 2026,
-    templates: expect.arrayContaining([expect.objectContaining({ id: 300, status: 'created',
-      participants: expect.arrayContaining([expect.objectContaining({ fullname: 'Альфина Тест Тестовна' })]) })]) }));
+  expect(data.complects.every((entry: { templates?: unknown }) => entry.templates === undefined)).toBe(true);
   const dialog = page.getByRole('dialog', { name: 'Импортировать данные РПД', exact: true });
   await expect(dialog).toContainText('Цель: Импорт поля List3 • семестр 4 • List3 Полный импорт • 2026');
-  await expect(dialog.getByRole('button', { name: /List3 Полный импорт/ })).toHaveCount(0);
-  await dialog.getByRole('button', { name: /Другое направление List3.*List3 Источники.*2026/ }).click();
-  const source = dialog.getByRole('button', { name: /РПД №300$/ });
-  const otherSemester = dialog.getByRole('button', { name: /РПД №301$/ });
-  await expect(source).toContainText('Импорт поля list3');
-  await expect(source).toContainText('Альфина Тест Тестовна • семестр 1 • discipline');
-  await expect(otherSemester).toContainText('Яковлева Тест Тестовна • семестр 2 • discipline');
-  const search = dialog.getByRole('textbox', { name: 'Поиск по дисциплине или преподавателю' });
-  await search.fill('яковлева');
-  await expect(source).toHaveCount(0);
-  await expect(otherSemester).toBeVisible();
+  await dialog.getByRole('combobox', { name: 'Статус исходной дисциплины' }).click();
+  await page.getByRole('option', { name: 'Создан', exact: true }).click();
+  const search = dialog.getByRole('textbox', { name: 'Поиск по всем комплектам и дисциплинам' });
   await search.fill('мт'); // Буквы есть в «импорт», буквальной подстроки нет.
-  await expect(otherSemester).toHaveCount(0);
+  await expect(dialog).toContainText('По выбранным условиям источников нет');
   await search.fill('импорт');
+  const sourceCard = dialog.getByText(/Другое направление List3.*List3 Источники.*2026/).locator('..');
+  await sourceCard.getByRole('button', { name: 'Показать дисциплины' }).click();
+  const source = sourceCard.getByRole('button', { name: /Импорт поля list3.*семестр 1/i });
+  const otherSemester = sourceCard.getByRole('button', { name: /Импорт поля list3.*семестр 2/i });
   await expect(source).toBeVisible();
+  await expect(otherSemester).toHaveCount(0);
   await source.click();
-  await dialog.getByRole('button', { name: 'Импортировать', exact: true }).click();
+  await dialog.getByRole('button', { name: 'Продолжить', exact: true }).click();
   const confirmation = page.getByRole('dialog', { name: 'Подтвердите импорт', exact: true });
   await expect(confirmation).toContainText('Цель: Импорт поля List3 • семестр 4 • List3 Полный импорт • 2026');
   await expect(confirmation).toContainText(/Источник:.*Импорт\s+поля list3.*семестр 1.*2026/i);
-  await expect(confirmation).toContainText('Содержательные поля текущей РПД будут полностью заменены данными выбранной РПД.');
-  await expect(confirmation).toContainText('Компетенции, вопросы и шаблон ФОС, дисциплина, семестр, нагрузки и аттестация останутся прежними.');
+  await expect(confirmation).toContainText('Содержательные поля РПД будут заменены. Компетенции и ФОС сохраняются.');
   await confirmation.screenshot({ path: testInfo.outputPath('full-import-target-context.png') });
   const copied = page.waitForResponse((response) => response.url() === `${apiUrl}/api/copy-template-content`
     && response.request().method() === 'POST');
   await confirmation.getByRole('button', { name: 'Импортировать', exact: true }).click();
   const response = await copied;
   expect(response.status()).toBe(200);
-  expect(response.request().postDataJSON()).toEqual({ sourceTemplateId: 300, targetTemplateId: 312,
-    targetRevision: data.targetRevision });
+  expect(response.request().postDataJSON()).toMatchObject({ sourceTemplateId: 300, targetTemplateId: 312 });
   expect(preservedImportData((await response.json()).targetTemplate)).toEqual(preservedImportData(before));
   await expect(dialog).toBeHidden();
   const after = await profileFor(request, headers, list3.full.id);
@@ -98,15 +91,19 @@ test('массовый импорт: точный семестр и тип, ит
   const dialog = page.getByRole('dialog', { name: 'Импортировать все дисциплины', exact: true });
   await expect(dialog).toContainText('Цель: Направление List3 • List3 Массовый импорт • 2026 • Очная');
   await expect(dialog.getByRole('button', { name: /List3 Массовый импорт/ })).toHaveCount(0);
-  await dialog.getByRole('button', { name: /Другое направление List3.*List3 Источники.*2026/ }).click();
-  await dialog.getByRole('button', { name: 'Импортировать', exact: true }).click();
+  await dialog.getByRole('combobox', { name: 'Статус исходной дисциплины' }).click();
+  await page.getByRole('option', { name: 'Создан', exact: true }).click();
+  await dialog.getByText(/Другое направление List3.*List3 Источники.*2026/).locator('..')
+    .getByRole('button', { name: 'Выбрать комплект' }).click();
+  await dialog.getByRole('button', { name: 'Продолжить', exact: true }).click();
   const confirmation = page.getByRole('dialog', { name: 'Подтвердите импорт', exact: true });
-  await expect(confirmation).toContainText('Источник: Другое направление List3 • List3 Источники • 2026');
+  await expect(confirmation).toContainText(/Источник:.*Институт источников List3.*Другое направление List3.*List3 Источники.*2026.*Бакалавриат/);
   const saved = page.waitForResponse((response) => response.url() === `${apiUrl}/api/template-import/complect`
     && response.request().method() === 'POST');
   await confirmation.getByRole('button', { name: 'Импортировать', exact: true }).click();
   const response = await saved;
   expect(response.status()).toBe(200);
+  expect(response.request().postDataJSON().sourceStatus).toBe('created');
   const result = await response.json();
   expect(result.counts).toEqual({ imported: 1, skipped: 2, total: 3 });
   expect(result.imported).toEqual([expect.objectContaining({ targetTemplateId: 313, sourceTemplateId: 300,
@@ -116,8 +113,8 @@ test('массовый импорт: точный семестр и тип, ит
     expect.objectContaining({ targetTemplateId: 315, semester: 2, record_type: 'practice', reason: 'missing_source' }),
   ]));
   await expect(dialog).toContainText('Импортировано: 1. Пропущено: 2. Всего: 3.');
-  await expect(dialog).toContainText('семестр 3 • discipline');
-  await expect(dialog).toContainText('семестр 2 • practice');
+  await expect(dialog).toContainText('семестр 3 • Дисциплина');
+  await expect(dialog).toContainText('семестр 2 • Практика');
   await dialog.screenshot({ path: testInfo.outputPath('bulk-import-summary.png') });
   const after = await Promise.all([313, 314, 315].map((id) => profileFor(request, headers, id)));
   expect(after[0].goals).toBe('<p>Цели источника 300</p>');

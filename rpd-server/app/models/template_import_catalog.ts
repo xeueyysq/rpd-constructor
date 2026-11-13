@@ -38,6 +38,7 @@ const candidates = `
     LEFT JOIN template_status ts ON ts.id_profile_template=p.id
     LEFT JOIN rpd_1c_exchange e ON e.id=ts.id_1c_template
     WHERE c.id<>$1 AND (e.id IS NULL OR e.removed_at IS NULL)
+      AND (NOT $15::boolean OR (e.id IS NOT NULL AND e.id_rpd_complect=c.id))
       AND ($2::int IS NULL OR EXISTS (
         SELECT 1 FROM teacher_templates own WHERE own.template_id=p.id AND own.user_id=$2))
       AND ($4::text<>'other-year' OR ($3::int IS NOT NULL AND c.year IS NOT NULL AND c.year<>$3::int))
@@ -81,13 +82,13 @@ export default class TemplateImportCatalogModel {
   }
 
   static params(targetComplectId: number, assignedTo: number | undefined, targetYear: number | null,
-    targetName: string | null, filters: CatalogFilters): unknown[] {
+    targetName: string | null, bulk: boolean, filters: CatalogFilters): unknown[] {
     const search = filters.search == null ? null
       : `%${filters.search.replace(/[\\%_]/g, "\\$&")}%`;
     return [targetComplectId, assignedTo ?? null, targetYear, filters.sourceMode, filters.status,
       search, filters.sameNameOnly, targetName, filters.faculty, filters.educationLevel,
       filters.direction, filters.profile, filters.educationForm, filters.year,
-      filters.pageSize, (filters.page - 1) * filters.pageSize];
+      bulk, filters.pageSize, (filters.page - 1) * filters.pageSize];
   }
 
   static async catalog(db: Database, params: unknown[]): Promise<{
@@ -101,7 +102,7 @@ export default class TemplateImportCatalogModel {
           ORDER BY CASE WHEN page.preferred THEN 0 ELSE 1 END,page.year DESC NULLS LAST,page.id)
           FROM (SELECT * FROM summaries WHERE ${hierarchy}
             ORDER BY CASE WHEN preferred THEN 0 ELSE 1 END,year DESC NULLS LAST,id
-            LIMIT $15 OFFSET $16) page),'[]'::jsonb) AS complects,
+            LIMIT $16 OFFSET $17) page),'[]'::jsonb) AS complects,
         jsonb_build_object(
           'faculties',${facet("faculty", "TRUE")},
           'educationLevels',${facet("education_level", "($9::text IS NULL OR faculty=$9)")},
@@ -115,7 +116,7 @@ export default class TemplateImportCatalogModel {
   }
 
   static async details(db: Database, params: unknown[], sourceComplectId: number): Promise<ImportSourceComplect[]> {
-    const scopedCandidates = candidates.replace("WHERE c.id<>$1", "WHERE c.id<>$1 AND c.id=$15");
+    const scopedCandidates = candidates.replace("WHERE c.id<>$1", "WHERE c.id<>$1 AND c.id=$16");
     const { rows } = await db.query<ImportSourceComplect>(`${scopedCandidates}
       SELECT s.id,s.uuid,s.faculty,s.direction,s.profile,s.year,s.education_form,s.education_level,
         jsonb_agg(jsonb_build_object('id',m.template_id,'public_id',m.public_id,
@@ -131,9 +132,9 @@ export default class TemplateImportCatalogModel {
       FROM summaries s JOIN matched m ON m.id=s.id
       LEFT JOIN template_status ts ON ts.id_profile_template=m.template_id
       LEFT JOIN rpd_1c_exchange e ON e.id=ts.id_1c_template
-      WHERE s.id=$15 AND ${scopedHierarchy}
+      WHERE s.id=$16 AND ${scopedHierarchy}
       GROUP BY s.id,s.uuid,s.faculty,s.direction,s.profile,s.year,s.education_form,s.education_level
-    `, [...params.slice(0, 14), sourceComplectId]);
+    `, [...params.slice(0, 15), sourceComplectId]);
     return rows;
   }
 }

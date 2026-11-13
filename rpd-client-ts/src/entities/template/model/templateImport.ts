@@ -143,7 +143,8 @@ export type ImportSkipReason =
   | "ambiguous"
   | "source_missing_template"
   | "target_missing_template"
-  | "read_only";
+  | "read_only"
+  | "source_status";
 type BulkEntry = {
   targetExchangeId: number;
   targetTemplateId: number | null;
@@ -166,9 +167,15 @@ export const importSkipLabels: Record<ImportSkipReason, string> = {
   source_missing_template: "В источнике отсутствует РПД",
   target_missing_template: "В целевом комплекте отсутствует РПД",
   read_only: "Целевая РПД недоступна для изменения",
+  source_status: "Статус исходной дисциплины не соответствует выбранному",
 };
 
-export function importComplectLabel(complect: ImportSourceComplect) {
+export function importComplectLabel(
+  complect: Pick<
+    ImportSourceComplect,
+    "direction" | "profile" | "year" | "education_form" | "education_level"
+  >
+) {
   return [
     complect.direction,
     complect.profile,
@@ -178,59 +185,4 @@ export function importComplectLabel(complect: ImportSourceComplect) {
   ]
     .filter((value) => value != null && value !== "")
     .join(" • ");
-}
-
-export function matchesImportSource(
-  template: ImportSourceTemplate,
-  search: string
-) {
-  const text = [
-    template.disciplins_name,
-    ...template.participants.map((participant) => participant.fullname),
-  ].join(" ");
-  return text
-    .toLocaleLowerCase("ru")
-    .includes(search.trim().toLocaleLowerCase("ru"));
-}
-
-export function fieldImportOptions(
-  complects: ImportSourceComplect[],
-  target: {
-    id: number;
-    disciplins_name: string;
-    direction: string;
-    profile: string;
-    year: number | string | null | undefined;
-  },
-  mode: "year" | "direction"
-) {
-  const targetYear =
-    target.year == null || String(target.year).trim() === ""
-      ? null
-      : Number(target.year);
-  const normalizeName = (name: string | null) =>
-    name?.trim().replace(/\s+/g, " ").toLocaleLowerCase("ru");
-  const targetName = normalizeName(target.disciplins_name);
-
-  return complects.flatMap((complect) =>
-    complect.templates
-      .filter(
-        (template) =>
-          template.id !== target.id &&
-          (mode === "year"
-            ? targetYear != null &&
-              Number.isFinite(targetYear) &&
-              complect.year != null &&
-              Number.isFinite(complect.year) &&
-              complect.year !== targetYear &&
-              normalizeName(template.disciplins_name) === targetName
-            : complect.direction !== target.direction ||
-              complect.profile !== target.profile)
-      )
-      .map((template) => ({
-        id: template.id,
-        text: `${template.disciplins_name ?? "—"} • семестр ${template.semester ?? "—"} • ${importComplectLabel(complect)}`,
-        year: complect.year,
-      }))
-  );
 }

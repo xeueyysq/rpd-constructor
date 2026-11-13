@@ -346,6 +346,21 @@ FROM rpd_1c_exchange exchange LEFT JOIN rpd_profile_templates profile ON profile
 WHERE exchange.id_rpd_complect = 370;
 INSERT INTO teacher_templates (user_id, template_id, state) VALUES (10, 3716, 'assigned');
 
+-- Изолированная цель для браузерного импорта DOCX из генератора.
+INSERT INTO rpd_complects (id, uuid, faculty, year, education_form, education_level, profile, direction)
+VALUES (390, '39039039-0390-4390-8390-390390390390', 'Институт Word E2E', 2026, 'Очная', 'Бакалавриат', 'Word импорт', 'Синтетическое направление');
+INSERT INTO user_complect (user_id, complect_id)
+SELECT id, 390 FROM users WHERE name = 'rop';
+INSERT INTO rpd_profile_templates
+  (id, public_id, id_rpd_complect, disciplins_name, department, semester, zet, goals, textbook, field_edits)
+VALUES (390, 'a390a390a390', 390, 'Импорт Word E2E', 'Кафедра Word', 1, 3,
+  '<p>Исходные цели Word</p>', ARRAY['Исходная книга Word'], '{}'::jsonb);
+INSERT INTO rpd_1c_exchange
+  (id, id_rpd_complect, department, discipline, teachers, zet, record_type, study_load, control_load, semester)
+VALUES (390, 390, 'Кафедра Word', 'Импорт Word E2E', ARRAY[]::text[], 3, 'discipline', '{}'::jsonb, '{}'::jsonb, 1);
+INSERT INTO template_status (id, id_1c_template, id_profile_template, current_status, history)
+VALUES (390, 390, 390, 'created', '[]'::jsonb);
+
 SELECT setval(pg_get_serial_sequence('rpd_complects', 'id'), (SELECT max(id) FROM rpd_complects));
 SELECT setval(pg_get_serial_sequence('rpd_1c_exchange', 'id'), (SELECT max(id) FROM rpd_1c_exchange));
 SELECT setval(pg_get_serial_sequence('rpd_profile_templates', 'id'), (SELECT max(id) FROM rpd_profile_templates));
