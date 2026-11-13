@@ -3,6 +3,7 @@ export enum RedirectPath {
   MANAGER = "/manager",
   PLANNED_RESULTS = "/planned-results",
   USER_MANAGEMENT = "/users",
+  FEEDBACK_DETAIL = "/feedback/:id",
   COMPLECTS = "/complects",
   COMPLECT = "/complects/:id",
   TEMPLATES = "/templates",

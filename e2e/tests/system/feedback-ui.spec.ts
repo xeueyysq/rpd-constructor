@@ -58,12 +58,13 @@ test("обращение открывается поверх существую�
   await page.getByRole("button", { name: "Собрать ФОСы" }).click();
   const underlying = page.getByRole("dialog", { name: "Сформировать ФОС" });
   await expect(underlying).toBeVisible();
-  await page.getByRole("button", { name: "Сообщить о проблеме" }).click();
+  await underlying.getByRole("button", { name: "Сообщить о проблеме" }).click();
   const report = page.getByRole("dialog", { name: "Сообщить о проблеме" });
   await expect(report).toBeVisible();
   await report.getByRole("button", { name: "Отмена" }).click();
   await expect(report).not.toBeVisible();
   await expect(underlying).toBeVisible();
+  await expect(underlying.getByRole("button", { name: "Сообщить о проблеме" })).toBeFocused();
   await expect(underlying.getByRole("button", { name: "Скачать Word" })).toBeVisible();
   await page.keyboard.press("Alt+Shift+P");
   await expect(report).toBeVisible();

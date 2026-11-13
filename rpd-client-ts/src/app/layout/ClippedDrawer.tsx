@@ -7,6 +7,7 @@ import { UserRole } from "@shared/ability";
 import { RedirectPath } from "@shared/enums";
 import { useStore } from "@shared/hooks";
 import { Header } from "@widgets/header";
+import { ReportProblemTrigger } from "@widgets/report-problem";
 import { RpdList } from "@widgets/rpd-list";
 import { MainTabsList, TeacherTabsList } from "@widgets/tabs-list";
 import { useEffect, useMemo, useState } from "react";
@@ -55,7 +56,7 @@ export function ClippedDrawer() {
 
   return (
     <Box sx={{ position: "relative", minHeight: "100vh" }}>
-      <Header />
+      <Header action={<ReportProblemTrigger placement="header" />} />
       <Drawer
         color="default"
         variant="permanent"

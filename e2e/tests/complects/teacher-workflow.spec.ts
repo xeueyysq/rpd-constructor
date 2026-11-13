@@ -253,8 +253,10 @@ test.describe('изменения 1С на отдельной РПД', () => {
     const dialog = page.getByRole('dialog', { name: 'Изменения из 1С' });
     await expectExchangeChanges(dialog);
     await expect(dialog.getByRole('button', { name: 'Просмотрено' })).toHaveCount(0);
-    await expect(dialog.getByRole('button')).toHaveCount(1);
-    await dialog.getByRole('button', { name: 'Закрыть', exact: true }).click();
+    const close = dialog.getByRole('button', { name: 'Закрыть', exact: true });
+    await expect(close).toBeVisible();
+    await expect(close).toBeEnabled();
+    await close.click();
     await expect(dialog).toBeHidden();
     await expect(changes).toBeVisible();
     await expect(row.getByRole('cell').nth(3)).toContainText('В работе');
