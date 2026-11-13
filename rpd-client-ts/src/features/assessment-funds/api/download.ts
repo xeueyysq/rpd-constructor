@@ -1,5 +1,6 @@
 import { useMutation, useQuery } from "@tanstack/react-query";
 import { axiosBase } from "@shared/api";
+import { filenameFromContentDisposition } from "@shared/lib";
 
 type ResultsRow = {
   competence: string;
@@ -24,14 +25,7 @@ export function useAssessmentFundsCompetencies(
 }
 
 export function excelFilename(contentDisposition: unknown): string {
-  if (typeof contentDisposition !== "string") return "ФОС.xlsx";
-  const encoded = contentDisposition.match(/filename\*=UTF-8''([^;]+)/i)?.[1];
-  if (!encoded) return "ФОС.xlsx";
-  try {
-    return decodeURIComponent(encoded);
-  } catch {
-    return "ФОС.xlsx";
-  }
+  return filenameFromContentDisposition(contentDisposition, "ФОС.xlsx");
 }
 
 export function useDownloadAssessmentFundsWord() {

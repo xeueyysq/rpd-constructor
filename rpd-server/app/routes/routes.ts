@@ -15,6 +15,8 @@ import TemplateAccess from "../services/TemplateAccess.ts";
 import { NotFound } from "../utils/Errors.ts";
 import { replaceComplectOwner, replaceComplectOwners } from "../services/ComplectOwnership.ts";
 import TemplateImportController from "../controllers/templateImportController.ts";
+import RpdProfileTemplates from "../models/rpd_profile_templates.ts";
+import { documentContentDisposition } from "../utils/documentFilename.ts";
 
 const template = (selector: (req: express.Request) => unknown, mode: "read" | "edit" | "manage") => templateAuthorization(pool, selector, mode);
 const complect = (selector: (req: express.Request) => unknown) => complectAuthorization(pool, selector);
@@ -226,23 +228,25 @@ router.patch("/users", TokenService.checkAccess, requireRole(USER_ROLES.ADMIN), 
 
 router.get("/generate-pdf", TokenService.checkAccess, template((req) => req.query.id, "read"), async (req, res) => {
     const { id } = req.query;
+    const metadata = await new RpdProfileTemplates(pool).getDownloadMetadata(id);
     const pdfBuffer = await generatePDF(id);
 
     res.setHeader("Content-Type", "application/pdf");
-    res.setHeader("Content-Disposition", "attachment; filename=example.pdf");
+    res.setHeader("Content-Disposition", documentContentDisposition(metadata, "pdf"));
 
     res.send(pdfBuffer);
 });
 
 router.get("/generate-docx", TokenService.checkAccess, template((req) => req.query.id, "read"), async (req, res) => {
     const { id } = req.query;
+    const metadata = await new RpdProfileTemplates(pool).getDownloadMetadata(id);
     const docxBuffer = await generateWord(id);
 
     res.setHeader(
       "Content-Type",
       "application/vnd.openxmlformats-officedocument.wordprocessingml.document"
     );
-    res.setHeader("Content-Disposition", "attachment; filename=example.docx");
+    res.setHeader("Content-Disposition", documentContentDisposition(metadata, "docx"));
 
     res.send(docxBuffer);
 });

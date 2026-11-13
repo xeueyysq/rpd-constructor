@@ -18,19 +18,20 @@ import {
   Stack,
   Typography,
 } from "@mui/material";
-import { useStore } from "@shared/hooks";
 import { Document, Page } from "react-pdf";
 import "react-pdf/dist/Page/AnnotationLayer.css";
 import "react-pdf/dist/Page/TextLayer.css";
 
 interface PdfReaderProps {
   file: Blob | MediaSource;
+  downloadFilename: string;
   onDownloadWord?: () => void;
   isWordLoading?: boolean;
 }
 
 export const PdfReader: FC<PdfReaderProps> = ({
   file,
+  downloadFilename,
   onDownloadWord,
   isWordLoading = false,
 }) => {
@@ -39,7 +40,6 @@ export const PdfReader: FC<PdfReaderProps> = ({
   const [fileUrl, setFileUrl] = useState("");
   const [scale, setScale] = useState<number>(1);
   const [error, setError] = useState<string | null>(null);
-  const jsonData = useStore.getState().jsonData;
 
   useEffect(() => {
     if (file) {
@@ -130,7 +130,7 @@ export const PdfReader: FC<PdfReaderProps> = ({
             onClick={() => {
               const link = document.createElement("a");
               link.href = fileUrl;
-              link.download = `${jsonData.profile}_${jsonData.year}.pdf`;
+              link.download = downloadFilename;
               document.body.appendChild(link);
               link.click();
               document.body.removeChild(link);
