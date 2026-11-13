@@ -47,7 +47,7 @@ export default class TemplateImportModel {
     return rows[0]?.state;
   }
 
-  static async sources(db: Database, excludedComplectId: number): Promise<ImportSourceComplect[]> {
+  static async sources(db: Database, excludedComplectId: number, assignedTo?: number): Promise<ImportSourceComplect[]> {
     const { rows } = await db.query<ImportSourceComplect>(`
       SELECT c.id,c.uuid,c.faculty,c.direction,c.profile,c.year,c.education_form,c.education_level,
         COALESCE(jsonb_agg(jsonb_build_object('id',p.id,'public_id',p.public_id,
@@ -63,9 +63,19 @@ export default class TemplateImportModel {
       LEFT JOIN template_status ts ON ts.id_profile_template=p.id
       LEFT JOIN rpd_1c_exchange e ON e.id=ts.id_1c_template
       WHERE c.id<>$1 AND (e.id IS NULL OR e.removed_at IS NULL)
+        AND ($2::int IS NULL OR EXISTS (SELECT 1 FROM teacher_templates own
+          WHERE own.template_id=p.id AND own.user_id=$2))
       GROUP BY c.id ORDER BY c.year DESC,c.id
-    `, [excludedComplectId]);
+    `, [excludedComplectId, assignedTo ?? null]);
     return rows;
+  }
+
+  static async isAssigned(db: Database, templateId: number, actorId: number): Promise<boolean> {
+    const { rows } = await db.query<{ assigned: boolean }>(
+      "SELECT EXISTS(SELECT 1 FROM teacher_templates WHERE template_id=$1 AND user_id=$2) AS assigned",
+      [templateId, actorId],
+    );
+    return Boolean(rows[0]?.assigned);
   }
 
   static async fields(db: Database): Promise<TemplateImportField[]> {

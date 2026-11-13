@@ -161,7 +161,8 @@ INSERT INTO template_status (id, id_1c_template, id_profile_template, current_st
   (201, 201, 201, 'created', '[]'::jsonb), (202, 202, 202, 'created', '[]'::jsonb);
 INSERT INTO teacher_templates (id, user_id, template_id, state) VALUES (200, 20, 200, 'in_progress');
 
--- List3: источники неизменяемы, у каждого изменяющего сценария свой комплект.
+-- List3: источники неизменяемы; 300/302 назначены преподавателю для импорта,
+-- 301 остаётся источником другого преподавателя для проверки ограничения доступа.
 -- Два года одного профиля также проверяют повторение профиля в каждой строке списка.
 INSERT INTO rpd_complects (id, faculty, year, education_form, education_level, profile, direction) VALUES
   (300, 'Институт источников List3', 2026, 'Очная', 'Бакалавриат', 'List3 Источники', 'Другое направление List3'),
@@ -224,7 +225,7 @@ SELECT id, id, id, CASE WHEN id IN (301, 311, 316, 317) THEN 'on_teacher' ELSE '
 FROM rpd_profile_templates WHERE id BETWEEN 300 AND 318;
 INSERT INTO teacher_templates (user_id, template_id, state)
 SELECT (SELECT id FROM users WHERE name = CASE WHEN fixture.id = 301 THEN 'teacher2' ELSE 'teacher' END), fixture.id, 'assigned'
-FROM rpd_profile_templates fixture WHERE fixture.id IN (301, 311, 316, 317);
+FROM rpd_profile_templates fixture WHERE fixture.id IN (300, 301, 302, 311, 316, 317);
 INSERT INTO planned_results_sets (id, complect_id) VALUES (317, 317);
 INSERT INTO planned_competencies (id, set_id, competence) VALUES (317, 317, 'ПК-L3 Авторская компетенция');
 INSERT INTO planned_indicators (id, competence_id, indicator) VALUES (317, 317, 'ПК-L3.1 Индикатор');

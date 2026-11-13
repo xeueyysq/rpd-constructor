@@ -51,6 +51,7 @@ export function templateDatabase() {
     const part = (id: number) => db.assignments.filter((row) => row.template_id === id).map((row) => ({ templateId: id, userId: row.user_id, state: row.state, updatedAt: row.updated_at, name: user(row.user_id)!.name, fullname: user(row.user_id)!.fullname, isActive: user(row.user_id)!.is_active }));
     const owns = (templateId: unknown, userId: unknown) => db.owners.some((row) => row.user_id === userId && row.complect_id === db.profiles.find((p) => p.id === templateId)?.id_rpd_complect);
     if (text.startsWith("SELECT EXISTS") && text.includes("AS participant")) return result([{ exists: db.profiles.some((p) => p.id === values[0]), active: Boolean(user(values[1])?.is_active), owner: owns(values[0], values[1]), participant: db.assignments.some((a) => a.template_id === values[0] && a.user_id === values[1] && user(a.user_id)?.is_active) }]);
+    if (text.startsWith("SELECT EXISTS") && text.includes("AS assigned")) return result([{ assigned: db.assignments.some((a) => a.template_id === values[0] && a.user_id === values[1]) }]);
     if (text.startsWith("SELECT EXISTS") && text.includes("AS owner")) return result([{ exists: db.complects.some((c) => c.id === values[0]), owner: db.owners.some((o) => o.complect_id === values[0] && o.user_id === values[1]), active: Boolean(user(values[1])?.is_active) }]);
     if (text.startsWith("SELECT EXISTS")) return result([{ active: Boolean(user(values[0])?.is_active) }]);
     if (text.includes("AS owner") && text.includes("AS active")) return result([{ owner: owns(values[0], values[1]), active: Boolean(user(values[1])?.is_active) }]);
@@ -66,7 +67,7 @@ export function templateDatabase() {
       complect: db.complects.find((c) => c.id === values[0]), exchange: db.exchange.filter((e) => e.id_rpd_complect === values[0]),
       templates: db.profiles.filter((p) => p.id_rpd_complect === values[0] && (values[1] == null || p.id === values[1])).map((p) => ({ id: p.id, edits: p.field_edits, status: db.statuses.find((s) => s.id_profile_template === p.id), participants: db.assignments.filter((a) => a.template_id === p.id) })),
     } }]);
-    if (text.startsWith("SELECT c.id,c.uuid")) return result(db.complects.filter((c) => c.id !== values[0]).map((c) => ({ ...c, templates: db.profiles.filter((p) => p.id_rpd_complect === c.id).map((p) => ({ id: p.id, public_id: p.public_id, disciplins_name: p.disciplins_name, semester: p.semester, record_type: db.exchange.find((e) => e.id === db.statuses.find((s) => s.id_profile_template === p.id)?.id_1c_template)?.record_type ?? null, status: db.statuses.find((s) => s.id_profile_template === p.id)?.current_status ?? "created", participants: part(p.id) })) })));
+    if (text.startsWith("SELECT c.id,c.uuid")) return result(db.complects.filter((c) => c.id !== values[0]).map((c) => ({ ...c, templates: db.profiles.filter((p) => p.id_rpd_complect === c.id && (values[1] == null || db.assignments.some((a) => a.template_id === p.id && a.user_id === values[1]))).map((p) => ({ id: p.id, public_id: p.public_id, disciplins_name: p.disciplins_name, semester: p.semester, record_type: db.exchange.find((e) => e.id === db.statuses.find((s) => s.id_profile_template === p.id)?.id_1c_template)?.record_type ?? null, status: db.statuses.find((s) => s.id_profile_template === p.id)?.current_status ?? "created", participants: part(p.id) })) })).filter((c) => values[1] == null || c.templates.length));
     if (text.includes("FROM information_schema.columns")) return result(Object.keys(profile(10, 1)).map((column_name) => ({ column_name })));
     if (text.startsWith("SELECT e.id AS exchange_id")) return result(db.exchange.filter((e) => e.id_rpd_complect === values[0] && !e.removed_at).map((e) => {
       const status = db.statuses.find((s) => s.id_1c_template === e.id);
@@ -74,6 +75,13 @@ export function templateDatabase() {
     }));
     if (text.startsWith("UPDATE rpd_profile_templates")) {
       if (++writes === failAt) throw new Error("synthetic write failure");
+      if (text.startsWith("UPDATE rpd_profile_templates p SET") && !text.includes("FROM rpd_profile_templates s")) {
+        const fields = values.at(-1) as string[];
+        const target = db.profiles.find((p) => p.id === values.at(-3))!;
+        for (const [index, field] of fields.entries()) target[field] = field === "content" ? JSON.parse(String(values[index])) : structuredClone(values[index]);
+        for (const field of fields) target.field_edits[field] = { userId: Number(values.at(-2)), at: `2026-11-04T00:00:${String(++clock).padStart(2, "0")}.000000Z` };
+        return result([structuredClone(target)]);
+      }
       const target = db.profiles.find((p) => p.id === values[1])!;
       const fields = values[3] as string[];
       if (text.includes("FROM rpd_profile_templates s")) {

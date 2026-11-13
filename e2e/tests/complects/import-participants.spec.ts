@@ -38,7 +38,8 @@ test('полный импорт чужого черновика того же г
   const data = await catalog.json();
   expect(data.complects.map((entry: { id: number }) => entry.id)).not.toContain(list3.full.complectId);
   expect(data.complects).toContainEqual(expect.objectContaining({ id: 300, year: 2026,
-    templates: expect.arrayContaining([expect.objectContaining({ id: 300, status: 'created', participants: [] })]) }));
+    templates: expect.arrayContaining([expect.objectContaining({ id: 300, status: 'created',
+      participants: expect.arrayContaining([expect.objectContaining({ fullname: 'Альфина Тест Тестовна' })]) })]) }));
   const dialog = page.getByRole('dialog', { name: 'Импортировать данные РПД', exact: true });
   await expect(dialog).toContainText('Цель: Импорт поля List3 • семестр 4 • List3 Полный импорт • 2026');
   await expect(dialog.getByRole('button', { name: /List3 Полный импорт/ })).toHaveCount(0);
@@ -46,7 +47,7 @@ test('полный импорт чужого черновика того же г
   const source = dialog.getByRole('button', { name: /РПД №300$/ });
   const otherSemester = dialog.getByRole('button', { name: /РПД №301$/ });
   await expect(source).toContainText('Импорт поля list3');
-  await expect(source).toContainText('Преподаватели не назначены • семестр 1 • discipline');
+  await expect(source).toContainText('Альфина Тест Тестовна • семестр 1 • discipline');
   await expect(otherSemester).toContainText('Яковлева Тест Тестовна • семестр 2 • discipline');
   const search = dialog.getByRole('textbox', { name: 'Поиск по дисциплине или преподавателю' });
   await search.fill('яковлева');

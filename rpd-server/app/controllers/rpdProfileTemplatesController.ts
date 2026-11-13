@@ -347,18 +347,18 @@ class RpdProfileTemplatesController {
   }
 
   async copyTemplateData(req: Request<ParamsDictionary, unknown, Record<string, unknown>>, res: Response) {
-    const { sourceTemplateId, targetTemplateId, fieldToCopy, baseAt } = req.body ?? {};
+    const { sourceTemplateId, targetTemplateId, fieldToCopy, baseAt, ownOnly } = req.body ?? {};
     if (fieldToCopy === undefined) throw new Unprocessable("Укажите поле импорта");
-    res.json(await this.imports.copy(TemplateAccess.actor(req.user), sourceTemplateId, targetTemplateId, { field: fieldToCopy, baseAt }));
+    res.json(await this.imports.copy(TemplateAccess.actor(req.user), sourceTemplateId, targetTemplateId, { field: fieldToCopy, baseAt, ownOnly }));
   }
 
   async copyTemplateContent(req: Request<ParamsDictionary, unknown, Record<string, unknown>>, res: Response) {
-    const { sourceTemplateId, targetTemplateId, targetRevision } = req.body ?? {};
-    res.json(await this.imports.copy(TemplateAccess.actor(req.user), sourceTemplateId, targetTemplateId, { targetRevision }));
+    const { sourceTemplateId, targetTemplateId, targetRevision, ownOnly } = req.body ?? {};
+    res.json(await this.imports.copy(TemplateAccess.actor(req.user), sourceTemplateId, targetTemplateId, { targetRevision, ownOnly }));
   }
 
   async getChangeableValues(req: Request<ParamsDictionary, unknown, Record<string, unknown>>, res: Response) {
-    const { rowName, targetTemplateId } = req.query;
+    const { rowName, targetTemplateId, ownOnly } = req.query;
     const inputs = [req.query.ids, req.query["ids[]"]].filter((value) => value !== undefined);
     const ids = inputs.flatMap((value) => Array.isArray(value) ? value : [value]);
     if (!ids.length || !rowName) throw new Unprocessable("Укажите ids и rowName");
@@ -366,7 +366,7 @@ class RpdProfileTemplatesController {
     const actor = TemplateAccess.actor(req.user);
     res.json(targetTemplateId === undefined
       ? await this.model.getChangeableValues(ids, rowName, actor)
-      : await this.imports.preview(actor, ids, rowName, targetTemplateId));
+      : await this.imports.preview(actor, ids, rowName, targetTemplateId, ownOnly));
   }
 
   async generateAssessmentFundsDocx(req: Request<ParamsDictionary, unknown, Record<string, unknown>>, res: Response) {

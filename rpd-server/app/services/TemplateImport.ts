@@ -56,6 +56,17 @@ export default class TemplateImport {
     return source;
   }
 
+  private assignedOnly(actor: UserClaims, ownOnly: unknown): boolean {
+    if (ownOnly !== undefined && ownOnly !== true && ownOnly !== false && ownOnly !== "true" && ownOnly !== "false")
+      throw new Unprocessable("Некорректный ownOnly");
+    return actor.role === USER_ROLES.TEACHER || ownOnly === true || ownOnly === "true";
+  }
+
+  private async assertSourceAssignment(db: Database, actor: UserClaims, sourceId: number, ownOnly: unknown): Promise<void> {
+    if (this.assignedOnly(actor, ownOnly) && !(await TemplateImportModel.isAssigned(db, sourceId, actor.id)))
+      throw new Forbidden("Источник не назначен вам");
+  }
+
   private async revision(db: Database, complectId: number, templateId?: number) {
     const state = await TemplateImportModel.revisionState(db, complectId, templateId);
     return createHash("sha256").update(canonical(state)).digest("hex");
@@ -68,7 +79,7 @@ export default class TemplateImport {
     if (current !== baseline) throw new Conflict({ message: "Цель импорта уже изменена. Обновите список источников", targetRevision: current });
   }
 
-  async sources(actor: UserClaims, targetTemplateId: unknown, targetComplectId: unknown): Promise<ImportSourcesResponse> {
+  async sources(actor: UserClaims, targetTemplateId: unknown, targetComplectId: unknown, ownOnly?: unknown): Promise<ImportSourcesResponse> {
     if ((targetTemplateId !== undefined) === (targetComplectId !== undefined)) throw new Unprocessable("Укажите ровно одну цель импорта");
     let complectId: number;
     let templateId: number | undefined;
@@ -81,7 +92,7 @@ export default class TemplateImport {
       await TemplateAccess.assertComplect(this.database, actor, complectId);
     }
     const targetRevision = await this.revision(this.database, complectId, templateId);
-    const sources = await TemplateImportModel.sources(this.database, complectId);
+    const sources = await TemplateImportModel.sources(this.database, complectId, this.assignedOnly(actor, ownOnly) ? actor.id : undefined);
     const complects = sources.map((complect) => ({
       ...complect,
       templates: complect.templates.map((template) => ({
@@ -92,7 +103,7 @@ export default class TemplateImport {
     return { targetRevision, complects };
   }
 
-  async preview(actor: UserClaims, ids: unknown, field: unknown, targetTemplateId: unknown) {
+  async preview(actor: UserClaims, ids: unknown, field: unknown, targetTemplateId: unknown, ownOnly?: unknown) {
     if (!isTemplateImportField(field)) throw new Unprocessable("Недопустимое поле импорта");
     const targetId = await resolveTemplate(this.database, targetTemplateId);
     const target = await this.target(this.database, actor, targetId);
@@ -101,12 +112,13 @@ export default class TemplateImport {
     for (const identifier of Array.isArray(ids) ? ids : [ids]) {
       const id = await resolveTemplate(this.database, identifier);
       await this.source(this.database, id, target.id_rpd_complect);
+      await this.assertSourceAssignment(this.database, actor, id, ownOnly);
       numericIds.push(id);
     }
     return TemplateImportModel.preview(this.database, [...new Set(numericIds)], field);
   }
 
-  async copy(actor: UserClaims, sourceIdentifier: unknown, targetIdentifier: unknown, options: { field?: unknown; baseAt?: unknown; targetRevision?: unknown } = {}): Promise<CopyTemplateResponse> {
+  async copy(actor: UserClaims, sourceIdentifier: unknown, targetIdentifier: unknown, options: { field?: unknown; baseAt?: unknown; targetRevision?: unknown; ownOnly?: unknown } = {}): Promise<CopyTemplateResponse> {
     let field: TemplateImportField | undefined;
     if (options.field !== undefined) {
       if (!isTemplateImportField(options.field)) throw new Unprocessable("Недопустимое поле импорта");
@@ -118,9 +130,11 @@ export default class TemplateImport {
       const sourceId = await resolveTemplate(client, sourceIdentifier);
       const initialTarget = await this.target(client, actor, targetId);
       const initialSource = await this.source(client, sourceId, initialTarget.id_rpd_complect);
+      this.assignedOnly(actor, options.ownOnly);
       await TemplateImportModel.lock(client, [initialTarget.id_rpd_complect, initialSource.id_rpd_complect], actor.id);
       const target = await this.target(client, actor, targetId);
       await this.source(client, sourceId, target.id_rpd_complect);
+      await this.assertSourceAssignment(client, actor, sourceId, options.ownOnly);
       if (field) {
         const currentEdit = target.field_edits[field] ?? null;
         if ((currentEdit?.at ?? null) !== options.baseAt) throw new Conflict({ message: "Поле уже изменено", field, value: target[field as keyof ImportTemplate], edit: (await withEditorNames(client, currentEdit ? { [field]: currentEdit } : {}))[field] ?? null });
