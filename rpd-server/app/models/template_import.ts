@@ -3,6 +3,7 @@ import type { RpdComplectRow, RpdProfileTemplateRow } from "../types/db.ts";
 import type { ParticipationState, TemplateStatus } from "../modules/templateWorkflow.ts";
 import { TEMPLATE_IMPORT_FIELDS, type TemplateImportField } from "../modules/templateImport.ts";
 import { fieldEditsSet } from "../modules/fieldEdits.ts";
+import type { WordValues } from "../modules/wordImport/wordAdapter.ts";
 
 type Database = Pool | PoolClient;
 export type ImportTemplate = RpdProfileTemplateRow & { current_status: TemplateStatus | "closed" | null; exchange_id: number | null; removed_at: Date | null };
@@ -95,6 +96,16 @@ export default class TemplateImportModel {
       UPDATE rpd_profile_templates p SET ${fields.map((field) => `${field}=s.${field}`).join(",")},
         ${fieldEditsSet(3, 4, "p")} FROM rpd_profile_templates s WHERE s.id=$1 AND p.id=$2 RETURNING p.*
     `, [sourceId, targetId, actorId, fields]);
+    return rows[0];
+  }
+
+  static async setValues(db: PoolClient, targetId: number, fields: TemplateImportField[], values: WordValues, actorId: number) {
+    const assignments = fields.map((field, index) => `${field}=$${index + 1}${field === "content" ? "::jsonb" : ""}`).join(",");
+    const params = fields.map((field) => field === "content" ? JSON.stringify(values[field]) : values[field]);
+    const { rows } = await db.query<RpdProfileTemplateRow>(`
+      UPDATE rpd_profile_templates p SET ${assignments},${fieldEditsSet(fields.length + 2, fields.length + 3, "p")}
+      WHERE p.id=$${fields.length + 1} RETURNING p.*
+    `, [...params, targetId, actorId, fields]);
     return rows[0];
   }
 

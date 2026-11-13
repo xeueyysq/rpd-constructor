@@ -1,6 +1,7 @@
 import type { RpdProfileTemplateRow } from "./db.ts";
 import type { FieldEdit } from "../modules/fieldEdits.ts";
 import type { TemplateImportField } from "../modules/templateImport.ts";
+import type { WordValues } from "../modules/wordImport/wordAdapter.ts";
 import type { ImportSourceComplect } from "../models/template_import.ts";
 import type { ParticipationState, TemplateStatus, WorkflowAction } from "../modules/templateWorkflow.ts";
 
@@ -37,3 +38,18 @@ export type SetTemplateParticipantsResponse = {
 };
 export type ClearTemplateControlRequest = { rowId: string; baseAt: string | null };
 export type ClearTemplateControlResponse = { field: "content"; value: unknown; edit: FieldEdit };
+
+// POST /templates/:id/import-word/preview: multipart/form-data, ровно одно поле file (.docx).
+export type WordImportPreviewResponse = {
+  targetTemplateId: number; targetRevision: string;
+  source: { fileName: string; discipline: string | null; department: string | null; year: number | null };
+  values: WordValues; availableFields: TemplateImportField[]; warnings: string[];
+};
+// POST /templates/:id/import-word/apply: application/json, только явные поля из preview.
+export type WordImportApplyRequest = {
+  expectedRevision: string; mode: "replace" | "append";
+  selectedFields: TemplateImportField[]; values: WordValues;
+};
+export type WordImportApplyResponse = Pick<CopyTemplateResponse, "success" | "targetTemplate" | "targetRevision"> & {
+  updatedFields: TemplateImportField[];
+};

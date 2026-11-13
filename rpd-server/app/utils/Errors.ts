@@ -16,6 +16,14 @@ class Unprocessable extends WebError {
   }
 }
 
+class PayloadTooLarge extends WebError {
+  constructor(error?: unknown) { super(413, error); }
+}
+
+class TooManyRequests extends WebError {
+  constructor(error?: unknown) { super(429, error); }
+}
+
 class Conflict extends WebError {
   constructor(error?: unknown) {
     super(409, error);
@@ -79,5 +87,7 @@ export {
   Conflict, 
   BadGateway,
   Unauthorized, 
-  Unprocessable
+  Unprocessable,
+  PayloadTooLarge,
+  TooManyRequests
 };

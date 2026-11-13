@@ -9,6 +9,7 @@ import { importMatchKey, isTemplateImportField, type TemplateImportField } from 
 import { withEditorNames } from "../modules/fieldEdits.ts";
 import { formatDisciplineName } from "../modules/disciplineNames.ts";
 import { Conflict, Forbidden, NotFound, Unprocessable } from "../utils/Errors.ts";
+import { validateWordApply, type WordValues } from "../modules/wordImport/wordAdapter.ts";
 import type { CopyTemplateResponse, ImportComplectEntry, ImportComplectResponse, ImportSkipReason, ImportSourcesResponse } from "../types/templateImport.ts";
 
 type Database = Pool | PoolClient;
@@ -148,6 +149,52 @@ export default class TemplateImport {
       return { success: true, message: field ? `Поле ${field} успешно скопировано` : "Контентные поля успешно импортированы",
         targetTemplate: { ...updated, field_edits: edits }, ...(field ? { value: updated[field as keyof typeof updated], edit: edits[field] } : {}),
         targetRevision: await this.revision(client, target.id_rpd_complect, targetId) };
+    });
+  }
+
+  async wordSnapshot(actor: UserClaims, identifier: unknown): Promise<{ targetTemplateId: number; targetRevision: string }> {
+    const id = await resolveTemplate(this.database, identifier);
+    const target = await this.target(this.database, actor, id);
+    return { targetTemplateId: id, targetRevision: await this.revision(this.database, target.id_rpd_complect, id) };
+  }
+
+  async wordApply(actor: UserClaims, identifier: unknown, body: Record<string, unknown>) {
+    const { fields, values } = validateWordApply(body.selectedFields, body.values);
+    if (body.mode !== "append" && body.mode !== "replace") throw new Unprocessable("Укажите режим append или replace");
+    return this.transaction(async (client) => {
+      const id = await resolveTemplate(client, identifier);
+      const initial = await this.target(client, actor, id);
+      await TemplateImportModel.lock(client, [initial.id_rpd_complect], actor.id);
+      const target = await this.target(client, actor, id);
+      await this.checkRevision(client, target.id_rpd_complect, body.expectedRevision, id, true);
+      const available = await TemplateImportModel.fields(client);
+      if (fields.some((field) => !available.includes(field))) throw new Unprocessable("Поле отсутствует в схеме");
+      const merged: Record<string, unknown> = {};
+      for (const field of fields) {
+        const incoming = values[field];
+        const previous = (target as unknown as Record<string, unknown>)[field];
+        if (field === "content") {
+          const existing = previous && typeof previous === "object" && !Array.isArray(previous) ? previous as Record<string, unknown> : {};
+          const rows = incoming as Record<string, unknown>;
+          const result: Record<string, unknown> = body.mode === "append" ? { ...existing } : {};
+          let next = Math.max(0, ...Object.keys(result).filter((key) => /^\d+$/.test(key)).map(Number)) + 1;
+          for (const value of Object.values(rows)) {
+            while (String(next) in result) next++;
+            result[String(next++)] = value;
+          }
+          if ("__attestation__" in existing) result.__attestation__ = existing.__attestation__;
+          merged[field] = result;
+        } else if (Array.isArray(incoming)) {
+          merged[field] = body.mode === "append" && Array.isArray(previous) ? [...previous, ...incoming] : incoming;
+        } else if (typeof incoming === "string") {
+          merged[field] = body.mode === "append" && typeof previous === "string" && previous.trim()
+            ? `${previous}<br/><br/>${incoming}` : incoming;
+        }
+      }
+      const updated = await TemplateImportModel.setValues(client, id, fields, merged as WordValues, actor.id);
+      if (!updated) throw new NotFound("Шаблон не найден");
+      return { success: true as const, updatedFields: fields, targetTemplate: { ...updated, field_edits: await withEditorNames(client, updated.field_edits) },
+        targetRevision: await this.revision(client, target.id_rpd_complect, id) };
     });
   }
 
