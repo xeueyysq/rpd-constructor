@@ -3,6 +3,7 @@ import type { Pool, PoolClient } from "pg";
 import type { UserClaims } from "../types/express.d.ts";
 import { USER_ROLES } from "../models/constants.ts";
 import TemplateImportModel, { type ImportTemplate } from "../models/template_import.ts";
+import TemplateImportCatalogModel, { type CatalogFilters } from "../models/template_import_catalog.ts";
 import TemplateAccess from "./TemplateAccess.ts";
 import { resolveComplect, resolveTemplate } from "../middleware/templateAuthorization.ts";
 import { importMatchKey, isTemplateImportField, type TemplateImportField } from "../modules/templateImport.ts";
@@ -80,20 +81,85 @@ export default class TemplateImport {
     if (current !== baseline) throw new Conflict({ message: "Цель импорта уже изменена. Обновите список источников", targetRevision: current });
   }
 
-  async sources(actor: UserClaims, targetTemplateId: unknown, targetComplectId: unknown, ownOnly?: unknown): Promise<ImportSourcesResponse> {
+  private catalogFilters(query: Record<string, unknown>, targetName: string | null): CatalogFilters {
+    const string = (key: string, max = 160): string | null => {
+      const value = query[key];
+      if (value === undefined || value === "") return null;
+      if (typeof value !== "string" || value.length > max
+        || [...value].some((character) => character.charCodeAt(0) < 32 || character.charCodeAt(0) === 127))
+        throw new Unprocessable(`Некорректный фильтр ${key}`);
+      return value.trim() || null;
+    };
+    const positive = (key: string, fallback: number, max: number): number => {
+      const value = query[key];
+      if (value === undefined) return fallback;
+      if (typeof value !== "string" || !/^[1-9]\d*$/.test(value) || Number(value) > max)
+        throw new Unprocessable(`Некорректный параметр ${key}`);
+      return Number(value);
+    };
+    const yearRaw = query.year;
+    if (yearRaw !== undefined && (typeof yearRaw !== "string" || !/^\d{4}$/.test(yearRaw)))
+      throw new Unprocessable("Некорректный год");
+    const status = string("status", 32);
+    if (status && !["unloaded", "created", "on_teacher", "in_progress", "ready", "on_refinement", "closed"].includes(status))
+      throw new Unprocessable("Некорректный статус");
+    const sourceMode = string("sourceMode", 32) ?? "other-complect";
+    if (sourceMode !== "other-complect" && sourceMode !== "other-year") throw new Unprocessable("Некорректный режим источников");
+    const sameNameOnly = query.sameNameOnly === "true";
+    if (query.sameNameOnly !== undefined && query.sameNameOnly !== "true" && query.sameNameOnly !== "false")
+      throw new Unprocessable("Некорректный sameNameOnly");
+    if (sameNameOnly && !targetName) throw new Unprocessable("Фильтр названия доступен только для одной РПД");
+    return {
+      search: string("search", 120), faculty: string("faculty"), educationLevel: string("educationLevel"),
+      direction: string("direction"), profile: string("profile"), educationForm: string("educationForm"),
+      year: yearRaw === undefined ? null : Number(yearRaw), status, sourceMode, sameNameOnly,
+      page: positive("page", 1, 10_000), pageSize: positive("pageSize", 10, 25),
+    };
+  }
+
+  private async sourceContext(actor: UserClaims, targetTemplateId: unknown, targetComplectId: unknown) {
     if ((targetTemplateId !== undefined) === (targetComplectId !== undefined)) throw new Unprocessable("Укажите ровно одну цель импорта");
     let complectId: number;
     let templateId: number | undefined;
+    let targetName: string | null = null;
     if (targetTemplateId !== undefined) {
       templateId = await resolveTemplate(this.database, targetTemplateId);
-      complectId = (await this.target(this.database, actor, templateId)).id_rpd_complect;
+      const target = await this.target(this.database, actor, templateId);
+      complectId = target.id_rpd_complect;
+      targetName = target.disciplins_name;
     } else {
       await this.assertActor(this.database, actor);
       complectId = await resolveComplect(this.database, targetComplectId);
       await TemplateAccess.assertComplect(this.database, actor, complectId);
     }
     const targetRevision = await this.revision(this.database, complectId, templateId);
-    const sources = await TemplateImportModel.sources(this.database, complectId, this.assignedOnly(actor, ownOnly) ? actor.id : undefined);
+    return { complectId, templateId, targetRevision, targetName };
+  }
+
+  async catalog(actor: UserClaims, query: Record<string, unknown>) {
+    const { complectId, targetRevision, targetName } = await this.sourceContext(actor, query.targetTemplateId, query.targetComplectId);
+    const filters = this.catalogFilters(query, targetName);
+    const targetYear = await TemplateImportCatalogModel.targetYear(this.database, complectId);
+    const params = TemplateImportCatalogModel.params(complectId,
+      this.assignedOnly(actor, query.ownOnly) ? actor.id : undefined, targetYear, targetName, filters);
+    const result = await TemplateImportCatalogModel.catalog(this.database, params);
+    return { targetRevision, ...result, page: filters.page, pageSize: filters.pageSize };
+  }
+
+  async sources(actor: UserClaims, targetTemplateId: unknown, targetComplectId: unknown,
+    ownOnly?: unknown, query?: Record<string, unknown>): Promise<ImportSourcesResponse> {
+    const { complectId, targetRevision, targetName } = await this.sourceContext(actor, targetTemplateId, targetComplectId);
+    let sources;
+    if (query?.sourceComplectId !== undefined) {
+      const sourceId = await resolveComplect(this.database, query.sourceComplectId);
+      const filters = this.catalogFilters(query, targetName);
+      const targetYear = await TemplateImportCatalogModel.targetYear(this.database, complectId);
+      const params = TemplateImportCatalogModel.params(complectId,
+        this.assignedOnly(actor, ownOnly) ? actor.id : undefined, targetYear, targetName, filters);
+      sources = await TemplateImportCatalogModel.details(this.database, params, sourceId);
+    } else {
+      sources = await TemplateImportModel.sources(this.database, complectId, this.assignedOnly(actor, ownOnly) ? actor.id : undefined);
+    }
     const complects = sources.map((complect) => ({
       ...complect,
       templates: complect.templates.map((template) => ({

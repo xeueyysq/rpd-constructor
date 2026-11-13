@@ -34,6 +34,7 @@ router.put("/templates/:id/participants", TokenService.checkAccess, requireRole(
 const templateImportController = new TemplateImportController(pool);
 const wordImportController = new WordImportController(pool);
 router.get("/template-import/sources", TokenService.checkAccess, templateImportController.sources);
+router.get("/template-import/catalog", TokenService.checkAccess, templateImportController.catalog);
 router.post("/templates/:id/import-word/preview", TokenService.checkAccess, wordImportController.authorizePreview, wordImportController.upload, wordImportController.preview);
 router.post("/templates/:id/import-word/apply", TokenService.checkAccess, wordImportController.apply);
 router.post("/template-import/complect", TokenService.checkAccess, requireRole(USER_ROLES.ADMIN, USER_ROLES.ROP), templateImportController.complect);

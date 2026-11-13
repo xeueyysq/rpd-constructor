@@ -16,7 +16,11 @@ export default class TemplateImportController {
   }
 
   sources = async (req: Request, res: Response) => {
-    res.json(await this.imports.sources(TemplateAccess.actor(req.user), req.query.targetTemplateId, req.query.targetComplectId, req.query.ownOnly));
+    res.json(await this.imports.sources(TemplateAccess.actor(req.user), req.query.targetTemplateId, req.query.targetComplectId, req.query.ownOnly, req.query));
+  };
+
+  catalog = async (req: Request, res: Response) => {
+    res.json(await this.imports.catalog(TemplateAccess.actor(req.user), req.query));
   };
 
   complect = async (req: MutationRequest, res: Response) => {
