@@ -22,7 +22,11 @@ import {
   useCopyTemplateField,
   useImportComplect,
   useImportFieldPreview,
+  useImportCatalog,
+  useImportSourceDetails,
   useImportSources,
+  useWordImportApply,
+  previewFile,
 } from "./templateImport";
 import { useSetTemplateParticipants, useTemplateWorkflow } from "./workflow";
 import { useUpdateTemplateField } from "./updateTemplateField";
@@ -195,6 +199,184 @@ describe("HTTP-контракты клиентского импорта", () => 
       "Первая книга",
       "Вторая книга",
     ]);
+  });
+
+  it("запрашивает фильтры каталога до страницы и только выбранный комплект; смена сессии изолирует кеш", async () => {
+    reply = (config) =>
+      config.url === "template-import/catalog"
+        ? {
+            targetRevision: "rev-A",
+            complects: [{ id: 21 }],
+            page: 2,
+            pageSize: 10,
+            total: 12,
+            facets: {
+              faculties: ["ФИТ"],
+              educationLevels: [],
+              directions: [],
+              profiles: [],
+              educationForms: [],
+              years: [],
+            },
+          }
+        : {
+            targetRevision: "rev-A",
+            complects: [{ id: 21, templates: [{ id: 31, status: "ready" }] }],
+          };
+    const query = {
+      targetTemplateId: 12,
+      ownOnly: true,
+      search: "Алгоритмы",
+      status: "ready" as const,
+      sourceMode: "other-year" as const,
+      page: 2,
+    };
+    const catalog = await renderHook(() => useImportCatalog(query)).refetch();
+    expect(catalog.data?.total).toBe(12);
+    const catalogParams = new URL(
+      axiosBase.getUri(requests[0]),
+      "http://localhost"
+    ).searchParams;
+    expect(catalogParams.get("ownOnly")).toBe("true");
+    expect(catalogParams.get("search")).toBe("Алгоритмы");
+    expect(catalogParams.get("status")).toBe("ready");
+    expect(catalogParams.get("sourceMode")).toBe("other-year");
+    expect(catalogParams.get("page")).toBe("2");
+    const details = await renderHook(() =>
+      useImportSourceDetails({ ...query, sourceComplectId: 21 })
+    ).refetch();
+    expect(details.data?.complects[0].templates[0].status).toBe("ready");
+    expect(
+      new URL(
+        axiosBase.getUri(requests[1]),
+        "http://localhost"
+      ).searchParams.get("sourceComplectId")
+    ).toBe("21");
+    beginSession();
+    expect(renderHook(() => useImportCatalog(query)).data).toBeUndefined();
+  });
+
+  it("Word применяет выбранные поля и не записывает ответ в другой открытый редактор", async () => {
+    let finish!: (value: unknown) => void;
+    reply = () =>
+      new Promise((resolve) => {
+        finish = resolve;
+      });
+    const pending = renderHook(useWordImportApply).mutateAsync({
+      targetTemplateId: 12,
+      expectedRevision: "word-rev",
+      mode: "replace",
+      selectedFields: ["goals"],
+      values: { goals: "Новые цели", software: "Лишнее поле" },
+    });
+    await vi.waitFor(() => expect(requests).toHaveLength(1));
+    expect(body(requests[0])).toEqual({
+      expectedRevision: "word-rev",
+      mode: "replace",
+      selectedFields: ["goals"],
+      values: { goals: "Новые цели" },
+    });
+    useStore.getState().setJsonData({ id: 13, goals: "Редактор Б" });
+    finish({
+      success: true,
+      targetRevision: "next",
+      updatedFields: ["goals"],
+      targetTemplate: { id: 12, goals: "Новые цели", field_edits: {} },
+    });
+    await expect(pending).rejects.toThrow("другая РПД");
+    expect(useStore.getState().jsonData).toMatchObject({
+      id: 13,
+      goals: "Редактор Б",
+    });
+  });
+
+  it("Word preview проверяет файл до HTTP и не возвращает ответ после смены сессии", async () => {
+    await expect(previewFile(12, new File(["x"], "bad.txt"))).rejects.toThrow(
+      ".docx"
+    );
+    expect(requests).toHaveLength(0);
+    let finish!: (value: unknown) => void;
+    reply = () =>
+      new Promise((resolve) => {
+        finish = resolve;
+      });
+    const pending = previewFile(12, new File(["PK"], "rpd.docx"));
+    await vi.waitFor(() => expect(requests).toHaveLength(1));
+    expect(requests[0].data).toBeInstanceOf(FormData);
+    beginSession();
+    finish({
+      targetTemplateId: 12,
+      targetRevision: "old",
+      values: {},
+      availableFields: [],
+      warnings: [],
+      source: {},
+    });
+    await expect(pending).rejects.toBeInstanceOf(SessionChangedError);
+  });
+
+  it("Word preview и apply работают с фиксированной целью из списка без открытого редактора", async () => {
+    useStore.getState().setJsonData({});
+    reply = (request) =>
+      request.url?.endsWith("/preview")
+        ? {
+            targetTemplateId: 12,
+            targetRevision: "word-rev",
+            values: { goals: "Новые цели" },
+            availableFields: ["goals"],
+            warnings: [],
+            source: {},
+          }
+        : {
+            success: true,
+            targetRevision: "next",
+            updatedFields: ["goals"],
+            targetTemplate: { id: 12, goals: "Новые цели", field_edits: {} },
+          };
+    const preview = await previewFile(12, new File(["PK"], "rpd.docx"));
+    expect(preview.targetRevision).toBe("word-rev");
+    const applied = await renderHook(useWordImportApply).mutateAsync({
+      targetTemplateId: 12,
+      expectedRevision: preview.targetRevision,
+      mode: "replace",
+      selectedFields: ["goals"],
+      values: preview.values,
+    });
+    expect(applied.updatedFields).toEqual(["goals"]);
+    expect(useStore.getState().jsonData).toEqual({});
+    expect(requests.map((request) => request.url)).toEqual([
+      "templates/12/import-word/preview",
+      "templates/12/import-word/apply",
+    ]);
+  });
+
+  it("Word из списка не подменяет редактор, открытый во время ответа", async () => {
+    useStore.getState().setJsonData({});
+    let finish!: (value: unknown) => void;
+    reply = () =>
+      new Promise((resolve) => {
+        finish = resolve;
+      });
+    const pending = renderHook(useWordImportApply).mutateAsync({
+      targetTemplateId: 12,
+      expectedRevision: "word-rev",
+      mode: "replace",
+      selectedFields: ["goals"],
+      values: { goals: "Новые цели" },
+    });
+    await vi.waitFor(() => expect(requests).toHaveLength(1));
+    useStore.getState().setJsonData({ id: 13, goals: "Редактор Б" });
+    finish({
+      success: true,
+      targetRevision: "next",
+      updatedFields: ["goals"],
+      targetTemplate: { id: 12, goals: "Новые цели", field_edits: {} },
+    });
+    await expect(pending).resolves.toMatchObject({ updatedFields: ["goals"] });
+    expect(useStore.getState().jsonData).toMatchObject({
+      id: 13,
+      goals: "Редактор Б",
+    });
   });
 
   it("дожидается сохранения цели и отправляет зафиксированный baseAt, сохраняя тип text[]", async () => {

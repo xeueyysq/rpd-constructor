@@ -39,6 +39,8 @@ function operationFor(
 ): string | undefined {
   if (!path || isDiagnosticPath(path)) return undefined;
   if (method === "post") {
+    if (/^\/api\/templates\/\d+\/import-word\/(?:preview|apply)$/.test(path))
+      return "template.import";
     if (/^\/api\/templates\/\d+\/workflow$/.test(path))
       return "template.workflow";
     if (/^\/api\/templates\/\d+\/content-control\/clear$/.test(path))
@@ -56,7 +58,7 @@ function operationFor(
   )
     return "complect.sync";
   if (
-    /^\/api\/(?:copy-template-data|copy-template-content|template-import\/(?:complect|sources)|get-changeable-values)/.test(
+    /^\/api\/(?:copy-template-data|copy-template-content|template-import\/(?:complect|sources|catalog)|get-changeable-values)/.test(
       path
     )
   )

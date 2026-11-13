@@ -186,6 +186,49 @@ it.each([
   }
 );
 
+it("Word 413 и каталог 500 записывают только безопасный маршрут, без имени DOCX и текста поиска", async () => {
+  const events: DiagnosticEvent[] = [];
+  setDiagnosticSender(async (event) => {
+    events.push(event);
+  });
+  setFeedbackAvailable(true, getSessionGeneration());
+  axiosBase.defaults.adapter = async (config) => {
+    throw new AxiosError(
+      "private message",
+      "ERR_BAD_RESPONSE",
+      config,
+      undefined,
+      {
+        config,
+        data: {},
+        status: config.method === "post" ? 413 : 500,
+        statusText: "error",
+        headers: {},
+      }
+    );
+  };
+  const form = new FormData();
+  form.set("file", new Blob(["private document"]), "private-name.docx");
+  await expect(
+    axiosBase.post("templates/12/import-word/preview", form)
+  ).rejects.toBeInstanceOf(AxiosError);
+  await expect(
+    axiosBase.get("template-import/catalog", {
+      params: { search: "private-search" },
+    })
+  ).rejects.toBeInstanceOf(AxiosError);
+  await vi.waitFor(() => expect(events).toHaveLength(2));
+  expect(events.map((event) => event.operation)).toEqual([
+    "template.import",
+    "template.import",
+  ]);
+  const text = JSON.stringify(events);
+  expect(text).not.toContain("private-name");
+  expect(text).not.toContain("private document");
+  expect(text).not.toContain("private-search");
+  expect(text).not.toContain("private message");
+});
+
 it.each([
   { method: "get" as const, path: "templates/12/workflow", status: 500 },
   { method: "post" as const, path: "templates/12/workflow", status: 422 },

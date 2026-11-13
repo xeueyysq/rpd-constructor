@@ -14,9 +14,91 @@ export type ImportField =
   | "professional_information_resources"
   | "software"
   | "logistics_template";
-export type ImportContext =
+export type ImportContext = (
   | { targetTemplateId: number | string; targetComplectId?: never }
-  | { targetComplectId: number | string; targetTemplateId?: never };
+  | { targetComplectId: number | string; targetTemplateId?: never }
+) & { ownOnly?: boolean };
+export type ImportCatalogQuery = ImportContext & {
+  search?: string;
+  faculty?: string;
+  educationLevel?: string;
+  direction?: string;
+  profile?: string;
+  educationForm?: string;
+  year?: number;
+  status?: TemplateStatusCode | "closed";
+  sourceMode?: "other-complect" | "other-year";
+  sameNameOnly?: boolean;
+  page?: number;
+  pageSize?: number;
+};
+export type ImportSourceDetailsQuery = ImportCatalogQuery & {
+  sourceComplectId: number | string;
+};
+export type ImportCatalogSummary = Omit<ImportSourceComplect, "templates"> & {
+  templateCount: number;
+  matchingTemplateCount: number;
+};
+export type ImportCatalogFacets = {
+  faculties: string[];
+  educationLevels: string[];
+  directions: string[];
+  profiles: string[];
+  educationForms: string[];
+  years: number[];
+};
+export type ImportCatalogResponse = {
+  targetRevision: string;
+  complects: ImportCatalogSummary[];
+  page: number;
+  pageSize: number;
+  total: number;
+  facets: ImportCatalogFacets;
+};
+export type WordImportField =
+  | "goals"
+  | "place_more_text"
+  | "content_more_text"
+  | "content_template_more_text"
+  | "methodological_support_template"
+  | "software"
+  | "textbook"
+  | "additional_textbook"
+  | "professional_information_resources"
+  | "content";
+export type WordContentRow = {
+  theme: string;
+  total: number;
+  lectures: number;
+  seminars: number;
+  contact: number;
+  independent_work: number;
+  control: null;
+};
+export type WordValues = Partial<
+  Record<Exclude<WordImportField, "content">, string | string[]>
+> & {
+  content?: Record<string, WordContentRow>;
+};
+export type WordImportPreview = {
+  targetTemplateId: number;
+  targetRevision: string;
+  source: {
+    fileName: string;
+    discipline: string | null;
+    department: string | null;
+    year: number | null;
+  };
+  values: WordValues;
+  availableFields: WordImportField[];
+  warnings: string[];
+};
+export type WordImportApplyResponse = {
+  success: true;
+  updatedFields: WordImportField[];
+  targetTemplate: ImportTarget;
+  targetRevision: string;
+};
 export interface ImportSourceTemplate {
   id: number;
   public_id: string;

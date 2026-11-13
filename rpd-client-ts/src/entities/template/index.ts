@@ -33,12 +33,17 @@ export { FieldEditLabel } from "./ui/FieldEditLabel";
 export { useSetTemplateParticipants } from "./api/workflow";
 export {
   useImportSources,
+  useImportCatalog,
+  useImportSourceDetails,
   useImportFieldPreview,
   useCopyTemplateField,
   useCopyTemplateContent,
   useImportComplect,
   useClearTemplateControl,
   prepareTemplateImport,
+  previewFile,
+  useWordImportPreview,
+  useWordImportApply,
   templateImportError,
 } from "./api/templateImport";
 export {
@@ -50,7 +55,18 @@ export {
 export type {
   ImportField,
   ImportSources,
+  ImportContext,
+  ImportCatalogQuery,
+  ImportCatalogResponse,
+  ImportCatalogSummary,
+  ImportCatalogFacets,
+  ImportSourceDetailsQuery,
   ImportSourceComplect,
   ImportSourceTemplate,
   ImportComplectResponse,
+  WordImportField,
+  WordContentRow,
+  WordValues,
+  WordImportPreview,
+  WordImportApplyResponse,
 } from "./model/templateImport";

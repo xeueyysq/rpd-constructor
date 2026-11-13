@@ -11,11 +11,18 @@ import { useTemplateSync } from "../model/templateSync";
 import type { FieldEdit, FieldEdits } from "../model/fieldEdits";
 import type {
   CopyTemplateResponse,
+  ImportCatalogQuery,
+  ImportCatalogResponse,
   ImportComplectResponse,
   ImportContext,
   ImportField,
   ImportFieldPreview,
   ImportSources,
+  ImportSourceDetailsQuery,
+  WordImportApplyResponse,
+  WordImportField,
+  WordImportPreview,
+  WordValues,
 } from "../model/templateImport";
 
 // Дожидаемся уже начатых сохранений. Несохранённый редактор не закрываем.
@@ -58,10 +65,10 @@ export function templateImportError(error: unknown) {
 }
 
 export function useImportSources(context: ImportContext, enabled = true) {
+  const generation = getSessionGeneration();
   return useQuery({
-    queryKey: ["template-import-sources", context],
-    queryFn: async () => {
-      const generation = getSessionGeneration();
+    queryKey: ["template-import-sources", generation, context],
+    queryFn: async ({ signal }) => {
       if (context.targetTemplateId != null)
         await prepareTemplateImport(Number(context.targetTemplateId));
       else {
@@ -73,16 +80,98 @@ export function useImportSources(context: ImportContext, enabled = true) {
           await prepareTemplateImport(active.id);
       }
       requireSession(generation);
-      return (
+      const result = (
         await axiosBase.get<ImportSources>("template-import/sources", {
           params: context,
+          signal,
         })
       ).data;
+      requireSession(generation);
+      return result;
     },
-    enabled,
+    enabled: enabled && validImportContext(context),
     refetchOnWindowFocus: false,
     refetchOnReconnect: false,
     staleTime: Infinity,
+    refetchOnMount: "always",
+    retry: false,
+  });
+}
+
+function validImportContext(context: ImportContext): boolean {
+  return (
+    (context.targetTemplateId != null &&
+      String(context.targetTemplateId).trim() !== "") !==
+    (context.targetComplectId != null &&
+      String(context.targetComplectId).trim() !== "")
+  );
+}
+
+async function prepareImportContext(
+  context: ImportContext,
+  generation: number
+) {
+  if (context.targetTemplateId != null)
+    await prepareTemplateImport(Number(context.targetTemplateId));
+  else {
+    const active = useStore.getState().jsonData;
+    if (
+      active.id &&
+      String(active.id_rpd_complect) === String(context.targetComplectId)
+    )
+      await prepareTemplateImport(active.id);
+  }
+  requireSession(generation);
+}
+
+export function useImportCatalog(query: ImportCatalogQuery, enabled = true) {
+  const generation = getSessionGeneration();
+  return useQuery({
+    queryKey: ["template-import-catalog", generation, query],
+    queryFn: async ({ signal }) => {
+      await prepareImportContext(query, generation);
+      const result = (
+        await axiosBase.get<ImportCatalogResponse>("template-import/catalog", {
+          params: query,
+          signal,
+        })
+      ).data;
+      requireSession(generation);
+      return result;
+    },
+    enabled: enabled && validImportContext(query),
+    refetchOnWindowFocus: false,
+    refetchOnReconnect: false,
+    refetchOnMount: "always",
+    retry: false,
+  });
+}
+
+export function useImportSourceDetails(
+  query: ImportSourceDetailsQuery,
+  enabled = true
+) {
+  const generation = getSessionGeneration();
+  return useQuery({
+    queryKey: ["template-import-source-details", generation, query],
+    queryFn: async ({ signal }) => {
+      await prepareImportContext(query, generation);
+      const result = (
+        await axiosBase.get<ImportSources>("template-import/sources", {
+          params: query,
+          signal,
+        })
+      ).data;
+      requireSession(generation);
+      return result;
+    },
+    enabled:
+      enabled &&
+      validImportContext(query) &&
+      query.sourceComplectId != null &&
+      String(query.sourceComplectId).trim() !== "",
+    refetchOnWindowFocus: false,
+    refetchOnReconnect: false,
     refetchOnMount: "always",
     retry: false,
   });
@@ -92,21 +181,34 @@ export function useImportFieldPreview(
   ids: number[],
   rowName: ImportField,
   targetTemplateId: number,
-  enabled: boolean
+  enabled: boolean,
+  ownOnly?: boolean
 ) {
+  const generation = getSessionGeneration();
   return useQuery({
-    queryKey: ["template-import-preview", ids, rowName, targetTemplateId],
-    queryFn: async () => {
+    queryKey: [
+      "template-import-preview",
+      generation,
+      ids,
+      rowName,
+      targetTemplateId,
+      ownOnly,
+    ],
+    queryFn: async ({ signal }) => {
       const params = new URLSearchParams({
         rowName,
         targetTemplateId: String(targetTemplateId),
       });
+      if (ownOnly !== undefined) params.set("ownOnly", String(ownOnly));
       ids.forEach((id) => params.append("ids", String(id)));
-      return (
+      const result = (
         await axiosBase.get<ImportFieldPreview[]>("get-changeable-values", {
           params,
+          signal,
         })
       ).data;
+      requireSession(generation);
+      return result;
     },
     enabled: enabled && ids.length > 0,
   });
@@ -173,6 +275,7 @@ export function useCopyTemplateField() {
       targetTemplateId: number;
       fieldToCopy: ImportField;
       baseAt: string | null;
+      ownOnly?: boolean;
     }) =>
       changeField(
         params.targetTemplateId,
@@ -222,6 +325,7 @@ export function useCopyTemplateContent() {
       sourceTemplateId: number;
       targetTemplateId: number;
       targetRevision: string;
+      ownOnly?: boolean;
     }) => {
       const generation = getSessionGeneration();
       await prepareTemplateImport(params.targetTemplateId);
@@ -249,6 +353,124 @@ export function useCopyTemplateContent() {
         client.invalidateQueries({ queryKey: ["template-history"] }),
         client.invalidateQueries({ queryKey: ["template-presence"] }),
       ]),
+    retry: false,
+  });
+}
+
+const MAX_WORD_BYTES = 5 * 1024 * 1024;
+
+export async function previewFile(
+  targetTemplateId: number,
+  file: File,
+  signal?: AbortSignal
+): Promise<WordImportPreview> {
+  if (!file.name.toLowerCase().endsWith(".docx") || file.name.length > 200)
+    throw new Error("Выберите файл .docx");
+  if (!file.size || file.size > MAX_WORD_BYTES)
+    throw new Error("DOCX должен быть не больше 5 МБ");
+  const generation = getSessionGeneration();
+  const startedInTargetEditor =
+    useStore.getState().jsonData.id === targetTemplateId;
+  await prepareTemplateImport(targetTemplateId);
+  requireSession(generation);
+  if (
+    startedInTargetEditor &&
+    useStore.getState().jsonData.id !== targetTemplateId
+  )
+    throw new Error("Открыта другая РПД. Повторите предпросмотр");
+  const form = new FormData();
+  form.set("file", file);
+  const result = (
+    await axiosBase.post<WordImportPreview>(
+      `templates/${targetTemplateId}/import-word/preview`,
+      form,
+      { signal }
+    )
+  ).data;
+  requireSession(generation);
+  if (
+    startedInTargetEditor &&
+    useStore.getState().jsonData.id !== targetTemplateId
+  )
+    throw new Error("Открыта другая РПД. Повторите предпросмотр");
+  return result;
+}
+
+export function useWordImportPreview() {
+  return useMutation({
+    mutationFn: ({
+      targetTemplateId,
+      file,
+      signal,
+    }: {
+      targetTemplateId: number;
+      file: File;
+      signal?: AbortSignal;
+    }) => previewFile(targetTemplateId, file, signal),
+    retry: false,
+  });
+}
+
+export function useWordImportApply() {
+  const client = useQueryClient();
+  return useMutation({
+    mutationFn: async ({
+      targetTemplateId,
+      expectedRevision,
+      mode,
+      selectedFields,
+      values,
+    }: {
+      targetTemplateId: number;
+      expectedRevision: string;
+      mode: "append" | "replace";
+      selectedFields: WordImportField[];
+      values: WordValues;
+    }) => {
+      const generation = getSessionGeneration();
+      const startedInTargetEditor =
+        useStore.getState().jsonData.id === targetTemplateId;
+      await prepareTemplateImport(targetTemplateId);
+      requireSession(generation);
+      if (
+        startedInTargetEditor &&
+        useStore.getState().jsonData.id !== targetTemplateId
+      )
+        throw new Error("Открыта другая РПД. Повторите импорт");
+      const selectedValues = Object.fromEntries(
+        selectedFields.map((field) => [field, values[field]])
+      );
+      const request = axiosBase.post<WordImportApplyResponse>(
+        `templates/${targetTemplateId}/import-word/apply`,
+        { expectedRevision, mode, selectedFields, values: selectedValues }
+      );
+      const data = (
+        await (startedInTargetEditor
+          ? useTemplateSync.getState().track(request)
+          : request)
+      ).data;
+      requireSession(generation);
+      const { jsonData, setJsonData } = useStore.getState();
+      if (startedInTargetEditor && jsonData.id !== targetTemplateId)
+        throw new Error("Открыта другая РПД. Обновите её перед продолжением");
+      if (startedInTargetEditor)
+        setJsonData({
+          ...jsonData,
+          ...data.targetTemplate,
+          certification:
+            data.targetTemplate.certification || jsonData.certification,
+        });
+      return data;
+    },
+    onSuccess: () =>
+      Promise.all(
+        [
+          "rpd-complect",
+          "my-templates",
+          "template-history",
+          "template-presence",
+        ].map((key) => client.invalidateQueries({ queryKey: [key] }))
+      ),
     retry: false,
   });
 }
