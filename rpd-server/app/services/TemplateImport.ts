@@ -264,7 +264,10 @@ export default class TemplateImport {
     });
   }
 
-  async complect(actor: UserClaims, sourceIdentifier: unknown, targetIdentifier: unknown, targetRevision: unknown): Promise<ImportComplectResponse> {
+  async complect(actor: UserClaims, sourceIdentifier: unknown, targetIdentifier: unknown, targetRevision: unknown, sourceStatus?: unknown): Promise<ImportComplectResponse> {
+    if (sourceStatus !== undefined && sourceStatus !== null &&
+      (typeof sourceStatus !== "string" || !["unloaded", "created", "on_teacher", "in_progress", "ready", "on_refinement", "closed"].includes(sourceStatus)))
+      throw new Unprocessable("Некорректный статус источника");
     return this.transaction(async (client) => {
       await this.assertActor(client, actor);
       const targetId = await resolveComplect(client, targetIdentifier);
@@ -289,6 +292,7 @@ export default class TemplateImport {
         if (!target.discipline?.trim() || !matches.length) reason = "missing_source";
         else if (matches.length !== 1 || targets.filter((row) => importMatchKey(row) === key).length !== 1) reason = "ambiguous";
         else if (target.template_id == null) reason = "target_missing_template";
+        else if (sourceStatus != null && (matches[0].current_status ?? "created") !== sourceStatus) reason = "source_status";
         else if (matches[0].template_id == null) reason = "source_missing_template";
         else if (target.current_status === "ready" || target.current_status === "closed") reason = "read_only";
         if (reason) { skipped.push({ ...entry, reason }); continue; }

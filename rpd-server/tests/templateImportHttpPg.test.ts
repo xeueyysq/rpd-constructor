@@ -103,6 +103,45 @@ test("HTTP + PostgreSQL: каталог, назначения, Word preview/appl
   const managerOwn = await get(`/template-import/catalog?${targetQuery}&ownOnly=true`, rop);
   assert.equal(((await managerOwn.json()) as { total: number }).total, 0);
 
+  // Два точных совпадения в одном комплекте имеют разные статусы. Фильтр
+  // массового импорта проверяется после блокировки, на реальных строках БД.
+  await pool.query(`INSERT INTO rpd_profile_templates
+    (id,public_id,id_rpd_complect,disciplins_name,goals,content,field_edits)
+    VALUES($1,$2,$3,'Алгоритмы','Другие старые цели','{}'::jsonb,'{}'::jsonb),
+      ($4,$5,$6,'Алгоритмы','Другие новые цели','{}'::jsonb,'{}'::jsonb)`,
+    [base + 24, randomBytes(6).toString("hex"), ids.targetComplect,
+      base + 25, randomBytes(6).toString("hex"), ids.ownComplect]);
+  await pool.query(`INSERT INTO rpd_1c_exchange
+    (id,id_rpd_complect,department,discipline,teachers,zet,record_type,study_load,control_load,semester)
+    VALUES($1,$2,'Синтетическая кафедра','Архитектура систем',ARRAY[]::text[],3,'discipline','{}'::jsonb,'{}'::jsonb,1),
+      ($3,$2,'Синтетическая кафедра','Алгоритмы',ARRAY[]::text[],3,'discipline','{}'::jsonb,'{}'::jsonb,1),
+      ($4,$5,'Синтетическая кафедра','Алгоритмы',ARRAY[]::text[],3,'discipline','{}'::jsonb,'{}'::jsonb,1)`,
+    [base + 61, ids.ownComplect, base + 62, base + 63, ids.targetComplect]);
+  await pool.query(`INSERT INTO template_status(id,id_1c_template,id_profile_template,current_status)
+    VALUES($1,$2,$3,'ready'),($4,$5,$6,'in_progress'),($7,$8,$9,'in_progress')`,
+    [base + 52, base + 61, ids.own, base + 53, base + 62, base + 25,
+      base + 54, base + 63, base + 24]);
+  const bulkCatalog = await get(`/template-import/catalog?targetComplectId=${ids.targetComplect}&status=ready`, rop);
+  const bulkRevision = (await bulkCatalog.json() as { targetRevision: string }).targetRevision;
+  const bulkBody = { sourceComplectId: ids.ownComplect, targetComplectId: ids.targetComplect,
+    targetRevision: bulkRevision, sourceStatus: "ready" };
+  assert.equal((await post("/template-import/complect", { ...bulkBody, sourceStatus: "invalid" }, rop)).status, 422);
+  const bulkResponse = await post("/template-import/complect", bulkBody, rop);
+  assert.equal(bulkResponse.status, 200);
+  const bulkResult = await bulkResponse.json() as { counts: { imported: number; skipped: number }; skipped: Array<{ reason: string }> };
+  assert.equal(bulkResult.counts.imported, 1);
+  assert.ok(bulkResult.skipped.some((entry) => entry.reason === "source_status"));
+  assert.equal((await pool.query("SELECT goals FROM rpd_profile_templates WHERE id=$1", [ids.target])).rows[0].goals, "Свои цели");
+  assert.equal((await pool.query("SELECT goals FROM rpd_profile_templates WHERE id=$1", [base + 24])).rows[0].goals, "Другие старые цели");
+  await pool.query("UPDATE template_status SET current_status='in_progress' WHERE id_profile_template=$1", [ids.own]);
+  await pool.query("UPDATE rpd_profile_templates SET goals='Не копировать' WHERE id=$1", [ids.own]);
+  const changedCatalog = await get(`/template-import/catalog?targetComplectId=${ids.targetComplect}&status=ready`, rop);
+  const changedRevision = (await changedCatalog.json() as { targetRevision: string }).targetRevision;
+  const changedResult = await post("/template-import/complect", { ...bulkBody, targetRevision: changedRevision }, rop);
+  assert.equal(changedResult.status, 200);
+  assert.equal((await pool.query("SELECT goals FROM rpd_profile_templates WHERE id=$1", [ids.target])).rows[0].goals, "Свои цели",
+    "статус источника изменился после выбора — исключённая дисциплина не перезаписана");
+
   await pool.query("DELETE FROM teacher_templates WHERE id=$1", [ids.ownAssignment]);
   assert.equal((await post("/copy-template-data", { sourceTemplateId: ids.own, targetTemplateId: ids.target,
     fieldToCopy: "goals", baseAt: null })).status, 403, "отзыв назначения действует после загрузки каталога");

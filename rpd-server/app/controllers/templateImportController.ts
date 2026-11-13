@@ -24,8 +24,8 @@ export default class TemplateImportController {
   };
 
   complect = async (req: MutationRequest, res: Response) => {
-    const { sourceComplectId, targetComplectId, targetRevision } = req.body ?? {};
-    res.json(await this.imports.complect(TemplateAccess.actor(req.user), sourceComplectId, targetComplectId, targetRevision));
+    const { sourceComplectId, targetComplectId, targetRevision, sourceStatus } = req.body ?? {};
+    res.json(await this.imports.complect(TemplateAccess.actor(req.user), sourceComplectId, targetComplectId, targetRevision, sourceStatus));
   };
 
   clearControl = async (req: MutationRequest, res: Response) => {

@@ -21,9 +21,9 @@ export type CopyTemplateResponse = {
   targetTemplate: Omit<RpdProfileTemplateRow, "field_edits"> & { field_edits: Record<string, FieldEdit> };
   targetRevision: string; value?: unknown; edit?: FieldEdit;
 };
-export type ImportComplectRequest = { sourceComplectId: TemplateIdentifier; targetComplectId: TemplateIdentifier; targetRevision: string };
+export type ImportComplectRequest = { sourceComplectId: TemplateIdentifier; targetComplectId: TemplateIdentifier; targetRevision: string; sourceStatus?: TemplateStatus | "closed" | null };
 export type ImportComplectEntry = { targetExchangeId: number; targetTemplateId: number | null; discipline: string | null; semester: number | null; record_type: string | null };
-export type ImportSkipReason = "missing_source" | "ambiguous" | "source_missing_template" | "target_missing_template" | "read_only";
+export type ImportSkipReason = "missing_source" | "ambiguous" | "source_missing_template" | "target_missing_template" | "read_only" | "source_status";
 export type ImportComplectResponse = {
   imported: Array<ImportComplectEntry & { sourceExchangeId: number; sourceTemplateId: number }>;
   skipped: Array<ImportComplectEntry & { reason: ImportSkipReason }>;
