@@ -283,9 +283,9 @@ const fetchAllSpecProfiles = async () => {
 };
 
 const readCachedSpecProfiles = async (dbPool: Pool) => {
-  const { rows } = await dbPool.query<{ tree_payload: unknown }>(
+  const { rows } = await dbPool.query<{ raw_payload: unknown; tree_payload: unknown }>(
     `
-      SELECT tree_payload
+      SELECT raw_payload, tree_payload
       FROM spec_profiles_cache
       WHERE id = $1
       LIMIT 1
@@ -293,7 +293,7 @@ const readCachedSpecProfiles = async (dbPool: Pool) => {
     [CACHE_ROW_ID]
   );
 
-  return rows[0]?.tree_payload ?? null;
+  return rows[0] ?? null;
 };
 
 const upsertSpecProfilesCache = async (dbPool: Pool, rawPayload: unknown, treePayload: unknown, payloadHash: string) => {
@@ -344,9 +344,9 @@ const syncAndGetSpecProfiles = async (dbPool: Pool) => {
       console.warn("GetAllSpecProfiles failed, using cache or fallback:", error instanceof Error ? error.message : String(error));
     }
 
-    const cachedTree = await readCachedSpecProfiles(dbPool);
-    if (cachedTree) {
-      return { tree: cachedTree, source: "database" };
+    const cached = await readCachedSpecProfiles(dbPool);
+    if (Array.isArray(cached?.raw_payload)) {
+      return { tree: merge1cIntoReferenceTree(cached.raw_payload), source: "database" };
     }
 
     return { tree: loadReferenceTree(), source: "fallback" };
