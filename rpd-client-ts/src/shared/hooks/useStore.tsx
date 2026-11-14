@@ -17,17 +17,10 @@ export interface SelectedTemplateData {
   year: string | undefined;
 }
 
-export type PlannedResultsFilters = {
-  profile: string;
-  formEducation: string;
-  year: number | null;
-};
-
 interface StoreState {
   jsonData: JsonData;
   selectedTemplateData: SelectedTemplateData;
   complectId: number | undefined;
-  plannedResultsFilters: PlannedResultsFilters;
   managerPage: string;
   isDrawerOpen: boolean;
   setJsonData: (data: JsonData) => void;
@@ -42,7 +35,6 @@ interface StoreState {
     year: string | undefined
   ) => void;
   setComplectId: (id: number) => void;
-  setPlannedResultsFilters: (filters: PlannedResultsFilters) => void;
   setManagerPage: (page: string) => void;
   toggleDrawer: () => void;
 }
@@ -61,11 +53,6 @@ export const useStore = create<StoreState>()(
     },
     managerPage: "selectData",
     complectId: undefined,
-    plannedResultsFilters: {
-      profile: "",
-      formEducation: "",
-      year: null,
-    },
     isDrawerOpen: true,
     setJsonData: (data) => {
       set((state) => {
@@ -143,11 +130,6 @@ export const useStore = create<StoreState>()(
     setComplectId: (id) => {
       set((state) => {
         state.complectId = id;
-      });
-    },
-    setPlannedResultsFilters: (filters) => {
-      set((state) => {
-        state.plannedResultsFilters = filters;
       });
     },
     setManagerPage: (page) => {

@@ -93,8 +93,7 @@ test('РОП редактирует часы плана и видит сохра
   await signIn(page, 'rop');
   await openComplect(page);
   await page.getByRole('row').filter({ hasText: discipline })
-    .getByRole('button', { name: 'Меню шаблона' }).click();
-  await page.getByRole('menuitem', { name: 'Открыть' }).click();
+    .getByRole('link', { name: discipline, exact: true }).click();
   await openContent(page);
 
   const independentWork = totalRow(page).getByRole('cell').nth(5).getByRole('spinbutton');
@@ -117,8 +116,7 @@ test('РОП редактирует часы плана и видит сохра
   await expect(page).toHaveURL(/\/complects$/);
   await openComplect(page);
   await page.getByRole('row').filter({ hasText: discipline })
-    .getByRole('button', { name: 'Меню шаблона' }).click();
-  await page.getByRole('menuitem', { name: 'Открыть' }).click();
+    .getByRole('link', { name: discipline, exact: true }).click();
   await openContent(page);
   await expect(page.getByRole('table', { name: 'Содержание дисциплины' })).toBeVisible();
   await expect(totalRow(page).getByRole('cell').nth(5).getByRole('spinbutton')).toHaveValue('32');
@@ -139,8 +137,7 @@ test('пары плана и суммы остаются внутри своих
   await signIn(page, 'rop');
   await openComplect(page);
   await page.getByRole('row').filter({ hasText: discipline })
-    .getByRole('button', { name: 'Меню шаблона' }).click();
-  await page.getByRole('menuitem', { name: 'Открыть' }).click();
+    .getByRole('link', { name: discipline, exact: true }).click();
   await openContent(page);
 
   const table = page.getByRole('table', { name: 'Содержание дисциплины' });

@@ -66,8 +66,7 @@ test('панель редактора у rop: зазор у нижних дей�
   await signIn(page, 'rop');
   await openComplect(page);
   await page.getByRole('row').filter({ hasText: disciplines.inProgress })
-    .getByRole('button', { name: 'Меню шаблона' }).click();
-  await page.getByRole('menuitem', { name: 'Открыть', exact: true }).click();
+    .getByRole('link', { name: disciplines.inProgress, exact: true }).click();
   await expect(page.getByRole('button', { name: 'Титульный лист' })).toBeVisible();
   await expectEditorPanel(page, ['Сформировать документ', 'Список РПД']);
 });

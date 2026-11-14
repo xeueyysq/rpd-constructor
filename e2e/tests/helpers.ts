@@ -47,7 +47,7 @@ export async function openComplect(page: Page, key: keyof typeof complects = 'ma
     await next.click();
     await expect(firstRow).not.toHaveText(previous);
   }
-  await row.getByRole('button', { name: 'Комплект РПД' }).click();
+  await row.getByRole('link', { name: complect.profile, exact: true }).click();
   await expect(page).toHaveURL(new RegExp(`/complects/${complect.uuid}$`));
   await expect(page.getByRole('row').filter({ hasText: key === 'main' ? disciplines.inProgress : disciplines.otherRop })).toBeVisible();
 }

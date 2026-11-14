@@ -1,6 +1,7 @@
 import CachedIcon from "@mui/icons-material/Cached";
 import DeleteIcon from "@mui/icons-material/Delete";
 import PlaylistAddCheckIcon from "@mui/icons-material/PlaylistAddCheck";
+import SchoolOutlinedIcon from "@mui/icons-material/SchoolOutlined";
 import { Box, Button, Tooltip } from "@mui/material";
 import { useMemo, useState } from "react";
 import { useDeleteRpdComplectsMutation } from "@entities/rpd-complect";
@@ -17,6 +18,7 @@ interface IComplectTableHeader {
   onBuildFundsClick?: () => void;
   onSyncApplied?: () => void;
   onImportClick?: () => void;
+  onCompetenciesClick?: () => void;
 }
 
 export function ComplectTableHeader({
@@ -27,6 +29,7 @@ export function ComplectTableHeader({
   onBuildFundsClick,
   onSyncApplied,
   onImportClick,
+  onCompetenciesClick,
 }: IComplectTableHeader) {
   const [openDeleteConfirm, setOpenDeleteConfirm] = useState<boolean>(false);
   const [openSyncDialog, setOpenSyncDialog] = useState(false);
@@ -70,12 +73,13 @@ export function ComplectTableHeader({
         px: 1.5,
         pt: 0.5,
         gap: "12px",
+        flexWrap: "wrap",
       }}
     >
       <Tooltip title={syncTooltip}>
         <span>
           <Button
-            variant="outlined"
+            variant="contained"
             startIcon={<CachedIcon />}
             disabled={syncDisabled}
             onClick={() => setOpenSyncDialog(true)}
@@ -109,11 +113,20 @@ export function ComplectTableHeader({
       )}
       {onBuildFundsClick && (
         <Button
-          variant="contained"
+          variant="outlined"
           startIcon={<PlaylistAddCheckIcon />}
           onClick={onBuildFundsClick}
         >
           Собрать ФОСы
+        </Button>
+      )}
+      {onCompetenciesClick && (
+        <Button
+          variant="outlined"
+          startIcon={<SchoolOutlinedIcon />}
+          onClick={onCompetenciesClick}
+        >
+          Компетенции
         </Button>
       )}
       <ConfirmActionDialog

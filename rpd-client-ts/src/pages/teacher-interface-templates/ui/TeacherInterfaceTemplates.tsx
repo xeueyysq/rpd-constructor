@@ -7,6 +7,7 @@ import {
   type MyTemplate,
 } from "@entities/template";
 import { TemplateWorkflowMenu } from "@features/template-workflow";
+import { SourcePickerDialog } from "@features/template-import";
 import { Box, CssBaseline, useTheme } from "@mui/material";
 import { RedirectPath } from "@shared/enums";
 import { useActionsColumn } from "@shared/hooks";
@@ -28,6 +29,8 @@ export function TeacherInterfaceTemplates() {
     null
   );
   const history = useTemplateHistory(historyTemplateId);
+  const [importTemplateId, setImportTemplateId] = useState<number | null>(null);
+  const importTemplate = data?.find((row) => row.id === importTemplateId);
   const statusColumnWidth = Number.parseFloat(theme.spacing(26));
   const actionsColumn = useActionsColumn<MyTemplate>();
   const columns = useMemo<MRT_ColumnDef<MyTemplate>[]>(
@@ -80,6 +83,14 @@ export function TeacherInterfaceTemplates() {
               )
             }
             onOpenHistory={() => setHistoryTemplateId(row.original.id)}
+            onImport={
+              row.original.status !== "ready" &&
+              row.original.allowedActions.some((action) =>
+                ["start", "finish", "reopen"].includes(action)
+              )
+                ? () => setImportTemplateId(row.original.id)
+                : undefined
+            }
           />
         ),
       },
@@ -111,6 +122,15 @@ export function TeacherInterfaceTemplates() {
         isError={history.isError}
         onClose={() => setHistoryTemplateId(null)}
       />
+      {importTemplate ? (
+        <SourcePickerDialog
+          key={importTemplate.id}
+          open
+          targetTemplateId={importTemplate.id}
+          targetLabel={`${importTemplate.disciplins_name} • ${importTemplate.profile} • ${importTemplate.year}`}
+          onClose={() => setImportTemplateId(null)}
+        />
+      ) : null}
     </Box>
   );
 }

@@ -1,20 +1,21 @@
 import HistoryIcon from "@mui/icons-material/History";
 import EditOutlinedIcon from "@mui/icons-material/EditOutlined";
-import MoreHorizIcon from "@mui/icons-material/MoreHoriz";
 import OpenInBrowserIcon from "@mui/icons-material/OpenInBrowser";
 import FileDownloadOutlinedIcon from "@mui/icons-material/FileDownloadOutlined";
-import { IconButton, ListItemIcon, Menu, MenuItem } from "@mui/material";
+import { ListItemIcon, Menu, MenuItem } from "@mui/material";
 import type { TemplateStatusCode, WorkflowAction } from "@entities/template";
 import {
   useTemplateWorkflowController,
   WorkflowActionIcon,
 } from "@features/template-workflow";
 import { RedirectPath, TemplatePagesPath } from "@shared/enums";
-import { useId, useState, type MouseEvent } from "react";
+import { useId, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { ImportFromComplectsDialog } from "./ImportFromComplectsDialog";
 
 interface Props {
+  position: { top: number; left: number } | null;
+  onClose: () => void;
   id: number | null;
   status: TemplateStatusCode;
   removedAt?: string | null;
@@ -29,6 +30,8 @@ interface Props {
 }
 
 export default function TemplateMenu({
+  position,
+  onClose,
   id,
   status,
   removedAt,
@@ -41,7 +44,6 @@ export default function TemplateMenu({
   canEditTeachers,
   onEditTeachers,
 }: Props) {
-  const [anchorEl, setAnchorEl] = useState<HTMLButtonElement | null>(null);
   const menuId = useId();
   const workflow = useTemplateWorkflowController({
     templateId: id,
@@ -50,29 +52,19 @@ export default function TemplateMenu({
   });
   const [openImportDialog, setOpenImportDialog] = useState(false);
   const navigate = useNavigate();
-  const close = () => setAnchorEl(null);
+  const close = onClose;
   return (
     <>
-      <IconButton
-        aria-label="Меню шаблона"
-        aria-haspopup="menu"
-        aria-controls={anchorEl ? menuId : undefined}
-        aria-expanded={Boolean(anchorEl)}
-        disabled={workflow.isPending}
-        onClick={(event: MouseEvent<HTMLButtonElement>) =>
-          setAnchorEl(event.currentTarget)
-        }
-      >
-        <MoreHorizIcon />
-      </IconButton>
       <Menu
         id={menuId}
-        anchorEl={anchorEl}
-        open={Boolean(anchorEl)}
+        anchorReference="anchorPosition"
+        anchorPosition={position ?? undefined}
+        open={Boolean(position)}
         onClose={close}
       >
         {id != null ? (
           <MenuItem
+            disabled={workflow.isPending}
             onClick={() => {
               close();
               navigate(
@@ -88,6 +80,7 @@ export default function TemplateMenu({
         ) : null}
         {canEditTeachers && id != null ? (
           <MenuItem
+            disabled={workflow.isPending}
             onClick={() => {
               close();
               onEditTeachers();
@@ -103,6 +96,7 @@ export default function TemplateMenu({
         ) : null}
         {id != null && status !== "ready" && !removedAt ? (
           <MenuItem
+            disabled={workflow.isPending}
             onClick={() => {
               close();
               setOpenImportDialog(true);
@@ -116,6 +110,7 @@ export default function TemplateMenu({
         ) : null}
         {id != null ? (
           <MenuItem
+            disabled={workflow.isPending}
             onClick={() => {
               close();
               onOpenHistory();

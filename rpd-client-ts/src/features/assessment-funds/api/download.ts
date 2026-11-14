@@ -1,27 +1,13 @@
-import { useMutation, useQuery } from "@tanstack/react-query";
+import { useMutation } from "@tanstack/react-query";
 import { axiosBase } from "@shared/api";
 import { filenameFromContentDisposition } from "@shared/lib";
-
-type ResultsRow = {
-  competence: string;
-  indicator: string;
-  disciplines: string[];
-};
+import { useComplectCompetencies } from "@entities/rpd-complect";
 
 export function useAssessmentFundsCompetencies(
   complectId: string,
   enabled: boolean
 ) {
-  return useQuery({
-    queryKey: ["assessment-funds-competencies", complectId],
-    queryFn: async () => {
-      const { data } = await axiosBase.get<ResultsRow[]>("get-results-data", {
-        params: { complectId },
-      });
-      return Array.isArray(data) ? data : [];
-    },
-    enabled,
-  });
+  return useComplectCompetencies(complectId, enabled);
 }
 
 export function excelFilename(contentDisposition: unknown): string {

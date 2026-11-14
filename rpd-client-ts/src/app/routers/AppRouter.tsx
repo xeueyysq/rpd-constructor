@@ -2,7 +2,13 @@ import { Loader } from "@shared/ui/";
 import { ClippedDrawer } from "@app/layout/ClippedDrawer";
 import { keys } from "lodash";
 import { Suspense } from "react";
-import { BrowserRouter, Route, Routes, useLocation } from "react-router-dom";
+import {
+  BrowserRouter,
+  Navigate,
+  Route,
+  Routes,
+  useLocation,
+} from "react-router-dom";
 import { ProtectedRoute, RoleBasedRedirect } from "@app/routers/ProtectedRoute";
 import { routes } from "./routeConfig";
 import { RedirectPath } from "@shared/enums";
@@ -29,6 +35,10 @@ export const AppRouter = () => {
       <Suspense fallback={<Loader />}>
         <Routes>
           <Route element={<ClippedDrawer />}>
+            <Route
+              path={RedirectPath.PLANNED_RESULTS}
+              element={<Navigate to={RedirectPath.COMPLECTS} replace />}
+            />
             {keys(routes).map((path) => (
               <Route
                 key={path}
