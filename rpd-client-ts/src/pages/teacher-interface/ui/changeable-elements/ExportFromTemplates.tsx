@@ -23,9 +23,11 @@ const fieldLabels: Record<ImportField, string> = {
 export function ExportFromTemplates({
   elementName,
   setChangeableValue,
+  disabled = false,
 }: {
   elementName: string;
   setChangeableValue?: (value: unknown) => void;
+  disabled?: boolean;
 }) {
   const jsonData = useStore((state) => state.jsonData);
   const [open, setOpen] = useState(false);
@@ -37,6 +39,7 @@ export function ExportFromTemplates({
         variant="outlined"
         startIcon={<FileDownloadOutlinedIcon />}
         disabled={
+          disabled ||
           !jsonData.id ||
           ["ready", "closed"].includes(
             String(jsonData.current_status ?? jsonData.status ?? "")
