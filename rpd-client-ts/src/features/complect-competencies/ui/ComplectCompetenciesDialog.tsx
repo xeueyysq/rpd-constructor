@@ -180,7 +180,8 @@ function CompetenciesSession({
         <Box>
           <Button
             component="label"
-            variant="outlined"
+            variant="contained"
+            color="primary"
             startIcon={<UploadFileIcon />}
             disabled={busy || query.isPending}
           >
@@ -220,10 +221,11 @@ function CompetenciesSession({
             aria-label="Компетенции комплекта"
             sx={{
               tableLayout: "fixed",
+              height: query.data?.length ? undefined : "100%",
               "& th, & td": { p: 1.5, verticalAlign: "top" },
             }}
           >
-            <TableHead>
+            <TableHead sx={{ height: "1px" }}>
               <TableRow>
                 <TableCell>
                   Формируемые компетенции (код и наименование)
@@ -250,10 +252,17 @@ function CompetenciesSession({
                 ))
               ) : (
                 <TableRow>
-                  <TableCell colSpan={3}>
-                    {query.isPending
-                      ? "Загрузка…"
-                      : "Компетенции пока не были загружены"}
+                  <TableCell
+                    colSpan={3}
+                    sx={{
+                      "&&": { verticalAlign: "middle", textAlign: "center" },
+                    }}
+                  >
+                    <Typography component="span">
+                      {query.isPending
+                        ? "Загрузка…"
+                        : "Компетенции пока не были загружены"}
+                    </Typography>
                   </TableCell>
                 </TableRow>
               )}

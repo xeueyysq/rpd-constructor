@@ -31,11 +31,8 @@ export function CompactDialogTheme({ children }: { children: ReactNode }) {
             MuiButton: {
               defaultProps: { disableElevation: true },
               styleOverrides: {
-                root: { minHeight: 36, paddingInline: 12, boxShadow: "none" },
+                root: { boxShadow: "none" },
               },
-            },
-            MuiIconButton: {
-              styleOverrides: { root: { width: 36, height: 36 } },
             },
             MuiDialog: {
               styleOverrides: {

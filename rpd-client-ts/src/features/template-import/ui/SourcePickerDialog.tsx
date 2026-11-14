@@ -43,6 +43,8 @@ import { WordImportDialog } from "./WordImportDialog";
 import { SourcePickerTable } from "./SourcePickerTable";
 import { sourceLabel } from "../lib/sourceLabel";
 
+const SOURCE_PAGE_SIZE = 10;
+
 type Props = {
   open: boolean;
   targetLabel: string;
@@ -162,7 +164,7 @@ function SourcePickerSession(props: Props) {
     ...(hierarchy.direction ? { direction: hierarchy.direction } : {}),
     ...(hierarchy.profile ? { profile: hierarchy.profile } : {}),
     page,
-    pageSize: 10,
+    pageSize: SOURCE_PAGE_SIZE,
   };
   const catalog = useImportCatalog(
     query,
@@ -326,6 +328,128 @@ function SourcePickerSession(props: Props) {
     {}
   );
 
+  const toolbar = (
+    <Box sx={{ px: { xs: 2, sm: 3 }, pb: 1.5 }}>
+      <Box
+        sx={{
+          display: "grid",
+          gridTemplateColumns: "repeat(3, minmax(0, 1fr))",
+          gap: 1.5,
+        }}
+      >
+        {facetFields.map(([key, label, values]) => (
+          <Box key={key} sx={{ minWidth: 0 }}>
+            <Typography
+              component="label"
+              htmlFor={id + "-" + key}
+              variant="caption"
+              sx={{
+                display: "flex",
+                alignItems: "flex-end",
+                height: { xs: "2lh", sm: 24 },
+                mb: 0.5,
+                color: "text.secondary",
+              }}
+            >
+              {label}
+            </Typography>
+            <TextField
+              select
+              id={id + "-" + key}
+              fullWidth
+              disabled={busy}
+              value={hierarchy[key]}
+              onChange={(event) => changeHierarchy(key, event.target.value)}
+              slotProps={{ select: { native: true } }}
+              sx={{
+                "& .MuiInputBase-root": { height: 36, typography: "body2" },
+              }}
+            >
+              <option value="">Все</option>
+              {Array.from(new Set([hierarchy[key], ...(values ?? [])]))
+                .filter(Boolean)
+                .map((value) => (
+                  <option key={value} value={value}>
+                    {value}
+                  </option>
+                ))}
+            </TextField>
+          </Box>
+        ))}
+      </Box>
+      <Stack direction="row" spacing={1} sx={{ mt: 1.5, alignItems: "center" }}>
+        <TextField
+          label="Поиск источников"
+          type="search"
+          fullWidth
+          value={searchInput}
+          disabled={busy}
+          onChange={(event) => {
+            setSearchInput(event.target.value);
+            setPage(1);
+            clearChoice();
+          }}
+          sx={{
+            minWidth: 0,
+            "& .MuiInputBase-root": { height: 36, typography: "body2" },
+          }}
+        />
+        <Button onClick={resetFilters} disabled={busy} sx={{ flexShrink: 0 }}>
+          Сбросить
+        </Button>
+      </Stack>
+      {scope === "single" && (
+        <FormControlLabel
+          sx={{ mt: 0.5, mb: -0.5 }}
+          control={
+            <Checkbox
+              checked={readyOnly}
+              disabled={busy}
+              onChange={(event) => {
+                setReadyOnly(event.target.checked);
+                setPage(1);
+                clearChoice();
+              }}
+            />
+          }
+          label={<Typography variant="body2">Только готовые</Typography>}
+        />
+      )}
+      {field && (
+        <Tabs
+          value={mode}
+          aria-label="Источник раздела"
+          variant="fullWidth"
+          onChange={(_, value: typeof mode) => {
+            setMode(value);
+            setPage(1);
+            clearChoice();
+          }}
+          sx={{
+            mt: 0.5,
+            minHeight: 36,
+            "& .MuiTab-root": { minHeight: 36, px: 1 },
+          }}
+        >
+          <Tab
+            value="other-complect"
+            label="Другой комплект"
+            id={id + "-complect-tab"}
+            aria-controls={id + "-results"}
+            disabled={busy}
+          />
+          <Tab
+            value="other-year"
+            label="Другой год"
+            id={id + "-year-tab"}
+            aria-controls={id + "-results"}
+            disabled={busy}
+          />
+        </Tabs>
+      )}
+    </Box>
+  );
+
   return (
     <>
       <Dialog
@@ -347,10 +471,6 @@ function SourcePickerSession(props: Props) {
                 : "min(980px, calc(100dvh - 88px))",
               maxHeight: mobile ? "calc(100dvh - 64px)" : "calc(100dvh - 88px)",
               overflow: "hidden",
-              "& .MuiButton-root, & .MuiIconButton-root": {
-                minHeight: 36,
-                typography: "button",
-              },
             },
           },
         }}
@@ -393,133 +513,6 @@ function SourcePickerSession(props: Props) {
             <CloseIcon />
           </IconButton>
         </DialogTitle>
-        <Box sx={{ px: { xs: 2, sm: 3 }, pb: 1.5 }}>
-          <Box
-            sx={{
-              display: "grid",
-              gridTemplateColumns: "repeat(3, minmax(0, 1fr))",
-              gap: 1.5,
-            }}
-          >
-            {facetFields.map(([key, label, values]) => (
-              <Box key={key} sx={{ minWidth: 0 }}>
-                <Typography
-                  component="label"
-                  htmlFor={id + "-" + key}
-                  variant="caption"
-                  sx={{
-                    display: "flex",
-                    alignItems: "flex-end",
-                    height: { xs: "2lh", sm: 24 },
-                    mb: 0.5,
-                    color: "text.secondary",
-                  }}
-                >
-                  {label}
-                </Typography>
-                <TextField
-                  select
-                  id={id + "-" + key}
-                  fullWidth
-                  disabled={busy}
-                  value={hierarchy[key]}
-                  onChange={(event) => changeHierarchy(key, event.target.value)}
-                  slotProps={{ select: { native: true } }}
-                  sx={{
-                    "& .MuiInputBase-root": { height: 36, typography: "body2" },
-                  }}
-                >
-                  <option value="">Все</option>
-                  {Array.from(new Set([hierarchy[key], ...(values ?? [])]))
-                    .filter(Boolean)
-                    .map((value) => (
-                      <option key={value} value={value}>
-                        {value}
-                      </option>
-                    ))}
-                </TextField>
-              </Box>
-            ))}
-          </Box>
-          <Stack
-            direction="row"
-            spacing={1}
-            sx={{ mt: 1.5, alignItems: "center" }}
-          >
-            <TextField
-              label="Поиск источников"
-              type="search"
-              fullWidth
-              value={searchInput}
-              disabled={busy}
-              onChange={(event) => {
-                setSearchInput(event.target.value);
-                setPage(1);
-                clearChoice();
-              }}
-              sx={{
-                minWidth: 0,
-                "& .MuiInputBase-root": { height: 36, typography: "body2" },
-              }}
-            />
-            <Button
-              onClick={resetFilters}
-              disabled={busy}
-              sx={{ flexShrink: 0 }}
-            >
-              Сбросить
-            </Button>
-          </Stack>
-          {scope === "single" && (
-            <FormControlLabel
-              sx={{ mt: 0.5, mb: -0.5 }}
-              control={
-                <Checkbox
-                  checked={readyOnly}
-                  disabled={busy}
-                  onChange={(event) => {
-                    setReadyOnly(event.target.checked);
-                    setPage(1);
-                    clearChoice();
-                  }}
-                />
-              }
-              label={<Typography variant="body2">Только готовые</Typography>}
-            />
-          )}
-          {field && (
-            <Tabs
-              value={mode}
-              aria-label="Источник раздела"
-              variant="fullWidth"
-              onChange={(_, value: typeof mode) => {
-                setMode(value);
-                setPage(1);
-                clearChoice();
-              }}
-              sx={{
-                mt: 0.5,
-                minHeight: 36,
-                "& .MuiTab-root": { minHeight: 36, px: 1 },
-              }}
-            >
-              <Tab
-                value="other-complect"
-                label="Другой комплект"
-                id={id + "-complect-tab"}
-                aria-controls={id + "-results"}
-                disabled={busy}
-              />
-              <Tab
-                value="other-year"
-                label="Другой год"
-                id={id + "-year-tab"}
-                aria-controls={id + "-results"}
-                disabled={busy}
-              />
-            </Tabs>
-          )}
-        </Box>
         <DialogContent
           id={id + "-results"}
           role={field ? "tabpanel" : undefined}
@@ -548,118 +541,88 @@ function SourcePickerSession(props: Props) {
               </Button>
             </Alert>
           )}
-          {result ? (
-            <Box sx={{ p: 2 }}>
-              <Alert severity="success">
-                Импортировано: {result.counts.imported}. Пропущено:{" "}
-                {result.counts.skipped}. Всего: {result.counts.total}.
-              </Alert>
-              {Object.entries(skipCounts ?? {}).map(([reason, count]) => (
-                <Typography key={reason} variant="body2" sx={{ mt: 1 }}>
-                  {importSkipLabels[reason as keyof typeof importSkipLabels]}:{" "}
-                  {count}
-                </Typography>
-              ))}
-            </Box>
-          ) : !current && !catalog.isError ? (
-            <Typography role="status" sx={{ p: 3 }}>
-              Загрузка источников…
-            </Typography>
-          ) : current && (bulk ? complects : templates).length === 0 ? (
-            <Typography role="status" sx={{ p: 3 }}>
-              По выбранным условиям источников нет. Измените фильтры.
-            </Typography>
-          ) : (
-            <SourcePickerTable
-              rows={bulk ? complects : templates}
-              bulk={bulk}
-              field={Boolean(field)}
-              busy={busy}
-              total={catalog.data?.total ?? 0}
-              page={page}
-              selectedId={selectedId}
-              previewId={previewId}
-              previewRegionId={id + "-preview"}
-              onSelect={(sourceId) => {
-                setSelectedId(sourceId);
-                setSelectedRevision(catalog.data?.targetRevision ?? null);
-                setError(null);
-              }}
-              onPreview={setPreviewId}
-              onPage={(next) => {
-                setPage(next);
-                clearChoice();
-              }}
-              preview={
-                <FieldPreviewRegion id={id + "-preview"} label={fieldLabel}>
-                  {preview.isFetching ? (
-                    <Typography role="status">
-                      Загрузка предпросмотра…
+          <SourcePickerTable
+            rows={result ? [] : bulk ? complects : templates}
+            bulk={bulk}
+            field={Boolean(field)}
+            busy={busy || !current || needsReload}
+            total={catalog.data?.total ?? 0}
+            page={page}
+            pageSize={SOURCE_PAGE_SIZE}
+            toolbar={toolbar}
+            emptyState={
+              result ? (
+                <Box sx={{ p: 2 }}>
+                  <Alert severity="success">
+                    Импортировано: {result.counts.imported}. Пропущено:{" "}
+                    {result.counts.skipped}. Всего: {result.counts.total}.
+                  </Alert>
+                  {Object.entries(skipCounts ?? {}).map(([reason, count]) => (
+                    <Typography key={reason} variant="body2" sx={{ mt: 1 }}>
+                      {
+                        importSkipLabels[
+                          reason as keyof typeof importSkipLabels
+                        ]
+                      }
+                      : {count}
                     </Typography>
-                  ) : preview.isError ? (
-                    <Alert severity="error">
-                      {templateImportError(preview.error)}
-                      <Button onClick={() => void preview.refetch()}>
-                        Повторить
-                      </Button>
-                    </Alert>
-                  ) : previewValue && field ? (
-                    <FullFieldPreview
-                      value={previewValue[field]}
-                      content={field === "content"}
-                    />
-                  ) : null}
-                </FieldPreviewRegion>
-              }
-            />
-          )}
-        </DialogContent>
-        {!result && (
-          <Box
-            sx={{
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "space-between",
-              px: 2,
-              py: 0.5,
-              gap: 1,
-              borderBottom: 1,
-              borderColor: "divider",
+                  ))}
+                </Box>
+              ) : !current && !catalog.isError ? (
+                <Typography role="status" sx={{ p: 3 }}>
+                  Загрузка источников…
+                </Typography>
+              ) : current && (bulk ? complects : templates).length === 0 ? (
+                <Typography role="status" sx={{ p: 3 }}>
+                  По выбранным условиям источников нет. Измените фильтры.
+                </Typography>
+              ) : null
+            }
+            showPagination={!result}
+            selectedId={selectedId}
+            previewId={previewId}
+            previewRegionId={id + "-preview"}
+            onSelect={(sourceId) => {
+              if (
+                !current ||
+                busy ||
+                needsReload ||
+                !catalog.data?.targetRevision ||
+                !(bulk ? complects : templates).some(
+                  (row) => row.id === sourceId
+                )
+              )
+                return;
+              setSelectedId(sourceId);
+              setSelectedRevision(catalog.data?.targetRevision ?? null);
+              setError(null);
             }}
-          >
-            <Typography variant="body2" sx={{ color: "text.secondary" }}>
-              {current ? "Найдено: " + catalog.data?.total : "Поиск…"}
-            </Typography>
-            <Stack direction="row" sx={{ alignItems: "center" }}>
-              <Button
-                aria-label="Предыдущая страница"
-                disabled={busy || !current || page === 1}
-                onClick={() => {
-                  setPage(page - 1);
-                  clearChoice();
-                }}
-              >
-                Назад
-              </Button>
-              <Typography variant="body2" sx={{ whiteSpace: "nowrap" }}>
-                {page} /{" "}
-                {Math.max(1, Math.ceil((catalog.data?.total ?? 0) / 10))}
-              </Typography>
-              <Button
-                aria-label="Следующая страница"
-                disabled={
-                  busy || !current || page * 10 >= (catalog.data?.total ?? 0)
-                }
-                onClick={() => {
-                  setPage(page + 1);
-                  clearChoice();
-                }}
-              >
-                Далее
-              </Button>
-            </Stack>
-          </Box>
-        )}
+            onPreview={setPreviewId}
+            onPage={(next) => {
+              setPage(next);
+              clearChoice();
+            }}
+            preview={
+              <FieldPreviewRegion id={id + "-preview"} label={fieldLabel}>
+                {preview.isFetching ? (
+                  <Typography role="status">Загрузка предпросмотра…</Typography>
+                ) : preview.isError ? (
+                  <Alert severity="error">
+                    {templateImportError(preview.error)}
+                    <Button onClick={() => void preview.refetch()}>
+                      Повторить
+                    </Button>
+                  </Alert>
+                ) : previewValue && field ? (
+                  <FullFieldPreview
+                    value={previewValue[field]}
+                    content={field === "content"}
+                  />
+                ) : null}
+              </FieldPreviewRegion>
+            }
+          />
+        </DialogContent>
         <DialogActions sx={{ px: 2, py: 1.5, gap: 1 }}>
           <Typography
             variant="body2"
@@ -698,7 +661,6 @@ function SourcePickerSession(props: Props) {
             sx: {
               maxHeight: "calc(100dvh - 88px)",
               m: 2,
-              "& .MuiButton-root": { minHeight: 36, typography: "button" },
             },
           },
         }}

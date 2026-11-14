@@ -1,5 +1,5 @@
 import { readFileSync } from "node:fs";
-import { expect, test } from "@playwright/test";
+import { expect, test, type Request as BrowserRequest } from "@playwright/test";
 import { openComplect, password, signIn } from "../helpers.ts";
 import { apiUrl } from "../helpers.ts";
 import { headersFor, openFixtureComplect } from "../list3.ts";
@@ -8,8 +8,27 @@ import { openRowMenu } from "../teacherAssignments.ts";
 const screenshotPath = new URL("../../../rpd-client-ts/public/docs/media/complect-table.png", import.meta.url).pathname;
 const screenshot = readFileSync(screenshotPath);
 
-test("ошибка отправки сохраняет заполненную форму и изображение до успешного повтора", async ({ page }) => {
+async function submittedFeedback(request: BrowserRequest) {
+  const form = await new Request(request.url(), {
+    method: 'POST',
+    headers: { 'content-type': request.headers()['content-type'] },
+    body: new Uint8Array(request.postDataBuffer()!),
+  }).formData();
+  return {
+    payload: JSON.parse(String(form.get('payload'))) as {
+      clientReportId: string;
+      context: Record<string, unknown>;
+      goal: string;
+      actual: string;
+      blocking: boolean;
+    },
+  };
+}
+
+test("ошибка отправки сохраняет заполненную форму и изображение до успешного повтора", async ({ page, request }) => {
   await signIn(page, "teacher");
+  await page.goto('/templates/d400d400d400/aimsPage');
+  await expect(page.getByRole('button', { name: 'Импортировать поле', exact: true })).toBeVisible();
   await page.getByRole("button", { name: "Сообщить о проблеме" }).click();
   const dialog = page.getByRole("dialog", { name: "Сообщить о проблеме" });
   const goal = dialog.getByRole("textbox", { name: "Что хотели сделать" });
@@ -34,8 +53,15 @@ test("ошибка отправки сохраняет заполненную ф
   });
   const started = page.waitForRequest((request) => request.url().endsWith('/api/feedback') && request.method() === 'POST');
   await dialog.getByRole("button", { name: /отправить/i }).click();
-  await started;
+  const firstRequest = await started;
+  let firstSubmission: Awaited<ReturnType<typeof submittedFeedback>>;
   try {
+    firstSubmission = await submittedFeedback(firstRequest);
+    expect(firstSubmission.payload.clientReportId).toMatch(/^[\da-f]{8}-[\da-f]{4}-4[\da-f]{3}-[89ab][\da-f]{3}-[\da-f]{12}$/i);
+    expect(firstSubmission.payload).toMatchObject({ goal: 'Открыть шаблон дисциплины', actual: 'Не удалось сохранить изменения', blocking: true });
+    expect(firstSubmission.payload.context).toMatchObject({ templateId: 4000, complectId: 400,
+      route: '/templates/d400d400d400/aimsPage', discipline: 'Длинное название дисциплины для проверки импорта UI' });
+    expect(firstSubmission.payload.context.clientRelease).toEqual(expect.any(String));
     await expect(goal).toBeDisabled();
     await expect(actual).toBeDisabled();
     await expect(dialog.getByRole('checkbox')).toBeDisabled();
@@ -46,11 +72,22 @@ test("ошибка отправки сохраняет заполненную ф
   await expect(goal).toHaveValue("Открыть шаблон дисциплины");
   await expect(actual).toHaveValue("Не удалось сохранить изменения");
   await expect(dialog.getByRole("img", { name: /скриншот/i })).toBeVisible();
+  const retainedImage = await dialog.getByRole('img', { name: /скриншот/i }).evaluate(async (image: HTMLImageElement) =>
+    Array.from(new Uint8Array(await (await fetch(image.src)).arrayBuffer())));
+  expect(Buffer.from(retainedImage)).toEqual(screenshot);
 
   const accepted = page.waitForResponse((response) => response.url().endsWith("/api/feedback") && response.status() === 201);
   await dialog.getByRole("button", { name: /отправить/i }).click();
-  const receipt = await (await accepted).json() as { id: string; code: string };
+  const response = await accepted;
+  const retriedSubmission = await submittedFeedback(response.request());
+  expect(retriedSubmission).toEqual(firstSubmission);
+  const receipt = await response.json() as { id: string; code: string };
   expect(receipt.code).toMatch(/^RPD-\d+$/);
+  const uploaded = await request.get(`${apiUrl}/api/feedback/${receipt.id}/screenshot`, {
+    headers: await headersFor(request, 'admin'),
+  });
+  expect(uploaded.status()).toBe(200);
+  expect(await uploaded.body()).toEqual(screenshot);
   await expect(page.getByText(receipt.code, { exact: true })).toBeVisible();
 });
 
@@ -157,7 +194,8 @@ test("один глобальный контрол в обычной стран�
   await radio.focus();
   await page.keyboard.press("Alt+Shift+P");
   await expect(report).toBeVisible();
-  await expect(report).toContainText("Длинное название дисциплины для проверки импорта UI");
+  await expect(report.locator('details, summary, pre')).toHaveCount(0);
+  await expect(report).not.toContainText('Контекст:');
   for (const key of ['Tab', 'Shift+Tab']) {
     for (let step = 0; step < 18; step++) {
       await page.keyboard.press(key);
@@ -177,7 +215,10 @@ test("один глобальный контрол в обычной стран�
   await report.getByRole("textbox", { name: "Что получилось" }).fill("Проверка контекста цели");
   const accepted = page.waitForResponse((response) => response.url().endsWith("/api/feedback") && response.status() === 201);
   await report.getByRole("button", { name: "Отправить обращение" }).click();
-  const receipt = await (await accepted).json() as { id: string };
+  const response = await accepted;
+  expect((await submittedFeedback(response.request())).payload.context).toMatchObject({ templateId: 4000, complectId: 400,
+    discipline: 'Длинное название дисциплины для проверки импорта UI' });
+  const receipt = await response.json() as { id: string };
   const admin = await headersFor(request, "admin");
   const detail = await request.get(apiUrl + "/api/feedback/" + receipt.id, { headers: admin });
   expect(detail.status()).toBe(200);
@@ -190,17 +231,24 @@ test("один глобальный контрол в обычной стран�
   await expect(trigger).toHaveCount(1);
   await trigger.click();
   await expect(report).toBeVisible();
-  await expect(report).toContainText("Длинное название дисциплины для проверки импорта UI");
+  await expect(report).not.toContainText("Длинное название дисциплины для проверки импорта UI");
   await page.keyboard.press("Escape");
   await expect(word).toBeVisible();
   await expect(trigger).toBeFocused();
   await word.getByRole("button", { name: "Отмена", exact: true }).click();
   await trigger.click();
   await expect(report).not.toContainText("Длинное название дисциплины для проверки импорта UI");
-  await expect(report).toContainText("Комплект № 400");
+  await report.getByRole('textbox', { name: 'Что хотели сделать' }).fill('Открыть комплект');
+  await report.getByRole('textbox', { name: 'Что получилось' }).fill('Проверка контекста после закрытия импорта');
+  const complectSubmission = page.waitForResponse((sent) => sent.url().endsWith('/api/feedback') && sent.status() === 201);
+  await report.getByRole('button', { name: 'Отправить обращение' }).click();
+  const complectContext = (await submittedFeedback((await complectSubmission).request())).payload.context;
+  expect(complectContext).toMatchObject({ complectId: 400 });
+  expect(complectContext).not.toHaveProperty('templateId');
+  expect(complectContext).not.toHaveProperty('discipline');
 });
 
-test('просторная форма и раскрываемый безопасный контекст на 1365/768/390/320', async ({ page }, testInfo) => {
+test('просторная форма: подписи сверху, компактные кнопки и скрытый контекст на 1365/768/390/320', async ({ page }, testInfo) => {
   await signIn(page, 'teacher');
   for (const [width, height] of [[1365, 900], [768, 1024], [390, 844], [320, 640]]) {
     await page.setViewportSize({ width, height });
@@ -211,19 +259,20 @@ test('просторная форма и раскрываемый безопас
     const dimensions = await Promise.all([goal, actual].map((field) => field.evaluate((element) => ({
       height: element.getBoundingClientRect().height,
       lineHeight: Number.parseFloat(getComputedStyle(element).lineHeight),
+      top: element.getBoundingClientRect().top,
+      labelBottom: (element as HTMLTextAreaElement).labels![0].getBoundingClientRect().bottom,
     }))));
     dimensions.forEach((size, index) => expect(size.height).toBeGreaterThanOrEqual(size.lineHeight * (width < 600 ? 5 : index === 0 ? 6 : 8)));
+    dimensions.forEach((size) => expect(size.labelBottom).toBeLessThanOrEqual(size.top + 1));
     const panel = await dialog.boundingBox();
     expect(panel!.width).toBeLessThanOrEqual(width);
     if (width === 1365) expect(panel!.width).toBeCloseTo(800, 0);
-    const details = dialog.locator('details');
-    await expect(details).not.toHaveAttribute('open');
-    const summary = details.locator('summary');
-    await expect(summary).toContainText('Контекст:');
-    await summary.click();
-    await expect(details).toHaveAttribute('open', '');
-    await expect(details.locator('pre')).toContainText('clientRelease');
-    await summary.click();
+    await expect(dialog.locator('details, summary, pre')).toHaveCount(0);
+    await expect(dialog).not.toContainText(/Контекст:|clientRelease|templateId|JSON/);
+    for (const name of ['Прикрепить скриншот', 'Отмена', 'Отправить обращение']) {
+      const button = await dialog.getByRole('button', { name, exact: true }).boundingBox();
+      expect(button!.height).toBeLessThan(36);
+    }
     await goal.fill('Длинное описание действий.\n'.repeat(80));
     await actual.fill('Полное описание результата.\n'.repeat(120));
     await expect(dialog.getByRole('button', { name: 'Отправить обращение' })).toBeInViewport();

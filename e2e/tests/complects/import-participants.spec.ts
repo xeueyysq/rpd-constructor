@@ -77,7 +77,11 @@ test('полный импорт чужого черновика того же г
   const otherSemester = dialog.getByRole('radio', { name: /Импорт поля list3.*семестр 2.*List3 Источники.*2026/i });
   await expect(source).toBeVisible();
   await expect(otherSemester).toHaveCount(1);
-  await source.check();
+  const sourceRow = source.locator('xpath=ancestor::tr');
+  await sourceRow.getByRole('cell').nth(1).click();
+  await expect(source).toBeChecked();
+  await expect(otherSemester).not.toBeChecked();
+  await expect(sourceRow).toHaveAttribute('aria-selected', 'true');
   await dialog.getByRole('button', { name: 'Продолжить', exact: true }).click();
   const confirmation = page.getByRole('dialog', { name: 'Подтвердите импорт', exact: true });
   await expect(confirmation).not.toContainText('Цель:');
@@ -129,7 +133,12 @@ test('массовый импорт: точный семестр и тип, ит
     && new URL(response.url()).searchParams.get('search') === 'List3 Источники');
   await dialog.getByRole('searchbox', { name: 'Поиск источников' }).fill('List3 Источники');
   expect(new URL((await catalogResponse).url()).searchParams.has('status')).toBe(false);
-  await dialog.getByRole('radio', { name: /Другое направление List3.*List3 Источники.*2026/ }).check();
+  const source = dialog.getByRole('radio', { name: /Другое направление List3.*List3 Источники.*2026/ });
+  const sourceRow = source.locator('xpath=ancestor::tr');
+  await sourceRow.getByRole('cell').nth(1).click();
+  await expect(source).toBeChecked();
+  await expect(sourceRow).toHaveAttribute('aria-selected', 'true');
+  await dialog.screenshot({ path: testInfo.outputPath('bulk-import-selected.png') });
   await expect(dialog).toContainText('Другов Тест Тестович');
   await dialog.getByRole('button', { name: 'Продолжить', exact: true }).click();
   const confirmation = page.getByRole('dialog', { name: 'Подтвердите импорт', exact: true });
@@ -198,14 +207,34 @@ test('single преподавателя: плоская пагинация, то
     await dialog.screenshot({ path: test.info().outputPath('single-' + width + '.png') });
   }
   await page.setViewportSize({ width: 1365, height: 900 });
-  await dialog.getByRole('radio').first().check();
+  const firstSource = dialog.getByRole('radio').first();
+  const firstRow = firstSource.locator('xpath=ancestor::tr');
+  await firstRow.getByRole('cell').nth(1).click();
+  await expect(firstSource).toBeChecked();
+  await expect(firstRow).toHaveAttribute('aria-selected', 'true');
+  await dialog.screenshot({ path: test.info().outputPath('single-selected.png') });
+  const secondSource = dialog.getByRole('radio').nth(1);
+  const secondRow = secondSource.locator('xpath=ancestor::tr');
+  await secondRow.focus();
+  await page.keyboard.press('Space');
+  await expect(secondSource).toBeChecked();
+  await expect(firstSource).not.toBeChecked();
+  await firstRow.focus();
+  await page.keyboard.press('Enter');
+  await expect(firstSource).toBeChecked();
+  await expect(secondSource).not.toBeChecked();
   await expect(dialog.getByRole('button', { name: 'Продолжить' })).toBeEnabled();
+  const nextPage = page.waitForResponse((response) => response.url().includes('/api/template-import/catalog')
+    && new URL(response.url()).searchParams.get('page') === '2');
   await dialog.getByRole('button', { name: 'Следующая страница' }).click();
+  const nextCatalog = await nextPage;
+  expect(nextCatalog.status()).toBe(200);
+  expect(new URL(nextCatalog.url()).searchParams.get('pageSize')).toBe('10');
   await expect(dialog.getByRole('radio', { checked: true })).toHaveCount(0);
   await expect(dialog.getByRole('button', { name: 'Продолжить' })).toBeDisabled();
   await dialog.getByRole('combobox', { name: 'Факультет / институт' }).selectOption('Институт UI источников');
   await expect(dialog.getByRole('radio')).toHaveCount(10);
-  await dialog.getByRole('radio').first().check();
+  await dialog.getByRole('radio').first().locator('xpath=ancestor::tr').getByRole('cell').nth(1).click();
   await search.fill('нет такого источника UI');
   await expect(dialog.getByRole('button', { name: 'Продолжить' })).toBeDisabled();
   expect(await dialog.getByRole('radio').count()).toBe(0); // До завершения debounce старый список уже закрыт.

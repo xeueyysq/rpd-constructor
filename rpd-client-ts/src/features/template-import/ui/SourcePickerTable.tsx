@@ -1,9 +1,11 @@
 import { useMemo, type ReactNode } from "react";
 import { Box, IconButton, Radio, Tooltip, Typography } from "@mui/material";
 import useMediaQuery from "@mui/material/useMediaQuery";
+import { lighten } from "@mui/material/styles";
 import VisibilityOutlinedIcon from "@mui/icons-material/VisibilityOutlined";
 import {
-  MRT_TableContainer,
+  MaterialReactTable,
+  MRT_TablePagination,
   useMaterialReactTable,
   type MRT_ColumnDef,
 } from "material-react-table";
@@ -28,6 +30,10 @@ export function SourcePickerTable({
   busy,
   total,
   page,
+  pageSize,
+  toolbar,
+  emptyState,
+  showPagination,
   selectedId,
   previewId,
   previewRegionId,
@@ -42,6 +48,10 @@ export function SourcePickerTable({
   busy: boolean;
   total: number;
   page: number;
+  pageSize: number;
+  toolbar: ReactNode;
+  emptyState: ReactNode;
+  showPagination: boolean;
   selectedId: number | null;
   previewId: number | null;
   previewRegionId: string;
@@ -181,15 +191,20 @@ export function SourcePickerTable({
   const table = useMaterialReactTable({
     columns,
     data: rows,
-    localization: MRT_Localization_RU,
+    localization: {
+      ...MRT_Localization_RU,
+      goToPreviousPage: "Предыдущая страница",
+      goToNextPage: "Следующая страница",
+    },
     getRowId: (row) => String(row.id),
     layoutMode: "semantic",
     mrtTheme: (theme) => ({
       baseBackgroundColor: theme.palette.background.paper,
+      selectedRowBackgroundColor: lighten(theme.palette.info.main, 0.94),
     }),
     manualPagination: true,
     rowCount: total,
-    enableRowSelection: true,
+    enableRowSelection: !busy,
     enableMultiRowSelection: false,
     enableSelectAll: false,
     enableSorting: false,
@@ -197,25 +212,56 @@ export function SourcePickerTable({
     enableColumnFilters: false,
     enableGlobalFilter: false,
     enableKeyboardShortcuts: false,
-    enableTopToolbar: false,
-    enableBottomToolbar: false,
+    enableToolbarInternalActions: false,
+    enableTopToolbar: true,
+    enableBottomToolbar: showPagination,
     enableStickyHeader: true,
     enableExpandAll: false,
     enableExpanding: field,
     state: {
-      pagination: { pageIndex: page - 1, pageSize: 10 },
+      pagination: { pageIndex: page - 1, pageSize },
       rowSelection: selectedId == null ? {} : { [selectedId]: true },
       expanded: previewId == null ? {} : { [previewId]: true },
       density: "compact",
       columnVisibility: { period: !narrow, source: !narrow },
     },
     onPaginationChange: (updater) => {
-      const current = { pageIndex: page - 1, pageSize: 10 };
+      if (busy) return;
+      const current = { pageIndex: page - 1, pageSize };
       onPage(
         (typeof updater === "function" ? updater(current) : updater).pageIndex +
           1
       );
     },
+    renderTopToolbar: () => toolbar,
+    renderBottomToolbar: ({ table }) => (
+      <Box
+        sx={{
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "space-between",
+          flexWrap: "wrap",
+          px: 2,
+          gap: 1,
+          borderTop: 1,
+          borderColor: "divider",
+          "& .MuiTablePagination-root": { py: 0.5, px: 0, gap: 0.5 },
+        }}
+      >
+        <Typography variant="body2" sx={{ color: "text.secondary" }}>
+          Найдено: {total}
+        </Typography>
+        <MRT_TablePagination table={table} />
+      </Box>
+    ),
+    muiPaginationProps: {
+      disabled: busy,
+      showRowsPerPage: false,
+      rowsPerPageOptions: [pageSize],
+      showFirstButton: false,
+      showLastButton: false,
+    },
+    renderEmptyRowsFallback: () => emptyState,
     positionExpandColumn: "last",
     displayColumnDefOptions: {
       "mrt-row-select": {
@@ -232,6 +278,7 @@ export function SourcePickerTable({
             disabled={busy}
             slotProps={{ input: { "aria-label": sourceLabel(row.original) } }}
             onChange={() => onSelect(row.original.id)}
+            onClick={(event) => event.stopPropagation()}
             sx={{ p: 0.5 }}
           />
         ),
@@ -254,9 +301,10 @@ export function SourcePickerTable({
               aria-expanded={row.getIsExpanded()}
               aria-controls={row.getIsExpanded() ? previewRegionId : undefined}
               disabled={busy}
-              onClick={() =>
-                onPreview(row.getIsExpanded() ? null : row.original.id)
-              }
+              onClick={(event) => {
+                event.stopPropagation();
+                onPreview(row.getIsExpanded() ? null : row.original.id);
+              }}
             >
               <VisibilityOutlinedIcon
                 sx={{
@@ -273,6 +321,17 @@ export function SourcePickerTable({
     muiTableProps: {
       "aria-label": bulk ? "Комплекты источников" : "Дисциплины источников",
       sx: { width: "100%", tableLayout: "fixed", minWidth: 0 },
+    },
+    muiTablePaperProps: {
+      elevation: 0,
+      sx: {
+        flex: 1,
+        minHeight: 0,
+        minWidth: 0,
+        display: "flex",
+        flexDirection: "column",
+        borderRadius: 0,
+      },
     },
     muiTableContainerProps: {
       sx: {
@@ -312,8 +371,47 @@ export function SourcePickerTable({
         whiteSpace: "normal",
         verticalAlign: "middle",
         py: 0.75,
+        bgcolor: "background.paper",
       },
     },
+    muiTableBodyRowProps: ({ row }) => ({
+      tabIndex: busy ? -1 : 0,
+      "aria-selected": row.getIsSelected(),
+      "aria-disabled": busy,
+      onClick: (event) => {
+        if (
+          busy ||
+          (event.target instanceof Element &&
+            event.target.closest(
+              'button, a, input, select, textarea, [role="button"], [contenteditable="true"]'
+            ))
+        )
+          return;
+        onSelect(row.original.id);
+      },
+      onKeyDown: (event) => {
+        if (
+          busy ||
+          event.target !== event.currentTarget ||
+          (event.key !== "Enter" && event.key !== " ")
+        )
+          return;
+        event.preventDefault();
+        onSelect(row.original.id);
+      },
+      sx: (theme) => ({
+        cursor: busy ? "default" : "pointer",
+        // MRT рисует selection и hover также псевдоэлементом каждой ячейки.
+        "& > td:after, &:hover > td:after": {
+          backgroundColor: row.getIsSelected()
+            ? lighten(theme.palette.info.main, 0.94)
+            : theme.palette.action.hover,
+        },
+        "&:not(:hover):not(.Mui-selected) > td:after": {
+          backgroundColor: "transparent",
+        },
+      }),
+    }),
     muiDetailPanelProps: {
       sx: {
         p: "0 !important",
@@ -326,5 +424,5 @@ export function SourcePickerTable({
       ? ({ row }) => (row.getIsExpanded() ? preview : null)
       : undefined,
   });
-  return <MRT_TableContainer table={table} />;
+  return <MaterialReactTable table={table} />;
 }

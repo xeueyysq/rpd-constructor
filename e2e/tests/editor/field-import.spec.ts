@@ -11,7 +11,9 @@ async function chooseFieldSource(page: Page, button: Locator, mode: 'other-year'
   await expect(dialog.getByRole('combobox')).toHaveCount(3);
   await expect(dialog.getByRole('checkbox')).toHaveCount(0);
   if (mode === 'other-year') await dialog.getByRole('tab', { name: 'Другой год' }).click();
-  await dialog.getByRole('radio', { name: /семестр 1.*Дисциплина/i }).first().check();
+  const source = dialog.getByRole('radio', { name: /семестр 1.*Дисциплина/i }).first();
+  await source.locator('xpath=ancestor::tr').getByRole('cell').nth(1).click();
+  await expect(source).toBeChecked();
   const preview = page.waitForResponse((response) => {
     const url = new URL(response.url());
     return url.pathname === '/api/get-changeable-values' && url.searchParams.get('rowName') === field;
@@ -187,6 +189,7 @@ test('field: полные текст, литература и темы/часы;
     await expect(preview.getByRole('button', { name: 'Закрыть предпросмотр' })).toHaveCount(0);
     await expect(preview).not.toContainText('Поле пустое');
     await expect(dialog.getByRole('button', { name: 'Продолжить' })).toBeDisabled();
+    await expect(dialog.getByRole('radio', { checked: true })).toHaveCount(0);
     if (kind === 'text') {
       await expect(preview).toContainText('Последний абзац 4010');
       await expect(preview).toContainText('Последний пункт');
@@ -226,7 +229,21 @@ test('field: полные текст, литература и темы/часы;
     await expect(eye).toHaveAttribute('aria-expanded', 'false');
     await expect(preview).toHaveCount(0);
     await expect(eye).toBeFocused();
-    await dialog.getByRole('radio').first().check();
+    const source = dialog.getByRole('radio').first();
+    const sourceRow = source.locator('xpath=ancestor::tr');
+    await sourceRow.getByRole('cell').nth(1).click();
+    await expect(source).toBeChecked();
+    await expect(sourceRow).toHaveAttribute('aria-selected', 'true');
+    if (kind === 'text') {
+      await dialog.screenshot({ path: test.info().outputPath('field-selected.png') });
+      // Просмотр другой строки с клавиатуры не заменяет выбранный источник.
+      const otherEye = dialog.getByRole('button', { name: /^Просмотр:/ }).nth(1);
+      await otherEye.focus();
+      await page.keyboard.press('Enter');
+      await expect(otherEye).toHaveAttribute('aria-expanded', 'true');
+      await expect(source).toBeChecked();
+      await expect(dialog.getByRole('radio').nth(1)).not.toBeChecked();
+    }
     await expect(dialog.getByRole('button', { name: 'Продолжить' })).toBeEnabled();
     await dialog.getByRole('tab', { name: 'Другой год' }).click();
     await expect(dialog.getByRole('radio')).toHaveCount(1);
@@ -282,12 +299,12 @@ test('импорт content обновляет открытую таблицу б
   const value = { 0: { theme: 'Тема источника', lectures: 9, seminars: 7, independent_work: 8, control: 0 } };
   const response = await applyField(page, chosen.dialog, list3.fieldRop.id, 'content', value);
   expect(response.request().postDataJSON().baseAt).toBe(before.field_edits?.content?.at ?? null);
-  await expect(page.getByRole('table', { name: 'Содержание дисциплины', exact: true }).getByRole('textbox').first()).toHaveValue('Тема источника');
+  await expect(page.getByRole('table', { name: 'Содержание дисциплины', exact: true })).toContainText('Тема источника');
   const saved = await profileFor(request, headers, list3.fieldRop.id);
   expect(saved.content).toEqual(value);
   expect(saved.field_edits.content.userId).toBe(1);
   expect(Number.isNaN(Date.parse(saved.field_edits.content.at))).toBe(false);
   expect(templateFromDb(list3.fieldRop.id)).toMatchObject({ content: value, field_edits: { content: { userId: 1, at: saved.field_edits.content.at } } });
   await page.reload();
-  await expect(page.getByRole('table', { name: 'Содержание дисциплины', exact: true }).getByRole('textbox').first()).toHaveValue('Тема источника');
+  await expect(page.getByRole('table', { name: 'Содержание дисциплины', exact: true })).toContainText('Тема источника');
 });

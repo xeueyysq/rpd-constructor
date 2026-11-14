@@ -270,15 +270,6 @@ function ReportProblemForm() {
 
   if (!visible) return null;
 
-  const context = draft?.frozen.context;
-  const contextLabel = [
-    context?.discipline,
-    context?.section,
-    context?.complectId ? `Комплект № ${context.complectId}` : undefined,
-  ]
-    .filter(Boolean)
-    .join(" · ");
-
   return (
     <>
       {createPortal(
@@ -381,7 +372,10 @@ function ReportProblemForm() {
                   minRows={mobile ? 5 : 6}
                   maxRows={12}
                   disabled={submit.isPending}
-                  slotProps={{ htmlInput: { maxLength: 4000 } }}
+                  slotProps={{
+                    inputLabel: { shrink: true },
+                    htmlInput: { maxLength: 4000 },
+                  }}
                   fullWidth
                   autoFocus
                 />
@@ -394,7 +388,10 @@ function ReportProblemForm() {
                   minRows={mobile ? 5 : 8}
                   maxRows={12}
                   disabled={submit.isPending}
-                  slotProps={{ htmlInput: { maxLength: 8000 } }}
+                  slotProps={{
+                    inputLabel: { shrink: true },
+                    htmlInput: { maxLength: 8000 },
+                  }}
                   fullWidth
                 />
                 <FormControlLabel
@@ -453,34 +450,6 @@ function ReportProblemForm() {
                   </Stack>
                 ) : null}
                 {sendError ? <Alert severity="error">{sendError}</Alert> : null}
-                <Box
-                  component="details"
-                  sx={{
-                    typography: "body2",
-                    minWidth: 0,
-                    "& summary": {
-                      cursor: "pointer",
-                      color: "text.secondary",
-                      overflowWrap: "anywhere",
-                    },
-                  }}
-                >
-                  <summary>
-                    Контекст:{" "}
-                    {contextLabel || context?.route || "Текущая страница"}
-                  </summary>
-                  <Typography
-                    component="pre"
-                    variant="caption"
-                    sx={{
-                      mt: 1,
-                      whiteSpace: "pre-wrap",
-                      overflowWrap: "anywhere",
-                    }}
-                  >
-                    {JSON.stringify(context, null, 2)}
-                  </Typography>
-                </Box>
               </Stack>
             </DialogContent>
             <DialogActions sx={{ flexWrap: "wrap", gap: 1 }}>

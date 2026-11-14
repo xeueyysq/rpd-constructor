@@ -62,15 +62,32 @@ test.describe('матрица выбранного комплекта', () => {
     let dialog = await openListDialog(page, targets[0].profile);
     await expect(dialog.getByRole('combobox')).toHaveCount(0);
     await expect(dialog.getByRole('button', { name: 'Сохранить', exact: true })).toHaveCount(0);
+    expect(await persisted(request, headers, targets[0].id)).toEqual([]);
+    const empty = dialog.getByText('Компетенции пока не были загружены', { exact: true });
+    await expect(empty).toBeVisible();
+    const emptyGeometry = await empty.evaluate((element) => {
+      const text = element.getBoundingClientRect();
+      const area = element.closest('.MuiTableContainer-root')!.getBoundingClientRect();
+      const header = element.closest('table')!.querySelector('thead')!.getBoundingClientRect();
+      return { textX: text.x + text.width / 2, textY: text.y + text.height / 2,
+        bodyX: area.x + area.width / 2, bodyY: header.bottom + (area.bottom - header.bottom) / 2,
+        headerHeight: header.height };
+    });
+    expect(Math.abs(emptyGeometry.textX - emptyGeometry.bodyX)).toBeLessThanOrEqual(2);
+    expect(Math.abs(emptyGeometry.textY - emptyGeometry.bodyY)).toBeLessThanOrEqual(2);
+    const uploadButton = dialog.getByRole('button', { name: 'Загрузить файл', exact: true });
+    await expect(uploadButton).toHaveClass(/MuiButton-contained/);
     await upload(page, dialog, csv('Анализ'), targets[0].id);
     expect(await persisted(request, headers, targets[0].id)).toEqual(expected('Анализ'));
     expect(competenciesFromDb(targets[0].id)).toEqual(expected('Анализ'));
     await expect(dialog.getByRole('table')).toContainText('УК-1. Анализ');
+    expect(await dialog.locator('thead').evaluate((header) => header.getBoundingClientRect().height)).toBeCloseTo(emptyGeometry.headerHeight, 0);
     const feedbackTrigger = page.getByRole('button', { name: 'Сообщить о проблеме', exact: true });
     await expect(feedbackTrigger).toHaveCount(1);
     await feedbackTrigger.click();
     const feedback = page.getByRole('dialog', { name: 'Сообщить о проблеме', exact: true });
-    await expect(feedback).toContainText(`Комплект № ${targets[0].id}`);
+    await expect(feedback).not.toContainText('Контекст:');
+    await expect(feedback.locator('details, summary, pre')).toHaveCount(0);
     await page.keyboard.press('Tab');
     expect(await feedback.evaluate((paper) => paper.contains(document.activeElement))).toBe(true);
     await page.keyboard.press('Escape');
