@@ -44,14 +44,22 @@ export function useComplectTableColumns({
             b.original.discipline
           ) || a.original.id - b.original.id,
       },
-      { accessorKey: "semester", header: "Семестр", size: 100, grow: false },
+      {
+        accessorKey: "semester",
+        header: "Семестр",
+        minSize: 140,
+        size: 160,
+        grow: false,
+      },
       {
         id: "participants",
         header: "Преподаватели",
         enableSorting: false,
         filterFn: "contains",
-        minSize: 240,
-        size: 280,
+        minSize: 220,
+        size: 240,
+        maxSize: 260,
+        grow: false,
         accessorFn: (row) =>
           row.participants.map((part) => part.fullname).join(", "),
         Cell: ({ row }) => (

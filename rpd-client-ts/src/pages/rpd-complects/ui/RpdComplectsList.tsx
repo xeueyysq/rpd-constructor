@@ -151,7 +151,9 @@ export const RpdComplectsList: FC = () => {
         enableSorting: false,
         enableColumnActions: false,
         enableColumnFilter: false,
-        size: 200,
+        minSize: 130,
+        size: 140,
+        grow: false,
         Cell: ({ row }) => (
           <Button
             size="medium"
