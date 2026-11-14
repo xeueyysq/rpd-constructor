@@ -1,5 +1,5 @@
 import { TemplateConstructorType } from "@entities/template";
-import { Box, Button, Typography } from "@mui/material";
+import { Alert, Box, Button, Typography } from "@mui/material";
 import { axiosBase } from "@shared/api";
 import { useStore } from "@shared/hooks";
 import { showErrorMessage, showSuccessMessage } from "@shared/lib";
@@ -108,7 +108,7 @@ export const TemplateConstructor: FC<TemplateConstructorType> = ({
                 </Box>
               )}
               {createComplectStatus === "loading" && (
-                <Box sx={{ p: 1, display: "flex" }}>
+                <Box sx={{ pt: 1, display: "flex" }}>
                   <motion.div
                     animate={{ opacity: [1, 0.3, 1] }}
                     transition={{
@@ -117,21 +117,19 @@ export const TemplateConstructor: FC<TemplateConstructorType> = ({
                       ease: "easeInOut",
                     }}
                   >
-                    <Typography sx={{ px: 1 }}>
+                    <Typography sx={{ px: 1, color: "text.secondary" }}>
                       Идет поиск комплекта РПД. Это может занять какое-то время
                     </Typography>
                   </motion.div>
                 </Box>
               )}
               {createComplectStatus === "warning" && (
-                <Typography color={"warning"}>
+                <Alert severity="warning">
                   По заданному комплекту нет данных
-                </Typography>
+                </Alert>
               )}
               {createComplectStatus === "error" && (
-                <Typography color={"error"}>
-                  Сервис 1С временно недоступен
-                </Typography>
+                <Alert severity="error">Сервис 1С временно недоступен</Alert>
               )}
               {createComplectStatus === "success" && (
                 <Box>

@@ -56,21 +56,21 @@ test.describe('состав и готовность отдельной РПД', 
 
     // До «Взять в работу» «Готово» недоступно; все действия — в меню «…», «Открыть» первым.
     let menu = await openTeacherRowMenu(page, row(page));
-    await expect(menu.getByRole('menuitem')).toHaveText(['Открыть', 'История шаблона', 'Взять в работу']);
+    await expect(menu.getByRole('menuitem')).toHaveText(['Открыть', 'Импортировать', 'История шаблона', 'Взять в работу']);
     for (const item of await menu.getByRole('menuitem').all()) await expect(item.locator('svg')).toHaveCount(1);
     await menu.getByRole('menuitem', { name: 'Взять в работу', exact: true }).click();
     await expect(teacherStatus(page)).toContainText('Моя отметка: В работе');
     await expect(teacherStatus(page).getByRole('button', { name: 'В работе', exact: true })).toBeVisible();
 
     menu = await openTeacherRowMenu(page, row(page));
-    await expect(menu.getByRole('menuitem')).toHaveText(['Открыть', 'История шаблона', 'Готово']);
+    await expect(menu.getByRole('menuitem')).toHaveText(['Открыть', 'Импортировать', 'История шаблона', 'Готово']);
     await menu.getByRole('menuitem', { name: 'Готово', exact: true }).click();
     await expect(teacherStatus(page)).toContainText('Моя отметка: Готово');
     // Отметка одного участника общий статус не меняет и прогресс не показывает.
     await expect(teacherStatus(page).getByRole('button', { name: 'В работе', exact: true })).toBeVisible();
     await expect(teacherStatus(page)).not.toContainText(/\d+\/\d+/);
     menu = await openTeacherRowMenu(page, row(page));
-    await expect(menu.getByRole('menuitem')).toHaveText(['Открыть', 'История шаблона', 'Снять отметку']);
+    await expect(menu.getByRole('menuitem')).toHaveText(['Открыть', 'Импортировать', 'История шаблона', 'Снять отметку']);
     await page.keyboard.press('Escape');
 
     // История по клику на статус: новые события сверху.
@@ -253,8 +253,10 @@ test.describe('изменения 1С на отдельной РПД', () => {
     const dialog = page.getByRole('dialog', { name: 'Изменения из 1С' });
     await expectExchangeChanges(dialog);
     await expect(dialog.getByRole('button', { name: 'Просмотрено' })).toHaveCount(0);
-    await expect(dialog.getByRole('button')).toHaveCount(1);
-    await dialog.getByRole('button', { name: 'Закрыть', exact: true }).click();
+    const close = dialog.getByRole('button', { name: 'Закрыть', exact: true });
+    await expect(close).toBeVisible();
+    await expect(close).toBeEnabled();
+    await close.click();
     await expect(dialog).toBeHidden();
     await expect(changes).toBeVisible();
     await expect(row.getByRole('cell').nth(3)).toContainText('В работе');

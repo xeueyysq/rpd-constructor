@@ -23,7 +23,7 @@ type SaveResult = { success: boolean; clearDirty: boolean };
 type SaveField = (
   field: string,
   value: unknown,
-  options?: { keepDraftOnConflict?: boolean }
+  options?: { keepDraftOnConflict?: boolean; baseAt?: string | null }
 ) => Promise<boolean>;
 const queues = new Map<string, Promise<SaveResult>>();
 const latestValues = new Map<string, unknown>();
@@ -49,7 +49,10 @@ export function useUpdateTemplateField() {
       if (jsonData.id !== templateId)
         return { success: false, clearDirty: false };
       const baseAt =
-        (jsonData.field_edits as FieldEdits | undefined)?.[field]?.at ?? null;
+        options?.baseAt !== undefined
+          ? options.baseAt
+          : ((jsonData.field_edits as FieldEdits | undefined)?.[field]?.at ??
+            null);
       try {
         const { data } = await useTemplateSync.getState().track(
           axiosBase.put<UpdateTemplateFieldResponse>(

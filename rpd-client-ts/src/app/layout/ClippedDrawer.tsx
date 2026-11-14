@@ -68,6 +68,7 @@ export function ClippedDrawer() {
           left: 0,
           ["& .MuiDrawer-paper"]: {
             width: drawerWidth,
+            maxWidth: "100%",
             boxSizing: "border-box",
             overflow: "hidden",
             minHeight: "100vh",
@@ -97,6 +98,7 @@ export function ClippedDrawer() {
             flex: 1,
             minHeight: 0,
             overflow: "hidden",
+            pb: 8,
           }}
         >
           {switchMap[page as keyof typeof switchMap]}
@@ -105,10 +107,15 @@ export function ClippedDrawer() {
       <Box
         component={"main"}
         sx={{
-          width: isDrawerOpen ? `calc(100% - ${drawerWidth}px)` : "100%",
+          boxSizing: "border-box",
+          minWidth: 0,
+          width: {
+            xs: "100%",
+            sm: isDrawerOpen ? `calc(100% - ${drawerWidth}px)` : "100%",
+          },
           p: 3,
-          px: isTemplatePage ? 9 : undefined,
-          marginLeft: isDrawerOpen ? `${drawerWidth}px` : 0,
+          px: isTemplatePage ? { xs: 2, sm: 3, lg: 9 } : undefined,
+          marginLeft: { xs: 0, sm: isDrawerOpen ? `${drawerWidth}px` : 0 },
           transition:
             "margin-left 0.3s cubic-bezier(0.4, 0, 0.2, 1), width 0.3s cubic-bezier(0.4, 0, 0.2, 1)",
           overflowX: "hidden",

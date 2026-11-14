@@ -75,8 +75,6 @@ const sectionTitleSx = {
   letterSpacing: "-0.01em",
 } as const;
 
-const emptyStateColor = "#6b6b6b";
-
 type PoolKind = "open" | "closed";
 
 type PoolQuestionCardProps = {
@@ -241,10 +239,10 @@ const DisciplineEvaluationsFundsForm = () => {
       </Box>
 
       {competenceGroups.length === 0 ? (
-        <Box sx={{ mt: 3, color: emptyStateColor }}>
+        <Alert severity="warning" sx={{ mt: 3 }}>
           Компетенции не найдены. Заполните раздел планируемых результатов
           обучения, чтобы добавить вопросы по компетенциям.
-        </Box>
+        </Alert>
       ) : (
         <Box sx={{ mt: 2 }}>
           {competenceGroups.map((group) => {

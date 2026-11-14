@@ -17,16 +17,14 @@ async function expectActionsColumnFitsContent(page: Page) {
 test('фильтр статуса в комплекте', async ({ page }) => {
   await signIn(page, 'admin');
   await openComplect(page);
-  await expectActionsColumnFitsContent(page);
   // MRT дописывает к заголовку счётчик сортировки («Дисциплина0»), поэтому сверяем начало текста.
   await expect(page.getByRole('columnheader')).toHaveText([
-    /^Дисциплина/, /^Семестр/, /^Преподаватели/, /^Статус/, /^Действия/,
+    /^Дисциплина/, /^Семестр/, /^Преподаватели/, /^Статус/,
   ]);
-  // Все дисциплины уже связаны с РПД; в действиях только одна кнопка меню.
+  // Все дисциплины уже связаны с РПД; частое открытие доступно ссылкой.
   const rows = page.getByRole('row').filter({ has: page.getByRole('cell') });
   for (const row of await rows.all()) {
-    await expect(row.getByRole('cell').nth(4).getByRole('button')).toHaveCount(1);
-    await expect(row.getByRole('cell').nth(4).getByRole('button', { name: 'Меню шаблона' })).toBeVisible();
+    await expect(row.getByRole('cell').first().getByRole('link')).toBeVisible();
   }
   const row = page.getByRole('row').filter({ hasText: disciplines.inProgress });
   await expect(row.getByRole('cell').nth(2).getByRole('listitem').filter({ hasText: 'Альфина' }))

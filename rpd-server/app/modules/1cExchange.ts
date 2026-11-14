@@ -3,8 +3,7 @@ import { pool } from "../../config/db.ts";
 import axios from "axios";
 import { initializeRpdFromExchange } from "./initializeRpdFromExchange.ts";
 import { normalizeDisciplineFrom1c } from "./normalizeDisciplineFrom1c.ts";
-import { mapApiDataFor1c, hashPayload, loadReferenceTree } from "./specProfilesMapping.ts";
-import { merge1cIntoReferenceTree } from "./specProfilesTransformer.ts";
+import { mapApiDataFor1c } from "./specProfilesMapping.ts";
 import type { UserClaims } from "../types/express.d.ts";
 import TemplateAccess from "../services/TemplateAccess.ts";
 import { importTeacherCards } from "./teacherImport.ts";
@@ -12,8 +11,6 @@ import { USER_ROLES } from "../models/constants.ts";
 import { Forbidden, Unprocessable } from "../utils/Errors.ts";
 
 const apiUrl = "https://1c-api.uni-dubna.ru/v1/api/persons/reports";
-const CACHE_ROW_ID = 1;
-const SPEC_PROFILES_TIMEOUT_MS = 5000;
 
 type ApiData = { faculty: string | null; year: number | string | null; educationForm: string | null; educationLevel: string | null; profile: string | null; direction: string | null };
 type ServiceError = Error & { statusCode?: number };
@@ -263,99 +260,7 @@ const handle1cError = (error: unknown) => {
   return error;
 };
 
-const fetchAllSpecProfiles = async () => {
-  try {
-    const url = `${apiUrl}/GetAllSpecProfiles`;
-    const response = await axios.get<unknown>(url, {
-      timeout: SPEC_PROFILES_TIMEOUT_MS,
-    });
-
-    if (!Array.isArray(response.data)) {
-      const error = new Error("Некорректный ответ 1С по профилям") as ServiceError;
-      error.statusCode = 502;
-      throw error;
-    }
-
-    return response.data;
-  } catch (error) {
-    throw handle1cError(error);
-  }
-};
-
-const readCachedSpecProfiles = async (dbPool: Pool) => {
-  const { rows } = await dbPool.query<{ tree_payload: unknown }>(
-    `
-      SELECT tree_payload
-      FROM spec_profiles_cache
-      WHERE id = $1
-      LIMIT 1
-    `,
-    [CACHE_ROW_ID]
-  );
-
-  return rows[0]?.tree_payload ?? null;
-};
-
-const upsertSpecProfilesCache = async (dbPool: Pool, rawPayload: unknown, treePayload: unknown, payloadHash: string) => {
-  await dbPool.query(
-    `
-      INSERT INTO spec_profiles_cache (
-        id,
-        raw_payload,
-        tree_payload,
-        payload_hash,
-        synced_at
-      ) VALUES ($1, $2, $3, $4, NOW())
-      ON CONFLICT (id) DO UPDATE SET
-        raw_payload = EXCLUDED.raw_payload,
-        tree_payload = EXCLUDED.tree_payload,
-        payload_hash = EXCLUDED.payload_hash,
-        synced_at = NOW()
-    `,
-    [CACHE_ROW_ID, JSON.stringify(rawPayload), JSON.stringify(treePayload), payloadHash]
-  );
-};
-
-const syncAndGetSpecProfiles = async (dbPool: Pool) => {
-  try {
-    const rawPayload = await fetchAllSpecProfiles();
-    const tree = merge1cIntoReferenceTree(rawPayload);
-    const payloadHash = hashPayload(tree);
-
-    const { rows } = await dbPool.query<{ payload_hash: string }>(
-      `
-        SELECT payload_hash
-        FROM spec_profiles_cache
-        WHERE id = $1
-        LIMIT 1
-      `,
-      [CACHE_ROW_ID]
-    );
-
-    if (rows[0]?.payload_hash !== payloadHash) {
-      await upsertSpecProfilesCache(dbPool, rawPayload, tree, payloadHash);
-    }
-
-    return { tree, source: "1c" };
-  } catch (error) {
-    if (errorDetails(error).response?.status === 504 || errorDetails(error).code === "ECONNABORTED") {
-      console.warn("GetAllSpecProfiles timeout/504, using cache or fallback");
-    } else {
-      console.warn("GetAllSpecProfiles failed, using cache or fallback:", error instanceof Error ? error.message : String(error));
-    }
-
-    const cachedTree = await readCachedSpecProfiles(dbPool);
-    if (cachedTree) {
-      return { tree: cachedTree, source: "database" };
-    }
-
-    return { tree: loadReferenceTree(), source: "fallback" };
-  }
-};
-
 export {
   exchange1C,
   fetchUpLink,
-  fetchAllSpecProfiles,
-  syncAndGetSpecProfiles,
 };

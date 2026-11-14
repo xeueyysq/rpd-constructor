@@ -11,8 +11,9 @@ function addPair(db: ReturnType<typeof templateDatabase>, name = "Базы да�
   db.state.statuses.push({ id: 3, id_profile_template: 11, id_1c_template: 101, current_status: "created", history: [] }, { id: 4, id_profile_template: 21, id_1c_template: 201, current_status: "created", history: [] });
 }
 
-test("импорт из другого комплекта того же года доступен участнику/владельцу/admin, обычное чтение источника закрыто", async () => {
+test("импорт из другого комплекта того же года доступен назначенному преподавателю/владельцу/admin", async () => {
   const db = templateDatabase();
+  db.state.assignments.push({ user_id: teacher.id, template_id: 10, state: "assigned", updated_at: "2026-11-04" });
   const imports = new TemplateImport(db.db);
   for (const actor of [teacher, rop, admin]) {
     const catalog = await imports.sources(actor, 20, undefined);
@@ -20,12 +21,36 @@ test("импорт из другого комплекта того же года
     const preview = await imports.preview(actor, [10], "goals", 20);
     assert.deepEqual(preview, [{ id: 10, public_id: "rpd-10", goals: "Цель 10" }]);
   }
-  await assert.rejects(TemplateAccess.assertTemplate(db.db, teacher, 10, "read"), { status: 403 });
-  assert.deepEqual(await new RpdProfileTemplates(db.db).getChangeableValues([10], "goals", teacher), []);
+  await TemplateAccess.assertTemplate(db.db, teacher, 10, "read");
+  assert.equal((await new RpdProfileTemplates(db.db).getChangeableValues([10], "goals", teacher)).length, 1);
   await assert.rejects(imports.sources(teacher, undefined, 2), { status: 403 });
   await assert.rejects(imports.sources({ ...teacher, role: 0 }, 20, undefined), { status: 403 });
   db.state.users.find((u) => u.id === teacher.id)!.is_active = false;
   await assert.rejects(imports.sources(teacher, 20, undefined), { status: 403 });
+});
+
+test("полевой импорт преподавателя требует назначение, включая отзыв уже выбранного источника", async () => {
+  const db = templateDatabase();
+  const imports = new TemplateImport(db.db);
+  const initial = await imports.sources(teacher, 20, undefined, undefined, { scope: "field" });
+  assert.deepEqual(initial.complects, []);
+  await assert.rejects(imports.preview(teacher, [10], "goals", 20), { status: 403 });
+  await assert.rejects(imports.copy(teacher, 10, 20, { field: "goals", baseAt: null }), { status: 403 });
+  db.state.assignments.push({ user_id: teacher.id, template_id: 10, state: "done", updated_at: "2026-11-04" });
+  assert.equal((await imports.sources(teacher, 20, undefined, undefined, { scope: "field" })).complects[0].templates[0].id, 10);
+  db.state.assignments.pop();
+  await assert.rejects(imports.copy(teacher, 10, 20, { field: "goals", baseAt: null }), { status: 403 });
+});
+
+test("ownOnly сужает источники РОП, но false не раскрывает чужие преподавателю", async () => {
+  const db = templateDatabase();
+  const imports = new TemplateImport(db.db);
+  assert.deepEqual((await imports.sources(rop, 20, undefined, true, { scope: "field" })).complects, []);
+  assert.equal((await imports.sources(rop, 20, undefined, false, { scope: "field" })).complects[0].templates[0].id, 10);
+  await assert.rejects(imports.preview(rop, [10], "goals", 20, true), { status: 403 });
+  await assert.rejects(imports.copy(rop, 10, 20, { field: "goals", baseAt: null, ownOnly: true }), { status: 403 });
+  await assert.rejects(imports.preview(teacher, [10], "goals", 20, false), { status: 403 });
+  await assert.rejects(imports.sources(rop, 20, undefined, "yes"), { status: 422 });
 });
 
 test("каталог форматирует ALLCAPS только для отображения, сохраняя исходные имена и смешанный регистр", async () => {
@@ -37,7 +62,7 @@ test("каталог форматирует ALLCAPS только для отоб
   );
   const before = structuredClone(db.state);
 
-  const catalog = await new TemplateImport(db.db).sources(rop, undefined, 2);
+  const catalog = await new TemplateImport(db.db).sources(rop, 20, undefined);
 
   assert.deepEqual(catalog.complects[0].templates.map((row) => row.disciplins_name), ["  Импорт поля list3  ", "Java и SQL", null]);
   assert.deepEqual(db.state, before, "Отображение каталога не меняет исходные данные для импорта/сопоставления");
@@ -57,6 +82,7 @@ test("каталог требует ровно одну авторизованн
 
 test("полевой импорт заменяет текст и пустое значение, повтор не дописывает; возвращает edit и ловит stale baseAt", async () => {
   const db = templateDatabase();
+  db.state.assignments.push({ user_id: teacher.id, template_id: 10, state: "done", updated_at: "2026-11-04" });
   const imports = new TemplateImport(db.db);
   const first = await imports.copy(teacher, 10, 20, { field: "goals", baseAt: null });
   assert.equal(first.value, "Цель 10");
@@ -87,6 +113,7 @@ test("whitelist не позволяет импортировать компет�
 
 test("полный импорт заменяет содержание и литературу; защищённые поля, состояние, участники и учебный план сохранены", async () => {
   const db = templateDatabase();
+  db.state.assignments.push({ user_id: teacher.id, template_id: 10, state: "assigned", updated_at: "2026-11-04" });
   const imports = new TemplateImport(db.db);
   const before = structuredClone(db.state);
   const revision = (await imports.sources(teacher, 20, undefined)).targetRevision;

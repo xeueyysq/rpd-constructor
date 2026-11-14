@@ -109,6 +109,24 @@ export async function openFixtureComplect(page: Page, id: number) {
   await expect(page.getByRole('row').filter({ has: page.getByRole('cell') }).first()).toBeVisible();
 }
 
+// Прямое чтение только двух синтетических матриц, независимо от GET приложения.
+// Параметры этой тестовой БД заданы в контракте E2E; окружение пользователя не читается.
+export function competenciesFromDb(id: number): unknown {
+  if (id !== syncFixtures.dialogA.id && id !== syncFixtures.dialogB.id) throw new Error('Нужен ID выделенной матрицы E2E');
+  const directory = fileURLToPath(new URL('../', import.meta.url));
+  const json = execFileSync('docker', [
+    'compose', '--env-file', 'e2e.env', 'exec', '-T', 'db',
+    'psql', '-X', '-A', '-t', '-v', 'ON_ERROR_STOP=1', '-U', 'rpd_e2e', '-d', 'rpd_e2e',
+    '-c', `SELECT COALESCE(jsonb_agg(entry ORDER BY competence_id, indicator_id), '[]'::jsonb)
+      FROM (SELECT c.id AS competence_id, i.id AS indicator_id,
+        jsonb_build_object('competence', c.competence, 'indicator', i.indicator, 'disciplines',
+          COALESCE((SELECT jsonb_agg(d.discipline ORDER BY d.id) FROM planned_indicator_disciplines d WHERE d.indicator_id=i.id), '[]'::jsonb)) AS entry
+        FROM planned_results_sets s JOIN planned_competencies c ON c.set_id=s.id
+        JOIN planned_indicators i ON i.competence_id=c.id WHERE s.complect_id=${id}) stored`,
+  ], { cwd: directory, encoding: 'utf8', timeout: 10_000 }).trim();
+  return JSON.parse(json) as unknown;
+}
+
 export function preservedImportData(profile: Record<string, unknown>) {
   return Object.fromEntries([
     'id', 'public_id', 'id_rpd_complect', 'disciplins_name', 'department', 'place', 'semester', 'zet',

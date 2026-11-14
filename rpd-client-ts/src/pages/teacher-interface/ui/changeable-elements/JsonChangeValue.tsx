@@ -87,12 +87,10 @@ const JsonChangeValue: FC<JsonChangeValueTypes> = ({ elementName }) => {
                 Данные не найдены
               </Box>
             )}
-            <Box
-              sx={{ display: "flex", justifyContent: "space-between", pl: 1 }}
-            >
+            <Box sx={{ display: "flex", gap: 1, flexWrap: "wrap", pl: 1 }}>
               <Button
-                variant="outlined"
-                endIcon={<EditIcon color="primary" />}
+                variant="contained"
+                startIcon={<EditIcon />}
                 onClick={handleEditClick}
                 sx={{ alignSelf: "flex-start" }}
               >

@@ -85,6 +85,32 @@ describe("сохранение текстового черновика", () => {
     );
   });
 
+  it.each([before, null])(
+    "повтор после конфликта удерживает явно заданную ревизию %s",
+    async (baseAt) => {
+      const conflict = {
+        isAxiosError: true,
+        response: {
+          status: 409,
+          data: { error: { value: "Чужие цели", edit } },
+        },
+      };
+      vi.mocked(axiosBase.put).mockRejectedValue(conflict);
+      const save = useUpdateTemplateField();
+      const options = { baseAt, keepDraftOnConflict: true };
+      expect(await save("goals", "Мой черновик", options)).toBe(false);
+      expect(useStore.getState().jsonData.field_edits.goals.at).toBe(after);
+      expect(await save("goals", "Мой черновик", options)).toBe(false);
+      expect(axiosBase.put).toHaveBeenLastCalledWith("update-json-value/12", {
+        fieldToUpdate: "goals",
+        value: "Мой черновик",
+        baseAt,
+      });
+      expect(useStore.getState().jsonData.goals).toBe("Чужие цели");
+      expect(useTemplateSync.getState().dirty.goals).toBeDefined();
+    }
+  );
+
   it("сохраняет вопросы, ответы и общие контрольные вопросы ФОС как JSON; новые правки остаются dirty до следующего сохранения", async () => {
     const funds = {
       controlQuestions: "Общий контрольный вопрос",

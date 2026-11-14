@@ -9,7 +9,7 @@ test('кнопка ФОС находится в комплекте и откры
   await openComplect(page);
   await expect(page.getByRole('button', { name: 'Добавить содержание рпд' })).toHaveCount(0);
   const row = page.getByRole('row').filter({ hasText: disciplines.inProgress });
-  await expect(row.getByRole('cell').nth(4).getByRole('button')).toHaveCount(1);
+  await expect(row.getByRole('link', { name: disciplines.inProgress, exact: true })).toBeVisible();
   await page.getByRole('button', { name: 'Собрать ФОСы' }).click();
   const dialog = page.getByRole('dialog', { name: 'Сформировать ФОС' });
   await expect(dialog).toBeVisible();

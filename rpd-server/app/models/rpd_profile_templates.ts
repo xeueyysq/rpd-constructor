@@ -42,6 +42,20 @@ class RpdProfileTemplates {
     return rows[0]?.id ?? null;
   }
 
+  async getDownloadMetadata(identifier: unknown) {
+    if (identifier == null || identifier === "") throw new NotFound("Шаблон не найден");
+    const { rows } = await this.pool.query<{ disciplins_name: string | null; direction: string | null; year: number | null }>(
+      `SELECT rpt.disciplins_name, rc.direction, rc.year
+       FROM rpd_profile_templates rpt
+       JOIN rpd_complects rc ON rc.id = rpt.id_rpd_complect
+       WHERE rpt.id::text = $1 OR rpt.public_id = $1
+       LIMIT 1`,
+      [String(identifier)]
+    );
+    if (!rows[0]) throw new NotFound("Шаблон не найден");
+    return rows[0];
+  }
+
   async getJsonProfile(id: unknown) {
     const numericId = await this.resolveTemplateId(id);
     if (numericId == null) return null;

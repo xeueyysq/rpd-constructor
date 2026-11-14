@@ -42,9 +42,7 @@ export async function assignTeacher(page: Page, row: Locator, discipline: string
 }
 
 export async function openRowMenu(page: Page, row: Locator) {
-  const actions = row.getByRole('cell').nth(4);
-  await expect(actions.getByRole('button')).toHaveCount(1);
-  await actions.getByRole('button', { name: 'Меню шаблона', exact: true }).click();
+  await row.click({ button: 'right' });
   const menu = page.getByRole('menu');
   await expect(menu).toBeVisible();
   return menu;

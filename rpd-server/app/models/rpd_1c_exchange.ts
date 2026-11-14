@@ -1,9 +1,9 @@
 import type { Rpd1cExchangeRow } from "../types/db.ts";
-import type { Pool } from "pg";
+import type { Pool, PoolClient } from "pg";
 import { formatDisciplineName } from "../modules/disciplineNames.ts";
+import type { PlannedResultEntry } from "../modules/plannedResults.ts";
 
 type ResultRow = { competence_id: number; competence: string; indicator_id: number; indicator: string; discipline: string | null };
-type ResultEntry = { competence: string; indicator: string; disciplines: string[] };
 type RpdTemplateListRow = Pick<Rpd1cExchangeRow, "id" | "discipline" | "teachers" | "semester" | "removed_at"> & { id_profile_template: number | null; profile_template_public_id: string | null; status: string | null; status_history: unknown; sync_status: string; last_change_summary: string[]; sync_changed_at: Date | null; latest_count: number; has_profile_template: boolean };
 
 class Rpd1cExchange {
@@ -12,137 +12,39 @@ class Rpd1cExchange {
     this.pool = pool;
   }
 
-  async setResultsData(data: unknown, complectId: unknown) {
-    if (!complectId) {
-      throw new Error("Не указан идентификатор комплекта");
-    }
+  async replaceResultsData(client: PoolClient, data: PlannedResultEntry[], complectId: number) {
+    const { rows: setRows } = await client.query<{ id: number }>(`
+      INSERT INTO planned_results_sets (complect_id) VALUES ($1)
+      ON CONFLICT (complect_id) DO UPDATE SET complect_id = EXCLUDED.complect_id
+      RETURNING id
+    `, [complectId]);
+    const setId = setRows[0]?.id;
+    if (!setId) throw new Error("Не удалось создать набор планируемых результатов");
+    await client.query("DELETE FROM planned_competencies WHERE set_id=$1", [setId]);
 
-    if (!Array.isArray(data)) {
-      throw new Error("Некорректный формат данных компетенций");
-    }
-
-    const client = await this.pool.connect();
-
-    try {
-      await client.query("BEGIN");
-
-      const { rows: setRows } = await client.query<{ id: number }>(
-        `
-          INSERT INTO planned_results_sets (complect_id)
-          VALUES ($1)
-          ON CONFLICT (complect_id)
-          DO UPDATE SET complect_id = EXCLUDED.complect_id
-          RETURNING id
-        `,
-        [complectId]
-      );
-
-      const setId = setRows[0]?.id;
-
-      if (!setId) {
-        throw new Error("Не удалось создать набор планируемых результатов");
+    const competencies = new Map<string, number>();
+    for (const { competence, indicator, disciplines } of data) {
+      let competenceId = competencies.get(competence);
+      if (!competenceId) {
+        const { rows } = await client.query<{ id: number }>(`
+          INSERT INTO planned_competencies (set_id, competence) VALUES ($1, $2) RETURNING id
+        `, [setId, competence]);
+        competenceId = rows[0]?.id;
+        if (!competenceId) throw new Error("Не удалось сохранить компетенцию при загрузке данных");
+        competencies.set(competence, competenceId);
       }
-
-      await client.query(
-        `
-          DELETE FROM planned_competencies
-          WHERE set_id = $1
-        `,
-        [setId]
-      );
-
-      const competenciesMap = new Map<string, { id?: number; indicators: Map<string, { id?: number }> }>();
-
-      for (const row of data) {
-        if (!row) continue;
-
-        const competenceText =
-          typeof row.competence === "string" ? row.competence.trim() : "";
-        const indicatorText =
-          typeof row.indicator === "string" ? row.indicator.trim() : "";
-        const disciplines = Array.isArray(row.disciplines)
-          ? row.disciplines
-          : [];
-
-        if (!competenceText || !indicatorText) {
-          continue;
-        }
-
-        let competenceRecord = competenciesMap.get(competenceText);
-
-        if (!competenceRecord) {
-          const { rows: competenceRows } = await client.query<{ id: number }>(
-            `
-              INSERT INTO planned_competencies (set_id, competence)
-              VALUES ($1, $2)
-              RETURNING id
-            `,
-            [setId, competenceText]
-          );
-
-          competenceRecord = {
-            id: competenceRows[0]?.id,
-            indicators: new Map(),
-          };
-
-          competenciesMap.set(competenceText, competenceRecord);
-        }
-
-        if (!competenceRecord?.id) {
-          throw new Error(
-            "Не удалось сохранить компетенцию при загрузке данных"
-          );
-        }
-
-        let indicatorRecord = competenceRecord.indicators.get(indicatorText);
-
-        if (!indicatorRecord) {
-          const { rows: indicatorRows } = await client.query<{ id: number }>(
-            `
-              INSERT INTO planned_indicators (competence_id, indicator)
-              VALUES ($1, $2)
-              RETURNING id
-            `,
-            [competenceRecord.id, indicatorText]
-          );
-
-          indicatorRecord = { id: indicatorRows[0]?.id };
-          competenceRecord.indicators.set(indicatorText, indicatorRecord);
-        }
-
-        if (!indicatorRecord?.id) {
-          throw new Error("Не удалось сохранить индикатор при загрузке данных");
-        }
-
-        const uniqueDisciplines = [
-          ...new Set(
-            disciplines
-              .filter((discipline: unknown): discipline is string => typeof discipline === "string")
-              .map((discipline: string) => discipline.trim())
-              .filter(Boolean)
-          ),
-        ];
-
-        for (const discipline of uniqueDisciplines) {
-          await client.query(
-            `
-              INSERT INTO planned_indicator_disciplines (indicator_id, discipline)
-              VALUES ($1, $2)
-            `,
-            [indicatorRecord.id, discipline]
-          );
-        }
+      const { rows } = await client.query<{ id: number }>(`
+        INSERT INTO planned_indicators (competence_id, indicator) VALUES ($1, $2) RETURNING id
+      `, [competenceId, indicator]);
+      const indicatorId = rows[0]?.id;
+      if (!indicatorId) throw new Error("Не удалось сохранить индикатор при загрузке данных");
+      for (const discipline of disciplines) {
+        await client.query(`
+          INSERT INTO planned_indicator_disciplines (indicator_id, discipline) VALUES ($1, $2)
+        `, [indicatorId, discipline]);
       }
-
-      await client.query("COMMIT");
-      return { setId };
-    } catch (error) {
-      await client.query("ROLLBACK");
-      console.log(error);
-      throw error;
-    } finally {
-      client.release();
     }
+    return { setId };
   }
 
   async getResultsData(complectId: unknown) {
@@ -169,8 +71,8 @@ class Rpd1cExchange {
         [complectId]
       );
 
-      const indicatorsMap = new Map<number, ResultEntry>();
-      const orderedResults: ResultEntry[] = [];
+      const indicatorsMap = new Map<number, PlannedResultEntry>();
+      const orderedResults: PlannedResultEntry[] = [];
 
       for (const row of rows) {
         if (!indicatorsMap.has(row.indicator_id)) {

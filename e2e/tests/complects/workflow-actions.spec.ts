@@ -27,8 +27,7 @@ test('РОП видит действия активного режима и от
     const history = page.getByRole('dialog', { name: 'История шаблона' });
     await expect(history).toContainText('Назначен преподаватель');
     await history.getByRole('button', { name: 'Закрыть', exact: true }).click();
-    const actionsCell = row.getByRole('cell').nth(4);
-    await expect(actionsCell.getByRole('button')).toHaveCount(1);
+    await expect(row.getByRole('link', { name: list3.ropMode.discipline, exact: true })).toBeVisible();
     const menu = await openRowMenu(page, row);
     // «Открыть» первым, затем управление РПД и действия workflow; у каждого пункта есть иконка.
     await expect(menu.getByRole('menuitem')).toHaveText([
@@ -73,13 +72,13 @@ test('РОП видит действия активного режима и от
 
     // До «Взять в работу» «Готово» недоступно.
     let teacherMenu = await openTeacherRowMenu(page, teacherRow);
-    await expect(teacherMenu.getByRole('menuitem')).toHaveText(['Открыть', 'История шаблона', 'Взять в работу']);
+    await expect(teacherMenu.getByRole('menuitem')).toHaveText(['Открыть', 'Импортировать', 'История шаблона', 'Взять в работу']);
     for (const item of await teacherMenu.getByRole('menuitem').all()) await expect(item.locator('svg')).toHaveCount(1);
     await teacherMenu.getByRole('menuitem', { name: 'Взять в работу', exact: true }).click();
     await expect(teacherStatus).toContainText('Моя отметка: В работе');
 
     teacherMenu = await openTeacherRowMenu(page, teacherRow);
-    await expect(teacherMenu.getByRole('menuitem')).toHaveText(['Открыть', 'История шаблона', 'Готово']);
+    await expect(teacherMenu.getByRole('menuitem')).toHaveText(['Открыть', 'Импортировать', 'История шаблона', 'Готово']);
     await teacherMenu.getByRole('menuitem', { name: 'Открыть', exact: true }).click();
     await expect(page).toHaveURL(/\/templates\/a318a318a318(?:\/.*)?$/);
     await expect(page.getByText('Титульный лист', { exact: true }).last()).toBeVisible();

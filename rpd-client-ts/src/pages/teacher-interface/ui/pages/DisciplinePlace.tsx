@@ -1,4 +1,4 @@
-import { Box, Typography as Tg } from "@mui/material";
+import { Alert, Box, Typography as Tg } from "@mui/material";
 import { TemplatePagesPath } from "@shared/enums";
 import { useStore } from "@shared/hooks";
 import { FieldChangeNotice } from "@shared/ui/FieldChangeNotice";
@@ -59,7 +59,7 @@ const DisciplinePlace: FC<DisciplinePlaceProps> = ({ readOnly = false }) => {
       <FieldChangeNotice fieldKey="certification" changes={fieldChanges} />
       <FieldChangeNotice fieldKey="control_load" changes={fieldChanges} />
       {Object.keys(data).length ? (
-        <Tg sx={{ py: 2 }}>
+        <Tg component="div" sx={{ py: 2 }}>
           Дисциплина
           <Tg component="span" sx={{ fontWeight: "600" }}>
             {" "}
@@ -86,17 +86,17 @@ const DisciplinePlace: FC<DisciplinePlaceProps> = ({ readOnly = false }) => {
             {Math.ceil(Number(data.semester) / 2)}{" "}
           </Tg>
           курсе
-          <Tg sx={{ pt: 2 }}>
+          <Tg component="div" sx={{ pt: 2 }}>
             форма промежуточной аттестации –{" "}
             <CertificationSelector
               certification={certification}
               readOnly={readOnly}
             />
             {!certification && (
-              <Tg sx={{ color: "warning.main", fontWeight: 600, mt: 1 }}>
+              <Alert severity="warning" sx={{ mt: 1 }}>
                 Форма промежуточной аттестации не подгрузилась из 1С — выберите
                 вручную
-              </Tg>
+              </Alert>
             )}
           </Tg>
         </Tg>

@@ -47,7 +47,7 @@ export async function openComplect(page: Page, key: keyof typeof complects = 'ma
     await next.click();
     await expect(firstRow).not.toHaveText(previous);
   }
-  await row.getByRole('button', { name: 'Комплект РПД' }).click();
+  await row.getByRole('link', { name: complect.profile, exact: true }).click();
   await expect(page).toHaveURL(new RegExp(`/complects/${complect.uuid}$`));
   await expect(page.getByRole('row').filter({ hasText: key === 'main' ? disciplines.inProgress : disciplines.otherRop })).toBeVisible();
 }
@@ -82,7 +82,12 @@ export async function filterColumn(page: Page, column: string, value: string) {
 export async function showAllRows(page: Page) {
   // Таблица может перерисоваться после загрузки и закрыть меню — открываем заново.
   await expect(async () => {
-    await page.getByRole('combobox', { name: 'Строк на странице' }).last().click();
-    await page.getByRole('option', { name: '50', exact: true }).click({ timeout: 2_000 });
+    const pagination = page.getByRole('combobox', { name: 'Строк на странице' }).last();
+    if (await pagination.evaluate((element) => element.tagName === 'SELECT')) {
+      await pagination.selectOption('50');
+    } else {
+      await pagination.click();
+      await page.getByRole('option', { name: '50', exact: true }).click({ timeout: 2_000 });
+    }
   }).toPass({ timeout: 15_000 });
 }

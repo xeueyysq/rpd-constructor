@@ -1,0 +1,10 @@
+# Подключать только после подготовки секрета. Том монтируется исключительно в server.
+services:
+  server:
+    environment:
+      FEEDBACK_GOOGLE_CREDENTIALS_FILE: /run/secrets/rpd-feedback-google.json
+    volumes:
+      - type: bind
+        source: ${FEEDBACK_GOOGLE_CREDENTIALS_HOST_FILE:?Укажите путь к ключу только на сервере}
+        target: /run/secrets/rpd-feedback-google.json
+        read_only: true

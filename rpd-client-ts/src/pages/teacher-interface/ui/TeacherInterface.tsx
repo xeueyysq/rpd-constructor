@@ -10,7 +10,7 @@ import { isAxiosError } from "axios";
 import { UserRole } from "@shared/ability";
 import { useStore } from "@shared/hooks";
 import { useEffect, useState } from "react";
-import { useParams } from "react-router-dom";
+import { useLocation, useParams } from "react-router-dom";
 import { TemplatePagesPath } from "@shared/enums";
 import AimsPage from "./pages/AimsPage.tsx";
 import ApprovalPage from "./pages/ApprovalPage.tsx";
@@ -24,6 +24,7 @@ import ResourceSupportPage from "./pages/ResourceSupportPage.tsx";
 import ScopeDisciplinePage from "./pages/ScopeDisciplinePage.tsx";
 import TestPdf from "./pdf-page/TestPdf.tsx";
 import { Loader } from "@shared/ui/Loader.tsx";
+import { setDiagnosticEntity } from "@shared/diagnostics";
 
 export function TeacherInterface() {
   const { toggleDrawer, setJsonData, setComplectId, jsonData } = useStore(
@@ -32,6 +33,8 @@ export function TeacherInterface() {
   const userRole = useAuth((state) => state.userRole);
   const isTeacher = userRole === UserRole.TEACHER;
   const { id: templateId, page = TemplatePagesPath.COVER_PAGE } = useParams();
+  const location = useLocation();
+  const [loadedTemplateId, setLoadedTemplateId] = useState<string | null>(null);
   const [loadError, setLoadError] = useState<{
     id: string | undefined;
     message: string;
@@ -40,6 +43,32 @@ export function TeacherInterface() {
     String(jsonData?.id) === templateId || jsonData?.public_id === templateId
       ? Number(jsonData.id)
       : undefined;
+
+  useEffect(() => {
+    if (activeTemplateId === undefined) return;
+    const label = (value: unknown) =>
+      typeof value === "string" || typeof value === "number"
+        ? String(value)
+        : undefined;
+    setDiagnosticEntity(
+      {
+        templateId: activeTemplateId,
+        complectId:
+          typeof jsonData.id_rpd_complect === "number"
+            ? jsonData.id_rpd_complect
+            : undefined,
+        section: page,
+        faculty: label(jsonData.faculty),
+        direction: label(jsonData.direction),
+        profile: label(jsonData.profile),
+        form: label(jsonData.education_form),
+        year: label(jsonData.year),
+        discipline: label(jsonData.disciplins_name),
+      },
+      location.pathname,
+      getSessionGeneration()
+    );
+  }, [activeTemplateId, jsonData, page, location.pathname]);
 
   useEffect(() => {
     const generation = getSessionGeneration();
@@ -59,6 +88,7 @@ export function TeacherInterface() {
             response.data.certification || response.data.derived_certification,
         });
         setComplectId(response.data.id_rpd_complect);
+        setLoadedTemplateId(templateId ?? null);
       } catch (error) {
         if (
           !active ||
@@ -106,7 +136,10 @@ export function TeacherInterface() {
 
   if (loadError && loadError.id === templateId)
     return <Alert severity="error">{loadError.message}</Alert>;
-  if (!activeTemplateId) return <Loader />;
+  // PageRoute перемонтирует редактор при смене раздела. Данные в общем store
+  // ещё могут относиться к прошлому mount: не открываем диалог перед их сбросом
+  // и первоначальной загрузкой этого экземпляра редактора.
+  if (!activeTemplateId || loadedTemplateId !== templateId) return <Loader />;
 
   return (
     <Box>

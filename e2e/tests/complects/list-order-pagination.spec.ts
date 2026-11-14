@@ -54,6 +54,7 @@ const expected = [
 ] as const;
 
 test('русский алфавит при открытии; назначение, снятие и статус сохраняют вторую страницу и положение', async ({ page }) => {
+  await page.setViewportSize({ width: 1365, height: 600 });
   await signIn(page, 'admin');
   const loaded = page.waitForResponse((response) => response.url() === `${apiUrl}/api/find-rpd`
     && response.request().postDataJSON()?.complectId === fixture.uuid && response.status() === 200);
