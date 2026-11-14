@@ -1,5 +1,5 @@
 import { TemplateConstructorType } from "@entities/template";
-import { Box, Button, Typography } from "@mui/material";
+import { Alert, Box, Button, Typography } from "@mui/material";
 import { axiosBase } from "@shared/api";
 import { useStore } from "@shared/hooks";
 import { showErrorMessage, showSuccessMessage } from "@shared/lib";
@@ -124,14 +124,12 @@ export const TemplateConstructor: FC<TemplateConstructorType> = ({
                 </Box>
               )}
               {createComplectStatus === "warning" && (
-                <Typography color={"warning"}>
+                <Alert severity="warning">
                   По заданному комплекту нет данных
-                </Typography>
+                </Alert>
               )}
               {createComplectStatus === "error" && (
-                <Typography color={"error"}>
-                  Сервис 1С временно недоступен
-                </Typography>
+                <Alert severity="error">Сервис 1С временно недоступен</Alert>
               )}
               {createComplectStatus === "success" && (
                 <Box>

@@ -193,7 +193,6 @@ function WordImportSession({
           sx: {
             maxHeight: "calc(100dvh - 96px)",
             m: 2,
-            "& .MuiButton-root": { typography: "button" },
           },
         },
       }}

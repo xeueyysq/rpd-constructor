@@ -27,6 +27,7 @@ import {
   Typography,
 } from "@mui/material";
 import ReportProblemOutlinedIcon from "@mui/icons-material/ReportProblemOutlined";
+import AttachFileIcon from "@mui/icons-material/AttachFile";
 import { useTheme } from "@mui/material/styles";
 import useMediaQuery from "@mui/material/useMediaQuery";
 import {
@@ -64,9 +65,8 @@ function ReportProblemTrigger({
           left: 16,
           bottom: 16,
           zIndex: (theme) => theme.zIndex.modal + 1,
-          visibility: hidden ? "hidden" : "visible",
+          display: hidden ? "none" : "inline-flex",
           bgcolor: "background.paper",
-          typography: "button",
           minHeight: 36,
           minWidth: 36,
           width: { xs: 36, sm: expanded ? "auto" : 36 },
@@ -360,40 +360,53 @@ function ReportProblemForm() {
             <DialogContent>
               <Stack spacing={2}>
                 <Typography variant="body2" sx={{ color: "text.secondary" }}>
-                  Опишите, что делали и что произошло. Это поможет разобраться с
-                  проблемой.
+                  Откройте эту форму со страницы или из окна, где возникла
+                  проблема: так контекст обращения определится автоматически.
+                  Опишите, что хотели сделать и что получилось.
                 </Typography>
-                <TextField
-                  label="Что хотели сделать"
-                  value={goal}
-                  onChange={(event) => setGoal(event.target.value)}
-                  required
-                  multiline
-                  minRows={mobile ? 5 : 6}
-                  maxRows={12}
-                  disabled={submit.isPending}
-                  slotProps={{
-                    inputLabel: { shrink: true },
-                    htmlInput: { maxLength: 4000 },
-                  }}
-                  fullWidth
-                  autoFocus
-                />
-                <TextField
-                  label="Что получилось"
-                  value={actual}
-                  onChange={(event) => setActual(event.target.value)}
-                  required
-                  multiline
-                  minRows={mobile ? 5 : 8}
-                  maxRows={12}
-                  disabled={submit.isPending}
-                  slotProps={{
-                    inputLabel: { shrink: true },
-                    htmlInput: { maxLength: 8000 },
-                  }}
-                  fullWidth
-                />
+                <Stack spacing={0.5}>
+                  <Typography
+                    component="label"
+                    htmlFor="report-problem-goal"
+                    variant="body2"
+                  >
+                    Что хотели сделать
+                  </Typography>
+                  <TextField
+                    id="report-problem-goal"
+                    value={goal}
+                    onChange={(event) => setGoal(event.target.value)}
+                    required
+                    multiline
+                    minRows={mobile ? 5 : 6}
+                    maxRows={12}
+                    disabled={submit.isPending}
+                    slotProps={{ htmlInput: { maxLength: 4000 } }}
+                    fullWidth
+                    autoFocus
+                  />
+                </Stack>
+                <Stack spacing={0.5}>
+                  <Typography
+                    component="label"
+                    htmlFor="report-problem-actual"
+                    variant="body2"
+                  >
+                    Что получилось
+                  </Typography>
+                  <TextField
+                    id="report-problem-actual"
+                    value={actual}
+                    onChange={(event) => setActual(event.target.value)}
+                    required
+                    multiline
+                    minRows={mobile ? 5 : 8}
+                    maxRows={12}
+                    disabled={submit.isPending}
+                    slotProps={{ htmlInput: { maxLength: 8000 } }}
+                    fullWidth
+                  />
+                </Stack>
                 <FormControlLabel
                   control={
                     <Checkbox
@@ -411,13 +424,17 @@ function ReportProblemForm() {
                   sx={{ flexWrap: "wrap", alignItems: "center" }}
                 >
                   <Button
-                    variant="outlined"
+                    size="small"
+                    startIcon={<AttachFileIcon />}
                     disabled={submit.isPending}
                     onClick={() => fileInput.current?.click()}
                   >
                     Прикрепить скриншот
                   </Button>
-                  <Typography variant="body2" sx={{ color: "text.secondary" }}>
+                  <Typography
+                    variant="caption"
+                    sx={{ color: "text.secondary" }}
+                  >
                     PNG или JPEG, до 2 МиБ. Можно вставить из буфера.
                   </Typography>
                 </Stack>

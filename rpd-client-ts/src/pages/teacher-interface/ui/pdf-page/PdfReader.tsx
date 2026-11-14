@@ -11,6 +11,7 @@ import ZoomIn from "@mui/icons-material/ZoomIn";
 import ZoomOut from "@mui/icons-material/ZoomOut";
 import FileDownloadOutlinedIcon from "@mui/icons-material/FileDownloadOutlined";
 import {
+  Alert,
   Box,
   Button,
   CircularProgress,
@@ -86,7 +87,7 @@ export const PdfReader: FC<PdfReaderProps> = ({
   }
 
   if (error) {
-    return <Typography color="error">{error}</Typography>;
+    return <Alert severity="error">{error}</Alert>;
   }
 
   return (
@@ -168,11 +169,7 @@ export const PdfReader: FC<PdfReaderProps> = ({
             pageNumber={pageNumber}
             scale={scale}
             loading={<Typography>Загрузка страницы...</Typography>}
-            error={
-              <Typography color="error">
-                Ошибка при загрузке страницы
-              </Typography>
-            }
+            error={<Alert severity="error">Ошибка при загрузке страницы</Alert>}
           />
         </Document>
       </Box>

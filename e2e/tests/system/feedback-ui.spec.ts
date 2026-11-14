@@ -126,6 +126,7 @@ test("обращение открывается поверх существую�
   await page.getByRole("button", { name: "Сообщить о проблеме", exact: true }).click();
   const report = page.getByRole("dialog", { name: "Сообщить о проблеме" });
   await expect(report).toBeVisible();
+  await expect(page.getByRole("button", { name: "Сообщить о проблеме", exact: true, includeHidden: true })).toBeHidden();
   await report.getByRole("button", { name: "Отмена" }).click();
   await expect(report).not.toBeVisible();
   await expect(underlying).toBeVisible();
@@ -177,6 +178,7 @@ test("один глобальный контрол в обычной стран�
   await trigger.click();
   const report = page.getByRole("dialog", { name: "Сообщить о проблеме", exact: true });
   await expect(trigger).toHaveCount(0);
+  await expect(page.getByRole("button", { name: "Сообщить о проблеме", exact: true, includeHidden: true })).toBeHidden();
   await page.keyboard.press("Escape");
   await expect(report).toBeHidden();
   await expect(trigger).toBeFocused();
@@ -248,20 +250,24 @@ test("один глобальный контрол в обычной стран�
   expect(complectContext).not.toHaveProperty('discipline');
 });
 
-test('просторная форма: подписи сверху, компактные кнопки и скрытый контекст на 1365/768/390/320', async ({ page }, testInfo) => {
+test('просторная форма: подписи сверху, доступные действия и скрытый контекст на 1365/768/390/320', async ({ page }, testInfo) => {
   await signIn(page, 'teacher');
   for (const [width, height] of [[1365, 900], [768, 1024], [390, 844], [320, 640]]) {
     await page.setViewportSize({ width, height });
     await page.getByRole('button', { name: 'Сообщить о проблеме', exact: true }).click();
     const dialog = page.getByRole('dialog', { name: 'Сообщить о проблеме', exact: true });
+    const trigger = page.getByRole('button', { name: 'Сообщить о проблеме', exact: true, includeHidden: true });
+    await expect(trigger).toHaveCount(1);
+    await expect(trigger).toBeHidden();
     const goal = dialog.getByRole('textbox', { name: 'Что хотели сделать' });
     const actual = dialog.getByRole('textbox', { name: 'Что получилось' });
-    const dimensions = await Promise.all([goal, actual].map((field) => field.evaluate((element) => ({
+    const readDimensions = () => Promise.all([goal, actual].map((field) => field.evaluate((element) => ({
       height: element.getBoundingClientRect().height,
       lineHeight: Number.parseFloat(getComputedStyle(element).lineHeight),
       top: element.getBoundingClientRect().top,
       labelBottom: (element as HTMLTextAreaElement).labels![0].getBoundingClientRect().bottom,
     }))));
+    const dimensions = await readDimensions();
     dimensions.forEach((size, index) => expect(size.height).toBeGreaterThanOrEqual(size.lineHeight * (width < 600 ? 5 : index === 0 ? 6 : 8)));
     dimensions.forEach((size) => expect(size.labelBottom).toBeLessThanOrEqual(size.top + 1));
     const panel = await dialog.boundingBox();
@@ -271,15 +277,24 @@ test('просторная форма: подписи сверху, компак
     await expect(dialog).not.toContainText(/Контекст:|clientRelease|templateId|JSON/);
     for (const name of ['Прикрепить скриншот', 'Отмена', 'Отправить обращение']) {
       const button = await dialog.getByRole('button', { name, exact: true }).boundingBox();
-      expect(button!.height).toBeLessThan(36);
+      expect(button!.x).toBeGreaterThanOrEqual(panel!.x);
+      expect(button!.x + button!.width).toBeLessThanOrEqual(panel!.x + panel!.width);
     }
     await goal.fill('Длинное описание действий.\n'.repeat(80));
     await actual.fill('Полное описание результата.\n'.repeat(120));
+    for (const field of [goal, actual]) {
+      const id = await field.getAttribute('id');
+      await dialog.locator(`label[for="${id}"]`).click();
+      await expect(field).toBeFocused();
+    }
+    (await readDimensions()).forEach((size) => expect(size.labelBottom).toBeLessThanOrEqual(size.top + 1));
     await expect(dialog.getByRole('button', { name: 'Отправить обращение' })).toBeInViewport();
     expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
     await dialog.screenshot({ path: testInfo.outputPath(`feedback-long-${width}.png`) });
     await dialog.getByRole('button', { name: 'Отмена' }).click();
     await expect(dialog).toBeHidden();
+    await expect(trigger).toBeVisible();
+    await expect(trigger).toBeFocused();
   }
 });
 

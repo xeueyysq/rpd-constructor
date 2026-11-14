@@ -17,23 +17,11 @@ export function CompactDialogTheme({ children }: { children: ReactNode }) {
             body2: { fontSize: 14, lineHeight: "20px" },
             caption: { fontSize: 12, lineHeight: "16px" },
             h2: { fontSize: 20, lineHeight: "28px", fontWeight: 600 },
-            button: {
-              fontSize: 14,
-              lineHeight: "20px",
-              fontWeight: 400,
-              textTransform: "none",
-            },
+            button: parent.typography.button,
           },
         },
         {
           components: {
-            MuiButtonBase: { defaultProps: { disableRipple: true } },
-            MuiButton: {
-              defaultProps: { disableElevation: true },
-              styleOverrides: {
-                root: { boxShadow: "none" },
-              },
-            },
             MuiDialog: {
               styleOverrides: {
                 paper: {
