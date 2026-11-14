@@ -166,7 +166,7 @@ INSERT INTO teacher_templates (id, user_id, template_id, state) VALUES (200, 20,
 -- Два года одного профиля также проверяют повторение профиля в каждой строке списка.
 INSERT INTO rpd_complects (id, faculty, year, education_form, education_level, profile, direction) VALUES
   (300, 'Институт источников List3', 2026, 'Очная', 'Бакалавриат', 'List3 Источники', 'Другое направление List3'),
-  (301, 'Институт источников List3', 2024, 'Заочная', 'Магистратура', 'List3 Источники', 'Направление List3'),
+  (301, 'Институт источников List3', 2024, 'Заочная', 'Бакалавриат', 'List3 Источники', 'Направление List3'),
   (310, 'Институт цели List3', 2026, 'Очная', 'Бакалавриат', 'List3 Поле РОП', 'Направление List3'),
   (311, 'Институт цели List3', 2026, 'Очная', 'Бакалавриат', 'List3 Поле преподавателя', 'Направление List3'),
   (312, 'Институт цели List3', 2026, 'Очная', 'Бакалавриат', 'List3 Полный импорт', 'Направление List3'),
@@ -360,6 +360,47 @@ INSERT INTO rpd_1c_exchange
 VALUES (390, 390, 'Кафедра Word', 'Импорт Word E2E', ARRAY[]::text[], 3, 'discipline', '{}'::jsonb, '{}'::jsonb, 1);
 INSERT INTO template_status (id, id_1c_template, id_profile_template, current_status, history)
 VALUES (390, 390, 390, 'created', '[]'::jsonb);
+
+-- UI импорта: изолированные источники только для чтения, пагинации и полного preview.
+INSERT INTO rpd_complects (id, uuid, faculty, year, education_form, education_level, profile, direction) VALUES
+  (400, '40000000-0000-4000-8000-000000000400', 'Институт UI цели', 2026, 'Очная', 'Бакалавриат', 'UI цель', 'Направление UI'),
+  (401, '40000000-0000-4000-8000-000000000401', 'Институт UI источников', 2026, 'Очная', 'Бакалавриат', 'UI источники текущего года с длинным названием профиля', 'Направление UI'),
+  (402, '40000000-0000-4000-8000-000000000402', 'Институт UI источников', 2024, 'Заочная', 'Бакалавриат', 'UI источники прошлого года', 'Направление UI'),
+  (403, '40000000-0000-4000-8000-000000000403', 'Институт UI источников', 2026, 'Очная', 'Бакалавриат', 'UI другое название', 'Направление UI'),
+  (404, '40000000-0000-4000-8000-000000000404', 'Институт UI источников', 2026, 'Очная', 'Магистратура', 'UI другой уровень', 'Направление UI');
+INSERT INTO user_complect (user_id, complect_id)
+SELECT id, 400 FROM users WHERE name = 'rop';
+INSERT INTO user_complect (user_id, complect_id) VALUES (13, 401), (35, 401);
+INSERT INTO rpd_profile_templates
+  (id, public_id, id_rpd_complect, disciplins_name, department, semester, zet, goals, textbook, content)
+SELECT id, CASE WHEN id=4000 THEN 'd400d400d400' ELSE lpad(id::text,12,'0') END, complect_id,
+  CASE WHEN id=4030 THEN 'Другая дисциплина UI' WHEN id=4020
+    THEN '  ДЛИННОЕ   НАЗВАНИЕ ДИСЦИПЛИНЫ ДЛЯ ПРОВЕРКИ ИМПОРТА UI  '
+    ELSE 'Длинное название дисциплины для проверки импорта UI' END,
+  'Кафедра UI', CASE WHEN id BETWEEN 4010 AND 4019 THEN id-4009 WHEN id BETWEEN 4020 AND 4025 THEN id-4019 ELSE 1 END, 3,
+  CASE WHEN id=4000 THEN '<p>Исходные цели UI</p>' ELSE
+  '<p>Начало полного текста ' || id || '</p><p>' || repeat('Полный абзац для предпросмотра. ',40) ||
+    '</p><ul><li>Первый пункт</li><li>Последний пункт</li></ul><table><tr><td>Первая ячейка</td><td>Вторая ячейка</td></tr></table>' ||
+    '<script>window.__importPreviewExecuted=true</script><p>Последний абзац ' || id || '</p>' END,
+  ARRAY[repeat('Полное описание книги. ',30) || 'Конец первой книги ' || id, 'Последняя книга ' || id],
+  (SELECT jsonb_object_agg(n::text, jsonb_build_object('theme','Тема ' || n || ' источника ' || id,
+    'lectures',n,'seminars',n+1,'contact',2*n+1,'independent_work',n+2,'control',0,'total',3*n+3))
+    FROM generate_series(1,8) n)
+FROM (
+  SELECT 4000 AS id, 400 AS complect_id
+  UNION ALL SELECT id, CASE WHEN id<4020 THEN 401 ELSE 402 END FROM generate_series(4010,4025) id
+  UNION ALL SELECT 4030,403 UNION ALL SELECT 4040,404
+) fixtures;
+INSERT INTO rpd_1c_exchange
+  (id, id_rpd_complect, department, discipline, teachers, zet, record_type, study_load, control_load, semester)
+SELECT id, id_rpd_complect, department, disciplins_name, ARRAY[]::text[], zet, 'discipline', '{}'::jsonb, '{}'::jsonb, semester
+FROM rpd_profile_templates WHERE id IN (4000,4030,4040) OR id BETWEEN 4010 AND 4025;
+INSERT INTO template_status (id, id_1c_template, id_profile_template, current_status, history)
+SELECT id,id,id,CASE WHEN id IN (4000,4011) THEN 'created' ELSE 'ready' END,'[]'::jsonb
+FROM rpd_profile_templates WHERE id IN (4000,4030,4040) OR id BETWEEN 4010 AND 4025;
+INSERT INTO teacher_templates (user_id, template_id, state)
+SELECT id,fixture.template_id,'assigned' FROM users CROSS JOIN
+  (VALUES (4000),(4010),(4020),(4030),(4040)) fixture(template_id) WHERE name='teacher';
 
 SELECT setval(pg_get_serial_sequence('rpd_complects', 'id'), (SELECT max(id) FROM rpd_complects));
 SELECT setval(pg_get_serial_sequence('rpd_1c_exchange', 'id'), (SELECT max(id) FROM rpd_1c_exchange));

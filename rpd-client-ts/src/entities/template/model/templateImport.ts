@@ -19,6 +19,7 @@ export type ImportContext = (
   | { targetComplectId: number | string; targetTemplateId?: never }
 ) & { ownOnly?: boolean };
 export type ImportCatalogQuery = ImportContext & {
+  scope: "bulk" | "single" | "field";
   search?: string;
   faculty?: string;
   educationLevel?: string;
@@ -26,14 +27,10 @@ export type ImportCatalogQuery = ImportContext & {
   profile?: string;
   educationForm?: string;
   year?: number;
-  status?: TemplateStatusCode | "closed";
+  status?: "ready";
   sourceMode?: "other-complect" | "other-year";
-  sameNameOnly?: boolean;
   page?: number;
   pageSize?: number;
-};
-export type ImportSourceDetailsQuery = ImportCatalogQuery & {
-  sourceComplectId: number | string;
 };
 export type ImportCatalogSummary = Omit<ImportSourceComplect, "templates"> & {
   templateCount: number;
@@ -48,8 +45,11 @@ export type ImportCatalogFacets = {
   years: number[];
 };
 export type ImportCatalogResponse = {
+  scope: ImportCatalogQuery["scope"];
   targetRevision: string;
+  targetEducationLevel: string | null;
   complects: ImportCatalogSummary[];
+  templates: ImportCatalogTemplate[];
   page: number;
   pageSize: number;
   total: number;
@@ -117,11 +117,11 @@ export interface ImportSourceComplect {
   year: number | null;
   education_form: string | null;
   education_level: string | null;
+  owners: { userId: number; fullname: string }[];
   templates: ImportSourceTemplate[];
 }
-export type ImportSources = {
-  targetRevision: string;
-  complects: ImportSourceComplect[];
+export type ImportCatalogTemplate = ImportSourceTemplate & {
+  complect: Omit<ImportSourceComplect, "templates">;
 };
 export type ImportFieldPreview = { id: number; public_id: string } & Partial<
   Record<ImportField, unknown>
@@ -143,8 +143,7 @@ export type ImportSkipReason =
   | "ambiguous"
   | "source_missing_template"
   | "target_missing_template"
-  | "read_only"
-  | "source_status";
+  | "read_only";
 type BulkEntry = {
   targetExchangeId: number;
   targetTemplateId: number | null;
@@ -167,7 +166,6 @@ export const importSkipLabels: Record<ImportSkipReason, string> = {
   source_missing_template: "В источнике отсутствует РПД",
   target_missing_template: "В целевом комплекте отсутствует РПД",
   read_only: "Целевая РПД недоступна для изменения",
-  source_status: "Статус исходной дисциплины не соответствует выбранному",
 };
 
 export function importComplectLabel(

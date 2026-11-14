@@ -17,8 +17,6 @@ import type {
   ImportContext,
   ImportField,
   ImportFieldPreview,
-  ImportSources,
-  ImportSourceDetailsQuery,
   WordImportApplyResponse,
   WordImportField,
   WordImportPreview,
@@ -64,40 +62,6 @@ export function templateImportError(error: unknown) {
     : "Не удалось выполнить действие. Попробуйте ещё раз или обновите данные.";
 }
 
-export function useImportSources(context: ImportContext, enabled = true) {
-  const generation = getSessionGeneration();
-  return useQuery({
-    queryKey: ["template-import-sources", generation, context],
-    queryFn: async ({ signal }) => {
-      if (context.targetTemplateId != null)
-        await prepareTemplateImport(Number(context.targetTemplateId));
-      else {
-        const active = useStore.getState().jsonData;
-        if (
-          active.id &&
-          String(active.id_rpd_complect) === String(context.targetComplectId)
-        )
-          await prepareTemplateImport(active.id);
-      }
-      requireSession(generation);
-      const result = (
-        await axiosBase.get<ImportSources>("template-import/sources", {
-          params: context,
-          signal,
-        })
-      ).data;
-      requireSession(generation);
-      return result;
-    },
-    enabled: enabled && validImportContext(context),
-    refetchOnWindowFocus: false,
-    refetchOnReconnect: false,
-    staleTime: Infinity,
-    refetchOnMount: "always",
-    retry: false,
-  });
-}
-
 function validImportContext(context: ImportContext): boolean {
   return (
     (context.targetTemplateId != null &&
@@ -140,36 +104,6 @@ export function useImportCatalog(query: ImportCatalogQuery, enabled = true) {
       return result;
     },
     enabled: enabled && validImportContext(query),
-    refetchOnWindowFocus: false,
-    refetchOnReconnect: false,
-    refetchOnMount: "always",
-    retry: false,
-  });
-}
-
-export function useImportSourceDetails(
-  query: ImportSourceDetailsQuery,
-  enabled = true
-) {
-  const generation = getSessionGeneration();
-  return useQuery({
-    queryKey: ["template-import-source-details", generation, query],
-    queryFn: async ({ signal }) => {
-      await prepareImportContext(query, generation);
-      const result = (
-        await axiosBase.get<ImportSources>("template-import/sources", {
-          params: query,
-          signal,
-        })
-      ).data;
-      requireSession(generation);
-      return result;
-    },
-    enabled:
-      enabled &&
-      validImportContext(query) &&
-      query.sourceComplectId != null &&
-      String(query.sourceComplectId).trim() !== "",
     refetchOnWindowFocus: false,
     refetchOnReconnect: false,
     refetchOnMount: "always",
@@ -235,8 +169,11 @@ async function changeField<T extends { value?: unknown; edit?: FieldEdit }>(
   send: () => Promise<T>
 ) {
   const generation = getSessionGeneration();
+  const startedInTargetEditor = useStore.getState().jsonData.id === templateId;
   await prepareTemplateImport(templateId);
   requireSession(generation);
+  if (startedInTargetEditor && useStore.getState().jsonData.id !== templateId)
+    throw new Error("Открыта другая РПД. Повторите импорт");
   const active = useStore.getState().jsonData.id === templateId;
   const revision = active
     ? useTemplateSync.getState().markDirty(field)
@@ -244,6 +181,8 @@ async function changeField<T extends { value?: unknown; edit?: FieldEdit }>(
   try {
     const data = await useTemplateSync.getState().track(send());
     requireSession(generation);
+    if (startedInTargetEditor && useStore.getState().jsonData.id !== templateId)
+      throw new Error("Открыта другая РПД. Обновите её перед продолжением");
     if (data.edit) syncField(templateId, field, data.value, data.edit);
     return data;
   } catch (error) {
@@ -325,11 +264,18 @@ export function useCopyTemplateContent() {
       sourceTemplateId: number;
       targetTemplateId: number;
       targetRevision: string;
-      ownOnly?: boolean;
+      sourceStatus?: "ready";
     }) => {
       const generation = getSessionGeneration();
+      const startedInTargetEditor =
+        useStore.getState().jsonData.id === params.targetTemplateId;
       await prepareTemplateImport(params.targetTemplateId);
       requireSession(generation);
+      if (
+        startedInTargetEditor &&
+        useStore.getState().jsonData.id !== params.targetTemplateId
+      )
+        throw new Error("Открыта другая РПД. Повторите импорт");
       const data = await useTemplateSync
         .getState()
         .track(
@@ -337,7 +283,9 @@ export function useCopyTemplateContent() {
         );
       requireSession(generation);
       const { jsonData, setJsonData } = useStore.getState();
-      if (jsonData.id === params.targetTemplateId)
+      if (startedInTargetEditor && jsonData.id !== params.targetTemplateId)
+        throw new Error("Открыта другая РПД. Обновите её перед продолжением");
+      if (startedInTargetEditor)
         setJsonData({
           ...jsonData,
           ...data.data.targetTemplate,
@@ -483,7 +431,6 @@ export function useImportComplect() {
       sourceComplectId: number;
       targetComplectId: number | string;
       targetRevision: string;
-      sourceStatus?: ImportCatalogQuery["status"] | null;
     }) => {
       requireSession(generation);
       const active = useStore.getState().jsonData;

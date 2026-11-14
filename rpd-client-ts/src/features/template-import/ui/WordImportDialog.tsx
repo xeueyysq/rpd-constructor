@@ -1,4 +1,4 @@
-import { useRef, useState } from "react";
+import { useEffect, useId, useRef, useState } from "react";
 import { isAxiosError } from "axios";
 import {
   Alert,
@@ -23,11 +23,11 @@ import {
   type WordImportPreview,
 } from "@entities/template";
 import { showSuccessMessage } from "@shared/lib";
+import { FullFieldPreview } from "./FullFieldPreview";
 
 type Props = {
   open: boolean;
   targetTemplateId: number;
-  targetLabel: string;
   onClose: () => void;
   onImported?: () => Promise<void> | void;
   onChooseSource?: () => void;
@@ -45,18 +45,6 @@ const labels: Record<WordImportField, string> = {
   professional_information_resources: "Профессиональные ресурсы",
   content: "Темы и часы",
 };
-
-function plainPreview(value: unknown): string {
-  if (typeof value === "string")
-    return value
-      .replace(/<[^>]*>/g, " ")
-      .replace(/\s+/g, " ")
-      .slice(0, 260);
-  if (Array.isArray(value)) return value.map(String).join("; ").slice(0, 260);
-  if (value && typeof value === "object")
-    return `${Object.keys(value).length} строк`;
-  return "—";
-}
 
 function friendlyWarning(warning: string) {
   if (
@@ -77,11 +65,11 @@ function friendlyWarning(warning: string) {
 export function WordImportDialog({
   open,
   targetTemplateId,
-  targetLabel,
   onClose,
   onImported,
   onChooseSource,
 }: Props) {
+  const titleId = useId();
   const previewMutation = useWordImportPreview();
   const applyMutation = useWordImportApply();
   const abortRef = useRef<AbortController | null>(null);
@@ -99,6 +87,14 @@ export function WordImportDialog({
   const warnings = preview
     ? [...new Set(preview.warnings.map(friendlyWarning))]
     : [];
+
+  useEffect(
+    () => () => {
+      requestRef.current++;
+      abortRef.current?.abort();
+    },
+    []
+  );
 
   const clear = () => {
     requestRef.current++;
@@ -176,12 +172,25 @@ export function WordImportDialog({
   };
 
   return (
-    <Dialog open={open} onClose={close} maxWidth="md" fullWidth>
-      <DialogTitle>Импортировать из Word</DialogTitle>
-      <DialogContent sx={{ minHeight: 280 }}>
-        <Alert severity="info" sx={{ mb: 2 }}>
-          Цель: {targetLabel}
-        </Alert>
+    <Dialog
+      open={open}
+      onClose={close}
+      maxWidth="md"
+      fullWidth
+      aria-labelledby={titleId}
+      sx={{ "& .MuiDialog-container": { pb: 8 } }}
+      slotProps={{
+        paper: {
+          sx: {
+            maxHeight: "calc(100dvh - 96px)",
+            m: 2,
+            "& .MuiButton-root": { minHeight: 36, typography: "button" },
+          },
+        },
+      }}
+    >
+      <DialogTitle id={titleId}>Импортировать из Word</DialogTitle>
+      <DialogContent sx={{ minHeight: 0, overflowWrap: "anywhere" }}>
         <Typography variant="body2" sx={{ mb: 1, color: "text.secondary" }}>
           Импортируются только выбранные содержательные поля. Данные учебного
           плана, компетенции и ФОС сохраняются.
@@ -286,16 +295,12 @@ export function WordImportDialog({
                         }
                         label={labels[field]}
                       />
-                      <Typography
-                        variant="body2"
-                        sx={{
-                          pl: 4,
-                          color: "text.secondary",
-                          overflowWrap: "anywhere",
-                        }}
-                      >
-                        {plainPreview(preview.values[field])}
-                      </Typography>
+                      <Box sx={{ pl: { xs: 0, sm: 4 }, minWidth: 0 }}>
+                        <FullFieldPreview
+                          value={preview.values[field]}
+                          content={field === "content"}
+                        />
+                      </Box>
                     </Box>
                   ))}
               </Stack>
@@ -311,18 +316,20 @@ export function WordImportDialog({
             >
               <FormControlLabel
                 value="append"
+                disabled={applyMutation.isPending}
                 control={<Radio />}
                 label="Добавить к существующему"
               />
               <FormControlLabel
                 value="replace"
+                disabled={applyMutation.isPending}
                 control={<Radio />}
                 label="Заменить существующее"
               />
             </RadioGroup>
             {stage === "confirm" && (
               <Alert severity="warning" sx={{ mt: 1 }}>
-                Подтвердите импорт {selected.length} полей в «{targetLabel}».{" "}
+                Подтвердите импорт {selected.length} полей.{" "}
                 {mode === "replace"
                   ? "Их текущее содержимое будет заменено."
                   : "Содержимое будет добавлено к текущему."}
@@ -331,7 +338,7 @@ export function WordImportDialog({
           </>
         )}
       </DialogContent>
-      <DialogActions>
+      <DialogActions sx={{ flexWrap: "wrap", gap: 1 }}>
         <Button onClick={close} disabled={applyMutation.isPending}>
           Отмена
         </Button>

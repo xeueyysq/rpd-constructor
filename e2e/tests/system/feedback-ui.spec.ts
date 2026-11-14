@@ -1,6 +1,9 @@
 import { readFileSync } from "node:fs";
 import { expect, test } from "@playwright/test";
 import { openComplect, password, signIn } from "../helpers.ts";
+import { apiUrl } from "../helpers.ts";
+import { headersFor, openFixtureComplect } from "../list3.ts";
+import { openRowMenu } from "../teacherAssignments.ts";
 
 const screenshotPath = new URL("../../../rpd-client-ts/public/docs/media/complect-table.png", import.meta.url).pathname;
 const screenshot = readFileSync(screenshotPath);
@@ -58,13 +61,14 @@ test("обращение открывается поверх существую�
   await page.getByRole("button", { name: "Собрать ФОСы" }).click();
   const underlying = page.getByRole("dialog", { name: "Сформировать ФОС" });
   await expect(underlying).toBeVisible();
-  await underlying.getByRole("button", { name: "Сообщить о проблеме" }).click();
+  await expect(page.getByRole("button", { name: "Сообщить о проблеме", exact: true })).toHaveCount(1);
+  await page.getByRole("button", { name: "Сообщить о проблеме", exact: true }).click();
   const report = page.getByRole("dialog", { name: "Сообщить о проблеме" });
   await expect(report).toBeVisible();
   await report.getByRole("button", { name: "Отмена" }).click();
   await expect(report).not.toBeVisible();
   await expect(underlying).toBeVisible();
-  await expect(underlying.getByRole("button", { name: "Сообщить о проблеме" })).toBeFocused();
+  await expect(page.getByRole("button", { name: "Сообщить о проблеме", exact: true })).toBeFocused();
   await expect(underlying.getByRole("button", { name: "Скачать Word" })).toBeVisible();
   await page.keyboard.press("Alt+Shift+P");
   await expect(report).toBeVisible();
@@ -98,4 +102,96 @@ test("обращение открывается поверх существую�
     await rop.goto(`/feedback/${receipt.id}`);
     await expect(rop.getByText("Сформировать ФОС из комплекта", { exact: true })).toHaveCount(0);
   } finally { await rop.close(); }
+});
+
+test("один глобальный контрол в обычной странице, single и Word; keyboard/focus, контекст дисциплины и возврат к комплекту", async ({ page, request }) => {
+  test.slow();
+  await signIn(page, "rop");
+  await openFixtureComplect(page, 400);
+  const trigger = page.getByRole("button", { name: "Сообщить о проблеме", exact: true });
+  await expect(trigger).toHaveCount(1);
+  const before = await trigger.boundingBox();
+  expect(before!.x).toBeCloseTo(16, 0);
+  await expect(page.locator(".MuiAppBar-root").getByRole("button", { name: "Сообщить о проблеме" })).toHaveCount(0);
+  await trigger.click();
+  const report = page.getByRole("dialog", { name: "Сообщить о проблеме", exact: true });
+  await expect(trigger).toHaveCount(0);
+  await page.keyboard.press("Escape");
+  await expect(report).toBeHidden();
+  await expect(trigger).toBeFocused();
+
+  await openRowMenu(page, page.getByRole("row").filter({ hasText: "Длинное название дисциплины для проверки импорта UI" }));
+  await page.getByRole("menuitem", { name: "Импортировать", exact: true }).click();
+  const single = page.getByRole("dialog", { name: "Импортировать данные РПД", exact: true });
+  await expect(single.getByRole("radio").first()).toBeVisible();
+  await expect(trigger).toHaveCount(1);
+  const during = await trigger.boundingBox();
+  expect(during!.x).toBeCloseTo(before!.x, 0);
+  expect(during!.y).toBeCloseTo(before!.y, 0);
+  const radio = single.getByRole("radio").first();
+  await radio.check();
+  await radio.focus();
+  await page.keyboard.press("Alt+Shift+P");
+  await expect(report).toBeVisible();
+  await expect(report).toContainText("Длинное название дисциплины для проверки импорта UI");
+  await page.keyboard.press("Escape");
+  await expect(report).toBeHidden();
+  await expect(radio).toBeFocused();
+  await expect(radio).toBeChecked();
+  for (let step = 0; step < 16; step++) {
+    await page.keyboard.press(step % 2 ? "Shift+Tab" : "Tab");
+    expect(await single.evaluate((paper) => paper.contains(document.activeElement))).toBe(true);
+  }
+  await trigger.click();
+  await report.getByRole("textbox", { name: "Что хотели сделать" }).fill("Импортировать выбранную дисциплину");
+  await report.getByRole("textbox", { name: "Что получилось" }).fill("Проверка контекста цели");
+  const accepted = page.waitForResponse((response) => response.url().endsWith("/api/feedback") && response.status() === 201);
+  await report.getByRole("button", { name: "Отправить обращение" }).click();
+  const receipt = await (await accepted).json() as { id: string };
+  const admin = await headersFor(request, "admin");
+  const detail = await request.get(apiUrl + "/api/feedback/" + receipt.id, { headers: admin });
+  expect(detail.status()).toBe(200);
+  expect((await detail.json()).context).toMatchObject({ templateId: 4000, complectId: 400,
+    discipline: "Длинное название дисциплины для проверки импорта UI" });
+  await report.getByRole("button", { name: "Закрыть", exact: true }).click();
+  await expect(trigger).toBeFocused();
+  await single.getByRole("button", { name: "Импортировать из Word", exact: true }).click();
+  const word = page.getByRole("dialog", { name: "Импортировать из Word", exact: true });
+  await expect(trigger).toHaveCount(1);
+  await trigger.click();
+  await expect(report).toBeVisible();
+  await expect(report).toContainText("Длинное название дисциплины для проверки импорта UI");
+  await page.keyboard.press("Escape");
+  await expect(word).toBeVisible();
+  await expect(trigger).toBeFocused();
+  await word.getByRole("button", { name: "Отмена", exact: true }).click();
+  await trigger.click();
+  await expect(report).not.toContainText("Длинное название дисциплины для проверки импорта UI");
+  await expect(report).toContainText("Комплект № 400");
+});
+
+test("ошибка загрузки страницы оставляет один глобальный контрол; свёрнутая панель и мобильное положение", async ({ page }) => {
+  await signIn(page, "admin");
+  // Реальный отказ ленивого модуля в dev, без тестовых флагов в приложении.
+  await page.route("**/src/pages/feedback-detail/**", (route) => route.abort());
+  await page.goto("/feedback/40000000-0000-4000-8000-000000000400");
+  await expect(page.getByRole("heading", { name: "Не удалось показать страницу", exact: true })).toBeVisible();
+  const trigger = page.getByRole("button", { name: "Сообщить о проблеме", exact: true });
+  await expect(trigger).toHaveCount(1);
+  await page.getByRole("button", { name: "toggle drawer", exact: true }).click();
+  for (const width of [1365, 768, 390]) {
+    await page.setViewportSize({ width, height: 844 });
+    await expect(trigger).toHaveCount(1);
+    const box = await trigger.boundingBox();
+    expect(box!.x).toBeCloseTo(16, 0);
+    expect(box!.width).toBeCloseTo(36, 0);
+    expect(box!.y + box!.height).toBeCloseTo(828, 0);
+    await trigger.focus();
+    await page.keyboard.press("Alt+Shift+P");
+    const report = page.getByRole("dialog", { name: "Сообщить о проблеме", exact: true });
+    await expect(report).toBeVisible();
+    await page.keyboard.press("Escape");
+    await expect(report).toBeHidden();
+    await expect(trigger).toBeFocused();
+  }
 });

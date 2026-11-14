@@ -55,6 +55,7 @@ export function ExportFromTemplates({
           targetTemplateId={jsonData.id}
           targetLabel={`${jsonData.disciplins_name ?? "РПД"} • ${fieldLabels[elementName as ImportField] ?? "поле РПД"}`}
           field={elementName as ImportField}
+          fieldLabel={fieldLabels[elementName as ImportField]}
           fieldBaseAt={baseAt}
           onFieldImported={setChangeableValue}
           onClose={() => setOpen(false)}

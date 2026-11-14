@@ -21,6 +21,7 @@ interface Props {
   allowedActions: WorkflowAction[];
   onOpenHistory: () => void;
   targetLabel: string;
+  discipline: string;
   publicId?: string;
   fetchData: () => Promise<void>;
   canEditTeachers: boolean;
@@ -34,6 +35,7 @@ export default function TemplateMenu({
   allowedActions,
   onOpenHistory,
   targetLabel,
+  discipline,
   publicId,
   fetchData,
   canEditTeachers,
@@ -147,6 +149,7 @@ export default function TemplateMenu({
           open
           targetTemplateId={id}
           targetLabel={targetLabel}
+          discipline={discipline}
           onClose={() => setOpenImportDialog(false)}
           onImported={fetchData}
         />

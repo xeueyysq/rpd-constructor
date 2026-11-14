@@ -8,6 +8,7 @@ import {
 } from "@entities/feedback";
 import { UserRole } from "@shared/ability";
 import { getSessionGeneration } from "@shared/api";
+import { useStore } from "@shared/hooks";
 import {
   Alert,
   Box,
@@ -19,9 +20,9 @@ import {
   DialogContent,
   DialogTitle,
   FormControlLabel,
-  IconButton,
   Stack,
   TextField,
+  Tooltip,
   Typography,
 } from "@mui/material";
 import ReportProblemOutlinedIcon from "@mui/icons-material/ReportProblemOutlined";
@@ -39,31 +40,48 @@ import { createPortal } from "react-dom";
 
 const MAX_SCREENSHOT_BYTES = 2 * 1024 * 1024;
 
-export function ReportProblemTrigger({
-  placement,
+function ReportProblemTrigger({
+  onOpen,
+  hidden,
 }: {
-  placement: "header" | "dialog";
+  onOpen: () => void;
+  hidden: boolean;
 }) {
-  const role = useAuth((state) => state.userRole);
-  const available = useFeedbackAvailability();
-  if (!available || role === UserRole.ANONYMOUS) return null;
-
-  const open = () => window.dispatchEvent(new Event("rpd:open-feedback"));
+  const expanded = useStore((state) => state.isDrawerOpen);
   const label = "Сообщить о проблеме";
-  return placement === "header" ? (
-    <IconButton
-      color="inherit"
-      onClick={open}
-      aria-label={label}
-      aria-keyshortcuts="Alt+Shift+P"
-      title={`${label} (Alt+Shift+P)`}
-    >
-      <ReportProblemOutlinedIcon />
-    </IconButton>
-  ) : (
-    <Button onClick={open} aria-keyshortcuts="Alt+Shift+P">
-      {label}
-    </Button>
+  return (
+    <Tooltip title={label + " (Alt+Shift+P)"}>
+      <Button
+        className="mui-fixed"
+        variant="outlined"
+        onClick={onOpen}
+        aria-label={label}
+        aria-keyshortcuts="Alt+Shift+P"
+        sx={{
+          position: "fixed",
+          left: 16,
+          bottom: 16,
+          zIndex: (theme) => theme.zIndex.modal + 1,
+          visibility: hidden ? "hidden" : "visible",
+          bgcolor: "background.paper",
+          typography: "button",
+          minHeight: 36,
+          minWidth: 36,
+          width: { xs: 36, sm: expanded ? "auto" : 36 },
+          px: { xs: 0, sm: expanded ? 1.5 : 0 },
+          gap: 1,
+          "&:hover": { bgcolor: "background.paper" },
+        }}
+      >
+        <ReportProblemOutlinedIcon />
+        <Box
+          component="span"
+          sx={{ display: { xs: "none", sm: expanded ? "inline" : "none" } }}
+        >
+          {label}
+        </Box>
+      </Button>
+    </Tooltip>
   );
 }
 
@@ -108,10 +126,15 @@ export function ReportProblem() {
   const [copyError, setCopyError] = useState("");
   const [receipt, setReceipt] = useState<FeedbackReceipt>();
   const fileInput = useRef<HTMLInputElement>(null);
+  const focusOrigin = useRef<HTMLElement | null>(null);
   const visible = available && role !== UserRole.ANONYMOUS;
 
   const open = useCallback(() => {
     if (!visible || draft) return;
+    focusOrigin.current =
+      document.activeElement instanceof HTMLElement
+        ? document.activeElement
+        : null;
     setDraft(createManualFeedbackDraft());
     setGoal("");
     setActual("");
@@ -131,18 +154,34 @@ export function ReportProblem() {
   };
 
   useEffect(() => {
+    if (draft) return;
     const update = () => {
-      const dialogs = document.querySelectorAll<HTMLElement>(
-        ".MuiDialog-paper[role='dialog']:not(#report-problem-dialog)"
+      // Пока форма закрывается, нижнее окно ещё inert. Сохраняем её инициатор
+      // до завершения transition, чтобы не потерять узел возврата фокуса.
+      if (document.getElementById("report-problem-dialog")) return;
+      const dialogs = Array.from(
+        document.querySelectorAll<HTMLElement>(
+          ".MuiDialog-paper[role='dialog']:not(#report-problem-dialog)"
+        )
+      ).filter(
+        (paper) =>
+          paper.closest(".MuiModal-root")?.getAttribute("aria-hidden") !==
+          "true"
       );
-      const top = dialogs.item(dialogs.length - 1);
-      setAnchor(top);
+      const top = dialogs.at(-1);
+      // Fixed-контрол не занимает строку; он остаётся внутри aria-modal и focus trap.
+      setAnchor(top ?? null);
     };
     update();
     const observer = new MutationObserver(update);
-    observer.observe(document.body, { childList: true, subtree: true });
+    observer.observe(document.body, {
+      childList: true,
+      subtree: true,
+      attributes: true,
+      attributeFilter: ["aria-hidden"],
+    });
     return () => observer.disconnect();
-  }, []);
+  }, [draft]);
 
   useEffect(() => {
     const onShortcut = (event: KeyboardEvent) => {
@@ -228,21 +267,10 @@ export function ReportProblem() {
 
   return (
     <>
-      {anchor
-        ? createPortal(
-            <Box
-              sx={{
-                display: "flex",
-                justifyContent: "flex-end",
-                px: 3,
-                pb: 2,
-              }}
-            >
-              <ReportProblemTrigger placement="dialog" />
-            </Box>,
-            anchor
-          )
-        : null}
+      {createPortal(
+        <ReportProblemTrigger onOpen={open} hidden={Boolean(draft)} />,
+        anchor ?? document.body
+      )}
       <Dialog
         open={Boolean(draft)}
         onClose={close}
@@ -251,6 +279,14 @@ export function ReportProblem() {
         fullWidth
         aria-labelledby="report-problem-title"
         slotProps={{
+          transition: {
+            onExited: () => {
+              window.requestAnimationFrame(() => {
+                if (focusOrigin.current?.isConnected)
+                  focusOrigin.current.focus();
+              });
+            },
+          },
           paper: {
             id: "report-problem-dialog",
             sx: { maxHeight: "calc(100dvh - 32px)" },

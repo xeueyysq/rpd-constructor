@@ -100,6 +100,7 @@ export function useComplectTableColumns({
             fetchData={onFetchData}
             canEditTeachers={row.original.canEditTeachers}
             targetLabel={`${row.original.discipline} • семестр ${row.original.semester} • ${complect?.profile ?? ""} • ${complect?.year ?? ""}`}
+            discipline={row.original.discipline}
             onEditTeachers={() => onOpenTeachers(row.original.id)}
             onOpenHistory={() => {
               if (row.original.id_profile_template != null)

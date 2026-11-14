@@ -32,9 +32,7 @@ export { TemplateCollabBar } from "./ui/TemplateCollabBar";
 export { FieldEditLabel } from "./ui/FieldEditLabel";
 export { useSetTemplateParticipants } from "./api/workflow";
 export {
-  useImportSources,
   useImportCatalog,
-  useImportSourceDetails,
   useImportFieldPreview,
   useCopyTemplateField,
   useCopyTemplateContent,
@@ -49,13 +47,12 @@ export {
 export { importComplectLabel, importSkipLabels } from "./model/templateImport";
 export type {
   ImportField,
-  ImportSources,
   ImportContext,
   ImportCatalogQuery,
   ImportCatalogResponse,
   ImportCatalogSummary,
+  ImportCatalogTemplate,
   ImportCatalogFacets,
-  ImportSourceDetailsQuery,
   ImportSourceComplect,
   ImportSourceTemplate,
   ImportComplectResponse,

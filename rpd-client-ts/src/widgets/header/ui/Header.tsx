@@ -1,4 +1,4 @@
-import { FC, useContext, type ReactNode } from "react";
+import { FC, useContext } from "react";
 import { Box, AppBar, Toolbar, IconButton } from "@mui/material";
 import { AccountSettings } from "./AccountSettings.tsx";
 import HeaderLogo from "./HeaderLogo.tsx";
@@ -7,7 +7,7 @@ import { useStore } from "@shared/hooks";
 import MenuIcon from "@mui/icons-material/Menu";
 import { useTheme } from "@mui/material";
 
-export const Header: FC<{ action?: ReactNode }> = ({ action }) => {
+export const Header: FC = () => {
   const { isUserLogged } = useContext(AuthContext);
   const { toggleDrawer } = useStore();
   const theme = useTheme();
@@ -40,8 +40,16 @@ export const Header: FC<{ action?: ReactNode }> = ({ action }) => {
             </IconButton>
             <HeaderLogo />
           </Box>
-          <Box sx={{ display: "flex", alignItems: "center", flexShrink: 0 }}>
-            {action}
+          <Box
+            sx={{
+              display: "flex",
+              alignItems: "center",
+              flexShrink: 0,
+              "& [aria-label='Открыть меню аккаунта'] > :first-child": {
+                display: { xs: "none", sm: "flex" },
+              },
+            }}
+          >
             {isUserLogged && <AccountSettings />}
           </Box>
         </Box>

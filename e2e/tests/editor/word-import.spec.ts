@@ -12,15 +12,35 @@ test('Word: ошибка файла, отмена, выбор полей, при
   const before = await profileFor(request, headers, 390);
   await signIn(page, 'rop');
   await page.goto('/templates/a390a390a390/aimsPage');
-  const open = page.getByRole('button', { name: 'Импортировать РПД' });
+  const open = page.getByRole('button', { name: 'Импортировать из Word', exact: true });
+  await expect(open.locator('svg')).toHaveCount(1);
+  await open.hover();
+  await expect(page.getByRole('tooltip', { name: 'Импортировать из Word', exact: true })).toBeVisible();
   await open.click();
   const dialog = page.getByRole('dialog', { name: 'Импортировать из Word' });
   const file = dialog.locator('input[type="file"]');
+  await expect(dialog).not.toContainText('Цель:');
   await file.setInputFiles({ name: 'broken.docx', mimeType: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document', buffer: Buffer.from('invalid') });
   await expect(dialog.getByRole('alert').last()).toContainText(/не удалось|некоррект|DOCX|файл/i);
   await file.setInputFiles({ name: 'synthetic.docx', mimeType: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document', buffer: docx });
   await expect(dialog.getByRole('checkbox', { name: 'Цели и задачи' })).toBeVisible();
   await expect(dialog).toContainText('Источник:');
+  for (const width of [1365, 768, 390]) {
+    await page.setViewportSize({ width, height: width === 390 ? 844 : 900 });
+    const panel = await dialog.boundingBox();
+    expect(panel).not.toBeNull();
+    expect(panel!.x).toBeGreaterThanOrEqual(0);
+    expect(panel!.x + panel!.width).toBeLessThanOrEqual(width);
+    expect(panel!.y + panel!.height).toBeLessThanOrEqual(page.viewportSize()!.height - 64);
+    expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
+    await expect(dialog.getByRole('button', { name: 'Продолжить', exact: true })).toBeInViewport();
+    const trigger = page.getByRole('button', { name: 'Сообщить о проблеме', exact: true });
+    await expect(trigger).toHaveCount(1);
+    const box = await trigger.boundingBox();
+    expect(box!.x).toBeCloseTo(16, 0);
+    expect(box!.y).toBeGreaterThanOrEqual(panel!.y + panel!.height);
+  }
+  await page.setViewportSize({ width: 1365, height: 900 });
   await dialog.screenshot({ path: testInfo.outputPath('word-preview.png') });
   await dialog.getByRole('button', { name: 'Отмена' }).click();
   expect((await profileFor(request, headers, 390)).goals).toBe(before.goals);

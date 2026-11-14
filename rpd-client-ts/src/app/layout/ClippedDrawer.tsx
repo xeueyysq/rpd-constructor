@@ -7,7 +7,6 @@ import { UserRole } from "@shared/ability";
 import { RedirectPath } from "@shared/enums";
 import { useStore } from "@shared/hooks";
 import { Header } from "@widgets/header";
-import { ReportProblemTrigger } from "@widgets/report-problem";
 import { RpdList } from "@widgets/rpd-list";
 import { MainTabsList, TeacherTabsList } from "@widgets/tabs-list";
 import { useEffect, useMemo, useState } from "react";
@@ -56,7 +55,7 @@ export function ClippedDrawer() {
 
   return (
     <Box sx={{ position: "relative", minHeight: "100vh" }}>
-      <Header action={<ReportProblemTrigger placement="header" />} />
+      <Header />
       <Drawer
         color="default"
         variant="permanent"
@@ -98,6 +97,7 @@ export function ClippedDrawer() {
             flex: 1,
             minHeight: 0,
             overflow: "hidden",
+            pb: 8,
           }}
         >
           {switchMap[page as keyof typeof switchMap]}
@@ -108,7 +108,7 @@ export function ClippedDrawer() {
         sx={{
           width: isDrawerOpen ? `calc(100% - ${drawerWidth}px)` : "100%",
           p: 3,
-          px: isTemplatePage ? 9 : undefined,
+          px: isTemplatePage ? { xs: 2, sm: 3, lg: 9 } : undefined,
           marginLeft: isDrawerOpen ? `${drawerWidth}px` : 0,
           transition:
             "margin-left 0.3s cubic-bezier(0.4, 0, 0.2, 1), width 0.3s cubic-bezier(0.4, 0, 0.2, 1)",

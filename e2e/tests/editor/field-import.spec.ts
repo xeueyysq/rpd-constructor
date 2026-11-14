@@ -4,17 +4,19 @@ import { headersFor, list3, profileFor, templateFromDb } from '../list3';
 
 async function chooseFieldSource(page: Page, button: Locator, mode: 'other-year' | 'other-complect', field: string) {
   await button.click();
-  const dialog = page.getByRole('dialog', { name: 'Импортировать поле', exact: true });
+  const names: Record<string, string> = { goals: 'Цели и задачи', textbook: 'Основная литература',
+    additional_textbook: 'Дополнительная литература', content: 'Содержание дисциплины' };
+  const dialog = page.getByRole('dialog', { name: `Импортировать: ${names[field]}`, exact: true });
   await expect(dialog).toBeVisible();
-  await dialog.getByRole('combobox', { name: 'Статус исходной дисциплины' }).click();
-  await page.getByRole('option', { name: 'Все статусы' }).click();
-  if (mode === 'other-year') await dialog.getByRole('button', { name: 'Из другого года' }).click();
-  await dialog.getByRole('button', { name: 'Показать дисциплины' }).first().click();
+  await expect(dialog.getByRole('combobox')).toHaveCount(3);
+  await expect(dialog.getByRole('checkbox')).toHaveCount(0);
+  if (mode === 'other-year') await dialog.getByRole('tab', { name: 'Другой год' }).click();
+  await dialog.getByRole('radio', { name: /семестр 1.*Дисциплина/i }).first().check();
   const preview = page.waitForResponse((response) => {
     const url = new URL(response.url());
     return url.pathname === '/api/get-changeable-values' && url.searchParams.get('rowName') === field;
   });
-  await dialog.getByRole('button', { name: /семестр 1.*Дисциплина/i }).first().click();
+  await dialog.getByRole('button', { name: /^Просмотр:/ }).first().click();
   const response = await preview;
   expect(response.status()).toBe(200);
   return { dialog, response };
@@ -45,9 +47,7 @@ test('повторное открытие импорта поля видит и�
   await page.goto(`/templates/${target.publicId}/aimsPage`);
   const button = page.getByRole('button', { name: 'Импортировать поле', exact: true });
   await button.click();
-  const first = page.getByRole('dialog', { name: 'Импортировать поле', exact: true });
-  await first.getByRole('combobox', { name: 'Статус исходной дисциплины' }).click();
-  await page.getByRole('option', { name: 'Все статусы' }).click();
+  const first = page.getByRole('dialog', { name: 'Импортировать: Цели и задачи', exact: true });
   await expect(first).toContainText('По выбранным условиям источников нет');
   await first.getByRole('button', { name: 'Отмена' }).click();
 
@@ -142,3 +142,128 @@ for (const role of ['rop', 'teacher'] as const) {
     await expect(page.getByText('Цели источника 300', { exact: true })).toBeVisible();
   });
 }
+
+test('field: полные текст, литература и темы/часы; просмотр не выбирает источник, оба режима ограничены назначением и названием', async ({ page }) => {
+  test.slow();
+  await signIn(page, 'teacher');
+  await page.goto('/templates/d400d400d400/aimsPage');
+  for (const [section, index, title, kind] of [
+    ['Цели и задачи освоения дисциплины', 0, 'Цели и задачи', 'text'],
+    ['Ресурсное обеспечение', 0, 'Основная литература', 'books'],
+    ['Содержание дисциплины', 0, 'Содержание дисциплины', 'content'],
+  ] as const) {
+    await page.getByRole('button', { name: section, exact: true }).click();
+    await page.getByRole('button', { name: 'Импортировать поле', exact: true }).nth(index).click();
+    const dialog = page.getByRole('dialog', { name: `Импортировать: ${title}`, exact: true });
+    await expect(dialog.getByRole('radio')).toHaveCount(2); // 4010 и 4020; чужие назначения, имя и уровень исключены.
+    await expect(dialog.getByRole('checkbox')).toHaveCount(0);
+    await expect(dialog.getByRole('combobox')).toHaveCount(3);
+    await expect(dialog.getByRole('button', { name: 'Импортировать из Word' })).toHaveCount(0);
+    await expect(dialog).not.toContainText('Цель:');
+    if (kind === 'text') {
+      const year = dialog.getByRole('tab', { name: 'Другой год' });
+      const complect = dialog.getByRole('tab', { name: 'Другой комплект' });
+      await complect.focus();
+      await page.keyboard.press('ArrowRight');
+      await expect(year).toBeFocused();
+      await page.keyboard.press('Space');
+      await expect(year).toHaveAttribute('aria-selected', 'true');
+      await expect(dialog.getByRole('radio')).toHaveCount(1);
+      await page.keyboard.press('Home');
+      await expect(complect).toBeFocused();
+      await page.keyboard.press('Space');
+      await expect(dialog.getByRole('radio')).toHaveCount(2);
+    }
+    await dialog.getByRole('button', { name: /^Просмотр:/ }).first().click();
+    const preview = dialog.getByRole('region', { name: `Предпросмотр: ${title}`, exact: true });
+    await expect(preview).toBeFocused();
+    await expect(dialog.getByRole('button', { name: 'Продолжить' })).toBeDisabled();
+    if (kind === 'text') {
+      await expect(preview).toContainText('Последний абзац 4010');
+      await expect(preview).toContainText('Последний пункт');
+      await expect(preview).toContainText('Вторая ячейка');
+      expect(await preview.textContent()).not.toContain('window.__importPreviewExecuted');
+      expect(await page.evaluate(() => '__importPreviewExecuted' in window)).toBe(false);
+      await expect(preview.locator('script')).toHaveCount(0);
+    } else if (kind === 'books') {
+      await expect(preview.getByRole('listitem')).toHaveCount(2);
+      await expect(preview).toContainText('Конец первой книги 4010');
+      await expect(preview).toContainText('Последняя книга 4010');
+    } else {
+      const table = preview.getByRole('table', { name: 'Темы и часы' });
+      await expect(table.getByRole('row')).toHaveCount(9);
+      await expect(table).toContainText('Тема 8 источника 4010');
+      await expect(table.getByRole('columnheader', { name: 'Самостоятельная работа', exact: true })).toBeVisible();
+      await page.setViewportSize({ width: 390, height: 844 });
+      const scroller = preview.getByRole('region', { name: /горизонтальная прокрутка/ });
+      expect(await scroller.evaluate((element) => element.scrollWidth > element.clientWidth)).toBe(true);
+      expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
+      await expect(dialog.getByRole('button', { name: 'Продолжить', exact: true })).toBeInViewport();
+    }
+    await preview.getByRole('button', { name: 'Закрыть предпросмотр' }).click();
+    await expect(dialog.getByRole('button', { name: /^Просмотр:/ }).first()).toBeFocused();
+    await dialog.getByRole('radio').first().check();
+    await expect(dialog.getByRole('button', { name: 'Продолжить' })).toBeEnabled();
+    await dialog.getByRole('tab', { name: 'Другой год' }).click();
+    await expect(dialog.getByRole('radio')).toHaveCount(1);
+    await expect(dialog.getByRole('radio')).not.toBeChecked();
+    await expect(dialog.getByRole('radio')).toHaveAccessibleName(/UI источники прошлого года/);
+    await expect(dialog.getByRole('button', { name: 'Продолжить' })).toBeDisabled();
+    await dialog.getByRole('button', { name: 'Отмена' }).click();
+    await page.setViewportSize({ width: 1365, height: 900 });
+  }
+});
+
+test('field: задержанный preview предыдущей строки не подменяет просмотр нового источника', async ({ page }) => {
+  await signIn(page, 'teacher');
+  await page.goto('/templates/d400d400d400/aimsPage');
+  await page.getByRole('button', { name: 'Импортировать поле', exact: true }).click();
+  const dialog = page.getByRole('dialog', { name: 'Импортировать: Цели и задачи', exact: true });
+  await expect(dialog.getByRole('radio')).toHaveCount(2);
+  let release!: () => void;
+  const gate = new Promise<void>((resolve) => { release = resolve; });
+  let finishDelayed!: () => void;
+  const delayedDone = new Promise<void>((resolve) => { finishDelayed = resolve; });
+  await page.route('**/api/get-changeable-values?*', async (route) => {
+    if (new URL(route.request().url()).searchParams.get('ids') !== '4010') return route.continue();
+    const response = await route.fetch();
+    await gate;
+    try {
+      await route.fulfill({ response });
+    } catch (error) {
+      if (!route.request().failure()) throw error;
+    } finally { finishDelayed(); }
+  });
+  const started = page.waitForRequest((request) => new URL(request.url()).pathname === '/api/get-changeable-values'
+    && new URL(request.url()).searchParams.get('ids') === '4010');
+  await dialog.getByRole('button', { name: /^Просмотр:/ }).first().click();
+  await started;
+  try {
+    await dialog.getByRole('button', { name: /^Просмотр:/ }).nth(1).click();
+    const preview = dialog.getByRole('region', { name: 'Предпросмотр: Цели и задачи', exact: true });
+    await expect(preview).toContainText('Последний абзац 4020');
+    release();
+    await delayedDone;
+    await expect(preview).not.toContainText('Последний абзац 4010');
+    await expect(dialog.getByRole('radio', { checked: true })).toHaveCount(0);
+  } finally { release(); }
+});
+
+test('импорт content обновляет открытую таблицу без reload, сохраняет автора и часы в БД', async ({ page, request }) => {
+  const headers = await headersFor(request);
+  const before = await profileFor(request, headers, list3.fieldRop.id);
+  await signIn(page, 'rop');
+  await page.goto(`/templates/${list3.fieldRop.publicId}/disciplineContent`);
+  const chosen = await chooseFieldSource(page, page.getByRole('button', { name: 'Импортировать поле', exact: true }).first(), 'other-complect', 'content');
+  const value = { 0: { theme: 'Тема источника', lectures: 9, seminars: 7, independent_work: 8, control: 0 } };
+  const response = await applyField(page, chosen.dialog, list3.fieldRop.id, 'content', value);
+  expect(response.request().postDataJSON().baseAt).toBe(before.field_edits?.content?.at ?? null);
+  await expect(page.getByRole('table', { name: 'Содержание дисциплины', exact: true }).getByRole('textbox').first()).toHaveValue('Тема источника');
+  const saved = await profileFor(request, headers, list3.fieldRop.id);
+  expect(saved.content).toEqual(value);
+  expect(saved.field_edits.content.userId).toBe(1);
+  expect(Number.isNaN(Date.parse(saved.field_edits.content.at))).toBe(false);
+  expect(templateFromDb(list3.fieldRop.id)).toMatchObject({ content: value, field_edits: { content: { userId: 1, at: saved.field_edits.content.at } } });
+  await page.reload();
+  await expect(page.getByRole('table', { name: 'Содержание дисциплины', exact: true }).getByRole('textbox').first()).toHaveValue('Тема источника');
+});

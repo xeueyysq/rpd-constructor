@@ -1,1 +1,1 @@
-export { ReportProblem, ReportProblemTrigger } from "./ui/ReportProblem";
+export { ReportProblem } from "./ui/ReportProblem";

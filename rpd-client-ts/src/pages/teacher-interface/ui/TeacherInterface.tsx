@@ -1,4 +1,5 @@
-import { Alert, Box, Button } from "@mui/material";
+import { Alert, Box, IconButton, Tooltip } from "@mui/material";
+import DescriptionOutlinedIcon from "@mui/icons-material/DescriptionOutlined";
 import { useAuth } from "@entities/auth";
 import { useTemplateSync } from "@entities/template";
 import {
@@ -146,9 +147,14 @@ export function TeacherInterface() {
         ) &&
           !jsonData.removed_at && (
             <Box sx={{ display: "flex", justifyContent: "flex-end", mb: 1 }}>
-              <Button variant="outlined" onClick={() => setImportOpen(true)}>
-                Импортировать РПД
-              </Button>
+              <Tooltip title="Импортировать из Word">
+                <IconButton
+                  aria-label="Импортировать из Word"
+                  onClick={() => setImportOpen(true)}
+                >
+                  <DescriptionOutlinedIcon />
+                </IconButton>
+              </Tooltip>
             </Box>
           )}
         {pageMap[page]}
