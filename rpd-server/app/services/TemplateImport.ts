@@ -11,7 +11,7 @@ import { withEditorNames } from "../modules/fieldEdits.ts";
 import { formatDisciplineName } from "../modules/disciplineNames.ts";
 import { Conflict, Forbidden, NotFound, Unprocessable } from "../utils/Errors.ts";
 import { validateWordApply, type WordValues } from "../modules/wordImport/wordAdapter.ts";
-import type { CopyTemplateResponse, ImportComplectEntry, ImportComplectResponse, ImportSkipReason, ImportSourcesResponse } from "../types/templateImport.ts";
+import type { CopyTemplateResponse, ImportCatalogResponse, ImportComplectEntry, ImportComplectResponse, ImportScope, ImportSkipReason, ImportSourcesResponse } from "../types/templateImport.ts";
 
 type Database = Pool | PoolClient;
 function canonical(value: unknown): string {
@@ -58,10 +58,10 @@ export default class TemplateImport {
     return source;
   }
 
-  private assignedOnly(actor: UserClaims, ownOnly: unknown): boolean {
+  private assignedOnly(actor: UserClaims, ownOnly: unknown, scope: ImportScope = "field"): boolean {
     if (ownOnly !== undefined && ownOnly !== true && ownOnly !== false && ownOnly !== "true" && ownOnly !== "false")
       throw new Unprocessable("Некорректный ownOnly");
-    return actor.role === USER_ROLES.TEACHER || ownOnly === true || ownOnly === "true";
+    return scope === "field" && (actor.role === USER_ROLES.TEACHER || ownOnly === true || ownOnly === "true");
   }
 
   private async assertSourceAssignment(db: Database, actor: UserClaims, sourceId: number, ownOnly: unknown): Promise<void> {
@@ -81,7 +81,15 @@ export default class TemplateImport {
     if (current !== baseline) throw new Conflict({ message: "Цель импорта уже изменена. Обновите список источников", targetRevision: current });
   }
 
-  private catalogFilters(query: Record<string, unknown>, targetName: string | null): CatalogFilters {
+  private catalogScope(scope: unknown, templateId: number | undefined): ImportScope {
+    const resolved = scope === undefined ? (templateId === undefined ? "bulk" : "single") : scope;
+    if (typeof resolved !== "string" || !["bulk", "single", "field"].includes(resolved)
+      || (resolved === "bulk") !== (templateId === undefined)) throw new Unprocessable("Некорректный scope или цель импорта");
+    return resolved as ImportScope;
+  }
+
+  private catalogFilters(query: Record<string, unknown>, targetName: string | null,
+    scope: ImportScope, educationLevel: string | null): CatalogFilters {
     const string = (key: string, max = 160): string | null => {
       const value = query[key];
       if (value === undefined || value === "") return null;
@@ -101,18 +109,21 @@ export default class TemplateImport {
     if (yearRaw !== undefined && (typeof yearRaw !== "string" || !/^\d{4}$/.test(yearRaw)))
       throw new Unprocessable("Некорректный год");
     const status = string("status", 32);
-    if (status && !["unloaded", "created", "on_teacher", "in_progress", "ready", "on_refinement", "closed"].includes(status))
+    if (status && status !== "ready")
       throw new Unprocessable("Некорректный статус");
     const sourceMode = string("sourceMode", 32) ?? "other-complect";
     if (sourceMode !== "other-complect" && sourceMode !== "other-year") throw new Unprocessable("Некорректный режим источников");
-    const sameNameOnly = query.sameNameOnly === "true";
+    const sameNameOnly = scope === "field" || query.sameNameOnly === "true";
     if (query.sameNameOnly !== undefined && query.sameNameOnly !== "true" && query.sameNameOnly !== "false")
       throw new Unprocessable("Некорректный sameNameOnly");
-    if (sameNameOnly && !targetName) throw new Unprocessable("Фильтр названия доступен только для одной РПД");
+    if (sameNameOnly && !targetName && scope !== "field") throw new Unprocessable("Фильтр названия доступен только для одной РПД");
+    const clientLevel = string("educationLevel");
+    if (clientLevel !== null && clientLevel !== educationLevel) throw new Unprocessable("Уровень образования задан целью импорта");
     return {
-      search: string("search", 120), faculty: string("faculty"), educationLevel: string("educationLevel"),
+      search: string("search", 120), faculty: string("faculty"), educationLevel,
       direction: string("direction"), profile: string("profile"), educationForm: string("educationForm"),
-      year: yearRaw === undefined ? null : Number(yearRaw), status, sourceMode, sameNameOnly,
+      year: yearRaw === undefined ? null : Number(yearRaw), status: scope === "single" ? status : null,
+      sourceMode: scope === "field" ? sourceMode : "other-complect", sameNameOnly,
       page: positive("page", 1, 10_000), pageSize: positive("pageSize", 10, 25),
     };
   }
@@ -136,30 +147,29 @@ export default class TemplateImport {
     return { complectId, templateId, targetRevision, targetName };
   }
 
-  async catalog(actor: UserClaims, query: Record<string, unknown>) {
+  async catalog(actor: UserClaims, query: Record<string, unknown>): Promise<ImportCatalogResponse> {
     const { complectId, templateId, targetRevision, targetName } = await this.sourceContext(actor, query.targetTemplateId, query.targetComplectId);
-    const filters = this.catalogFilters(query, targetName);
-    const targetYear = await TemplateImportCatalogModel.targetYear(this.database, complectId);
+    const scope = this.catalogScope(query.scope, templateId);
+    const meta = await TemplateImportCatalogModel.targetMeta(this.database, complectId);
+    const filters = this.catalogFilters(query, targetName, scope, meta.education_level);
     const params = TemplateImportCatalogModel.params(complectId,
-      this.assignedOnly(actor, query.ownOnly) ? actor.id : undefined, targetYear, targetName, templateId === undefined, filters);
+      this.assignedOnly(actor, query.ownOnly, scope) ? actor.id : undefined, meta.year, targetName, scope === "bulk", filters);
     const result = await TemplateImportCatalogModel.catalog(this.database, params);
-    return { targetRevision, ...result, page: filters.page, pageSize: filters.pageSize };
+    return { scope, targetRevision, targetEducationLevel: meta.education_level, ...result,
+      templates: result.templates.map((template) => ({ ...template, disciplins_name: formatDisciplineName(template.disciplins_name) })),
+      page: filters.page, pageSize: filters.pageSize };
   }
 
   async sources(actor: UserClaims, targetTemplateId: unknown, targetComplectId: unknown,
     ownOnly?: unknown, query?: Record<string, unknown>): Promise<ImportSourcesResponse> {
     const { complectId, templateId, targetRevision, targetName } = await this.sourceContext(actor, targetTemplateId, targetComplectId);
-    let sources;
-    if (query?.sourceComplectId !== undefined) {
-      const sourceId = await resolveComplect(this.database, query.sourceComplectId);
-      const filters = this.catalogFilters(query, targetName);
-      const targetYear = await TemplateImportCatalogModel.targetYear(this.database, complectId);
-      const params = TemplateImportCatalogModel.params(complectId,
-        this.assignedOnly(actor, ownOnly) ? actor.id : undefined, targetYear, targetName, templateId === undefined, filters);
-      sources = await TemplateImportCatalogModel.details(this.database, params, sourceId);
-    } else {
-      sources = await TemplateImportModel.sources(this.database, complectId, this.assignedOnly(actor, ownOnly) ? actor.id : undefined);
-    }
+    const scope = this.catalogScope(query?.scope, templateId);
+    const meta = await TemplateImportCatalogModel.targetMeta(this.database, complectId);
+    const filters = this.catalogFilters(query ?? {}, targetName, scope, meta.education_level);
+    const sourceId = query?.sourceComplectId === undefined ? undefined : await resolveComplect(this.database, query.sourceComplectId);
+    const params = TemplateImportCatalogModel.params(complectId,
+      this.assignedOnly(actor, ownOnly, scope) ? actor.id : undefined, meta.year, targetName, scope === "bulk", filters);
+    const sources = await TemplateImportCatalogModel.details(this.database, params, sourceId);
     const complects = sources.map((complect) => ({
       ...complect,
       templates: complect.templates.map((template) => ({
@@ -167,7 +177,7 @@ export default class TemplateImport {
         disciplins_name: formatDisciplineName(template.disciplins_name),
       })),
     }));
-    return { targetRevision, complects };
+    return { scope, targetRevision, complects };
   }
 
   async preview(actor: UserClaims, ids: unknown, field: unknown, targetTemplateId: unknown, ownOnly?: unknown) {
@@ -185,27 +195,32 @@ export default class TemplateImport {
     return TemplateImportModel.preview(this.database, [...new Set(numericIds)], field);
   }
 
-  async copy(actor: UserClaims, sourceIdentifier: unknown, targetIdentifier: unknown, options: { field?: unknown; baseAt?: unknown; targetRevision?: unknown; ownOnly?: unknown } = {}): Promise<CopyTemplateResponse> {
+  async copy(actor: UserClaims, sourceIdentifier: unknown, targetIdentifier: unknown, options: { field?: unknown; baseAt?: unknown; targetRevision?: unknown; ownOnly?: unknown; sourceStatus?: unknown } = {}): Promise<CopyTemplateResponse> {
     let field: TemplateImportField | undefined;
     if (options.field !== undefined) {
       if (!isTemplateImportField(options.field)) throw new Unprocessable("Недопустимое поле импорта");
       field = options.field;
       if (!(options.baseAt === null || typeof options.baseAt === "string")) throw new Unprocessable("Укажите baseAt");
     }
+    if (options.sourceStatus !== undefined && options.sourceStatus !== "ready") throw new Unprocessable("Некорректный статус источника");
     return this.transaction(async (client) => {
       const targetId = await resolveTemplate(client, targetIdentifier);
       const sourceId = await resolveTemplate(client, sourceIdentifier);
       const initialTarget = await this.target(client, actor, targetId);
       const initialSource = await this.source(client, sourceId, initialTarget.id_rpd_complect);
-      this.assignedOnly(actor, options.ownOnly);
+      this.assignedOnly(actor, options.ownOnly, field ? "field" : "single");
       await TemplateImportModel.lock(client, [initialTarget.id_rpd_complect, initialSource.id_rpd_complect], actor.id);
       const target = await this.target(client, actor, targetId);
-      await this.source(client, sourceId, target.id_rpd_complect);
-      await this.assertSourceAssignment(client, actor, sourceId, options.ownOnly);
+      const source = await this.source(client, sourceId, target.id_rpd_complect);
       if (field) {
+        await this.assertSourceAssignment(client, actor, sourceId, options.ownOnly);
         const currentEdit = target.field_edits[field] ?? null;
         if ((currentEdit?.at ?? null) !== options.baseAt) throw new Conflict({ message: "Поле уже изменено", field, value: target[field as keyof ImportTemplate], edit: (await withEditorNames(client, currentEdit ? { [field]: currentEdit } : {}))[field] ?? null });
-      } else await this.checkRevision(client, target.id_rpd_complect, options.targetRevision, targetId);
+      } else {
+        if (options.sourceStatus === "ready" && source.current_status !== "ready")
+          throw new Conflict("Источник больше не готов. Обновите список источников");
+        await this.checkRevision(client, target.id_rpd_complect, options.targetRevision, targetId);
+      }
       const available = await TemplateImportModel.fields(client);
       const fields = field ? available.filter((item) => item === field) : available;
       if (!fields.length) throw new Unprocessable("Нет доступных полей импорта");
@@ -292,7 +307,6 @@ export default class TemplateImport {
         if (!target.discipline?.trim() || !matches.length) reason = "missing_source";
         else if (matches.length !== 1 || targets.filter((row) => importMatchKey(row) === key).length !== 1) reason = "ambiguous";
         else if (target.template_id == null) reason = "target_missing_template";
-        else if (sourceStatus != null && (matches[0].current_status ?? "created") !== sourceStatus) reason = "source_status";
         else if (matches[0].template_id == null) reason = "source_missing_template";
         else if (target.current_status === "ready" || target.current_status === "closed") reason = "read_only";
         if (reason) { skipped.push({ ...entry, reason }); continue; }

@@ -353,8 +353,8 @@ class RpdProfileTemplatesController {
   }
 
   async copyTemplateContent(req: Request<ParamsDictionary, unknown, Record<string, unknown>>, res: Response) {
-    const { sourceTemplateId, targetTemplateId, targetRevision, ownOnly } = req.body ?? {};
-    res.json(await this.imports.copy(TemplateAccess.actor(req.user), sourceTemplateId, targetTemplateId, { targetRevision, ownOnly }));
+    const { sourceTemplateId, targetTemplateId, targetRevision, ownOnly, sourceStatus } = req.body ?? {};
+    res.json(await this.imports.copy(TemplateAccess.actor(req.user), sourceTemplateId, targetTemplateId, { targetRevision, ownOnly, sourceStatus }));
   }
 
   async getChangeableValues(req: Request<ParamsDictionary, unknown, Record<string, unknown>>, res: Response) {

@@ -7,7 +7,7 @@ type Profile = RpdProfileTemplateRow & Record<string, unknown>;
 type Exchange = { id: number; id_rpd_complect: number; discipline: string; semester: number | null; record_type: string | null; removed_at: string | null };
 type Status = { id: number; id_profile_template: number; id_1c_template: number | null; current_status: string; history: unknown[] };
 type Assignment = { user_id: number; template_id: number; state: string; updated_at: string };
-type State = { users: User[]; profiles: Profile[]; exchange: Exchange[]; statuses: Status[]; assignments: Assignment[]; owners: { complect_id: number; user_id: number }[]; complects: { id: number; uuid: string; year: number; direction: string; profile: string }[] };
+type State = { users: User[]; profiles: Profile[]; exchange: Exchange[]; statuses: Status[]; assignments: Assignment[]; owners: { complect_id: number; user_id: number }[]; complects: { id: number; uuid: string; year: number; education_level: string | null; direction: string; profile: string }[] };
 
 export const rop = { id: 7, role: USER_ROLES.ROP, userName: "rop" };
 export const teacher = { id: 8, role: USER_ROLES.TEACHER, userName: "teacher" };
@@ -34,7 +34,7 @@ export function templateDatabase() {
     statuses: [{ id: 1, id_profile_template: 10, id_1c_template: 100, current_status: "created", history: [] }, { id: 2, id_profile_template: 20, id_1c_template: 200, current_status: "on_teacher", history: [] }],
     assignments: [{ user_id: 8, template_id: 20, state: "in_progress", updated_at: "2026-01-01" }],
     owners: [{ complect_id: 2, user_id: 7 }],
-    complects: [{ id: 1, uuid: "source", year: 2026, direction: "09.03.01", profile: "Источник" }, { id: 2, uuid: "target", year: 2026, direction: "09.03.02", profile: "Цель" }],
+    complects: [{ id: 1, uuid: "source", year: 2026, education_level: null, direction: "09.03.01", profile: "Источник" }, { id: 2, uuid: "target", year: 2026, education_level: null, direction: "09.03.02", profile: "Цель" }],
   };
   let transaction: State | undefined;
   let writes = 0;
@@ -67,7 +67,24 @@ export function templateDatabase() {
       complect: db.complects.find((c) => c.id === values[0]), exchange: db.exchange.filter((e) => e.id_rpd_complect === values[0]),
       templates: db.profiles.filter((p) => p.id_rpd_complect === values[0] && (values[1] == null || p.id === values[1])).map((p) => ({ id: p.id, edits: p.field_edits, status: db.statuses.find((s) => s.id_profile_template === p.id), participants: db.assignments.filter((a) => a.template_id === p.id) })),
     } }]);
-    if (text.startsWith("SELECT c.id,c.uuid")) return result(db.complects.filter((c) => c.id !== values[0]).map((c) => ({ ...c, templates: db.profiles.filter((p) => p.id_rpd_complect === c.id && (values[1] == null || db.assignments.some((a) => a.template_id === p.id && a.user_id === values[1]))).map((p) => ({ id: p.id, public_id: p.public_id, disciplins_name: p.disciplins_name, semester: p.semester, record_type: db.exchange.find((e) => e.id === db.statuses.find((s) => s.id_profile_template === p.id)?.id_1c_template)?.record_type ?? null, status: db.statuses.find((s) => s.id_profile_template === p.id)?.current_status ?? "created", participants: part(p.id) })) })).filter((c) => values[1] == null || c.templates.length));
+    if (text.startsWith("SELECT year,education_level FROM rpd_complects")) return result(db.complects.filter((c) => c.id === values[0]));
+    if (text.startsWith("WITH eligible AS") && text.includes("AS templates")) {
+      const normalize = (name: unknown) => String(name ?? "").trim().toLowerCase().replace(/\s+/g, " ");
+      return result(db.complects.filter((c) => c.id !== values[0] && c.education_level === values[9]
+        && (values[15] == null || c.id === values[15]) && (values[3] !== "other-year" || c.year !== values[2]))
+        .map((c) => ({ ...c, owners: db.owners.filter((o) => o.complect_id === c.id).map((o) => ({ userId: o.user_id, fullname: user(o.user_id)!.fullname.surname })),
+          templates: db.profiles.filter((p) => {
+            const status = db.statuses.find((s) => s.id_profile_template === p.id);
+            const exchange = db.exchange.find((e) => e.id === status?.id_1c_template);
+            return p.id_rpd_complect === c.id && !exchange?.removed_at && (!values[14] || exchange?.id_rpd_complect === c.id)
+              && (values[1] == null || db.assignments.some((a) => a.template_id === p.id && a.user_id === values[1]))
+              && (values[4] == null || (status?.current_status ?? "created") === values[4])
+              && (!values[6] || normalize(p.disciplins_name) === normalize(values[7]));
+          }).map((p) => ({ id: p.id, public_id: p.public_id, disciplins_name: p.disciplins_name, semester: p.semester,
+            record_type: db.exchange.find((e) => e.id === db.statuses.find((s) => s.id_profile_template === p.id)?.id_1c_template)?.record_type ?? null,
+            status: db.statuses.find((s) => s.id_profile_template === p.id)?.current_status ?? "created", participants: part(p.id) })) }))
+        .filter((c) => c.templates.length));
+    }
     if (text.includes("FROM information_schema.columns")) return result(Object.keys(profile(10, 1)).map((column_name) => ({ column_name })));
     if (text.startsWith("SELECT e.id AS exchange_id")) return result(db.exchange.filter((e) => e.id_rpd_complect === values[0] && !e.removed_at).map((e) => {
       const status = db.statuses.find((s) => s.id_1c_template === e.id);

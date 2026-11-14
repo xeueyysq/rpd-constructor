@@ -29,7 +29,7 @@ test("PostgreSQL: назначение источника, отзыв, ownOnly, 
           ($3,$4,$5,2026,'Очная','Бакалавриат','Цель','09.03.02')`,
     [ids.sourceComplect, randomUUID(), ids.targetComplect, randomUUID(), `Тест Word ${nonce}`]);
   await pool.query(`INSERT INTO rpd_profile_templates(id,public_id,id_rpd_complect,disciplins_name,goals,content,competencies,study_load,assessment_tools_template,field_edits)
-    VALUES($1,$2,$3,'Синтетический источник','Цель источника','{}'::jsonb,'{"protected":1}'::jsonb,'{"plan":1}'::jsonb,'ФОС источника','{}'::jsonb),
+    VALUES($1,$2,$3,'Синтетическая цель','Цель источника','{}'::jsonb,'{"protected":1}'::jsonb,'{"plan":1}'::jsonb,'ФОС источника','{}'::jsonb),
           ($4,$5,$6,'Синтетическая цель','Старая цель','{"__attestation__":{"theme":"Аттестация","control":36}}'::jsonb,'{"protected":2}'::jsonb,'{"plan":2}'::jsonb,'ФОС цели','{}'::jsonb)`,
     [ids.source, randomBytes(6).toString("hex"), ids.sourceComplect, ids.target, randomBytes(6).toString("hex"), ids.targetComplect]);
   await pool.query("INSERT INTO teacher_templates(id,user_id,template_id,state) VALUES($1,$2,$3,'in_progress')",
@@ -38,17 +38,18 @@ test("PostgreSQL: назначение источника, отзыв, ownOnly, 
   const imports = new TemplateImport(pool);
   const teacher = { id: ids.teacher, role: USER_ROLES.TEACHER, userName: `wt-${nonce}` };
   const rop = { id: ids.rop, role: USER_ROLES.ROP, userName: `wr-${nonce}` };
-  assert.deepEqual((await imports.sources(teacher, ids.target, undefined)).complects, []);
+  const fieldScope = { scope: "field" };
+  assert.deepEqual((await imports.sources(teacher, ids.target, undefined, undefined, fieldScope)).complects, []);
   await assert.rejects(imports.preview(teacher, [ids.source], "goals", ids.target), { status: 403 });
   await assert.rejects(imports.copy(teacher, ids.source, ids.target, { field: "goals", baseAt: null }), { status: 403 });
-  assert.deepEqual((await imports.sources(rop, ids.target, undefined, true)).complects, []);
+  assert.deepEqual((await imports.sources(rop, ids.target, undefined, true, fieldScope)).complects, []);
   assert.ok((await imports.sources(rop, ids.target, undefined)).complects.some((item) => item.id === ids.sourceComplect));
   await assert.rejects(imports.preview(rop, [ids.source], "goals", ids.target, true), { status: 403 });
   await pool.query("INSERT INTO teacher_templates(id,user_id,template_id,state) VALUES($1,$2,$3,'done')", [ids.sourceAssignment, ids.teacher, ids.source]);
-  assert.deepEqual((await imports.sources(teacher, ids.target, undefined)).complects.map((item) => item.id), [ids.sourceComplect]);
+  assert.deepEqual((await imports.sources(teacher, ids.target, undefined, undefined, fieldScope)).complects.map((item) => item.id), [ids.sourceComplect]);
   assert.equal((await imports.preview(teacher, [ids.source], "goals", ids.target))[0].goals, "Цель источника");
   await pool.query("DELETE FROM teacher_templates WHERE id=$1", [ids.sourceAssignment]);
-  await assert.rejects(imports.copy(teacher, ids.source, ids.target), { status: 403 });
+  await assert.rejects(imports.copy(teacher, ids.source, ids.target, { field: "goals", baseAt: null }), { status: 403 });
   const before = (await pool.query("SELECT goals,competencies,study_load,assessment_tools_template,disciplins_name,content,textbook FROM rpd_profile_templates WHERE id=$1", [ids.target])).rows[0];
   const revision = (await imports.wordSnapshot(teacher, ids.target)).targetRevision;
   const applied = await imports.wordApply(teacher, ids.target, { expectedRevision: revision, mode: "replace",

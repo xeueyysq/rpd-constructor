@@ -50,7 +50,7 @@ test("реальные маршруты: JWT, manager-only, ids[] preview чуж
 
   assert.equal((await request(app, "GET", "/api/template-import/sources?targetTemplateId=20")).status, 401);
   assert.equal((await request(app, "GET", "/api/template-import/sources", teacher)).status, 422);
-  const catalog = await request(app, "GET", "/api/template-import/sources?targetTemplateId=20", teacher);
+  const catalog = await request(app, "GET", "/api/template-import/sources?targetTemplateId=20&scope=field", teacher);
   assert.equal(catalog.status, 200);
   assert.deepEqual((catalog.body as { complects: unknown[] }).complects, []);
   assert.equal((await request(app, "GET", "/api/get-changeable-values?ids%5B%5D=10&rowName=goals&targetTemplateId=20", teacher)).status, 403);

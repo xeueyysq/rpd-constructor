@@ -13,7 +13,10 @@ export type ImportSourceTemplate = {
   id: number; public_id: string; disciplins_name: string | null; semester: number | null;
   record_type: string | null; status: TemplateStatus; participants: ImportParticipant[];
 };
-export type ImportSourceComplect = Pick<RpdComplectRow, "id" | "uuid" | "faculty" | "direction" | "profile" | "year" | "education_form" | "education_level"> & { templates: ImportSourceTemplate[] };
+export type ImportSourceComplectMeta = Pick<RpdComplectRow, "id" | "uuid" | "faculty" | "direction" | "profile" | "year" | "education_form" | "education_level"> & {
+  owners: Array<{ userId: number; fullname: string }>;
+};
+export type ImportSourceComplect = ImportSourceComplectMeta & { templates: ImportSourceTemplate[] };
 
 export default class TemplateImportModel {
   static async template(db: Database, id: number): Promise<ImportTemplate | undefined> {
@@ -46,29 +49,6 @@ export default class TemplateImportModel {
       FROM rpd_complects c WHERE c.id=$1
     `, [complectId, templateId ?? null]);
     return rows[0]?.state;
-  }
-
-  static async sources(db: Database, excludedComplectId: number, assignedTo?: number): Promise<ImportSourceComplect[]> {
-    const { rows } = await db.query<ImportSourceComplect>(`
-      SELECT c.id,c.uuid,c.faculty,c.direction,c.profile,c.year,c.education_form,c.education_level,
-        COALESCE(jsonb_agg(jsonb_build_object('id',p.id,'public_id',p.public_id,
-          'disciplins_name',p.disciplins_name,'semester',CASE WHEN e.id IS NULL THEN p.semester ELSE e.semester END,
-          'record_type',e.record_type,'status',COALESCE(ts.current_status,'created'),
-          'participants',COALESCE((SELECT jsonb_agg(jsonb_build_object('userId',u.id,
-            'fullname',COALESCE(NULLIF(CONCAT_WS(' ',NULLIF(BTRIM(u.fullname->>'surname'),''),
-              NULLIF(BTRIM(u.fullname->>'name'),''),NULLIF(BTRIM(u.fullname->>'patronymic'),'')),''),u.name),
-            'state',tt.state,'isActive',u.is_active) ORDER BY tt.id)
-            FROM teacher_templates tt JOIN users u ON u.id=tt.user_id WHERE tt.template_id=p.id),'[]'::jsonb))
-          ORDER BY p.id) FILTER (WHERE p.id IS NOT NULL),'[]'::jsonb) AS templates
-      FROM rpd_complects c LEFT JOIN rpd_profile_templates p ON p.id_rpd_complect=c.id
-      LEFT JOIN template_status ts ON ts.id_profile_template=p.id
-      LEFT JOIN rpd_1c_exchange e ON e.id=ts.id_1c_template
-      WHERE c.id<>$1 AND (e.id IS NULL OR e.removed_at IS NULL)
-        AND ($2::int IS NULL OR EXISTS (SELECT 1 FROM teacher_templates own
-          WHERE own.template_id=p.id AND own.user_id=$2))
-      GROUP BY c.id ORDER BY c.year DESC,c.id
-    `, [excludedComplectId, assignedTo ?? null]);
-    return rows;
   }
 
   static async isAssigned(db: Database, templateId: number, actorId: number): Promise<boolean> {

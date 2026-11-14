@@ -29,26 +29,26 @@ test("импорт из другого комплекта того же года
   await assert.rejects(imports.sources(teacher, 20, undefined), { status: 403 });
 });
 
-test("преподаватель не видит и не копирует чужой источник, а отзыв назначения закрывает уже выбранный", async () => {
+test("полевой импорт преподавателя требует назначение, включая отзыв уже выбранного источника", async () => {
   const db = templateDatabase();
   const imports = new TemplateImport(db.db);
-  const initial = await imports.sources(teacher, 20, undefined);
+  const initial = await imports.sources(teacher, 20, undefined, undefined, { scope: "field" });
   assert.deepEqual(initial.complects, []);
   await assert.rejects(imports.preview(teacher, [10], "goals", 20), { status: 403 });
   await assert.rejects(imports.copy(teacher, 10, 20, { field: "goals", baseAt: null }), { status: 403 });
   db.state.assignments.push({ user_id: teacher.id, template_id: 10, state: "done", updated_at: "2026-11-04" });
-  assert.equal((await imports.sources(teacher, 20, undefined)).complects[0].templates[0].id, 10);
+  assert.equal((await imports.sources(teacher, 20, undefined, undefined, { scope: "field" })).complects[0].templates[0].id, 10);
   db.state.assignments.pop();
-  await assert.rejects(imports.copy(teacher, 10, 20), { status: 403 });
+  await assert.rejects(imports.copy(teacher, 10, 20, { field: "goals", baseAt: null }), { status: 403 });
 });
 
 test("ownOnly сужает источники РОП, но false не раскрывает чужие преподавателю", async () => {
   const db = templateDatabase();
   const imports = new TemplateImport(db.db);
-  assert.deepEqual((await imports.sources(rop, 20, undefined, true)).complects, []);
-  assert.equal((await imports.sources(rop, 20, undefined, false)).complects[0].templates[0].id, 10);
+  assert.deepEqual((await imports.sources(rop, 20, undefined, true, { scope: "field" })).complects, []);
+  assert.equal((await imports.sources(rop, 20, undefined, false, { scope: "field" })).complects[0].templates[0].id, 10);
   await assert.rejects(imports.preview(rop, [10], "goals", 20, true), { status: 403 });
-  await assert.rejects(imports.copy(rop, 10, 20, { ownOnly: true }), { status: 403 });
+  await assert.rejects(imports.copy(rop, 10, 20, { field: "goals", baseAt: null, ownOnly: true }), { status: 403 });
   await assert.rejects(imports.preview(teacher, [10], "goals", 20, false), { status: 403 });
   await assert.rejects(imports.sources(rop, 20, undefined, "yes"), { status: 422 });
 });
@@ -62,7 +62,7 @@ test("каталог форматирует ALLCAPS только для отоб
   );
   const before = structuredClone(db.state);
 
-  const catalog = await new TemplateImport(db.db).sources(rop, undefined, 2);
+  const catalog = await new TemplateImport(db.db).sources(rop, 20, undefined);
 
   assert.deepEqual(catalog.complects[0].templates.map((row) => row.disciplins_name), ["  Импорт поля list3  ", "Java и SQL", null]);
   assert.deepEqual(db.state, before, "Отображение каталога не меняет исходные данные для импорта/сопоставления");

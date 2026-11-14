@@ -1,5 +1,6 @@
 import type { Pool, PoolClient } from "pg";
 import type { ImportSourceComplect } from "./template_import.ts";
+import type { ImportCatalogResponse } from "../types/templateImport.ts";
 
 type Database = Pool | PoolClient;
 export type CatalogFilters = {
@@ -29,15 +30,16 @@ export type CatalogFacets = {
 const candidates = `
   WITH eligible AS (
     SELECT c.id,c.uuid,c.faculty,c.direction,c.profile,c.year,c.education_form,c.education_level,
-      p.id AS template_id,p.public_id,p.disciplins_name,p.semester,
-      e.record_type,e.semester AS exchange_semester,
+      p.id AS template_id,p.public_id,p.disciplins_name,
+      CASE WHEN e.id IS NULL THEN p.semester ELSE e.semester END AS semester,e.record_type,
       COALESCE(ts.current_status,'created') AS status,
-      NULLIF(regexp_replace(lower(btrim(p.disciplins_name)), '[[:space:]]+', ' ', 'g'),'') AS name_key
+      NULLIF(btrim(regexp_replace(lower(p.disciplins_name), '[[:space:]]+', ' ', 'g')),'') AS name_key
     FROM rpd_complects c
     JOIN rpd_profile_templates p ON p.id_rpd_complect=c.id
     LEFT JOIN template_status ts ON ts.id_profile_template=p.id
     LEFT JOIN rpd_1c_exchange e ON e.id=ts.id_1c_template
     WHERE c.id<>$1 AND (e.id IS NULL OR e.removed_at IS NULL)
+      AND c.education_level IS NOT DISTINCT FROM $10::text
       AND (NOT $15::boolean OR (e.id IS NOT NULL AND e.id_rpd_complect=c.id))
       AND ($2::int IS NULL OR EXISTS (
         SELECT 1 FROM teacher_templates own WHERE own.template_id=p.id AND own.user_id=$2))
@@ -49,21 +51,21 @@ const candidates = `
         OR education_level ILIKE $6 ESCAPE '\\' OR direction ILIKE $6 ESCAPE '\\'
         OR profile ILIKE $6 ESCAPE '\\' OR education_form ILIKE $6 ESCAPE '\\'
         OR year::text ILIKE $6 ESCAPE '\\' OR disciplins_name ILIKE $6 ESCAPE '\\')
-      AND (NOT $7::boolean OR name_key=NULLIF(regexp_replace(lower(btrim($8::text)),
-        '[[:space:]]+', ' ', 'g'),''))
+      AND (NOT $7::boolean OR name_key=NULLIF(btrim(regexp_replace(lower($8::text),
+        '[[:space:]]+', ' ', 'g')),''))
   ), counts AS (
     SELECT id,COUNT(*)::int AS template_count FROM eligible GROUP BY id
   ), summaries AS (
     SELECT m.id,m.uuid,m.faculty,m.direction,m.profile,m.year,m.education_form,m.education_level,
       counts.template_count AS "templateCount",COUNT(*)::int AS "matchingTemplateCount",
-      BOOL_OR($8::text IS NOT NULL AND m.name_key=NULLIF(regexp_replace(lower(btrim($8::text)),
-        '[[:space:]]+', ' ', 'g'),'')) AS preferred
+      BOOL_OR($8::text IS NOT NULL AND m.name_key=NULLIF(btrim(regexp_replace(lower($8::text),
+        '[[:space:]]+', ' ', 'g')),'')) AS preferred
     FROM matched m JOIN counts ON counts.id=m.id
     GROUP BY m.id,m.uuid,m.faculty,m.direction,m.profile,m.year,m.education_form,m.education_level,counts.template_count
   )
 `;
 
-const hierarchy = `($9::text IS NULL OR faculty=$9) AND ($10::text IS NULL OR education_level=$10)
+const hierarchy = `($9::text IS NULL OR faculty=$9)
   AND ($11::text IS NULL OR direction=$11) AND ($12::text IS NULL OR profile=$12)
   AND ($13::text IS NULL OR education_form=$13) AND ($14::int IS NULL OR year=$14)`;
 const scopedHierarchy = hierarchy.replace(/\b(faculty|education_level|direction|profile|education_form|year)\b/g, "s.$1");
@@ -74,11 +76,37 @@ function facet(column: string, conditions: string, order = "value") {
     '[]'::jsonb)`;
 }
 
+// Owners are aggregated independently, after page selection, so several ROPs
+// never multiply disciplines or change the counts. Only their display names leave SQL.
+function owners(alias: string) {
+  return `COALESCE((SELECT jsonb_agg(jsonb_build_object('userId',u.id,
+    'fullname',trim(concat_ws(' ',u.fullname->>'surname',u.fullname->>'name',u.fullname->>'patronymic')))
+    ORDER BY u.id) FROM user_complect uc JOIN users u ON u.id=uc.user_id
+    WHERE uc.complect_id=${alias}.id),'[]'::jsonb)`;
+}
+
+function template(alias: string) {
+  return `jsonb_build_object('id',${alias}.template_id,'public_id',${alias}.public_id,
+    'disciplins_name',${alias}.disciplins_name,'semester',${alias}.semester,
+    'record_type',${alias}.record_type,'status',${alias}.status,
+    'participants',COALESCE((SELECT jsonb_agg(jsonb_build_object('userId',u.id,
+      'fullname',COALESCE(NULLIF(CONCAT_WS(' ',NULLIF(BTRIM(u.fullname->>'surname'),''),
+        NULLIF(BTRIM(u.fullname->>'name'),''),NULLIF(BTRIM(u.fullname->>'patronymic'),'')),''),u.name),
+      'state',tt.state,'isActive',u.is_active) ORDER BY tt.id)
+      FROM teacher_templates tt JOIN users u ON u.id=tt.user_id
+      WHERE tt.template_id=${alias}.template_id),'[]'::jsonb))`;
+}
+
+const preferredName = `($8::text IS NOT NULL AND name_key=NULLIF(btrim(regexp_replace(lower($8::text),
+  '[[:space:]]+', ' ', 'g')),''))`;
+const flatOrder = "CASE WHEN preferred THEN 0 ELSE 1 END,year DESC NULLS LAST,id,name_key,semester NULLS LAST,template_id";
+const pageFlatOrder = flatOrder.replace(/\b(preferred|year|id|name_key|semester|template_id)\b/g, "page.$1");
+
 export default class TemplateImportCatalogModel {
-  static async targetYear(db: Database, complectId: number): Promise<number | null> {
-    const { rows } = await db.query<{ year: number | null }>(
-      "SELECT year FROM rpd_complects WHERE id=$1", [complectId]);
-    return rows[0]?.year ?? null;
+  static async targetMeta(db: Database, complectId: number): Promise<{ year: number | null; education_level: string | null }> {
+    const { rows } = await db.query<{ year: number | null; education_level: string | null }>(
+      "SELECT year,education_level FROM rpd_complects WHERE id=$1", [complectId]);
+    return rows[0] ?? { year: null, education_level: null };
   }
 
   static params(targetComplectId: number, assignedTo: number | undefined, targetYear: number | null,
@@ -91,50 +119,46 @@ export default class TemplateImportCatalogModel {
       bulk, filters.pageSize, (filters.page - 1) * filters.pageSize];
   }
 
-  static async catalog(db: Database, params: unknown[]): Promise<{
-    total: number; complects: CatalogSummary[]; facets: CatalogFacets;
-  }> {
-    const { rows } = await db.query<{
-      total: number; complects: CatalogSummary[]; facets: CatalogFacets;
-    }>(`${candidates}
-      SELECT (SELECT COUNT(*)::int FROM summaries WHERE ${hierarchy}) AS total,
-        COALESCE((SELECT jsonb_agg(to_jsonb(page) - 'preferred'
+  static async catalog(db: Database, params: unknown[]): Promise<Pick<ImportCatalogResponse, "total" | "complects" | "templates" | "facets">> {
+    const bulk = params[14] === true;
+    const complects = bulk ? `COALESCE((SELECT jsonb_agg((to_jsonb(page) - 'preferred')
+          || jsonb_build_object('owners',${owners("page")})
           ORDER BY CASE WHEN page.preferred THEN 0 ELSE 1 END,page.year DESC NULLS LAST,page.id)
           FROM (SELECT * FROM summaries WHERE ${hierarchy}
             ORDER BY CASE WHEN preferred THEN 0 ELSE 1 END,year DESC NULLS LAST,id
-            LIMIT $16 OFFSET $17) page),'[]'::jsonb) AS complects,
+            LIMIT $16 OFFSET $17) page),'[]'::jsonb)` : "'[]'::jsonb";
+    const templates = bulk ? "'[]'::jsonb" : `COALESCE((SELECT jsonb_agg(${template("page")}
+        || jsonb_build_object('complect',jsonb_build_object('id',page.id,'uuid',page.uuid,
+          'faculty',page.faculty,'direction',page.direction,'profile',page.profile,'year',page.year,
+          'education_form',page.education_form,'education_level',page.education_level,'owners',${owners("page")}))
+        ORDER BY ${pageFlatOrder})
+      FROM (SELECT * FROM (SELECT *,${preferredName} AS preferred FROM matched) flat WHERE ${hierarchy}
+        ORDER BY ${flatOrder} LIMIT $16 OFFSET $17) page),'[]'::jsonb)`;
+    const { rows } = await db.query<Pick<ImportCatalogResponse, "total" | "complects" | "templates" | "facets">>(`${candidates}
+      SELECT (SELECT COUNT(*)::int FROM ${bulk ? "summaries" : "matched"} WHERE ${hierarchy}) AS total,
+        ${complects} AS complects,${templates} AS templates,
         jsonb_build_object(
           'faculties',${facet("faculty", "TRUE")},
           'educationLevels',${facet("education_level", "($9::text IS NULL OR faculty=$9)")},
-          'directions',${facet("direction", "($9::text IS NULL OR faculty=$9) AND ($10::text IS NULL OR education_level=$10)")},
-          'profiles',${facet("profile", "($9::text IS NULL OR faculty=$9) AND ($10::text IS NULL OR education_level=$10) AND ($11::text IS NULL OR direction=$11)")},
-          'educationForms',${facet("education_form", "($9::text IS NULL OR faculty=$9) AND ($10::text IS NULL OR education_level=$10) AND ($11::text IS NULL OR direction=$11) AND ($12::text IS NULL OR profile=$12)")},
-          'years',${facet("year", "($9::text IS NULL OR faculty=$9) AND ($10::text IS NULL OR education_level=$10) AND ($11::text IS NULL OR direction=$11) AND ($12::text IS NULL OR profile=$12) AND ($13::text IS NULL OR education_form=$13)", "value DESC")}
+          'directions',${facet("direction", "($9::text IS NULL OR faculty=$9)")},
+          'profiles',${facet("profile", "($9::text IS NULL OR faculty=$9) AND ($11::text IS NULL OR direction=$11)")},
+          'educationForms',${facet("education_form", "($9::text IS NULL OR faculty=$9) AND ($11::text IS NULL OR direction=$11) AND ($12::text IS NULL OR profile=$12)")},
+          'years',${facet("year", "($9::text IS NULL OR faculty=$9) AND ($11::text IS NULL OR direction=$11) AND ($12::text IS NULL OR profile=$12) AND ($13::text IS NULL OR education_form=$13)", "value DESC")}
         ) AS facets
     `, params);
     return rows[0];
   }
 
-  static async details(db: Database, params: unknown[], sourceComplectId: number): Promise<ImportSourceComplect[]> {
-    const scopedCandidates = candidates.replace("WHERE c.id<>$1", "WHERE c.id<>$1 AND c.id=$16");
+  static async details(db: Database, params: unknown[], sourceComplectId?: number): Promise<ImportSourceComplect[]> {
+    const scopedCandidates = candidates.replace("WHERE c.id<>$1", "WHERE c.id<>$1 AND ($16::int IS NULL OR c.id=$16)");
     const { rows } = await db.query<ImportSourceComplect>(`${scopedCandidates}
       SELECT s.id,s.uuid,s.faculty,s.direction,s.profile,s.year,s.education_form,s.education_level,
-        jsonb_agg(jsonb_build_object('id',m.template_id,'public_id',m.public_id,
-          'disciplins_name',m.disciplins_name,'semester',
-            CASE WHEN e.id IS NULL THEN m.semester ELSE m.exchange_semester END,
-          'record_type',m.record_type,'status',m.status,
-          'participants',COALESCE((SELECT jsonb_agg(jsonb_build_object('userId',u.id,
-            'fullname',COALESCE(NULLIF(CONCAT_WS(' ',NULLIF(BTRIM(u.fullname->>'surname'),''),
-              NULLIF(BTRIM(u.fullname->>'name'),''),NULLIF(BTRIM(u.fullname->>'patronymic'),'')),''),u.name),
-            'state',tt.state,'isActive',u.is_active) ORDER BY tt.id)
-            FROM teacher_templates tt JOIN users u ON u.id=tt.user_id WHERE tt.template_id=m.template_id),'[]'::jsonb))
-          ORDER BY m.template_id) AS templates
+        ${owners("s")} AS owners,jsonb_agg(${template("m")} ORDER BY m.template_id) AS templates
       FROM summaries s JOIN matched m ON m.id=s.id
-      LEFT JOIN template_status ts ON ts.id_profile_template=m.template_id
-      LEFT JOIN rpd_1c_exchange e ON e.id=ts.id_1c_template
-      WHERE s.id=$16 AND ${scopedHierarchy}
+      WHERE ${scopedHierarchy}
       GROUP BY s.id,s.uuid,s.faculty,s.direction,s.profile,s.year,s.education_form,s.education_level
-    `, [...params.slice(0, 15), sourceComplectId]);
+      ORDER BY s.year DESC NULLS LAST,s.id
+    `, [...params.slice(0, 15), sourceComplectId ?? null]);
     return rows;
   }
 }
