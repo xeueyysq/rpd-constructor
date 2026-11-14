@@ -1,6 +1,7 @@
 import crypto from "node:crypto";
 import fs from "node:fs";
 import path from "node:path";
+import { normalizeSubdivisionName } from "./specProfilesInstitutes.ts";
 
 
 const DEFAULT_FORM = "Очная";
@@ -137,12 +138,13 @@ const buildReferenceIndexes = (referenceTree: Record<string, unknown>) => {
 type ReferenceIndexes = ReturnType<typeof buildReferenceIndexes>;
 
 const resolveCanonicalInstitute = (chairName: unknown, indexes: ReferenceIndexes) => {
-  const trimmed = normalizeWhitespace(chairName);
-  if (!trimmed || !indexes.institutes.has(trimmed)) {
+  const key = normalizeSubdivisionName(chairName);
+  if (!key) {
     return null;
   }
 
-  return trimmed;
+  const matches = [...indexes.institutes].filter(institute => normalizeSubdivisionName(institute) === key);
+  return matches.length === 1 ? matches[0] : null;
 };
 
 const resolveCanonicalLevel = (code: unknown) => {
@@ -249,13 +251,17 @@ const setLeaf = (tree: Record<string, unknown>, pathSegments: string[], leafValu
 
   for (let index = 0; index < pathSegments.length - 1; index += 1) {
     const segment = pathSegments[index];
-    if (!current[segment] || typeof current[segment] !== "object") {
-      current[segment] = {};
+    if (!Object.hasOwn(current, segment) || !current[segment] || typeof current[segment] !== "object") {
+      Object.defineProperty(current, segment, {
+        value: {}, enumerable: true, configurable: true, writable: true,
+      });
     }
     current = current[segment] as Record<string, unknown>;
   }
 
-  current[pathSegments[pathSegments.length - 1]] = leafValue;
+  Object.defineProperty(current, pathSegments[pathSegments.length - 1], {
+    value: leafValue, enumerable: true, configurable: true, writable: true,
+  });
 };
 
 export {
