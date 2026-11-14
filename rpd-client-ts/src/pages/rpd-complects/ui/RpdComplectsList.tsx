@@ -71,6 +71,30 @@ export const RpdComplectsList: FC = () => {
   const generalColumns = useMemo<MRT_ColumnDef<ComplectData>[]>(
     () => [
       ...(userRole === UserRole.ADMIN ? adminColumns : []),
+      {
+        accessorKey: "profile",
+        header: "Профиль",
+        Cell: ({ row }) => (
+          <Link
+            component={RouterLink}
+            to={`${RedirectPath.COMPLECTS}/${row.original.uuid}`}
+            onClick={() => setComplectId(row.original.id)}
+            sx={(theme) => ({ ...theme.typography.button })}
+          >
+            {row.original.profile}
+          </Link>
+        ),
+      },
+      {
+        accessorKey: "formEducation",
+        header: "Форма обучения",
+        size: 110,
+      },
+      {
+        accessorKey: "year",
+        header: "Год набора",
+        size: 100,
+      },
       ...(userRole === UserRole.ADMIN
         ? [
             {
@@ -81,7 +105,6 @@ export const RpdComplectsList: FC = () => {
               Cell: ({ row }: { row: { original: ComplectData } }) => {
                 const open = () => setSelectedOwnerId(row.original.id);
                 const owners = row.original.owner ?? [];
-                // Оформление как у назначенных преподавателей в таблице комплекта.
                 if (!owners.length)
                   return (
                     <StatusWithSubtext
@@ -110,30 +133,6 @@ export const RpdComplectsList: FC = () => {
             } as MRT_ColumnDef<ComplectData>,
           ]
         : []),
-      {
-        accessorKey: "profile",
-        header: "Профиль",
-        Cell: ({ row }) => (
-          <Link
-            component={RouterLink}
-            to={`${RedirectPath.COMPLECTS}/${row.original.uuid}`}
-            onClick={() => setComplectId(row.original.id)}
-            sx={(theme) => ({ ...theme.typography.button })}
-          >
-            {row.original.profile}
-          </Link>
-        ),
-      },
-      {
-        accessorKey: "formEducation",
-        header: "Форма обучения",
-        size: 110,
-      },
-      {
-        accessorKey: "year",
-        header: "Год набора",
-        size: 100,
-      },
       {
         accessorKey: "status",
         header: "Статус",
