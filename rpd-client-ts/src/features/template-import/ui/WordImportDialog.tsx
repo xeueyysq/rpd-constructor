@@ -23,6 +23,7 @@ import {
   type WordImportPreview,
 } from "@entities/template";
 import { showSuccessMessage } from "@shared/lib";
+import { CompactDialogTheme } from "@shared/ui";
 import { FullFieldPreview } from "./FullFieldPreview";
 
 type Props = {
@@ -62,7 +63,15 @@ function friendlyWarning(warning: string) {
   return "Часть данных документа не распознана. Проверьте результат перед импортом.";
 }
 
-export function WordImportDialog({
+export function WordImportDialog(props: Props) {
+  return (
+    <CompactDialogTheme>
+      <WordImportSession {...props} />
+    </CompactDialogTheme>
+  );
+}
+
+function WordImportSession({
   open,
   targetTemplateId,
   onClose,

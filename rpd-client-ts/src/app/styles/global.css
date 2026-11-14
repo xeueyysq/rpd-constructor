@@ -3,6 +3,24 @@
   padding: 0;
 }
 
+@font-face {
+  font-family: "Arial";
+  src:
+    local("Arial"),
+    url("shared/fonts/arialmt.ttf") format("truetype");
+  font-weight: normal;
+}
+
+#root {
+  font-family: "Arial";
+  line-height: 25px;
+}
+
+body {
+  background-color: #f4f6f8;
+  color: #212121;
+}
+
 ::-webkit-scrollbar {
   /* chrome based */
   width: 8px;

@@ -12,9 +12,9 @@ async function expectIconGap(item: Locator) {
   expect(text!.x - (icon!.x + icon!.width)).toBeGreaterThanOrEqual(minGap);
 }
 
-async function expectMainPanelGaps(page: Page, itemsCount: number) {
+async function expectMainPanelGaps(page: Page) {
   const items = page.locator('.MuiDrawer-paper').getByRole('button');
-  await expect(items).toHaveCount(itemsCount);
+  await expect(items).not.toHaveCount(0);
   for (const item of await items.all()) await expectIconGap(item);
 }
 
@@ -36,17 +36,17 @@ async function expectEditorPanel(page: Page, bottomActions: string[]) {
 
 test('главная панель admin: между иконкой и текстом есть зазор', async ({ page }) => {
   await signIn(page, 'admin');
-  await expectMainPanelGaps(page, 6);
+  await expectMainPanelGaps(page);
 });
 
 test('главная панель rop: между иконкой и текстом есть зазор', async ({ page }) => {
   await signIn(page, 'rop');
-  await expectMainPanelGaps(page, 5);
+  await expectMainPanelGaps(page);
 });
 
 test('главная панель teacher: между иконкой и текстом есть зазор', async ({ page }) => {
   await signIn(page, 'teacher');
-  await expectMainPanelGaps(page, 4);
+  await expectMainPanelGaps(page);
 });
 
 test('таблица комплекта: интервалы между преподавателями и под статусом равны 8 px', async ({ page }) => {

@@ -34,6 +34,7 @@ import {
   subscribeToSessionGeneration,
 } from "@shared/api";
 import { groupCompetencies } from "../lib/groupCompetencies";
+import { CompactDialogTheme } from "@shared/ui";
 import { useLocation } from "react-router-dom";
 import {
   freezeDiagnosticContext,
@@ -58,11 +59,13 @@ export function ComplectCompetenciesDialog({
     getSessionGeneration
   );
   return complect ? (
-    <CompetenciesSession
-      key={`${complect.id}:${generation}`}
-      complect={complect}
-      onClose={onClose}
-    />
+    <CompactDialogTheme>
+      <CompetenciesSession
+        key={`${complect.id}:${generation}`}
+        complect={complect}
+        onClose={onClose}
+      />
+    </CompactDialogTheme>
   ) : null;
 }
 

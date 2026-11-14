@@ -184,6 +184,9 @@ export function SourcePickerTable({
     localization: MRT_Localization_RU,
     getRowId: (row) => String(row.id),
     layoutMode: "semantic",
+    mrtTheme: (theme) => ({
+      baseBackgroundColor: theme.palette.background.paper,
+    }),
     manualPagination: true,
     rowCount: total,
     enableRowSelection: true,

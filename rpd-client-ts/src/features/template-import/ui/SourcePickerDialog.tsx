@@ -37,6 +37,7 @@ import {
 import { UserRole } from "@shared/ability";
 import { useStore } from "@shared/hooks";
 import { showSuccessMessage } from "@shared/lib";
+import { CompactDialogTheme } from "@shared/ui";
 import { FullFieldPreview } from "./FullFieldPreview";
 import { WordImportDialog } from "./WordImportDialog";
 import { SourcePickerTable } from "./SourcePickerTable";
@@ -96,6 +97,14 @@ function FieldPreviewRegion({
 }
 
 export function SourcePickerDialog(props: Props) {
+  return (
+    <CompactDialogTheme>
+      <SourcePickerSession {...props} />
+    </CompactDialogTheme>
+  );
+}
+
+function SourcePickerSession(props: Props) {
   const {
     open,
     onClose,

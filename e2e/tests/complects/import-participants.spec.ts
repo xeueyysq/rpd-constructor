@@ -170,6 +170,7 @@ test('массовый импорт: точный семестр и тип, ит
 
 test('single преподавателя: плоская пагинация, только ready checkbox, сброс выбора и ready guard; 1365/768/390', async ({ page }) => {
   test.slow();
+  await page.setViewportSize({ width: 1365, height: 900 });
   await signIn(page, 'teacher');
   await page.goto('/templates');
   await showAllRows(page);

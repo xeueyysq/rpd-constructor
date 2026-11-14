@@ -82,7 +82,12 @@ export async function filterColumn(page: Page, column: string, value: string) {
 export async function showAllRows(page: Page) {
   // Таблица может перерисоваться после загрузки и закрыть меню — открываем заново.
   await expect(async () => {
-    await page.getByRole('combobox', { name: 'Строк на странице' }).last().click();
-    await page.getByRole('option', { name: '50', exact: true }).click({ timeout: 2_000 });
+    const pagination = page.getByRole('combobox', { name: 'Строк на странице' }).last();
+    if (await pagination.evaluate((element) => element.tagName === 'SELECT')) {
+      await pagination.selectOption('50');
+    } else {
+      await pagination.click();
+      await page.getByRole('option', { name: '50', exact: true }).click({ timeout: 2_000 });
+    }
   }).toPass({ timeout: 15_000 });
 }

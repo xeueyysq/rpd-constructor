@@ -9,6 +9,7 @@ import {
 import { UserRole } from "@shared/ability";
 import { getSessionGeneration } from "@shared/api";
 import { useStore } from "@shared/hooks";
+import { CompactDialogTheme } from "@shared/ui";
 import {
   Alert,
   Box,
@@ -112,6 +113,14 @@ function ScreenshotPreview({ file }: { file: File }) {
 }
 
 export function ReportProblem() {
+  return (
+    <CompactDialogTheme>
+      <ReportProblemForm />
+    </CompactDialogTheme>
+  );
+}
+
+function ReportProblemForm() {
   const theme = useTheme();
   const mobile = useMediaQuery(theme.breakpoints.down("sm"));
   const role = useAuth((state) => state.userRole);

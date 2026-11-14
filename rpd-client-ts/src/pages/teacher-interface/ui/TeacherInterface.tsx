@@ -34,6 +34,7 @@ export function TeacherInterface() {
   const isTeacher = userRole === UserRole.TEACHER;
   const { id: templateId, page = TemplatePagesPath.COVER_PAGE } = useParams();
   const location = useLocation();
+  const [loadedTemplateId, setLoadedTemplateId] = useState<string | null>(null);
   const [loadError, setLoadError] = useState<{
     id: string | undefined;
     message: string;
@@ -87,6 +88,7 @@ export function TeacherInterface() {
             response.data.certification || response.data.derived_certification,
         });
         setComplectId(response.data.id_rpd_complect);
+        setLoadedTemplateId(templateId ?? null);
       } catch (error) {
         if (
           !active ||
@@ -134,7 +136,10 @@ export function TeacherInterface() {
 
   if (loadError && loadError.id === templateId)
     return <Alert severity="error">{loadError.message}</Alert>;
-  if (!activeTemplateId) return <Loader />;
+  // PageRoute перемонтирует редактор при смене раздела. Данные в общем store
+  // ещё могут относиться к прошлому mount: не открываем диалог перед их сбросом
+  // и первоначальной загрузкой этого экземпляра редактора.
+  if (!activeTemplateId || loadedTemplateId !== templateId) return <Loader />;
 
   return (
     <Box>

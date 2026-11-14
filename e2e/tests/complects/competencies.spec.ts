@@ -27,8 +27,12 @@ async function persisted(request: APIRequestContext, headers: Record<string, str
 async function openListDialog(page: Page, profile: string) {
   await showAllRows(page);
   const row = page.getByRole('row').filter({ has: page.getByRole('cell', { name: profile, exact: true }) });
-  const first = page.getByRole('button', { name: 'Перейти на первую страницу', exact: true });
-  if (await first.isEnabled()) await first.click();
+  const previousPage = page.getByRole('button', { name: 'Перейти на предыдущую страницу', exact: true });
+  while (await previousPage.isEnabled()) {
+    const previous = await page.locator('tbody tr').first().innerText();
+    await previousPage.click();
+    await expect(page.locator('tbody tr').first()).not.toHaveText(previous);
+  }
   const next = page.getByRole('button', { name: 'Перейти на следующую страницу', exact: true });
   while (await row.count() === 0 && await next.isEnabled()) {
     const previous = await page.locator('tbody tr').first().innerText();
