@@ -120,8 +120,7 @@ for (const role of ['admin', 'rop'] as const) {
     await signIn(page, role);
     await openComplect(page);
     await page.getByRole('row').filter({ hasText: disciplines.ready })
-      .getByRole('button', { name: 'Меню шаблона' }).click();
-    await page.getByRole('menuitem', { name: 'Открыть' }).click();
+      .getByRole('link', { name: disciplines.ready, exact: true }).click();
     await expect(page.getByText('Титульный лист', { exact: true }).last()).toBeVisible();
     await expect(page.getByText(disciplines.ready, { exact: true }).last()).toBeVisible();
   });

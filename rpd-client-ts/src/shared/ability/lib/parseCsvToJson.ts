@@ -67,10 +67,12 @@ const parseCsvFile = (file: File): Promise<string[][]> => {
     Papa.parse(file, {
       complete: (results) => {
         try {
+          if (results.errors.length)
+            throw new Error("Некорректная структура CSV");
           const rows = results.data as string[][];
           resolve(rows);
-        } catch {
-          reject(new Error("Ошибка при обработке CSV-файла"));
+        } catch (error) {
+          reject(error);
         }
       },
       encoding: "cp1251",
@@ -125,6 +127,8 @@ const buildParsedData = (rows: string[][]): ParsedPlannedResults => {
     const results = (row[3] ?? "").toString().trim();
 
     if (!competence && !indicator && !results) {
+      if (row.some((cell) => cell.trim()))
+        throw new Error(`Некорректная строка ${index + 2} файла компетенций`);
       return;
     }
 
@@ -205,7 +209,8 @@ const parseOldStructure = (rows: string[][]): ParsedPlannedResults => {
         if (indicatorCodeRe.test(norm)) return false;
         return true;
       });
-      if (!competenceText) return;
+      if (!competenceText)
+        throw new Error("Не указано наименование компетенции");
 
       parsedData[idx++] = {
         competence: competenceCode,
@@ -215,6 +220,8 @@ const parseOldStructure = (rows: string[][]): ParsedPlannedResults => {
       return;
     }
 
+    if (cells[0] || cells[1] || !cells[3])
+      throw new Error("Некорректная строка файла компетенций");
     const disciplineText = [...nonEmpty]
       .reverse()
       .find((c) => !/^[-–—‑]+$/.test(c.trim()));

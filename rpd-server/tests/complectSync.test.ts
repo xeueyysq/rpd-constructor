@@ -25,6 +25,11 @@ const profile: Profile = {
 type Fixture = { exchange: Rpd1cExchangeRow; profile: Profile | null };
 type QueryCall = { sql: string; values?: unknown[] };
 
+function mutationCalls(calls: QueryCall[]) {
+  // Чтение прав и SELECT FOR UPDATE не меняют содержимое, статусы и назначения.
+  return calls.filter(({ sql }) => /\b(?:INSERT\s+INTO|UPDATE\s+\S+(?:\s+(?:AS\s+)?\w+)?\s+SET|DELETE\s+FROM|TRUNCATE)\b/i.test(sql));
+}
+
 function mockSync(t: TestContext, fixtures: Fixture[], rawIncoming: unknown[] = [rawDiscipline]) {
   const calls: QueryCall[] = [];
   t.mock.method(axios, "post", async (url: string) => {
@@ -104,7 +109,7 @@ test("выбор полей preview исправляет только выбра
   assert.ok(exchangeWrite);
   const history = calls.filter(({ sql }) => sql.includes("INSERT INTO template_field_changes"));
   assert.deepEqual(history.map(({ values }) => values), [[30, 11, 50, "study_load", JSON.stringify(priorStudyLoad), JSON.stringify(incoming.study_load)]]);
-  for (const { sql } of calls) assert.doesNotMatch(sql, /\b(content|current_status|teacher_templates|template_status)\b/);
+  for (const { sql } of mutationCalls(calls)) assert.doesNotMatch(sql, /\b(content|current_status|teacher_templates|template_status)\b/i);
 });
 
 test("применение ЗЕТ и контроля сохраняет достоверную историю и форму аттестации", async (t) => {
@@ -163,7 +168,7 @@ for (const linked of [profile, null]) {
     assert.equal(diff.updated[0].hasProfileTemplate, Boolean(linked));
     await sync.applySync({ complectId: 2, actor, selections: [{ action: "update", id_1c: 11, incoming: diff.updated[0].incoming, fields: ["zet", "teachers"] }] });
     assert.equal(calls.some(({ sql }) => sql.includes("UPDATE rpd_profile_templates")), false);
-    for (const { sql } of calls) assert.doesNotMatch(sql, /\b(teacher_templates|template_status)\b/);
+    for (const { sql } of mutationCalls(calls)) assert.doesNotMatch(sql, /\b(teacher_templates|template_status)\b/i);
     assert.deepEqual(calls.filter(({ sql }) => sql.includes("INSERT INTO template_field_changes")).map(({ values }) => values), [
       [30, 11, null, "zet", "3", "4"],
       [30, 11, null, "teachers", JSON.stringify(["Прежний преподаватель"]), JSON.stringify(incoming.teachers)],

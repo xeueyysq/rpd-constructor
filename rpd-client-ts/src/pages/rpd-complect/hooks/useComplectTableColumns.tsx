@@ -1,50 +1,65 @@
 import { getTemplateStatusLabel } from "@entities/template";
 import { AssignTeachers } from "@features/assign-teachers";
 import { ExchangeChanges } from "@features/complect-sync";
-import { Box } from "@mui/material";
-import { useActionsColumn } from "@shared/hooks";
+import { Box, Link } from "@mui/material";
+import { Link as RouterLink } from "react-router-dom";
+import { RedirectPath, TemplatePagesPath } from "@shared/enums";
 import { StatusWithDate } from "@shared/ui";
 import type { MRT_ColumnDef } from "material-react-table";
 import { useMemo } from "react";
-import TemplateMenu from "../ui/TemplateMenu";
-import type { ComplectMeta, TemplateData } from "../types";
+import type { TemplateData } from "../types";
 
 const disciplineCollator = new Intl.Collator("ru");
 
 type Params = {
-  complect: ComplectMeta | undefined;
-  onFetchData: () => Promise<void>;
   onOpenTeachers: (exchangeId: number) => void;
   onOpenHistory: (templateId: number) => void;
 };
 
 export function useComplectTableColumns({
-  complect,
-  onFetchData,
   onOpenTeachers,
   onOpenHistory,
 }: Params): MRT_ColumnDef<TemplateData>[] {
-  const actionsColumn = useActionsColumn<TemplateData>();
   return useMemo(
     () => [
       {
         accessorKey: "discipline",
         header: "Дисциплина",
         filterFn: "contains",
+        Cell: ({ row }) =>
+          row.original.id_profile_template != null ? (
+            <Link
+              component={RouterLink}
+              to={`${RedirectPath.TEMPLATES}/${row.original.profile_template_public_id ?? row.original.id_profile_template}/${TemplatePagesPath.COVER_PAGE}`}
+              sx={(theme) => ({ ...theme.typography.button })}
+            >
+              {row.original.discipline}
+            </Link>
+          ) : (
+            row.original.discipline
+          ),
         sortingFn: (a, b) =>
           disciplineCollator.compare(
             a.original.discipline,
             b.original.discipline
           ) || a.original.id - b.original.id,
       },
-      { accessorKey: "semester", header: "Семестр", size: 100, grow: false },
+      {
+        accessorKey: "semester",
+        header: "Семестр",
+        minSize: 140,
+        size: 160,
+        grow: false,
+      },
       {
         id: "participants",
         header: "Преподаватели",
         enableSorting: false,
         filterFn: "contains",
-        minSize: 240,
-        size: 280,
+        minSize: 220,
+        size: 240,
+        maxSize: 260,
+        grow: false,
         accessorFn: (row) =>
           row.participants.map((part) => part.fullname).join(", "),
         Cell: ({ row }) => (
@@ -86,27 +101,7 @@ export function useComplectTableColumns({
           </Box>
         ),
       },
-      {
-        id: "actions",
-        header: "Действия",
-        ...actionsColumn,
-        Cell: ({ row }) => (
-          <TemplateMenu
-            id={row.original.id_profile_template}
-            publicId={row.original.profile_template_public_id}
-            allowedActions={row.original.allowedActions}
-            fetchData={onFetchData}
-            canEditTeachers={row.original.canEditTeachers}
-            targetLabel={`${row.original.discipline} • семестр ${row.original.semester} • ${complect?.profile ?? ""} • ${complect?.year ?? ""}`}
-            onEditTeachers={() => onOpenTeachers(row.original.id)}
-            onOpenHistory={() => {
-              if (row.original.id_profile_template != null)
-                onOpenHistory(row.original.id_profile_template);
-            }}
-          />
-        ),
-      },
     ],
-    [actionsColumn, complect, onFetchData, onOpenTeachers, onOpenHistory]
+    [onOpenTeachers, onOpenHistory]
   );
 }

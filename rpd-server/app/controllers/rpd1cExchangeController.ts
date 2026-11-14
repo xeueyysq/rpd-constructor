@@ -1,9 +1,8 @@
 import type { ParamsDictionary } from "express-serve-static-core";
-import { errorMessage } from "../utils/Errors.ts";
 import type { Pool } from "pg";
 import type { Request, Response } from "express";
 import Rpd1cExchange from "../models/rpd_1c_exchange.ts";
-import RpdComplects from "../models/rpd_complects.ts";
+import PlannedResults from "../services/PlannedResults.ts";
 import { findRpd } from "../services/Complects.ts";
 import TemplateAccess from "../services/TemplateAccess.ts";
 import TemplateWorkflow from "../services/TemplateWorkflow.ts";
@@ -12,65 +11,17 @@ import { Unprocessable } from "../utils/Errors.ts";
 class Rpd1cExchangeController {
   pool: Pool;
   model: Rpd1cExchange;
-  complectsModel: RpdComplects;
   constructor(pool: Pool) {
     this.pool = pool;
     this.model = new Rpd1cExchange(pool);
-    this.complectsModel = new RpdComplects(pool);
   }
 
   async setResultsData(req: Request<ParamsDictionary, unknown, Record<string, unknown>>, res: Response) {
-    try {
-      const { data, complectId } = req.body;
-
-      if (!complectId) {
-        return res
-          .status(400)
-          .json({ message: "Не указан идентификатор комплекта" });
-      }
-
-      const complectMeta = await this.complectsModel.findRpdComplectMeta(
-        complectId
-      );
-      if (!complectMeta?.id) {
-        return res
-          .status(404)
-          .json({ message: "Комплект не найден" });
-      }
-
-      const records = await this.model.setResultsData(
-        Array.isArray(data) ? data : [],
-        complectMeta.id
-      );
-      res.json(records);
-    } catch (err) {
-      res.status(500).json({ message: errorMessage(err) });
-    }
+    res.json(await new PlannedResults(this.pool).replace(TemplateAccess.actor(req.user), req.body?.complectId, req.body?.data));
   }
 
   async getResultsData(req: Request<ParamsDictionary, unknown, Record<string, unknown>>, res: Response) {
-    try {
-      const complectIdRaw = req.query?.complectId;
-      if (!complectIdRaw) {
-        return res
-          .status(400)
-          .json({ message: "Не указан идентификатор комплекта" });
-      }
-
-      const complectMeta = await this.complectsModel.findRpdComplectMeta(
-        complectIdRaw
-      );
-      if (!complectMeta?.id) {
-        return res
-          .status(404)
-          .json({ message: "Комплект не найден" });
-      }
-
-      const records = await this.model.getResultsData(complectMeta.id);
-      res.json(records);
-    } catch (err) {
-      res.status(500).json({ message: errorMessage(err) });
-    }
+    res.json(await new PlannedResults(this.pool).get(TemplateAccess.actor(req.user), req.query.complectId));
   }
 
   async findRpd(req: Request<ParamsDictionary, unknown, Record<string, unknown>>, res: Response) {

@@ -1,7 +1,8 @@
 import { errorMessage } from "../utils/Errors.ts";
+import { markFeedbackFailure } from "../middleware/feedbackDiagnostics.ts";
 import type { Pool } from "pg";
 import type { Request, Response } from "express";
-import { syncAndGetSpecProfiles } from "../modules/1cExchange.ts";
+import { loadReferenceTree } from "../modules/specProfilesMapping.ts";
 
 class SpecProfilesController {
   pool: Pool;
@@ -11,10 +12,10 @@ class SpecProfilesController {
 
   async getProfiles(_req: Request, res: Response) {
     try {
-      const result = await syncAndGetSpecProfiles(this.pool);
-      res.json(result);
+      res.json({ tree: loadReferenceTree(), source: "local" });
     } catch (error) {
-      console.error("spec-profiles error:", error);
+      markFeedbackFailure(res, error);
+      console.error("Не удалось получить профили специальностей");
       res.status(500).json({ message: errorMessage(error) });
     }
   }

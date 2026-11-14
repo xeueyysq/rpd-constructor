@@ -202,7 +202,7 @@ test('снимки инструкции на синтетических данн
   await signIn(page, 'rop');
   const complectRow = page.getByRole('row').filter({ has: page.getByRole('cell', { name: complects.main.profile, exact: true }) });
   await save(page, 'complects-list', [
-    { target: complectRow.getByRole('button', { name: 'Комплект РПД' }), label: 'Открыть комплект' },
+    { target: complectRow.getByRole('link', { name: complects.main.profile, exact: true }), label: 'Открыть комплект' },
   ]);
 
   await openComplect(page);
@@ -235,20 +235,13 @@ test('снимки инструкции на синтетических данн
   ]);
   await fundsDialog.getByRole('button', { name: 'Закрыть' }).click();
 
-  await page.getByText('Список компетенций', { exact: true }).click();
-  const profile = page.getByRole('combobox', { name: 'Профиль' });
-  await profile.click();
-  await page.getByRole('option', { name: complects.main.profile, exact: true }).click();
-  const form = page.getByRole('combobox', { name: 'Форма обучения' });
-  await form.click();
-  await page.getByRole('option', { name: 'Очная' }).click();
-  const year = page.getByRole('combobox', { name: 'Год набора' });
-  await year.click();
-  await page.getByRole('option', { name: '2025' }).click();
+  await page.getByRole('button', { name: 'Компетенции', exact: true }).click();
+  const competencies = page.getByRole('dialog', { name: /^Компетенции/ });
   await save(page, 'competencies-list', [
-    { target: profile, label: 'Профиль', placement: 'bottom' },
-    { target: year, label: 'Год набора', placement: 'bottom' },
+    { target: competencies.getByRole('button', { name: 'Загрузить файл' }), label: 'Загрузить для этого комплекта', placement: 'bottom' },
+    { target: competencies.getByRole('table'), label: 'Сохранённые компетенции', placement: 'bottom' },
   ]);
+  await competencies.getByRole('button', { name: 'Закрыть', exact: true }).click();
 
   const teacherContext = await browser.newContext({ baseURL: test.info().project.use.baseURL, viewport: { width: 1280, height: 800 } });
   const secondContext = await browser.newContext({ baseURL: test.info().project.use.baseURL, viewport: { width: 1280, height: 800 } });

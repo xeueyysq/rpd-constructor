@@ -15,6 +15,9 @@ import TemplateAccess from "../services/TemplateAccess.ts";
 import { NotFound } from "../utils/Errors.ts";
 import { replaceComplectOwner, replaceComplectOwners } from "../services/ComplectOwnership.ts";
 import TemplateImportController from "../controllers/templateImportController.ts";
+import RpdProfileTemplates from "../models/rpd_profile_templates.ts";
+import { documentContentDisposition } from "../utils/documentFilename.ts";
+import WordImportController from "../controllers/wordImportController.ts";
 
 const template = (selector: (req: express.Request) => unknown, mode: "read" | "edit" | "manage") => templateAuthorization(pool, selector, mode);
 const complect = (selector: (req: express.Request) => unknown) => complectAuthorization(pool, selector);
@@ -29,7 +32,11 @@ router.get("/templates/:id/workflow", TokenService.checkAccess, TemplateWorkflow
 router.post("/templates/:id/workflow", TokenService.checkAccess, validateWorkflow, TemplateWorkflowController.post);
 router.put("/templates/:id/participants", TokenService.checkAccess, requireRole(USER_ROLES.ADMIN, USER_ROLES.ROP), TemplateWorkflowController.setParticipants);
 const templateImportController = new TemplateImportController(pool);
+const wordImportController = new WordImportController(pool);
 router.get("/template-import/sources", TokenService.checkAccess, templateImportController.sources);
+router.get("/template-import/catalog", TokenService.checkAccess, templateImportController.catalog);
+router.post("/templates/:id/import-word/preview", TokenService.checkAccess, wordImportController.authorizePreview, wordImportController.upload, wordImportController.preview);
+router.post("/templates/:id/import-word/apply", TokenService.checkAccess, wordImportController.apply);
 router.post("/template-import/complect", TokenService.checkAccess, requireRole(USER_ROLES.ADMIN, USER_ROLES.ROP), templateImportController.complect);
 router.post("/templates/:id/content-control/clear", TokenService.checkAccess, requireRole(USER_ROLES.ADMIN, USER_ROLES.ROP), templateImportController.clearControl);
 const templatePresence = new TemplatePresence(pool);
@@ -226,23 +233,25 @@ router.patch("/users", TokenService.checkAccess, requireRole(USER_ROLES.ADMIN), 
 
 router.get("/generate-pdf", TokenService.checkAccess, template((req) => req.query.id, "read"), async (req, res) => {
     const { id } = req.query;
+    const metadata = await new RpdProfileTemplates(pool).getDownloadMetadata(id);
     const pdfBuffer = await generatePDF(id);
 
     res.setHeader("Content-Type", "application/pdf");
-    res.setHeader("Content-Disposition", "attachment; filename=example.pdf");
+    res.setHeader("Content-Disposition", documentContentDisposition(metadata, "pdf"));
 
     res.send(pdfBuffer);
 });
 
 router.get("/generate-docx", TokenService.checkAccess, template((req) => req.query.id, "read"), async (req, res) => {
     const { id } = req.query;
+    const metadata = await new RpdProfileTemplates(pool).getDownloadMetadata(id);
     const docxBuffer = await generateWord(id);
 
     res.setHeader(
       "Content-Type",
       "application/vnd.openxmlformats-officedocument.wordprocessingml.document"
     );
-    res.setHeader("Content-Disposition", "attachment; filename=example.docx");
+    res.setHeader("Content-Disposition", documentContentDisposition(metadata, "docx"));
 
     res.send(docxBuffer);
 });

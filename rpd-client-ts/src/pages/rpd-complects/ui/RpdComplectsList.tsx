@@ -1,11 +1,16 @@
 import { useAuth } from "@entities/auth";
 import { useRpdComplectsQuery } from "@entities/rpd-complect";
+import {
+  ComplectCompetenciesDialog,
+  type CompetenciesTarget,
+} from "@features/complect-competencies";
 import FiberManualRecordIcon from "@mui/icons-material/FiberManualRecord";
 import {
   Box,
   Breadcrumbs,
   Button,
   CssBaseline,
+  Link,
   Typography,
 } from "@mui/material";
 import { UserRole } from "@shared/ability";
@@ -26,27 +31,20 @@ import {
   type MRT_ColumnDef,
 } from "material-react-table";
 import { MRT_Localization_RU } from "material-react-table/locales/ru";
-import { FC, useCallback, useMemo, useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { FC, useMemo, useState } from "react";
+import { Link as RouterLink } from "react-router-dom";
 import { AssignOwnerDialog } from "./AssignOwnerDialog";
 
 export const RpdComplectsList: FC = () => {
   const { setComplectId } = useStore();
-  const navigate = useNavigate();
+  const [competenciesTarget, setCompetenciesTarget] =
+    useState<CompetenciesTarget | null>(null);
   const [rowSelection, setRowSelection] = useState<Record<string, boolean>>({});
   const [selectedOwnerId, setSelectedOwnerId] = useState<number | null>(null);
   const userRole = useAuth.getState().userRole;
   const { complects, isLoading } = useRpdComplectsQuery();
   const ownerComplect = complects?.find(
     (complect) => complect.id === selectedOwnerId
-  );
-
-  const handleViewComplect = useCallback(
-    (complect: ComplectData) => {
-      navigate(`${RedirectPath.COMPLECTS}/${complect.uuid}`);
-      setComplectId(complect.id);
-    },
-    [setComplectId, navigate]
   );
 
   const sortedComplectsByYear = useMemo(
@@ -73,6 +71,30 @@ export const RpdComplectsList: FC = () => {
   const generalColumns = useMemo<MRT_ColumnDef<ComplectData>[]>(
     () => [
       ...(userRole === UserRole.ADMIN ? adminColumns : []),
+      {
+        accessorKey: "profile",
+        header: "Профиль",
+        Cell: ({ row }) => (
+          <Link
+            component={RouterLink}
+            to={`${RedirectPath.COMPLECTS}/${row.original.uuid}`}
+            onClick={() => setComplectId(row.original.id)}
+            sx={(theme) => ({ ...theme.typography.button })}
+          >
+            {row.original.profile}
+          </Link>
+        ),
+      },
+      {
+        accessorKey: "formEducation",
+        header: "Форма обучения",
+        size: 110,
+      },
+      {
+        accessorKey: "year",
+        header: "Год набора",
+        size: 100,
+      },
       ...(userRole === UserRole.ADMIN
         ? [
             {
@@ -83,7 +105,6 @@ export const RpdComplectsList: FC = () => {
               Cell: ({ row }: { row: { original: ComplectData } }) => {
                 const open = () => setSelectedOwnerId(row.original.id);
                 const owners = row.original.owner ?? [];
-                // Оформление как у назначенных преподавателей в таблице комплекта.
                 if (!owners.length)
                   return (
                     <StatusWithSubtext
@@ -113,20 +134,6 @@ export const RpdComplectsList: FC = () => {
           ]
         : []),
       {
-        accessorKey: "profile",
-        header: "Профиль",
-      },
-      {
-        accessorKey: "formEducation",
-        header: "Форма обучения",
-        size: 110,
-      },
-      {
-        accessorKey: "year",
-        header: "Год набора",
-        size: 100,
-      },
-      {
         accessorKey: "status",
         header: "Статус",
         size: 120,
@@ -143,39 +150,27 @@ export const RpdComplectsList: FC = () => {
         enableSorting: false,
         enableColumnActions: false,
         enableColumnFilter: false,
-        size: 200,
+        minSize: 130,
+        size: 140,
+        grow: false,
         Cell: ({ row }) => (
-          <Breadcrumbs separator={"/"}>
-            {[
-              <Button
-                size="medium"
-                sx={{ textDecoration: "underline" }}
-                onClick={() => handleViewComplect(row.original)}
-              >
-                Комплект РПД
-              </Button>,
-              <Button
-                size="medium"
-                sx={{ textDecoration: "underline" }}
-                onClick={() => {
-                  const originalRow = row.original;
-                  navigate(RedirectPath.PLANNED_RESULTS, {
-                    state: {
-                      profile: originalRow.profile,
-                      formEducation: originalRow.formEducation,
-                      year: originalRow.year,
-                    },
-                  });
-                }}
-              >
-                Компетенции
-              </Button>,
-            ]}
-          </Breadcrumbs>
+          <Button
+            size="medium"
+            sx={{ textDecoration: "underline" }}
+            onClick={() => {
+              const originalRow = row.original;
+              setCompetenciesTarget({
+                id: originalRow.id,
+                label: `${originalRow.directionOfStudy} • ${originalRow.profile} • ${originalRow.year} • ${originalRow.formEducation}`,
+              });
+            }}
+          >
+            Компетенции
+          </Button>
         ),
       },
     ],
-    [handleViewComplect, navigate, userRole]
+    [setComplectId, userRole]
   );
 
   const table = useMaterialReactTable<ComplectData>({
@@ -244,6 +239,10 @@ export const RpdComplectsList: FC = () => {
           onClose={() => setSelectedOwnerId(null)}
         />
       ) : null}
+      <ComplectCompetenciesDialog
+        complect={competenciesTarget}
+        onClose={() => setCompetenciesTarget(null)}
+      />
     </Box>
   );
 };

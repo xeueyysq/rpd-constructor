@@ -1,37 +1,17 @@
-import { useMutation, useQuery } from "@tanstack/react-query";
+import { useMutation } from "@tanstack/react-query";
 import { axiosBase } from "@shared/api";
-
-type ResultsRow = {
-  competence: string;
-  indicator: string;
-  disciplines: string[];
-};
+import { filenameFromContentDisposition } from "@shared/lib";
+import { useComplectCompetencies } from "@entities/rpd-complect";
 
 export function useAssessmentFundsCompetencies(
   complectId: string,
   enabled: boolean
 ) {
-  return useQuery({
-    queryKey: ["assessment-funds-competencies", complectId],
-    queryFn: async () => {
-      const { data } = await axiosBase.get<ResultsRow[]>("get-results-data", {
-        params: { complectId },
-      });
-      return Array.isArray(data) ? data : [];
-    },
-    enabled,
-  });
+  return useComplectCompetencies(complectId, enabled);
 }
 
 export function excelFilename(contentDisposition: unknown): string {
-  if (typeof contentDisposition !== "string") return "ФОС.xlsx";
-  const encoded = contentDisposition.match(/filename\*=UTF-8''([^;]+)/i)?.[1];
-  if (!encoded) return "ФОС.xlsx";
-  try {
-    return decodeURIComponent(encoded);
-  } catch {
-    return "ФОС.xlsx";
-  }
+  return filenameFromContentDisposition(contentDisposition, "ФОС.xlsx");
 }
 
 export function useDownloadAssessmentFundsWord() {

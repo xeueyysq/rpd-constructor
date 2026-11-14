@@ -1,5 +1,6 @@
 import type { ParamsDictionary } from "express-serve-static-core";
 import { errorMessage } from "../utils/Errors.ts";
+import { markFeedbackFailure } from "../middleware/feedbackDiagnostics.ts";
 import type { Pool } from "pg";
 import type { Request, Response } from "express";
 import TemplateStatus from "../models/template_status.ts";
@@ -16,6 +17,7 @@ class TemplateStatusController {
             const record = await this.model.getTemplateHistory(id);
             res.json(record);
         } catch (error) {
+            markFeedbackFailure(res, error);
             res.status(500).json({ message: errorMessage(error) });
         }
     }

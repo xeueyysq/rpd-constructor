@@ -14,9 +14,91 @@ export type ImportField =
   | "professional_information_resources"
   | "software"
   | "logistics_template";
-export type ImportContext =
+export type ImportContext = (
   | { targetTemplateId: number | string; targetComplectId?: never }
-  | { targetComplectId: number | string; targetTemplateId?: never };
+  | { targetComplectId: number | string; targetTemplateId?: never }
+) & { ownOnly?: boolean };
+export type ImportCatalogQuery = ImportContext & {
+  scope: "bulk" | "single" | "field";
+  search?: string;
+  faculty?: string;
+  educationLevel?: string;
+  direction?: string;
+  profile?: string;
+  educationForm?: string;
+  year?: number;
+  status?: "ready";
+  sourceMode?: "other-complect" | "other-year";
+  page?: number;
+  pageSize?: number;
+};
+export type ImportCatalogSummary = Omit<ImportSourceComplect, "templates"> & {
+  templateCount: number;
+  matchingTemplateCount: number;
+};
+export type ImportCatalogFacets = {
+  faculties: string[];
+  educationLevels: string[];
+  directions: string[];
+  profiles: string[];
+  educationForms: string[];
+  years: number[];
+};
+export type ImportCatalogResponse = {
+  scope: ImportCatalogQuery["scope"];
+  targetRevision: string;
+  targetEducationLevel: string | null;
+  complects: ImportCatalogSummary[];
+  templates: ImportCatalogTemplate[];
+  page: number;
+  pageSize: number;
+  total: number;
+  facets: ImportCatalogFacets;
+};
+export type WordImportField =
+  | "goals"
+  | "place_more_text"
+  | "content_more_text"
+  | "content_template_more_text"
+  | "methodological_support_template"
+  | "software"
+  | "textbook"
+  | "additional_textbook"
+  | "professional_information_resources"
+  | "content";
+export type WordContentRow = {
+  theme: string;
+  total: number;
+  lectures: number;
+  seminars: number;
+  contact: number;
+  independent_work: number;
+  control: null;
+};
+export type WordValues = Partial<
+  Record<Exclude<WordImportField, "content">, string | string[]>
+> & {
+  content?: Record<string, WordContentRow>;
+};
+export type WordImportPreview = {
+  targetTemplateId: number;
+  targetRevision: string;
+  source: {
+    fileName: string;
+    discipline: string | null;
+    department: string | null;
+    year: number | null;
+  };
+  values: WordValues;
+  availableFields: WordImportField[];
+  warnings: string[];
+};
+export type WordImportApplyResponse = {
+  success: true;
+  updatedFields: WordImportField[];
+  targetTemplate: ImportTarget;
+  targetRevision: string;
+};
 export interface ImportSourceTemplate {
   id: number;
   public_id: string;
@@ -35,11 +117,11 @@ export interface ImportSourceComplect {
   year: number | null;
   education_form: string | null;
   education_level: string | null;
+  owners: { userId: number; fullname: string }[];
   templates: ImportSourceTemplate[];
 }
-export type ImportSources = {
-  targetRevision: string;
-  complects: ImportSourceComplect[];
+export type ImportCatalogTemplate = ImportSourceTemplate & {
+  complect: Omit<ImportSourceComplect, "templates">;
 };
 export type ImportFieldPreview = { id: number; public_id: string } & Partial<
   Record<ImportField, unknown>
@@ -86,7 +168,12 @@ export const importSkipLabels: Record<ImportSkipReason, string> = {
   read_only: "Целевая РПД недоступна для изменения",
 };
 
-export function importComplectLabel(complect: ImportSourceComplect) {
+export function importComplectLabel(
+  complect: Pick<
+    ImportSourceComplect,
+    "direction" | "profile" | "year" | "education_form" | "education_level"
+  >
+) {
   return [
     complect.direction,
     complect.profile,
@@ -96,59 +183,4 @@ export function importComplectLabel(complect: ImportSourceComplect) {
   ]
     .filter((value) => value != null && value !== "")
     .join(" • ");
-}
-
-export function matchesImportSource(
-  template: ImportSourceTemplate,
-  search: string
-) {
-  const text = [
-    template.disciplins_name,
-    ...template.participants.map((participant) => participant.fullname),
-  ].join(" ");
-  return text
-    .toLocaleLowerCase("ru")
-    .includes(search.trim().toLocaleLowerCase("ru"));
-}
-
-export function fieldImportOptions(
-  complects: ImportSourceComplect[],
-  target: {
-    id: number;
-    disciplins_name: string;
-    direction: string;
-    profile: string;
-    year: number | string | null | undefined;
-  },
-  mode: "year" | "direction"
-) {
-  const targetYear =
-    target.year == null || String(target.year).trim() === ""
-      ? null
-      : Number(target.year);
-  const normalizeName = (name: string | null) =>
-    name?.trim().replace(/\s+/g, " ").toLocaleLowerCase("ru");
-  const targetName = normalizeName(target.disciplins_name);
-
-  return complects.flatMap((complect) =>
-    complect.templates
-      .filter(
-        (template) =>
-          template.id !== target.id &&
-          (mode === "year"
-            ? targetYear != null &&
-              Number.isFinite(targetYear) &&
-              complect.year != null &&
-              Number.isFinite(complect.year) &&
-              complect.year !== targetYear &&
-              normalizeName(template.disciplins_name) === targetName
-            : complect.direction !== target.direction ||
-              complect.profile !== target.profile)
-      )
-      .map((template) => ({
-        id: template.id,
-        text: `${template.disciplins_name ?? "—"} • семестр ${template.semester ?? "—"} • ${importComplectLabel(complect)}`,
-        year: complect.year,
-      }))
-  );
 }

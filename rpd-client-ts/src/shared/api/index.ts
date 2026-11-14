@@ -1,6 +1,12 @@
 import axios, { type InternalAxiosRequestConfig } from "axios";
 import { axiosBase } from "./clients";
 import {
+  finishDiagnosticRequest,
+  markAxiosErrorHandled,
+  startDiagnosticRequest,
+  type DiagnosticRequest,
+} from "./lib/diagnosticHttp";
+import {
   getAccessToken,
   getSessionGeneration,
   refreshSession,
@@ -21,10 +27,28 @@ export {
 } from "./lib/session";
 export type { AuthSession } from "./lib/session";
 
-type SessionRequest = InternalAxiosRequestConfig & {
-  _retry?: boolean;
-  _sessionGeneration?: number;
-};
+type SessionRequest = InternalAxiosRequestConfig &
+  DiagnosticRequest & {
+    _retry?: boolean;
+    _sessionGeneration?: number;
+  };
+
+axiosBase.interceptors.response.use(
+  (response) => {
+    finishDiagnosticRequest(response.config as SessionRequest, response);
+    return response;
+  },
+  (error: unknown) => {
+    markAxiosErrorHandled(error);
+    if (axios.isAxiosError(error))
+      finishDiagnosticRequest(
+        error.config as SessionRequest | undefined,
+        undefined,
+        error
+      );
+    throw error;
+  }
+);
 
 axiosBase.interceptors.request.use(
   (config: SessionRequest) => {
@@ -42,6 +66,7 @@ axiosBase.interceptors.request.use(
     } else {
       config.headers.delete("Authorization");
     }
+    startDiagnosticRequest(config);
     return config;
   },
   (error: unknown) => {

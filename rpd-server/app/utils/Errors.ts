@@ -1,4 +1,5 @@
 import type { Response } from "express";
+import { classifyFeedbackFailure } from "../modules/feedbackStack.ts";
 
 class WebError {
   status: number;
@@ -15,6 +16,14 @@ class Unprocessable extends WebError {
   }
 }
 
+class PayloadTooLarge extends WebError {
+  constructor(error?: unknown) { super(413, error); }
+}
+
+class TooManyRequests extends WebError {
+  constructor(error?: unknown) { super(429, error); }
+}
+
 class Conflict extends WebError {
   constructor(error?: unknown) {
     super(409, error);
@@ -29,7 +38,6 @@ class BadGateway extends WebError {
 
 class NotFound extends WebError {
   constructor(error?: unknown) {
-    console.log(error);
     super(404, error);
   }
 }
@@ -57,11 +65,15 @@ function errorStatusCode(error: unknown): number | undefined {
 
 class ErrorUtils {
   static catchError(res: Response, error: unknown) {
-    console.log(error);
     const status = error && typeof error === "object"
       ? "status" in error && typeof error.status === "number" ? error.status
         : "statusCode" in error && typeof error.statusCode === "number" ? error.statusCode : undefined
       : undefined;
+    if ((!status || status >= 500 || status === 413) && res.locals) {
+      const failure = classifyFeedbackFailure(error);
+      if (failure) res.locals.feedbackFailure = failure;
+    }
+    if (!status || status >= 500) console.error("Ошибка HTTP-запроса", status ?? 500);
     return res.status(status || 500).json(error);
   }
 }
@@ -75,5 +87,7 @@ export {
   Conflict, 
   BadGateway,
   Unauthorized, 
-  Unprocessable
+  Unprocessable,
+  PayloadTooLarge,
+  TooManyRequests
 };

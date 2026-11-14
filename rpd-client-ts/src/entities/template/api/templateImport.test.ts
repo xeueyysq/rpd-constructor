@@ -22,7 +22,9 @@ import {
   useCopyTemplateField,
   useImportComplect,
   useImportFieldPreview,
-  useImportSources,
+  useImportCatalog,
+  useWordImportApply,
+  previewFile,
 } from "./templateImport";
 import { useSetTemplateParticipants, useTemplateWorkflow } from "./workflow";
 import { useUpdateTemplateField } from "./updateTemplateField";
@@ -105,6 +107,60 @@ afterEach(() => {
 });
 
 describe("HTTP-контракты клиентского импорта", () => {
+  it("импорт поля, ожидающий сохранения, не отправляется после перехода в другой редактор", async () => {
+    let finish!: () => void;
+    const saving = useTemplateSync.getState().track(
+      new Promise<void>((resolve) => {
+        finish = resolve;
+      })
+    );
+    const pending = renderHook(useCopyTemplateField).mutateAsync({
+      sourceTemplateId: 21,
+      targetTemplateId: 12,
+      fieldToCopy: "goals",
+      baseAt: before,
+    });
+    const result = Promise.allSettled([pending]);
+    await Promise.resolve();
+    useStore.getState().setJsonData({ id: 13, goals: "Редактор Б" });
+    useTemplateSync.getState().reset();
+    finish();
+    await saving;
+    expect(await result).toEqual([
+      {
+        status: "rejected",
+        reason: expect.objectContaining({
+          message: expect.stringContaining("другая РПД"),
+        }),
+      },
+    ]);
+    expect(requests).toHaveLength(0);
+    expect(useStore.getState().jsonData.goals).toBe("Редактор Б");
+  });
+
+  it("поздний полный импорт из таблицы не подменяет открытый во время ответа редактор", async () => {
+    useStore.getState().setJsonData({});
+    let finish!: (value: unknown) => void;
+    reply = () =>
+      new Promise((resolve) => {
+        finish = resolve;
+      });
+    const pending = renderHook(useCopyTemplateContent).mutateAsync({
+      sourceTemplateId: 21,
+      targetTemplateId: 12,
+      targetRevision: "from-list",
+    });
+    await vi.waitFor(() => expect(requests).toHaveLength(1));
+    useStore.getState().setJsonData({ id: 12, goals: "Новый редактор" });
+    finish({
+      success: true,
+      targetRevision: "next",
+      targetTemplate: { id: 12, goals: "Поздний ответ", field_edits: {} },
+    });
+    await pending;
+    expect(useStore.getState().jsonData.goals).toBe("Новый редактор");
+  });
+
   it("ожидающий сохранения импорт A не отправляется после смены сессии на B", async () => {
     let finish!: () => void;
     const saving = useTemplateSync.getState().track(
@@ -155,7 +211,7 @@ describe("HTTP-контракты клиентского импорта", () => 
     );
     await vi.waitFor(() => expect(requests).toHaveLength(1));
     const sources = renderHook(() =>
-      useImportSources({ targetTemplateId: 12 })
+      useImportCatalog({ scope: "field", targetTemplateId: 12 })
     ).refetch();
     expect(useTemplateSync.getState().dirty.goals).toBeDefined();
     finish({ field: "goals", value: "Сохранённые цели", edit });
@@ -163,19 +219,7 @@ describe("HTTP-контракты клиентского импорта", () => 
     expect((await sources).data?.targetRevision).toBe("after-save");
     expect(useTemplateSync.getState().dirty).toEqual({});
   });
-  it("получает import-only каталог с контекстом цели, preview передаёт повторённые ids и литературу", async () => {
-    reply = () => ({ targetRevision: "opaque-revision", complects: [] });
-    const sources = await renderHook(() =>
-      useImportSources({ targetTemplateId: 12 })
-    ).refetch();
-    expect(sources.data?.targetRevision).toBe("opaque-revision");
-    expect(
-      new URL(
-        axiosBase.getUri(requests[0]),
-        "http://localhost"
-      ).searchParams.get("targetTemplateId")
-    ).toBe("12");
-    expect(requests[0].url).toBe("template-import/sources");
+  it("preview передаёт повторённые ids, ключ поля и контекст цели, сохраняет массив литературы", async () => {
     reply = () => [
       {
         id: 21,
@@ -186,7 +230,7 @@ describe("HTTP-контракты клиентского импорта", () => 
     const preview = await renderHook(() =>
       useImportFieldPreview([21, 22], "textbook", 12, true)
     ).refetch();
-    const query = new URL(axiosBase.getUri(requests[1]), "http://localhost")
+    const query = new URL(axiosBase.getUri(requests[0]), "http://localhost")
       .searchParams;
     expect(query.getAll("ids")).toEqual(["21", "22"]);
     expect(query.get("targetTemplateId")).toBe("12");
@@ -195,6 +239,191 @@ describe("HTTP-контракты клиентского импорта", () => 
       "Первая книга",
       "Вторая книга",
     ]);
+  });
+
+  it("получает плоскую страницу field с метаданными комплекта одним HTTP; смена сессии изолирует кеш", async () => {
+    reply = () => ({
+      scope: "field",
+      targetRevision: "rev-A",
+      targetEducationLevel: "Бакалавриат",
+      complects: [],
+      templates: [
+        {
+          id: 31,
+          status: "ready",
+          complect: {
+            id: 21,
+            profile: "Системы",
+            owners: [{ userId: 9, fullname: "Петров П.П." }],
+          },
+        },
+      ],
+      page: 2,
+      pageSize: 10,
+      total: 12,
+      facets: {
+        faculties: ["ФИТ"],
+        educationLevels: [],
+        directions: [],
+        profiles: [],
+        educationForms: [],
+        years: [],
+      },
+    });
+    const query = {
+      scope: "field" as const,
+      targetTemplateId: 12,
+      ownOnly: true,
+      search: "Алгоритмы",
+      sourceMode: "other-year" as const,
+      page: 2,
+    };
+    const catalog = await renderHook(() => useImportCatalog(query)).refetch();
+    expect(catalog.data?.total).toBe(12);
+    expect(catalog.data?.templates[0]).toMatchObject({
+      id: 31,
+      complect: {
+        profile: "Системы",
+        owners: [{ userId: 9, fullname: "Петров П.П." }],
+      },
+    });
+    expect(requests).toHaveLength(1);
+    const catalogParams = new URL(
+      axiosBase.getUri(requests[0]),
+      "http://localhost"
+    ).searchParams;
+    expect(catalogParams.get("ownOnly")).toBe("true");
+    expect(catalogParams.get("search")).toBe("Алгоритмы");
+    expect(catalogParams.get("scope")).toBe("field");
+    expect(catalogParams.get("targetTemplateId")).toBe("12");
+    expect(catalogParams.has("status")).toBe(false);
+    expect(catalogParams.get("sourceMode")).toBe("other-year");
+    expect(catalogParams.get("page")).toBe("2");
+    beginSession();
+    expect(renderHook(() => useImportCatalog(query)).data).toBeUndefined();
+  });
+
+  it("Word применяет выбранные поля и не записывает ответ в другой открытый редактор", async () => {
+    let finish!: (value: unknown) => void;
+    reply = () =>
+      new Promise((resolve) => {
+        finish = resolve;
+      });
+    const pending = renderHook(useWordImportApply).mutateAsync({
+      targetTemplateId: 12,
+      expectedRevision: "word-rev",
+      mode: "replace",
+      selectedFields: ["goals"],
+      values: { goals: "Новые цели", software: "Лишнее поле" },
+    });
+    await vi.waitFor(() => expect(requests).toHaveLength(1));
+    expect(body(requests[0])).toEqual({
+      expectedRevision: "word-rev",
+      mode: "replace",
+      selectedFields: ["goals"],
+      values: { goals: "Новые цели" },
+    });
+    useStore.getState().setJsonData({ id: 13, goals: "Редактор Б" });
+    finish({
+      success: true,
+      targetRevision: "next",
+      updatedFields: ["goals"],
+      targetTemplate: { id: 12, goals: "Новые цели", field_edits: {} },
+    });
+    await expect(pending).rejects.toThrow("другая РПД");
+    expect(useStore.getState().jsonData).toMatchObject({
+      id: 13,
+      goals: "Редактор Б",
+    });
+  });
+
+  it("Word preview проверяет файл до HTTP и не возвращает ответ после смены сессии", async () => {
+    await expect(previewFile(12, new File(["x"], "bad.txt"))).rejects.toThrow(
+      ".docx"
+    );
+    expect(requests).toHaveLength(0);
+    let finish!: (value: unknown) => void;
+    reply = () =>
+      new Promise((resolve) => {
+        finish = resolve;
+      });
+    const pending = previewFile(12, new File(["PK"], "rpd.docx"));
+    await vi.waitFor(() => expect(requests).toHaveLength(1));
+    expect(requests[0].data).toBeInstanceOf(FormData);
+    beginSession();
+    finish({
+      targetTemplateId: 12,
+      targetRevision: "old",
+      values: {},
+      availableFields: [],
+      warnings: [],
+      source: {},
+    });
+    await expect(pending).rejects.toBeInstanceOf(SessionChangedError);
+  });
+
+  it("Word preview и apply работают с фиксированной целью из списка без открытого редактора", async () => {
+    useStore.getState().setJsonData({});
+    reply = (request) =>
+      request.url?.endsWith("/preview")
+        ? {
+            targetTemplateId: 12,
+            targetRevision: "word-rev",
+            values: { goals: "Новые цели" },
+            availableFields: ["goals"],
+            warnings: [],
+            source: {},
+          }
+        : {
+            success: true,
+            targetRevision: "next",
+            updatedFields: ["goals"],
+            targetTemplate: { id: 12, goals: "Новые цели", field_edits: {} },
+          };
+    const preview = await previewFile(12, new File(["PK"], "rpd.docx"));
+    expect(preview.targetRevision).toBe("word-rev");
+    const applied = await renderHook(useWordImportApply).mutateAsync({
+      targetTemplateId: 12,
+      expectedRevision: preview.targetRevision,
+      mode: "replace",
+      selectedFields: ["goals"],
+      values: preview.values,
+    });
+    expect(applied.updatedFields).toEqual(["goals"]);
+    expect(useStore.getState().jsonData).toEqual({});
+    expect(requests.map((request) => request.url)).toEqual([
+      "templates/12/import-word/preview",
+      "templates/12/import-word/apply",
+    ]);
+  });
+
+  it("Word из списка не подменяет редактор, открытый во время ответа", async () => {
+    useStore.getState().setJsonData({});
+    let finish!: (value: unknown) => void;
+    reply = () =>
+      new Promise((resolve) => {
+        finish = resolve;
+      });
+    const pending = renderHook(useWordImportApply).mutateAsync({
+      targetTemplateId: 12,
+      expectedRevision: "word-rev",
+      mode: "replace",
+      selectedFields: ["goals"],
+      values: { goals: "Новые цели" },
+    });
+    await vi.waitFor(() => expect(requests).toHaveLength(1));
+    useStore.getState().setJsonData({ id: 13, goals: "Редактор Б" });
+    finish({
+      success: true,
+      targetRevision: "next",
+      updatedFields: ["goals"],
+      targetTemplate: { id: 12, goals: "Новые цели", field_edits: {} },
+    });
+    await expect(pending).resolves.toMatchObject({ updatedFields: ["goals"] });
+    expect(useStore.getState().jsonData).toMatchObject({
+      id: 13,
+      goals: "Редактор Б",
+    });
   });
 
   it("дожидается сохранения цели и отправляет зафиксированный baseAt, сохраняя тип text[]", async () => {
@@ -282,7 +511,7 @@ describe("HTTP-контракты клиентского импорта", () => 
     expect(useTemplateSync.getState().dirty).toEqual({});
   });
 
-  it("полный импорт передаёт исходную ревизию и объединяет ответ с join-метаданными цели", async () => {
+  it("полный импорт передаёт ready guard и исходную ревизию, объединяет ответ с join-метаданными цели", async () => {
     reply = () => ({
       success: true,
       targetRevision: "next",
@@ -298,11 +527,13 @@ describe("HTTP-контракты клиентского импорта", () => 
       sourceTemplateId: 21,
       targetTemplateId: 12,
       targetRevision: "catalog-baseline",
+      sourceStatus: "ready",
     });
     expect(body(requests[0])).toEqual({
       sourceTemplateId: 21,
       targetTemplateId: 12,
       targetRevision: "catalog-baseline",
+      sourceStatus: "ready",
     });
     expect(useStore.getState().jsonData).toMatchObject({
       goals: "Новые цели",

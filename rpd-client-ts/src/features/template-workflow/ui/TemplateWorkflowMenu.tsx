@@ -1,6 +1,7 @@
 import HistoryIcon from "@mui/icons-material/History";
 import MoreHorizIcon from "@mui/icons-material/MoreHoriz";
 import OpenInBrowserIcon from "@mui/icons-material/OpenInBrowser";
+import FileDownloadOutlinedIcon from "@mui/icons-material/FileDownloadOutlined";
 import { IconButton, ListItemIcon, Menu, MenuItem } from "@mui/material";
 import type { WorkflowAction } from "@entities/template";
 import { useId, useState } from "react";
@@ -10,12 +11,14 @@ import { WorkflowActionIcon } from "./WorkflowActionIcon";
 export function TemplateWorkflowMenu({
   onOpen,
   onOpenHistory,
+  onImport,
   ...workflow
 }: {
   templateId: number;
   allowedActions: WorkflowAction[];
   onOpen: () => void;
   onOpenHistory: () => void;
+  onImport?: () => void;
   onChanged?: () => void | Promise<void>;
 }) {
   const controller = useTemplateWorkflowController(workflow);
@@ -52,6 +55,19 @@ export function TemplateWorkflowMenu({
           </ListItemIcon>
           Открыть
         </MenuItem>
+        {onImport ? (
+          <MenuItem
+            onClick={() => {
+              close();
+              onImport();
+            }}
+          >
+            <ListItemIcon>
+              <FileDownloadOutlinedIcon />
+            </ListItemIcon>
+            Импортировать
+          </MenuItem>
+        ) : null}
         <MenuItem
           onClick={() => {
             close();

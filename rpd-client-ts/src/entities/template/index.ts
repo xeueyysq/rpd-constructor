@@ -32,25 +32,33 @@ export { TemplateCollabBar } from "./ui/TemplateCollabBar";
 export { FieldEditLabel } from "./ui/FieldEditLabel";
 export { useSetTemplateParticipants } from "./api/workflow";
 export {
-  useImportSources,
+  useImportCatalog,
   useImportFieldPreview,
   useCopyTemplateField,
   useCopyTemplateContent,
   useImportComplect,
   useClearTemplateControl,
   prepareTemplateImport,
+  previewFile,
+  useWordImportPreview,
+  useWordImportApply,
   templateImportError,
 } from "./api/templateImport";
-export {
-  importComplectLabel,
-  matchesImportSource,
-  fieldImportOptions,
-  importSkipLabels,
-} from "./model/templateImport";
+export { importComplectLabel, importSkipLabels } from "./model/templateImport";
 export type {
   ImportField,
-  ImportSources,
+  ImportContext,
+  ImportCatalogQuery,
+  ImportCatalogResponse,
+  ImportCatalogSummary,
+  ImportCatalogTemplate,
+  ImportCatalogFacets,
   ImportSourceComplect,
   ImportSourceTemplate,
   ImportComplectResponse,
+  WordImportField,
+  WordContentRow,
+  WordValues,
+  WordImportPreview,
+  WordImportApplyResponse,
 } from "./model/templateImport";

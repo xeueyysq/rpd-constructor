@@ -40,7 +40,18 @@ export const Header: FC = () => {
             </IconButton>
             <HeaderLogo />
           </Box>
-          {isUserLogged && <AccountSettings />}
+          <Box
+            sx={{
+              display: "flex",
+              alignItems: "center",
+              flexShrink: 0,
+              "& [aria-label='Открыть меню аккаунта'] > :first-child": {
+                display: { xs: "none", sm: "flex" },
+              },
+            }}
+          >
+            {isUserLogged && <AccountSettings />}
+          </Box>
         </Box>
       </Toolbar>
     </AppBar>

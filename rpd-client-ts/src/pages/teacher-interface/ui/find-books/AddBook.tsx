@@ -101,9 +101,9 @@ const AddBook: FC<AddBook> = ({ elementName }) => {
 
   return (
     <>
-      <Box sx={{ pt: 3, display: "flex", justifyContent: "space-between" }}>
+      <Box sx={{ pt: 3, display: "flex", gap: 1, flexWrap: "wrap" }}>
         <Button
-          variant="outlined"
+          variant="contained"
           onClick={handleOpenDialog}
           endIcon={<SearchIcon />}
         >

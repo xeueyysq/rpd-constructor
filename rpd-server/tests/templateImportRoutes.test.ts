@@ -50,12 +50,15 @@ test("реальные маршруты: JWT, manager-only, ids[] preview чуж
 
   assert.equal((await request(app, "GET", "/api/template-import/sources?targetTemplateId=20")).status, 401);
   assert.equal((await request(app, "GET", "/api/template-import/sources", teacher)).status, 422);
-  const catalog = await request(app, "GET", "/api/template-import/sources?targetTemplateId=20", teacher);
+  const catalog = await request(app, "GET", "/api/template-import/sources?targetTemplateId=20&scope=field", teacher);
   assert.equal(catalog.status, 200);
-  assert.equal((await request(app, "GET", "/api/get-changeable-values?ids%5B%5D=10&rowName=goals&targetTemplateId=20", teacher)).status, 200);
+  assert.deepEqual((catalog.body as { complects: unknown[] }).complects, []);
+  assert.equal((await request(app, "GET", "/api/get-changeable-values?ids%5B%5D=10&rowName=goals&targetTemplateId=20", teacher)).status, 403);
   assert.deepEqual((await request(app, "GET", "/api/get-changeable-values?ids%5B%5D=10&rowName=goals", teacher)).body, []);
-  // Обычный source read не получил импортное разрешение.
+  assert.equal((await request(app, "POST", "/api/copy-template-data", teacher, { sourceTemplateId: 10, targetTemplateId: 20, fieldToCopy: "goals", baseAt: null })).status, 403);
   assert.equal((await request(app, "POST", "/api/rpd-profile-templates", teacher, { id: 10 })).status, 403);
+  db.state.assignments.push({ user_id: teacher.id, template_id: 10, state: "assigned", updated_at: "2026-11-04" });
+  assert.equal((await request(app, "GET", "/api/get-changeable-values?ids%5B%5D=10&rowName=goals&targetTemplateId=20", teacher)).status, 200);
   assert.equal((await request(app, "POST", "/api/copy-template-data", teacher, { sourceTemplateId: 10, targetTemplateId: 20, fieldToCopy: "goals", baseAt: null })).status, 200);
   assert.equal((await request(app, "POST", "/api/copy-template-data", teacher, { sourceTemplateId: 10, targetTemplateId: 20, fieldToCopy: "competencies", baseAt: null })).status, 422);
   assert.equal((await request(app, "POST", "/api/copy-template-content", teacher, { sourceTemplateId: 10, targetTemplateId: 20, targetRevision: (catalog.body as Record<string, unknown>).targetRevision })).status, 409);

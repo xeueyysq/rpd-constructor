@@ -1,7 +1,7 @@
 import { Box, Button, TableCell, TableRow, TextField } from "@mui/material";
 import { EditableTableCell } from "../../EditableTableCell";
 import { DisciplineContentRow, EditableRowKey } from "../types";
-import { ATTESTATION_ROW_ID } from "@pages/teacher-interface/model/useDisciplineContentData";
+import { ATTESTATION_ROW_ID } from "@pages/teacher-interface/lib/contentDraft";
 import { getRowHours } from "@pages/teacher-interface/lib/hours";
 
 type DisciplineContentDataRowProps = {
@@ -14,7 +14,6 @@ type DisciplineContentDataRowProps = {
     key: EditableRowKey,
     value: string | number | null
   ) => void;
-  onBlur: () => void;
   onClearControl?: () => void;
   clearDisabled: boolean;
 };
@@ -25,7 +24,6 @@ export function DisciplineContentDataRow({
   readOnly,
   attestationTheme,
   onValueChange,
-  onBlur,
   onClearControl,
   clearDisabled,
 }: DisciplineContentDataRowProps) {
@@ -58,7 +56,6 @@ export function DisciplineContentDataRow({
             multiline
             value={row.theme}
             onChange={(e) => onValueChange(rowId, "theme", e.target.value)}
-            onBlur={onBlur}
             disabled={readOnly}
             fullWidth
           />
@@ -75,13 +72,13 @@ export function DisciplineContentDataRow({
       <EditableTableCell
         value={row.lectures}
         onValueChange={(value) => onValueChange(rowId, "lectures", value)}
-        onBlur={onBlur}
+        onBlur={() => undefined}
         readOnly={readOnly}
       />
       <EditableTableCell
         value={row.seminars}
         onValueChange={(value) => onValueChange(rowId, "seminars", value)}
-        onBlur={onBlur}
+        onBlur={() => undefined}
         readOnly={readOnly}
       />
       <TableCell
@@ -97,7 +94,7 @@ export function DisciplineContentDataRow({
         onValueChange={(value) =>
           onValueChange(rowId, "independent_work", value)
         }
-        onBlur={onBlur}
+        onBlur={() => undefined}
         readOnly={readOnly}
       />
       {rowId !== ATTESTATION_ROW_ID &&
@@ -120,7 +117,7 @@ export function DisciplineContentDataRow({
         <EditableTableCell
           value={row.control ?? null}
           onValueChange={(value) => onValueChange(rowId, "control", value)}
-          onBlur={onBlur}
+          onBlur={() => undefined}
           readOnly={readOnly || rowId !== ATTESTATION_ROW_ID}
         />
       )}
