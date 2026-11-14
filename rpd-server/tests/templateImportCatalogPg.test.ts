@@ -118,8 +118,8 @@ test("PostgreSQL: плоские страницы, владельцы, уров�
   assert.equal((await service.catalog(teacher, { ...fieldContext, profile: "Без года источник" })).total, 1,
     "источник без года доступен в обычном выборе другого комплекта");
   await pool.query("UPDATE rpd_complects SET year=2023 WHERE id=$1", [unknownSourceComplect]);
-  assert.equal((await service.catalog(teacher, { ...fieldContext, sourceMode: "other-year" })).templates[0].id, unknownSource,
-    "оба известных разных года и нормализованное имя совпадают");
+  assert.equal((await service.catalog(teacher, { ...fieldContext, sourceMode: "other-year" })).total, 0,
+    "разные годы и имя не разрешают источник другой программы");
   assert.deepEqual((await service.sources(teacher, target, undefined, undefined,
     { ...context, sourceComplectId: String(sameYear), status: "ready" })).complects[0].templates.map((item) => item.id), [matching]);
   assert.deepEqual((await service.sources(teacher, target, undefined, undefined,
@@ -146,4 +146,101 @@ test("PostgreSQL: плоские страницы, владельцы, уров�
   assert.deepEqual(unknownLevel.templates.map((row) => row.id), [unknownSource]);
   assert.deepEqual(unknownLevel.facets.educationLevels, []);
   assert.deepEqual(unknownLevel.facets.directions, ["09.03.04"]);
+});
+
+test("PostgreSQL: другой год — точная программа, NULL, имя и назначение до списка, фасетов и details", { skip: !enabled }, async (t) => {
+  const pool = new Pool({ connectionString, max: 2 });
+  const base = randomInt(500_000_000, 900_000_000);
+  const nonce = randomBytes(6).toString("hex");
+  const teacherId = base;
+  const complectIds: number[] = [];
+  const templateIds: number[] = [];
+  t.after(async () => {
+    try {
+      await pool.query("DELETE FROM rpd_complects WHERE id=ANY($1::int[])", [complectIds]);
+      await pool.query("DELETE FROM users WHERE id=$1", [teacherId]);
+    } finally { await pool.end(); }
+  });
+  await pool.query("INSERT INTO users(id,name,password,role,fullname) VALUES($1,$2,'no-login',2,'{}'::jsonb)", [teacherId, `ly-${nonce}`]);
+  const actor = { id: teacherId, role: USER_ROLES.TEACHER, userName: `ly-${nonce}` };
+  const program = { faculty: `Институт ${nonce}`, direction: "09.03.01", profile: "Точная программа", education_form: "Очная", education_level: "Бакалавриат" };
+  type Program = { [K in keyof typeof program]: string | null };
+  const name = `Архитектура ${nonce} систем`;
+  const add = async (year: number | null, attributes: Program, discipline: string | null = name, assigned = true) => {
+    const complectId = base + 10 + complectIds.length;
+    const templateId = base + 100 + templateIds.length;
+    complectIds.push(complectId);
+    templateIds.push(templateId);
+    await pool.query(`INSERT INTO rpd_complects(id,uuid,faculty,direction,profile,education_form,education_level,year)
+      VALUES($1,$2,$3,$4,$5,$6,$7,$8)`, [complectId, randomUUID(), attributes.faculty, attributes.direction,
+      attributes.profile, attributes.education_form, attributes.education_level, year]);
+    await pool.query("INSERT INTO rpd_profile_templates(id,public_id,id_rpd_complect,disciplins_name,semester) VALUES($1,$2,$3,$4,99)",
+      [templateId, randomBytes(6).toString("hex"), complectId, discipline]);
+    if (assigned) await pool.query("INSERT INTO teacher_templates(user_id,template_id,state) VALUES($1,$2,'assigned')", [teacherId, templateId]);
+    return { complectId, templateId };
+  };
+  const target = await add(2026, program);
+  const positive = await add(2025, program, `\t АРХИТЕКТУРА   ${nonce.toUpperCase()} СИСТЕМ \t`);
+  await pool.query("UPDATE rpd_profile_templates SET semester=1 WHERE id=$1", [target.templateId]);
+  await pool.query(`INSERT INTO rpd_1c_exchange(id,id_rpd_complect,discipline,semester,record_type)
+    VALUES($1,$2,$3,9,'practice')`, [base + 200, positive.complectId, name]);
+  await pool.query("INSERT INTO template_status(id,id_1c_template,id_profile_template,current_status) VALUES($1,$2,$3,'created')",
+    [base + 300, base + 200, positive.templateId]);
+  const negatives: Array<{ complectId: number; templateId: number }> = [];
+  for (const attribute of Object.keys(program) as Array<keyof Program>) {
+    // Каждый источник отличается ровно одним атрибутом. Пробел значим и не нормализуется.
+    negatives.push(await add(2025, { ...program, [attribute]: `${program[attribute]} ` }));
+  }
+  const noYear = await add(null, program);
+  const differentName = await add(2024, program, `Другое имя ${nonce}`);
+  const emptyName = await add(2023, program, " \t ");
+  const nullName = await add(2022, program, null);
+  const unassigned = await add(2021, program, name, false);
+  negatives.push(noYear, differentName, emptyName, nullName, unassigned);
+  const service = new TemplateImport(pool);
+  const query = { targetTemplateId: String(target.templateId), scope: "field", sourceMode: "other-year", ownOnly: "false", sameNameOnly: "false" };
+  const page = await service.catalog(actor, query);
+  assert.equal(page.total, 1);
+  assert.deepEqual(page.templates.map((row) => row.id), [positive.templateId], "Семестр и тип записи не ограничивают полевой каталог");
+  assert.deepEqual(page.facets, { faculties: [program.faculty], educationLevels: [program.education_level],
+    directions: [program.direction], profiles: [program.profile], educationForms: [program.education_form], years: [2025] });
+  const details = await service.sources(actor, target.templateId, undefined, "false", { ...query, sourceComplectId: String(positive.complectId) });
+  assert.deepEqual(details.complects.flatMap((c) => c.templates.map((item) => item.id)), [positive.templateId]);
+  assert.equal((await service.catalog(actor, { ...query, page: "2", pageSize: "1" })).templates.length, 0);
+  for (const excluded of negatives) {
+    const detail = await service.sources(actor, target.templateId, undefined, "false", { ...query, sourceComplectId: String(excluded.complectId) });
+    assert.deepEqual(detail.complects, [], `Исключённый комплект ${excluded.complectId} не возвращается через details`);
+  }
+  assert.ok((await service.catalog(actor, { ...query, sourceMode: "other-complect", pageSize: "25" })).templates.some((row) => row.id === negatives[0].templateId),
+    "Обычный другой комплект сохраняет доступ к чужой программе");
+  await pool.query("DELETE FROM teacher_templates WHERE template_id=$1 AND user_id=$2", [positive.templateId, teacherId]);
+  const revoked = await service.catalog(actor, query);
+  assert.equal(revoked.total, 0);
+  assert.deepEqual(revoked.facets.years, []);
+  assert.deepEqual((await service.sources(actor, target.templateId, undefined, "false", query)).complects, []);
+
+  // NULL сравнивается точно: nullable business key допускает и отдельный комплект того же года.
+  const nullable: Program = { faculty: null, direction: null, profile: null, education_form: null, education_level: null };
+  const nullableTarget = await add(2026, nullable);
+  const nullableSource = await add(2025, nullable);
+  const sameYear = await add(2026, nullable);
+  const nullableNoYear = await add(null, nullable);
+  const partialNullMismatches = [];
+  for (const attribute of Object.keys(program) as Array<keyof Program>) {
+    partialNullMismatches.push(await add(2025, { ...nullable, [attribute]: program[attribute] }));
+  }
+  const nullQuery = { ...query, targetTemplateId: String(nullableTarget.templateId) };
+  const nullPage = await service.catalog(actor, nullQuery);
+  assert.equal(nullPage.total, 1, "NULL совпадает только с NULL по каждому из пяти атрибутов");
+  assert.deepEqual(nullPage.templates.map((row) => row.id), [nullableSource.templateId]);
+  assert.deepEqual(nullPage.facets, { faculties: [], educationLevels: [], directions: [], profiles: [], educationForms: [], years: [2025] });
+  for (const excluded of [sameYear, nullableNoYear, ...partialNullMismatches]) {
+    assert.deepEqual((await service.sources(actor, nullableTarget.templateId, undefined, "false",
+      { ...nullQuery, sourceComplectId: String(excluded.complectId) })).complects, []);
+  }
+  await pool.query("UPDATE rpd_complects SET year=NULL WHERE id=$1", [nullableTarget.complectId]);
+  assert.equal((await service.catalog(actor, nullQuery)).total, 0, "Неизвестный год цели исключает other-year");
+  await pool.query("UPDATE rpd_complects SET year=2026 WHERE id=$1", [nullableTarget.complectId]);
+  await pool.query("UPDATE rpd_profile_templates SET disciplins_name=NULL WHERE id=$1", [nullableTarget.templateId]);
+  assert.equal((await service.catalog(actor, nullQuery)).total, 0, "NULL имени цели не совпадает с источниками");
 });

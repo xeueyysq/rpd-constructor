@@ -16,15 +16,18 @@ export default class TemplateAccess {
     if (!rows[0]?.active) throw new Forbidden("Пользователь неактивен");
   }
 
-  static async assertComplect(db: Database, actor: UserClaims, complectId: number, mode: "manage" = "manage"): Promise<void> {
-    void mode;
-    const { rows } = await db.query<{ exists: boolean; owner: boolean; active: boolean }>(`
+  static async assertComplect(db: Database, actor: UserClaims, complectId: number, mode: "read" | "manage" = "manage"): Promise<void> {
+    const { rows } = await db.query<{ exists: boolean; owner: boolean; reader: boolean; active: boolean }>(`
       SELECT EXISTS(SELECT 1 FROM rpd_complects WHERE id=$1) AS exists,
         EXISTS(SELECT 1 FROM user_complect WHERE complect_id=$1 AND user_id=$2) AS owner,
+        EXISTS(SELECT 1 FROM teacher_templates tt JOIN rpd_profile_templates p ON p.id=tt.template_id
+          WHERE p.id_rpd_complect=$1 AND tt.user_id=$2) AS reader,
         EXISTS(SELECT 1 FROM users WHERE id=$2 AND is_active) AS active
     `, [complectId, actor.id]);
     if (!rows[0]?.exists) throw new NotFound("Комплект не найден");
-    if (!rows[0].active || actor.role !== USER_ROLES.ADMIN && !(actor.role === USER_ROLES.ROP && rows[0].owner)) throw new Forbidden("Нет доступа к комплекту");
+    const manager = actor.role === USER_ROLES.ADMIN || actor.role === USER_ROLES.ROP && rows[0].owner;
+    const reader = mode === "read" && actor.role === USER_ROLES.TEACHER && rows[0].reader;
+    if (!rows[0].active || !manager && !reader) throw new Forbidden("Нет доступа к комплекту");
   }
 
   static async assertTemplate(db: Database, actor: UserClaims, templateId: number, mode: "read" | "edit" | "manage"): Promise<void> {

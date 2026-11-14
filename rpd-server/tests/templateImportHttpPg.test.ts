@@ -261,6 +261,37 @@ test("HTTP + PostgreSQL: каталог, назначения, Word preview/appl
   assert.equal((await pool.query("SELECT goals FROM rpd_profile_templates WHERE id=$1", [ids.target])).rows[0].goals, "Не копировать",
     "смена статуса не исключает дисциплину из bulk");
 
+  // sourceMode передаётся только каталогу/details; preview и запись поля сохраняют прежний контракт.
+  await pool.query("UPDATE rpd_complects SET year=2025,profile='Цель',direction='09.03.01' WHERE id=$1", [ids.ownComplect]);
+  const yearQuery = `${targetQuery}&scope=field&sourceMode=other-year&ownOnly=false&sameNameOnly=false`;
+  const yearResponse = await get(`/template-import/catalog?${yearQuery}`);
+  assert.equal(yearResponse.status, 200);
+  const yearPage = await yearResponse.json() as ImportCatalogResponse;
+  assert.equal(yearPage.total, 1);
+  assert.deepEqual(yearPage.templates.map((row) => row.id), [ids.own]);
+  assert.deepEqual(yearPage.facets.years, [2025]);
+  const yearDetails = await get(`/template-import/sources?${yearQuery}&sourceComplectId=${ids.ownComplect}`);
+  assert.equal(yearDetails.status, 200);
+  assert.deepEqual((await yearDetails.json() as { complects: Array<{ templates: Array<{ id: number }> }> }).complects[0].templates.map((row) => row.id), [ids.own]);
+  const otherMode = await get(`/template-import/catalog?${targetQuery}&scope=field&sourceMode=other-complect${fixtureFacultyFilter}`);
+  assert.deepEqual((await otherMode.json() as ImportCatalogResponse).templates.map((row) => row.id), [ids.own]);
+  await pool.query("UPDATE rpd_profile_templates SET goals='Полевые цели другого года' WHERE id=$1", [ids.own]);
+  const beforeField = await targetRow();
+  const fieldPreview = await get(`/get-changeable-values?ids%5B%5D=${ids.own}&rowName=goals&${targetQuery}`);
+  assert.equal(fieldPreview.status, 200);
+  assert.deepEqual(await fieldPreview.json(), [{ id: ids.own,
+    public_id: sourceBeforePreview.public_id, goals: "Полевые цели другого года" }]);
+  const fieldApplied = await post("/copy-template-data", { sourceTemplateId: ids.own, targetTemplateId: ids.target,
+    fieldToCopy: "goals", baseAt: beforeField.field_edits.goals.at });
+  assert.equal(fieldApplied.status, 200);
+  const afterField = await targetRow();
+  assert.equal(afterField.goals, "Полевые цели другого года");
+  for (const key of Object.keys(beforeField).filter((key) => key !== "goals" && key !== "field_edits"))
+    assert.deepEqual(afterField[key], beforeField[key], key);
+  assert.equal(afterField.field_edits.goals.userId, ids.teacher);
+  await pool.query("UPDATE rpd_complects SET year=2026,profile='Свой источник',direction='09.03.02' WHERE id=$1", [ids.ownComplect]);
+  assert.equal((await (await get(`/template-import/catalog?${yearQuery}`)).json() as ImportCatalogResponse).total, 0,
+    "HTTP-каталог исключает ту же дисциплину другой программы/того же года");
   const beforeRevoke = await targetRow();
   const revokedCopy = await changeWhileCopyWaits("/copy-template-data", { sourceTemplateId: ids.own, targetTemplateId: ids.target,
     fieldToCopy: "goals", baseAt: beforeRevoke.field_edits.goals.at, ownOnly: false },

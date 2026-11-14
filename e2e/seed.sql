@@ -161,12 +161,15 @@ INSERT INTO template_status (id, id_1c_template, id_profile_template, current_st
   (201, 201, 201, 'created', '[]'::jsonb), (202, 202, 202, 'created', '[]'::jsonb);
 INSERT INTO teacher_templates (id, user_id, template_id, state) VALUES (200, 20, 200, 'in_progress');
 
--- List3: источники неизменяемы; 300/302 назначены преподавателю для импорта,
+-- List3: источники неизменяемы; 300/302/303/304 назначены преподавателю для импорта,
 -- 301 остаётся источником другого преподавателя для проверки ограничения доступа.
 -- Два года одного профиля также проверяют повторение профиля в каждой строке списка.
+-- 303/304 — другие годы программ 310/311 с прежними целями и книгами источника 302.
 INSERT INTO rpd_complects (id, faculty, year, education_form, education_level, profile, direction) VALUES
   (300, 'Институт источников List3', 2026, 'Очная', 'Бакалавриат', 'List3 Источники', 'Другое направление List3'),
   (301, 'Институт источников List3', 2024, 'Заочная', 'Бакалавриат', 'List3 Источники', 'Направление List3'),
+  (303, 'Институт цели List3', 2024, 'Очная', 'Бакалавриат', 'List3 Поле РОП', 'Направление List3'),
+  (304, 'Институт цели List3', 2024, 'Очная', 'Бакалавриат', 'List3 Поле преподавателя', 'Направление List3'),
   (310, 'Институт цели List3', 2026, 'Очная', 'Бакалавриат', 'List3 Поле РОП', 'Направление List3'),
   (311, 'Институт цели List3', 2026, 'Очная', 'Бакалавриат', 'List3 Поле преподавателя', 'Направление List3'),
   (312, 'Институт цели List3', 2026, 'Очная', 'Бакалавриат', 'List3 Полный импорт', 'Направление List3'),
@@ -175,7 +178,7 @@ INSERT INTO rpd_complects (id, faculty, year, education_form, education_level, p
   (317, 'Институт цели List3', 2026, 'Очная', 'Бакалавриат', 'List3 ФОС', 'Направление List3');
 INSERT INTO user_complect (user_id, complect_id)
   SELECT (SELECT id FROM users WHERE name = CASE WHEN fixture.id < 310 THEN 'rop2' ELSE 'rop' END), fixture.id
-  FROM rpd_complects fixture WHERE fixture.id IN (300, 301, 310, 311, 312, 313, 316, 317);
+  FROM rpd_complects fixture WHERE fixture.id IN (300, 301, 303, 304, 310, 311, 312, 313, 316, 317);
 
 INSERT INTO rpd_profile_templates
   (id, public_id, id_rpd_complect, disciplins_name, department, semester, zet, place, certification,
@@ -186,7 +189,7 @@ SELECT id, public_id, complect_id, discipline,
   CASE WHEN id < 310 THEN 5 ELSE 3 END,
   CASE WHEN id < 310 THEN 'Вариативная часть' ELSE 'Базовая часть' END,
   CASE WHEN id < 310 THEN 'Зачёт' ELSE 'Экзамен' END,
-  CASE WHEN id < 310 THEN '<p>Цели источника ' || id || '</p>' ELSE '<p>Прежние цели цели</p>' END,
+  CASE WHEN id < 310 THEN '<p>Цели источника ' || CASE WHEN id IN (303,304) THEN 302 ELSE id END || '</p>' ELSE '<p>Прежние цели цели</p>' END,
   CASE WHEN id < 310 THEN '{"0":{"theme":"Тема источника","lectures":9,"seminars":7,"independent_work":8,"control":0}}'::jsonb
     ELSE '{"0":{"theme":"Legacy тема","lectures":4,"seminars":6,"independent_work":8,"control":2},"__attestation__":{"theme":"Промежуточная аттестация: экзамен","lectures":0,"seminars":0,"independent_work":0,"control":36}}'::jsonb END,
   CASE WHEN id < 310 THEN '{"Всего":90,"Лекции":9,"Практические":7,"СРС":8,"Контроль":66}'::jsonb
@@ -200,11 +203,15 @@ SELECT id, public_id, complect_id, discipline,
       'openPool', jsonb_build_array(jsonb_build_object('id', 'list3-open', 'text', 'Открытый вопрос цели', 'correctAnswer', 'Открытый ответ цели')),
       'closedPool', jsonb_build_array(jsonb_build_object('id', 'list3-closed', 'text', 'Закрытый вопрос цели', 'correctAnswer', 'Закрытый ответ цели'))))),
   CASE WHEN id < 310 THEN '<p>Шаблон ФОС источника</p>' ELSE '<p>Шаблон ФОС цели</p>' END,
-  ARRAY['Основная книга ' || id, 'Вторая основная книга ' || id], ARRAY['Дополнительная книга ' || id]
+  ARRAY['Основная книга ' || CASE WHEN id IN (303,304) THEN 302 ELSE id END,
+    'Вторая основная книга ' || CASE WHEN id IN (303,304) THEN 302 ELSE id END],
+  ARRAY['Дополнительная книга ' || CASE WHEN id IN (303,304) THEN 302 ELSE id END]
 FROM (VALUES
   (300, 'a300a300a300', 300, '  ИМПОРТ   ПОЛЯ LIST3  ', 1),
   (301, 'a301a301a301', 300, 'Импорт поля List3', 2),
   (302, 'a302a302a302', 301, '  ИМПОРТ   ПОЛЯ LIST3  ', 1),
+  (303, 'a303a303a303', 303, '  ИМПОРТ   ПОЛЯ LIST3  ', 1),
+  (304, 'a304a304a304', 304, '  ИМПОРТ   ПОЛЯ LIST3  ', 1),
   (310, 'a310a310a310', 310, 'Импорт поля List3', 1),
   (311, 'a311a311a311', 311, 'Импорт поля List3', 1),
   (312, 'a312a312a312', 312, 'Импорт поля List3', 4),
@@ -225,7 +232,7 @@ SELECT id, id, id, CASE WHEN id IN (301, 311, 316, 317) THEN 'on_teacher' ELSE '
 FROM rpd_profile_templates WHERE id BETWEEN 300 AND 318;
 INSERT INTO teacher_templates (user_id, template_id, state)
 SELECT (SELECT id FROM users WHERE name = CASE WHEN fixture.id = 301 THEN 'teacher2' ELSE 'teacher' END), fixture.id, 'assigned'
-FROM rpd_profile_templates fixture WHERE fixture.id IN (300, 301, 302, 311, 316, 317);
+FROM rpd_profile_templates fixture WHERE fixture.id IN (300, 301, 302, 303, 304, 311, 316, 317);
 INSERT INTO planned_results_sets (id, complect_id) VALUES (317, 317);
 INSERT INTO planned_competencies (id, set_id, competence) VALUES (317, 317, 'ПК-L3 Авторская компетенция');
 INSERT INTO planned_indicators (id, competence_id, indicator) VALUES (317, 317, 'ПК-L3.1 Индикатор');
@@ -234,7 +241,7 @@ INSERT INTO planned_indicator_disciplines (id, indicator_id, discipline) VALUES 
 -- Источник в комплекте 321 появится через sync/add после первого открытия поля 320.
 INSERT INTO rpd_complects (id, faculty, year, education_form, education_level, profile, direction) VALUES
   (320, 'Институт каталога List3', 2026, 'Очная', 'Бакалавриат', 'List3 Повторное открытие', 'Направление каталога List3'),
-  (321, 'Институт каталога List3', 2024, 'Очная', 'Бакалавриат', 'List3 Новый источник', 'Направление каталога List3');
+  (321, 'Институт каталога List3', 2024, 'Очная', 'Бакалавриат', 'List3 Повторное открытие', 'Направление каталога List3');
 INSERT INTO user_complect (user_id, complect_id) VALUES (30, 320), (30, 321);
 INSERT INTO rpd_profile_templates
   (id, public_id, id_rpd_complect, disciplins_name, department, semester, zet, goals, content, study_load, control_load, field_edits)
@@ -362,10 +369,11 @@ INSERT INTO template_status (id, id_1c_template, id_profile_template, current_st
 VALUES (390, 390, 390, 'created', '[]'::jsonb);
 
 -- UI импорта: изолированные источники только для чтения, пагинации и полного preview.
+-- 401: текущий год другого комплекта; 402: другой год точной программы 400.
 INSERT INTO rpd_complects (id, uuid, faculty, year, education_form, education_level, profile, direction) VALUES
   (400, '40000000-0000-4000-8000-000000000400', 'Институт UI цели', 2026, 'Очная', 'Бакалавриат', 'UI цель', 'Направление UI'),
   (401, '40000000-0000-4000-8000-000000000401', 'Институт UI источников', 2026, 'Очная', 'Бакалавриат', 'UI источники текущего года с длинным названием профиля', 'Направление UI'),
-  (402, '40000000-0000-4000-8000-000000000402', 'Институт UI источников', 2024, 'Заочная', 'Бакалавриат', 'UI источники прошлого года', 'Направление UI'),
+  (402, '40000000-0000-4000-8000-000000000402', 'Институт UI цели', 2024, 'Очная', 'Бакалавриат', 'UI цель', 'Направление UI'),
   (403, '40000000-0000-4000-8000-000000000403', 'Институт UI источников', 2026, 'Очная', 'Бакалавриат', 'UI другое название', 'Направление UI'),
   (404, '40000000-0000-4000-8000-000000000404', 'Институт UI источников', 2026, 'Очная', 'Магистратура', 'UI другой уровень', 'Направление UI');
 INSERT INTO user_complect (user_id, complect_id)

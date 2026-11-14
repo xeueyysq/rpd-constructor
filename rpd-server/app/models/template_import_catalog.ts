@@ -43,7 +43,13 @@ const candidates = `
       AND (NOT $15::boolean OR (e.id IS NOT NULL AND e.id_rpd_complect=c.id))
       AND ($2::int IS NULL OR EXISTS (
         SELECT 1 FROM teacher_templates own WHERE own.template_id=p.id AND own.user_id=$2))
-      AND ($4::text<>'other-year' OR ($3::int IS NOT NULL AND c.year IS NOT NULL AND c.year<>$3::int))
+      AND ($4::text<>'other-year' OR ($3::int IS NOT NULL AND c.year IS NOT NULL AND c.year<>$3::int
+        AND EXISTS (SELECT 1 FROM rpd_complects target WHERE target.id=$1
+          AND c.faculty IS NOT DISTINCT FROM target.faculty
+          AND c.direction IS NOT DISTINCT FROM target.direction
+          AND c.profile IS NOT DISTINCT FROM target.profile
+          AND c.education_form IS NOT DISTINCT FROM target.education_form
+          AND c.education_level IS NOT DISTINCT FROM target.education_level)))
   ), matched AS (
     SELECT * FROM eligible
     WHERE ($5::text IS NULL OR status=$5)
