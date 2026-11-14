@@ -27,6 +27,7 @@ import {
 } from "@mui/material";
 import ReportProblemOutlinedIcon from "@mui/icons-material/ReportProblemOutlined";
 import { useTheme } from "@mui/material/styles";
+import useMediaQuery from "@mui/material/useMediaQuery";
 import {
   useCallback,
   useEffect,
@@ -112,6 +113,7 @@ function ScreenshotPreview({ file }: { file: File }) {
 
 export function ReportProblem() {
   const theme = useTheme();
+  const mobile = useMediaQuery(theme.breakpoints.down("sm"));
   const role = useAuth((state) => state.userRole);
   const available = useFeedbackAvailability();
   const submit = useSubmitFeedback();
@@ -205,8 +207,10 @@ export function ReportProblem() {
   }, [open]);
 
   const acceptFile = (file: File) => {
+    if (submit.isPending) return;
     if (
       !["image/png", "image/jpeg"].includes(file.type) ||
+      file.size === 0 ||
       file.size > MAX_SCREENSHOT_BYTES
     ) {
       setFileError("Нужен PNG или JPEG размером до 2 МиБ");
@@ -223,6 +227,7 @@ export function ReportProblem() {
   };
 
   const onPaste = (event: ClipboardEvent) => {
+    if (submit.isPending) return;
     const file = Array.from(event.clipboardData.files).find((item) =>
       item.type.startsWith("image/")
     );
@@ -275,8 +280,9 @@ export function ReportProblem() {
         open={Boolean(draft)}
         onClose={close}
         onPaste={onPaste}
-        maxWidth="sm"
+        maxWidth={false}
         fullWidth
+        fullScreen={mobile}
         aria-labelledby="report-problem-title"
         slotProps={{
           transition: {
@@ -289,7 +295,12 @@ export function ReportProblem() {
           },
           paper: {
             id: "report-problem-dialog",
-            sx: { maxHeight: "calc(100dvh - 32px)" },
+            sx: {
+              width: mobile ? "100%" : "calc(100% - 32px)",
+              maxWidth: mobile ? "none" : 800,
+              m: mobile ? 0 : 2,
+              maxHeight: mobile ? "100dvh" : "calc(100dvh - 32px)",
+            },
           },
         }}
         sx={{ zIndex: theme.zIndex.modal + 2 }}
@@ -338,7 +349,13 @@ export function ReportProblem() {
           <Box
             component="form"
             onSubmit={(event) => void onSubmit(event)}
-            sx={{ minHeight: 0, display: "flex", flexDirection: "column" }}
+            sx={{
+              minHeight: 0,
+              flex: 1,
+              overflow: "hidden",
+              display: "flex",
+              flexDirection: "column",
+            }}
           >
             <DialogContent>
               <Stack spacing={2}>
@@ -346,19 +363,15 @@ export function ReportProblem() {
                   Опишите, что делали и что произошло. Это поможет разобраться с
                   проблемой.
                 </Typography>
-                {contextLabel ? (
-                  <Typography variant="body2" sx={{ color: "text.secondary" }}>
-                    Сейчас: {contextLabel}
-                  </Typography>
-                ) : null}
                 <TextField
                   label="Что хотели сделать"
                   value={goal}
                   onChange={(event) => setGoal(event.target.value)}
                   required
                   multiline
-                  minRows={2}
-                  maxRows={4}
+                  minRows={mobile ? 5 : 6}
+                  maxRows={12}
+                  disabled={submit.isPending}
                   slotProps={{ htmlInput: { maxLength: 4000 } }}
                   fullWidth
                   autoFocus
@@ -369,14 +382,16 @@ export function ReportProblem() {
                   onChange={(event) => setActual(event.target.value)}
                   required
                   multiline
-                  minRows={3}
-                  maxRows={5}
+                  minRows={mobile ? 5 : 8}
+                  maxRows={12}
+                  disabled={submit.isPending}
                   slotProps={{ htmlInput: { maxLength: 8000 } }}
                   fullWidth
                 />
                 <FormControlLabel
                   control={
                     <Checkbox
+                      disabled={submit.isPending}
                       checked={blocking}
                       onChange={(event) => setBlocking(event.target.checked)}
                     />
@@ -391,6 +406,7 @@ export function ReportProblem() {
                 >
                   <Button
                     variant="outlined"
+                    disabled={submit.isPending}
                     onClick={() => fileInput.current?.click()}
                   >
                     Прикрепить скриншот
@@ -403,6 +419,7 @@ export function ReportProblem() {
                   ref={fileInput}
                   type="file"
                   accept="image/png,image/jpeg"
+                  disabled={submit.isPending}
                   onChange={onFileChange}
                   style={{ display: "none" }}
                   aria-label="Выбрать скриншот"
@@ -410,13 +427,51 @@ export function ReportProblem() {
                 {fileError ? <Alert severity="error">{fileError}</Alert> : null}
                 {screenshot ? (
                   <Stack spacing={1} sx={{ alignItems: "flex-start" }}>
+                    <Typography
+                      variant="caption"
+                      sx={{ overflowWrap: "anywhere" }}
+                    >
+                      {screenshot.name} · {Math.ceil(screenshot.size / 1024)}{" "}
+                      КиБ
+                    </Typography>
                     <ScreenshotPreview file={screenshot} />
-                    <Button onClick={() => setScreenshot(undefined)}>
+                    <Button
+                      disabled={submit.isPending}
+                      onClick={() => setScreenshot(undefined)}
+                    >
                       Удалить скриншот
                     </Button>
                   </Stack>
                 ) : null}
                 {sendError ? <Alert severity="error">{sendError}</Alert> : null}
+                <Box
+                  component="details"
+                  sx={{
+                    typography: "body2",
+                    minWidth: 0,
+                    "& summary": {
+                      cursor: "pointer",
+                      color: "text.secondary",
+                      overflowWrap: "anywhere",
+                    },
+                  }}
+                >
+                  <summary>
+                    Контекст:{" "}
+                    {contextLabel || context?.route || "Текущая страница"}
+                  </summary>
+                  <Typography
+                    component="pre"
+                    variant="caption"
+                    sx={{
+                      mt: 1,
+                      whiteSpace: "pre-wrap",
+                      overflowWrap: "anywhere",
+                    }}
+                  >
+                    {JSON.stringify(context, null, 2)}
+                  </Typography>
+                </Box>
               </Stack>
             </DialogContent>
             <DialogActions sx={{ flexWrap: "wrap", gap: 1 }}>

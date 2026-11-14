@@ -1,5 +1,5 @@
 import { expect, test, type Locator, type Page } from '@playwright/test';
-import { apiUrl, disciplines, openComplect, signIn } from '../helpers';
+import { apiUrl, disciplines, openComplect, openTeacherRowMenu, showAllRows, signIn } from '../helpers';
 import { headersFor, list3, openFixtureComplect, preservedImportData, profileFor, templateFromDb } from '../list3';
 import { closeTeachersDialog, openRowMenu } from '../teacherAssignments';
 
@@ -18,6 +18,7 @@ async function expectImportGeometry(page: Page, dialog: Locator) {
     expect(filter).not.toBeNull();
     expect(Math.abs(filter!.width - filters[0]!.width)).toBeLessThanOrEqual(1);
     expect(Math.abs(filter!.y - filters[0]!.y)).toBeLessThanOrEqual(1);
+    expect(Math.abs(filter!.height - filters[0]!.height)).toBeLessThanOrEqual(1);
   }
   const trigger = page.getByRole('button', { name: 'Сообщить о проблеме', exact: true });
   await expect(trigger).toHaveCount(1);
@@ -118,7 +119,7 @@ test('массовый импорт: точный семестр и тип, ит
   await expect(dialog.getByRole('checkbox')).toHaveCount(0);
   await expect(dialog.getByRole('tab')).toHaveCount(0);
   await expect(dialog.getByRole('button', { name: 'Показать дисциплины' })).toHaveCount(0);
-  for (const width of [1365, 768, 390]) {
+  for (const width of [1365, 768, 390, 320]) {
     await page.setViewportSize({ width, height: width === 390 ? 844 : 900 });
     await expectImportGeometry(page, dialog);
   }
@@ -170,9 +171,10 @@ test('массовый импорт: точный семестр и тип, ит
 test('single преподавателя: плоская пагинация, только ready checkbox, сброс выбора и ready guard; 1365/768/390', async ({ page }) => {
   test.slow();
   await signIn(page, 'teacher');
-  await page.goto('/templates/d400d400d400/aimsPage');
-  await page.getByRole('button', { name: 'Импортировать из Word', exact: true }).click();
-  await page.getByRole('button', { name: 'Выбрать РПД из комплекта', exact: true }).click();
+  await page.goto('/templates');
+  await showAllRows(page);
+  await openTeacherRowMenu(page, page.getByRole('row').filter({ hasText: 'Длинное название дисциплины для проверки импорта UI' }).filter({ hasText: 'UI цель' }).filter({ hasText: '2026' }));
+  await page.getByRole('menuitem', { name: 'Импортировать', exact: true }).click();
   const dialog = page.getByRole('dialog', { name: 'Импортировать данные РПД', exact: true });
   const search = dialog.getByRole('searchbox', { name: 'Поиск источников' });
   const ready = dialog.getByRole('checkbox', { name: 'Только готовые', exact: true });
@@ -182,6 +184,13 @@ test('single преподавателя: плоская пагинация, то
   await expect(dialog.getByRole('button', { name: 'Показать дисциплины' })).toHaveCount(0);
   await search.fill('UI');
   await expect(dialog.getByRole('radio')).toHaveCount(10);
+  await expect(dialog.getByRole('table', { name: 'Дисциплины источников', exact: true })).toBeVisible();
+  const countVisibleRows = () => dialog.getByRole('radio').evaluateAll((radios) => radios.filter((radio) => {
+    const row = radio.closest('tr')!.getBoundingClientRect();
+    const area = radio.closest('.MuiTableContainer-root')!.getBoundingClientRect();
+    return row.top >= area.top && row.bottom <= area.bottom;
+  }).length);
+  await expect.poll(countVisibleRows).toBeGreaterThanOrEqual(6);
   for (const width of [1365, 768, 390]) {
     await page.setViewportSize({ width, height: width === 390 ? 844 : 900 });
     await expectImportGeometry(page, dialog);

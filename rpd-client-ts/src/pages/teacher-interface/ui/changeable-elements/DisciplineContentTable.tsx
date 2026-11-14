@@ -42,6 +42,7 @@ import {
   type FieldEdits,
 } from "@entities/template";
 import { useStore } from "@shared/hooks";
+import AddIcon from "@mui/icons-material/Add";
 import { showErrorMessage } from "@shared/lib";
 import { useEffect } from "react";
 import { useAuth } from "@entities/auth";
@@ -360,16 +361,6 @@ export function DisciplineContentTable({
             </TableBody>
           </Table>
         </TableContainer>
-        {!readOnly && (
-          <Box sx={{ position: "absolute", bottom: 0, right: 8 }}>
-            <ExportFromTemplates
-              elementName="content"
-              setChangeableValue={(value) =>
-                setData((value ?? {}) as DisciplineContentData)
-              }
-            />
-          </Box>
-        )}
       </Box>
       {!readOnly && mismatches.length > 0 && (
         <Alert severity="warning" sx={{ mb: 2 }}>
@@ -378,13 +369,22 @@ export function DisciplineContentTable({
         </Alert>
       )}
       {!readOnly && (
-        <Button
-          variant="outlined"
-          disabled={clearControl.isPending}
-          onClick={addRow}
-        >
-          Добавить строку
-        </Button>
+        <Box sx={{ display: "flex", gap: 1, flexWrap: "wrap" }}>
+          <Button
+            variant="contained"
+            startIcon={<AddIcon />}
+            disabled={clearControl.isPending}
+            onClick={addRow}
+          >
+            Добавить строку
+          </Button>
+          <ExportFromTemplates
+            elementName="content"
+            setChangeableValue={(value) =>
+              setData((value ?? {}) as DisciplineContentData)
+            }
+          />
+        </Box>
       )}
     </Box>
   );

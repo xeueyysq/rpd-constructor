@@ -59,7 +59,7 @@ export function FullFieldPreview({
         ? [{ id, values: row as Record<string, unknown> }]
         : []
     );
-    if (!rows.length) return <Typography>Поле пустое</Typography>;
+    if (!rows.length) return null;
     const keys = new Set(rows.flatMap((row) => Object.keys(row.values)));
     keys.delete("theme");
     const columns = [
@@ -71,7 +71,24 @@ export function FullFieldPreview({
         tabIndex={0}
         role="region"
         aria-label="Таблица тем и часов, горизонтальная прокрутка"
-        sx={{ maxWidth: "100%", overflowX: "auto" }}
+        onKeyDown={(event) => {
+          if (event.target !== event.currentTarget) return;
+          const node = event.currentTarget;
+          if (event.key === "ArrowRight") node.scrollLeft += 96;
+          else if (event.key === "ArrowLeft") node.scrollLeft -= 96;
+          else if (event.key === "End") node.scrollLeft = node.scrollWidth;
+          else if (event.key === "Home") node.scrollLeft = 0;
+          else return;
+          event.preventDefault();
+        }}
+        sx={{
+          width: "100%",
+          minWidth: 0,
+          maxWidth: "100%",
+          maxHeight: 296,
+          overflow: "auto",
+          overscrollBehavior: "contain",
+        }}
       >
         <Table size="small" aria-label="Темы и часы" sx={{ minWidth: 640 }}>
           <TableHead>
@@ -120,15 +137,13 @@ export function FullFieldPreview({
           </Box>
         ))}
       </Box>
-    ) : (
-      <Typography>Поле пустое</Typography>
-    );
+    ) : null;
   return (
     <Typography
       variant="body2"
       sx={{ whiteSpace: "pre-wrap", overflowWrap: "anywhere" }}
     >
-      {plainText(value) || "Поле пустое"}
+      {plainText(value)}
     </Typography>
   );
 }

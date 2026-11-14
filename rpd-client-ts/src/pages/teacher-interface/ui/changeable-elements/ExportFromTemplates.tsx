@@ -1,5 +1,5 @@
-import MoreHorizIcon from "@mui/icons-material/MoreHoriz";
-import { Box, IconButton } from "@mui/material";
+import FileDownloadOutlinedIcon from "@mui/icons-material/FileDownloadOutlined";
+import { Box, Button } from "@mui/material";
 import { useState } from "react";
 import { SourcePickerDialog } from "@features/template-import";
 import type { ImportField } from "@entities/template";
@@ -32,8 +32,10 @@ export function ExportFromTemplates({
   const [baseAt, setBaseAt] = useState<string | null>(null);
   return (
     <Box>
-      <IconButton
+      <Button
         aria-label="Импортировать поле"
+        variant="outlined"
+        startIcon={<FileDownloadOutlinedIcon />}
         disabled={
           !jsonData.id ||
           ["ready", "closed"].includes(
@@ -46,8 +48,8 @@ export function ExportFromTemplates({
           setOpen(true);
         }}
       >
-        <MoreHorizIcon sx={{ color: "text.primary" }} />
-      </IconButton>
+        Импортировать
+      </Button>
       {open && (
         <SourcePickerDialog
           key={jsonData.id}

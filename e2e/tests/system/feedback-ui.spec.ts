@@ -23,13 +23,26 @@ test("ошибка отправки сохраняет заполненную ф
   await expect(dialog.getByRole("img", { name: /скриншот/i })).toBeVisible();
 
   let firstAttempt = true;
+  let release!: () => void;
+  const gate = new Promise<void>((resolve) => { release = resolve; });
   await page.route("**/api/feedback", async (route) => {
     if (firstAttempt) {
       firstAttempt = false;
+      await gate;
       await route.fulfill({ status: 503, contentType: "application/json", body: '{"error":"temporarily unavailable"}' });
     } else await route.continue();
   });
+  const started = page.waitForRequest((request) => request.url().endsWith('/api/feedback') && request.method() === 'POST');
   await dialog.getByRole("button", { name: /отправить/i }).click();
+  await started;
+  try {
+    await expect(goal).toBeDisabled();
+    await expect(actual).toBeDisabled();
+    await expect(dialog.getByRole('checkbox')).toBeDisabled();
+    await expect(dialog.getByRole('button', { name: 'Удалить скриншот' })).toBeDisabled();
+    await expect(dialog.getByRole('button', { name: 'Отмена' })).toBeDisabled();
+  } finally { release(); }
+  await expect(dialog.getByRole('alert').last()).toContainText('Обращение пока не принято');
   await expect(goal).toHaveValue("Открыть шаблон дисциплины");
   await expect(actual).toHaveValue("Не удалось сохранить изменения");
   await expect(dialog.getByRole("img", { name: /скриншот/i })).toBeVisible();
@@ -45,12 +58,23 @@ test("вставленный скриншот показывается в фор
   await signIn(page, "teacher");
   await page.getByRole("button", { name: "Сообщить о проблеме" }).click();
   const dialog = page.getByRole("dialog", { name: "Сообщить о проблеме" });
+  const file = dialog.getByLabel('Выбрать скриншот');
+  for (const invalid of [
+    { name: 'wrong.gif', mimeType: 'image/gif', buffer: Buffer.from('GIF89a') },
+    { name: 'too-large.png', mimeType: 'image/png', buffer: Buffer.alloc(2 * 1024 * 1024 + 1) },
+  ]) {
+    await file.setInputFiles(invalid);
+    await expect(dialog.getByRole('alert')).toContainText('Нужен PNG или JPEG размером до 2 МиБ');
+    await expect(dialog.getByRole('img')).toHaveCount(0);
+  }
   await dialog.evaluate((element, bytes) => {
     const transfer = new DataTransfer();
     transfer.items.add(new File([new Uint8Array(bytes)], "pasted.png", { type: "image/png" }));
     element.dispatchEvent(new ClipboardEvent("paste", { bubbles: true, clipboardData: transfer }));
   }, Array.from(screenshot));
   await expect(dialog.getByRole("img", { name: /скриншот/i })).toBeVisible();
+  await expect(dialog.getByText('Нужен PNG или JPEG размером до 2 МиБ', { exact: true })).toHaveCount(0);
+  await expect(dialog).toContainText('pasted.png');
   await dialog.getByRole("button", { name: /удалить скриншот|убрать скриншот/i }).click();
   await expect(dialog.getByRole("img", { name: /скриншот/i })).toHaveCount(0);
 });
@@ -134,6 +158,12 @@ test("один глобальный контрол в обычной стран�
   await page.keyboard.press("Alt+Shift+P");
   await expect(report).toBeVisible();
   await expect(report).toContainText("Длинное название дисциплины для проверки импорта UI");
+  for (const key of ['Tab', 'Shift+Tab']) {
+    for (let step = 0; step < 18; step++) {
+      await page.keyboard.press(key);
+      expect(await report.evaluate((paper) => paper.contains(document.activeElement))).toBe(true);
+    }
+  }
   await page.keyboard.press("Escape");
   await expect(report).toBeHidden();
   await expect(radio).toBeFocused();
@@ -168,6 +198,40 @@ test("один глобальный контрол в обычной стран�
   await trigger.click();
   await expect(report).not.toContainText("Длинное название дисциплины для проверки импорта UI");
   await expect(report).toContainText("Комплект № 400");
+});
+
+test('просторная форма и раскрываемый безопасный контекст на 1365/768/390/320', async ({ page }, testInfo) => {
+  await signIn(page, 'teacher');
+  for (const [width, height] of [[1365, 900], [768, 1024], [390, 844], [320, 640]]) {
+    await page.setViewportSize({ width, height });
+    await page.getByRole('button', { name: 'Сообщить о проблеме', exact: true }).click();
+    const dialog = page.getByRole('dialog', { name: 'Сообщить о проблеме', exact: true });
+    const goal = dialog.getByRole('textbox', { name: 'Что хотели сделать' });
+    const actual = dialog.getByRole('textbox', { name: 'Что получилось' });
+    const dimensions = await Promise.all([goal, actual].map((field) => field.evaluate((element) => ({
+      height: element.getBoundingClientRect().height,
+      lineHeight: Number.parseFloat(getComputedStyle(element).lineHeight),
+    }))));
+    dimensions.forEach((size, index) => expect(size.height).toBeGreaterThanOrEqual(size.lineHeight * (width < 600 ? 5 : index === 0 ? 6 : 8)));
+    const panel = await dialog.boundingBox();
+    expect(panel!.width).toBeLessThanOrEqual(width);
+    if (width === 1365) expect(panel!.width).toBeCloseTo(800, 0);
+    const details = dialog.locator('details');
+    await expect(details).not.toHaveAttribute('open');
+    const summary = details.locator('summary');
+    await expect(summary).toContainText('Контекст:');
+    await summary.click();
+    await expect(details).toHaveAttribute('open', '');
+    await expect(details.locator('pre')).toContainText('clientRelease');
+    await summary.click();
+    await goal.fill('Длинное описание действий.\n'.repeat(80));
+    await actual.fill('Полное описание результата.\n'.repeat(120));
+    await expect(dialog.getByRole('button', { name: 'Отправить обращение' })).toBeInViewport();
+    expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
+    await dialog.screenshot({ path: testInfo.outputPath(`feedback-long-${width}.png`) });
+    await dialog.getByRole('button', { name: 'Отмена' }).click();
+    await expect(dialog).toBeHidden();
+  }
 });
 
 test("ошибка загрузки страницы оставляет один глобальный контрол; свёрнутая панель и мобильное положение", async ({ page }) => {

@@ -1,8 +1,8 @@
-import { useEffect, useId, useRef, useState } from "react";
+import { useEffect, useId, useRef, useState, type ReactNode } from "react";
 import { isAxiosError } from "axios";
 import DescriptionOutlinedIcon from "@mui/icons-material/DescriptionOutlined";
-import VisibilityOutlinedIcon from "@mui/icons-material/VisibilityOutlined";
 import CloseIcon from "@mui/icons-material/Close";
+import useMediaQuery from "@mui/material/useMediaQuery";
 import {
   Alert,
   Box,
@@ -14,8 +14,6 @@ import {
   DialogTitle,
   FormControlLabel,
   IconButton,
-  Radio,
-  RadioGroup,
   Stack,
   Tab,
   Tabs,
@@ -25,8 +23,6 @@ import {
 } from "@mui/material";
 import { useAuth } from "@entities/auth";
 import {
-  getTemplateStatusLabel,
-  importComplectLabel,
   importSkipLabels,
   templateImportError,
   useCopyTemplateContent,
@@ -35,8 +31,6 @@ import {
   useImportComplect,
   useImportFieldPreview,
   type ImportCatalogQuery,
-  type ImportCatalogSummary,
-  type ImportCatalogTemplate,
   type ImportComplectResponse,
   type ImportField,
 } from "@entities/template";
@@ -45,6 +39,8 @@ import { useStore } from "@shared/hooks";
 import { showSuccessMessage } from "@shared/lib";
 import { FullFieldPreview } from "./FullFieldPreview";
 import { WordImportDialog } from "./WordImportDialog";
+import { SourcePickerTable } from "./SourcePickerTable";
+import { sourceLabel } from "../lib/sourceLabel";
 
 type Props = {
   open: boolean;
@@ -64,18 +60,39 @@ type Props = {
     | { targetComplectId: number | string; targetTemplateId?: never }
   );
 
-function sourceDescription(
-  source: ImportCatalogSummary | ImportCatalogTemplate["complect"]
-) {
-  return [source.faculty, importComplectLabel(source)]
-    .filter(Boolean)
-    .join(" • ");
-}
-
-function recordTypeLabel(type: string | null) {
-  if (type === "discipline") return "Дисциплина";
-  if (type === "practice") return "Практика";
-  return type || "—";
+function FieldPreviewRegion({
+  id,
+  label,
+  children,
+}: {
+  id: string;
+  label?: string;
+  children: ReactNode;
+}) {
+  const region = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    region.current?.focus({ preventScroll: true });
+  }, []);
+  return (
+    <Box
+      id={id}
+      ref={region}
+      tabIndex={0}
+      role="region"
+      aria-label={"Предпросмотр: " + label}
+      sx={{
+        width: "100%",
+        maxWidth: "100%",
+        minWidth: 0,
+        maxHeight: 320,
+        overflow: "auto",
+        overscrollBehavior: "contain",
+        p: 1.5,
+      }}
+    >
+      {children}
+    </Box>
+  );
 }
 
 export function SourcePickerDialog(props: Props) {
@@ -90,6 +107,7 @@ export function SourcePickerDialog(props: Props) {
     initialMethod = "source",
   } = props;
   const id = useId();
+  const mobile = useMediaQuery((theme) => theme.breakpoints.down("sm"));
   const bulk = props.targetComplectId != null;
   const scope = bulk ? "bulk" : field ? "field" : "single";
   const role = useAuth((state) => state.userRole);
@@ -108,8 +126,6 @@ export function SourcePickerDialog(props: Props) {
   const [selectedId, setSelectedId] = useState<number | null>(null);
   const [selectedRevision, setSelectedRevision] = useState<string | null>(null);
   const [previewId, setPreviewId] = useState<number | null>(null);
-  const previewRegion = useRef<HTMLDivElement>(null);
-  const previewButton = useRef<HTMLButtonElement | null>(null);
   const [fieldRevision, setFieldRevision] = useState<string | null>(
     props.fieldBaseAt ?? null
   );
@@ -122,9 +138,6 @@ export function SourcePickerDialog(props: Props) {
     const timer = window.setTimeout(() => setSearch(searchInput.trim()), 300);
     return () => window.clearTimeout(timer);
   }, [searchInput]);
-  useEffect(() => {
-    if (previewId != null) previewRegion.current?.focus();
-  }, [previewId]);
 
   const searchSettled = search === searchInput.trim();
   const context = bulk
@@ -292,16 +305,8 @@ export function SourcePickerDialog(props: Props) {
     ["direction", "Направление", catalog.data?.facets.directions],
     ["profile", "Профиль", catalog.data?.facets.profiles],
   ] as const;
-  const selectedLabel = selectedComplect
-    ? sourceDescription(selectedComplect)
-    : selectedTemplate
-      ? [
-          selectedTemplate.disciplins_name,
-          "семестр " + (selectedTemplate.semester ?? "—"),
-          recordTypeLabel(selectedTemplate.record_type),
-          sourceDescription(selectedTemplate.complect),
-        ].join(" • ")
-      : "";
+  const selectedSource = selectedComplect ?? selectedTemplate;
+  const selectedLabel = selectedSource ? sourceLabel(selectedSource) : "";
   const skipCounts = result?.skipped.reduce<
     Partial<Record<keyof typeof importSkipLabels, number>>
   >(
@@ -319,16 +324,19 @@ export function SourcePickerDialog(props: Props) {
         onClose={() => !busy && onClose()}
         maxWidth={false}
         fullWidth
+        fullScreen={mobile}
         aria-labelledby={id + "-label"}
         sx={{ "& .MuiDialog-container": { pb: 8 } }}
         slotProps={{
           paper: {
             sx: {
-              width: "calc(100% - 32px)",
+              width: mobile ? "100%" : "calc(100% - 32px)",
               maxWidth: 1040,
-              m: 2,
-              height: "min(720px, calc(100dvh - 96px))",
-              maxHeight: "calc(100dvh - 96px)",
+              m: mobile ? 0 : 2,
+              height: mobile
+                ? "calc(100dvh - 64px)"
+                : "min(980px, calc(100dvh - 88px))",
+              maxHeight: mobile ? "calc(100dvh - 64px)" : "calc(100dvh - 88px)",
               overflow: "hidden",
               "& .MuiButton-root, & .MuiIconButton-root": {
                 minHeight: 36,
@@ -515,8 +523,9 @@ export function SourcePickerDialog(props: Props) {
             p: 0,
             minHeight: 0,
             flex: 1,
-            overflowY: "auto",
-            overflowX: "hidden",
+            display: "flex",
+            flexDirection: "column",
+            overflow: "hidden",
           }}
         >
           {(error || catalog.isError) && (
@@ -552,235 +561,48 @@ export function SourcePickerDialog(props: Props) {
               По выбранным условиям источников нет. Измените фильтры.
             </Typography>
           ) : (
-            <RadioGroup
-              aria-label={
-                bulk ? "Комплекты источников" : "Дисциплины источников"
-              }
-              value={selectedId == null ? "" : String(selectedId)}
-              onChange={(event) => {
-                setSelectedId(Number(event.target.value));
+            <SourcePickerTable
+              rows={bulk ? complects : templates}
+              bulk={bulk}
+              field={Boolean(field)}
+              busy={busy}
+              total={catalog.data?.total ?? 0}
+              page={page}
+              selectedId={selectedId}
+              previewId={previewId}
+              previewRegionId={id + "-preview"}
+              onSelect={(sourceId) => {
+                setSelectedId(sourceId);
                 setSelectedRevision(catalog.data?.targetRevision ?? null);
                 setError(null);
               }}
-            >
-              {(bulk ? complects : templates).map((row) => {
-                const template = "complect" in row ? row : null;
-                const source = template
-                  ? template.complect
-                  : (row as ImportCatalogSummary);
-                const label = template
-                  ? [
-                      template.disciplins_name ?? "—",
-                      "семестр " + (template.semester ?? "—"),
-                      recordTypeLabel(template.record_type),
-                      getTemplateStatusLabel(template.status),
-                      sourceDescription(source),
-                    ].join(" • ")
-                  : sourceDescription(source);
-                return (
-                  <Box
-                    key={row.id}
-                    sx={{
-                      minWidth: 0,
-                      borderBottom: 1,
-                      borderColor: "divider",
-                      bgcolor:
-                        selectedId === row.id ? "action.selected" : undefined,
-                    }}
-                  >
-                    <Box
-                      sx={{
-                        display: "flex",
-                        alignItems: "flex-start",
-                        gap: 1,
-                        px: { xs: 1, sm: 2 },
-                        py: 1.5,
-                      }}
-                    >
-                      <FormControlLabel
-                        value={String(row.id)}
-                        disabled={busy}
-                        sx={{
-                          m: 0,
-                          flex: 1,
-                          minWidth: 0,
-                          alignItems: "flex-start",
-                          "& .MuiFormControlLabel-label": {
-                            width: "100%",
-                            minWidth: 0,
-                          },
-                        }}
-                        control={
-                          <Radio
-                            slotProps={{ input: { "aria-label": label } }}
-                          />
-                        }
-                        label={
-                          <Box
-                            sx={{
-                              minWidth: 0,
-                              pt: 0.75,
-                              overflowWrap: "anywhere",
-                            }}
-                          >
-                            {template ? (
-                              <>
-                                <Typography sx={{ fontWeight: 500 }}>
-                                  {template.disciplins_name ?? "—"}
-                                </Typography>
-                                <Typography
-                                  variant="body2"
-                                  sx={{ color: "text.secondary" }}
-                                >
-                                  Семестр {template.semester ?? "—"} •{" "}
-                                  {recordTypeLabel(template.record_type)} •{" "}
-                                  {getTemplateStatusLabel(template.status)}
-                                </Typography>
-                                <Typography
-                                  variant="body2"
-                                  sx={{ color: "text.secondary", mt: 0.5 }}
-                                >
-                                  {sourceDescription(source)}
-                                </Typography>
-                              </>
-                            ) : (
-                              <Box
-                                sx={{
-                                  display: "grid",
-                                  gridTemplateColumns: {
-                                    xs: "minmax(0, 1fr)",
-                                    sm: "minmax(0, 1fr) 100px minmax(140px, 190px)",
-                                  },
-                                  gap: 1.5,
-                                }}
-                              >
-                                <Box>
-                                  <Typography sx={{ fontWeight: 500 }}>
-                                    {source.profile ?? "Комплект №" + source.id}
-                                  </Typography>
-                                  <Typography
-                                    variant="body2"
-                                    sx={{ color: "text.secondary" }}
-                                  >
-                                    {[source.faculty, source.direction]
-                                      .filter(Boolean)
-                                      .join(" • ")}
-                                  </Typography>
-                                </Box>
-                                <Typography variant="body2">
-                                  {source.year ?? "—"} •{" "}
-                                  {source.education_form ?? "—"}
-                                </Typography>
-                                <Box>
-                                  <Typography
-                                    variant="caption"
-                                    sx={{ color: "text.secondary" }}
-                                  >
-                                    Закреплённые РОП
-                                  </Typography>
-                                  {source.owners.length ? (
-                                    source.owners.map((owner) => (
-                                      <Typography
-                                        key={owner.userId}
-                                        variant="body2"
-                                      >
-                                        {owner.fullname}
-                                      </Typography>
-                                    ))
-                                  ) : (
-                                    <Typography variant="body2">
-                                      Не назначены
-                                    </Typography>
-                                  )}
-                                </Box>
-                              </Box>
-                            )}
-                          </Box>
-                        }
-                      />
-                      {field && (
-                        <Tooltip title="Просмотр раздела">
-                          <IconButton
-                            aria-label={
-                              "Просмотр: " + (template?.disciplins_name ?? "—")
-                            }
-                            aria-expanded={previewId === row.id}
-                            aria-controls={
-                              previewId === row.id ? id + "-preview" : undefined
-                            }
-                            disabled={busy}
-                            onClick={(event) => {
-                              previewButton.current = event.currentTarget;
-                              setPreviewId(
-                                previewId === row.id ? null : row.id
-                              );
-                            }}
-                          >
-                            <VisibilityOutlinedIcon />
-                          </IconButton>
-                        </Tooltip>
-                      )}
-                    </Box>
-                    {field && previewId === row.id && (
-                      <Box
-                        id={id + "-preview"}
-                        ref={previewRegion}
-                        tabIndex={-1}
-                        role="region"
-                        aria-label={"Предпросмотр: " + fieldLabel}
-                        sx={{
-                          mx: { xs: 2, sm: 7 },
-                          mb: 2,
-                          p: 2,
-                          bgcolor: "background.paper",
-                          border: 1,
-                          borderColor: "divider",
-                          borderRadius: 1,
-                          minWidth: 0,
-                        }}
-                      >
-                        <Stack
-                          direction="row"
-                          sx={{ alignItems: "center", gap: 1, mb: 1 }}
-                        >
-                          <Typography sx={{ flex: 1, fontWeight: 500 }}>
-                            {fieldLabel}
-                          </Typography>
-                          <IconButton
-                            aria-label="Закрыть предпросмотр"
-                            onClick={() => {
-                              setPreviewId(null);
-                              previewButton.current?.focus();
-                            }}
-                          >
-                            <CloseIcon />
-                          </IconButton>
-                        </Stack>
-                        {preview.isFetching ? (
-                          <Typography role="status">
-                            Загрузка предпросмотра…
-                          </Typography>
-                        ) : preview.isError ? (
-                          <Alert severity="error">
-                            {templateImportError(preview.error)}{" "}
-                            <Button onClick={() => void preview.refetch()}>
-                              Повторить
-                            </Button>
-                          </Alert>
-                        ) : previewValue ? (
-                          <FullFieldPreview
-                            value={previewValue[field]}
-                            content={field === "content"}
-                          />
-                        ) : (
-                          <Typography>Поле недоступно</Typography>
-                        )}
-                      </Box>
-                    )}
-                  </Box>
-                );
-              })}
-            </RadioGroup>
+              onPreview={setPreviewId}
+              onPage={(next) => {
+                setPage(next);
+                clearChoice();
+              }}
+              preview={
+                <FieldPreviewRegion id={id + "-preview"} label={fieldLabel}>
+                  {preview.isFetching ? (
+                    <Typography role="status">
+                      Загрузка предпросмотра…
+                    </Typography>
+                  ) : preview.isError ? (
+                    <Alert severity="error">
+                      {templateImportError(preview.error)}
+                      <Button onClick={() => void preview.refetch()}>
+                        Повторить
+                      </Button>
+                    </Alert>
+                  ) : previewValue && field ? (
+                    <FullFieldPreview
+                      value={previewValue[field]}
+                      content={field === "content"}
+                    />
+                  ) : null}
+                </FieldPreviewRegion>
+              }
+            />
           )}
         </DialogContent>
         {!result && (
@@ -865,7 +687,7 @@ export function SourcePickerDialog(props: Props) {
         slotProps={{
           paper: {
             sx: {
-              maxHeight: "calc(100dvh - 96px)",
+              maxHeight: "calc(100dvh - 88px)",
               m: 2,
               "& .MuiButton-root": { minHeight: 36, typography: "button" },
             },

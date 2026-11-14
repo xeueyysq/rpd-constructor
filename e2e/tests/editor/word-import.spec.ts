@@ -1,6 +1,7 @@
 import { expect, test } from '@playwright/test';
 import { apiUrl, signIn } from '../helpers';
-import { headersFor, profileFor } from '../list3';
+import { headersFor, openFixtureComplect, profileFor } from '../list3';
+import { openRowMenu } from '../teacherAssignments';
 
 test('Word: ошибка файла, отмена, выбор полей, применение и конфликт ревизии', async ({ page, request }, testInfo) => {
   test.slow();
@@ -12,11 +13,20 @@ test('Word: ошибка файла, отмена, выбор полей, при
   const before = await profileFor(request, headers, 390);
   await signIn(page, 'rop');
   await page.goto('/templates/a390a390a390/aimsPage');
-  const open = page.getByRole('button', { name: 'Импортировать из Word', exact: true });
-  await expect(open.locator('svg')).toHaveCount(1);
-  await open.hover();
-  await expect(page.getByRole('tooltip', { name: 'Импортировать из Word', exact: true })).toBeVisible();
-  await open.click();
+  await expect(page.getByRole('button', { name: 'Редактировать', exact: true })).toBeVisible();
+  await expect(page.getByRole('button', { name: 'Импортировать из Word', exact: true })).toHaveCount(0);
+  const openWord = async () => {
+    await openFixtureComplect(page, 390);
+    await openRowMenu(page, page.getByRole('row').filter({ hasText: 'Импорт Word E2E' }));
+    await page.getByRole('menuitem', { name: 'Импортировать', exact: true }).click();
+    const source = page.getByRole('dialog', { name: 'Импортировать данные РПД', exact: true });
+    const entry = source.getByRole('button', { name: 'Импортировать из Word', exact: true });
+    await expect(entry.locator('svg')).toHaveCount(1);
+    await entry.hover();
+    await expect(page.getByRole('tooltip', { name: 'Импортировать из Word', exact: true })).toBeVisible();
+    await entry.click();
+  };
+  await openWord();
   const dialog = page.getByRole('dialog', { name: 'Импортировать из Word' });
   const file = dialog.locator('input[type="file"]');
   await expect(dialog).not.toContainText('Цель:');
@@ -45,7 +55,7 @@ test('Word: ошибка файла, отмена, выбор полей, при
   await dialog.getByRole('button', { name: 'Отмена' }).click();
   expect((await profileFor(request, headers, 390)).goals).toBe(before.goals);
 
-  await open.click();
+  await openWord();
   await file.setInputFiles({ name: 'synthetic.docx', mimeType: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document', buffer: docx });
   const goals = dialog.getByRole('checkbox', { name: 'Цели и задачи' });
   await expect(goals).toBeChecked();
@@ -91,7 +101,7 @@ test('Word: ошибка файла, отмена, выбор полей, при
   expect(after.goals).not.toBe(before.goals);
   expect(after.textbook).toEqual(before.textbook);
 
-  await open.click();
+  await openWord();
   await file.setInputFiles({ name: 'synthetic.docx', mimeType: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document', buffer: docx });
   await expect(goals).toBeVisible();
   const changed = await request.put(`${apiUrl}/api/update-json-value/390`, { headers, data: {

@@ -100,7 +100,8 @@ for (const role of ['rop', 'teacher'] as const) {
     await page.goto(`/templates/${target.publicId}/aimsPage`);
     const button = page.getByRole('button', { name: 'Импортировать поле', exact: true });
     const year = await chooseFieldSource(page, button, 'other-year', 'goals');
-    expect(await year.response.json()).toEqual([expect.objectContaining({ id: 302, goals: '<p>Цели источника 302</p>' })]);
+    const yearSourceId = role === 'rop' ? 303 : 304;
+    expect(await year.response.json()).toEqual([expect.objectContaining({ id: yearSourceId, goals: '<p>Цели источника 302</p>' })]);
     await applyField(page, year.dialog, target.id, 'goals', '<p>Цели источника 302</p>');
     const sameYear = await chooseFieldSource(page, button, 'other-complect', 'goals');
     expect(await sameYear.response.json()).toEqual([expect.objectContaining({ id: 300, goals: '<p>Цели источника 300</p>' })]);
@@ -112,7 +113,7 @@ for (const role of ['rop', 'teacher'] as const) {
     ] as const) {
       const chosen = await chooseFieldSource(page,
         page.getByRole('button', { name: 'Импортировать поле', exact: true }).nth(index), 'other-year', field);
-      expect(await chosen.response.json()).toEqual([expect.objectContaining({ id: 302, [field]: value })]);
+      expect(await chosen.response.json()).toEqual([expect.objectContaining({ id: yearSourceId, [field]: value })]);
       await applyField(page, chosen.dialog, target.id, field, value);
       for (const book of value) await expect(page.getByText(book, { exact: true })).toBeVisible();
     }
@@ -151,6 +152,7 @@ test('field: полные текст, литература и темы/часы;
     ['Цели и задачи освоения дисциплины', 0, 'Цели и задачи', 'text'],
     ['Ресурсное обеспечение', 0, 'Основная литература', 'books'],
     ['Содержание дисциплины', 0, 'Содержание дисциплины', 'content'],
+    ['Ресурсное обеспечение', 3, 'Программное обеспечение', 'empty'],
   ] as const) {
     await page.getByRole('button', { name: section, exact: true }).click();
     await page.getByRole('button', { name: 'Импортировать поле', exact: true }).nth(index).click();
@@ -174,9 +176,16 @@ test('field: полные текст, литература и темы/часы;
       await page.keyboard.press('Space');
       await expect(dialog.getByRole('radio')).toHaveCount(2);
     }
-    await dialog.getByRole('button', { name: /^Просмотр:/ }).first().click();
+    const eye = dialog.getByRole('button', { name: /^Просмотр:/ }).first();
+    const loaded = page.waitForResponse((response) => response.url().includes('/api/get-changeable-values') && response.status() === 200);
+    await eye.click();
+    await loaded;
     const preview = dialog.getByRole('region', { name: `Предпросмотр: ${title}`, exact: true });
     await expect(preview).toBeFocused();
+    await expect(eye).toHaveAttribute('aria-expanded', 'true');
+    await expect(preview.locator('xpath=ancestor::div[contains(@class,"MuiCollapse-root")]')).toHaveClass(/MuiCollapse-entered/);
+    await expect(preview.getByRole('button', { name: 'Закрыть предпросмотр' })).toHaveCount(0);
+    await expect(preview).not.toContainText('Поле пустое');
     await expect(dialog.getByRole('button', { name: 'Продолжить' })).toBeDisabled();
     if (kind === 'text') {
       await expect(preview).toContainText('Последний абзац 4010');
@@ -189,25 +198,40 @@ test('field: полные текст, литература и темы/часы;
       await expect(preview.getByRole('listitem')).toHaveCount(2);
       await expect(preview).toContainText('Конец первой книги 4010');
       await expect(preview).toContainText('Последняя книга 4010');
-    } else {
+    } else if (kind === 'content') {
       const table = preview.getByRole('table', { name: 'Темы и часы' });
       await expect(table.getByRole('row')).toHaveCount(9);
       await expect(table).toContainText('Тема 8 источника 4010');
       await expect(table.getByRole('columnheader', { name: 'Самостоятельная работа', exact: true })).toBeVisible();
-      await page.setViewportSize({ width: 390, height: 844 });
-      const scroller = preview.getByRole('region', { name: /горизонтальная прокрутка/ });
-      expect(await scroller.evaluate((element) => element.scrollWidth > element.clientWidth)).toBe(true);
-      expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
-      await expect(dialog.getByRole('button', { name: 'Продолжить', exact: true })).toBeInViewport();
+      for (const width of [390, 320]) {
+        await page.setViewportSize({ width, height: width === 390 ? 844 : 640 });
+        const scroller = preview.getByRole('region', { name: /горизонтальная прокрутка/ });
+        expect(await scroller.evaluate((element) => element.scrollWidth > element.clientWidth)).toBe(true);
+        await scroller.focus();
+        await page.keyboard.press('End');
+        await expect.poll(() => scroller.evaluate((element) => {
+          const last = element.querySelector('tbody tr:last-child td:last-child')!;
+          const cell = last.getBoundingClientRect();
+          const region = element.getBoundingClientRect();
+          return cell.left >= region.left && cell.right <= region.right + 1 && element.scrollLeft > 0;
+        })).toBe(true);
+        expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
+        await expect(dialog.getByRole('button', { name: 'Продолжить', exact: true })).toBeInViewport();
+        await dialog.screenshot({ path: test.info().outputPath(`field-full-table-${width}.png`) });
+      }
+    } else {
+      await expect(preview).toHaveText('');
     }
-    await preview.getByRole('button', { name: 'Закрыть предпросмотр' }).click();
-    await expect(dialog.getByRole('button', { name: /^Просмотр:/ }).first()).toBeFocused();
+    await eye.click();
+    await expect(eye).toHaveAttribute('aria-expanded', 'false');
+    await expect(preview).toHaveCount(0);
+    await expect(eye).toBeFocused();
     await dialog.getByRole('radio').first().check();
     await expect(dialog.getByRole('button', { name: 'Продолжить' })).toBeEnabled();
     await dialog.getByRole('tab', { name: 'Другой год' }).click();
     await expect(dialog.getByRole('radio')).toHaveCount(1);
     await expect(dialog.getByRole('radio')).not.toBeChecked();
-    await expect(dialog.getByRole('radio')).toHaveAccessibleName(/UI источники прошлого года/);
+    await expect(dialog.getByRole('radio')).toHaveAccessibleName(/UI цель.*2024/);
     await expect(dialog.getByRole('button', { name: 'Продолжить' })).toBeDisabled();
     await dialog.getByRole('button', { name: 'Отмена' }).click();
     await page.setViewportSize({ width: 1365, height: 900 });

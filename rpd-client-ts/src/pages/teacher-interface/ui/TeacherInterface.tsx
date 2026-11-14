@@ -1,5 +1,4 @@
-import { Alert, Box, IconButton, Tooltip } from "@mui/material";
-import DescriptionOutlinedIcon from "@mui/icons-material/DescriptionOutlined";
+import { Alert, Box } from "@mui/material";
 import { useAuth } from "@entities/auth";
 import { useTemplateSync } from "@entities/template";
 import {
@@ -26,7 +25,6 @@ import ScopeDisciplinePage from "./pages/ScopeDisciplinePage.tsx";
 import TestPdf from "./pdf-page/TestPdf.tsx";
 import { Loader } from "@shared/ui/Loader.tsx";
 import { setDiagnosticEntity } from "@shared/diagnostics";
-import { SourcePickerDialog } from "@features/template-import";
 
 export function TeacherInterface() {
   const { toggleDrawer, setJsonData, setComplectId, jsonData } = useStore(
@@ -40,7 +38,6 @@ export function TeacherInterface() {
     id: string | undefined;
     message: string;
   } | null>(null);
-  const [importOpen, setImportOpen] = useState(false);
   const activeTemplateId =
     String(jsonData?.id) === templateId || jsonData?.public_id === templateId
       ? Number(jsonData.id)
@@ -142,33 +139,8 @@ export function TeacherInterface() {
   return (
     <Box>
       <Box sx={{ backgroundColor: "#ffffff", p: 3, minHeight: "100vh" }}>
-        {!["ready", "closed"].includes(
-          String(jsonData.current_status ?? jsonData.status ?? "")
-        ) &&
-          !jsonData.removed_at && (
-            <Box sx={{ display: "flex", justifyContent: "flex-end", mb: 1 }}>
-              <Tooltip title="Импортировать из Word">
-                <IconButton
-                  aria-label="Импортировать из Word"
-                  onClick={() => setImportOpen(true)}
-                >
-                  <DescriptionOutlinedIcon />
-                </IconButton>
-              </Tooltip>
-            </Box>
-          )}
         {pageMap[page]}
       </Box>
-      {importOpen && (
-        <SourcePickerDialog
-          key={activeTemplateId}
-          open
-          targetTemplateId={activeTemplateId}
-          targetLabel={`${jsonData.disciplins_name ?? "РПД"} • ${jsonData.year ?? ""}`}
-          initialMethod="word"
-          onClose={() => setImportOpen(false)}
-        />
-      )}
     </Box>
   );
 }
