@@ -31,6 +31,12 @@ function tableRowsFromTbl(tbl: Element): string[][] {
     const row: string[] = [];
     for (const tc of directChildren(tr, "w:tc")) {
       row.push(cellText(tc));
+      const tcPr = directChildren(tc, "w:tcPr")[0];
+      const gridSpan = tcPr && directChildren(tcPr, "w:gridSpan")[0];
+      const span = Number(gridSpan?.getAttribute("w:val") || 1);
+      for (let i = 1; i < span && i < 64; i++) {
+        row.push("");
+      }
     }
     if (row.length) {
       out.push(row);
