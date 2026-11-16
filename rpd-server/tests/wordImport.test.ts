@@ -8,6 +8,7 @@ import { adaptWordResult, validateWordApply } from "../app/modules/wordImport/wo
 import type { ConvertResponse } from "../app/modules/wordParser/types/parser.ts";
 import generateWord from "../app/pdf-generator/word-generator.ts";
 import { pool } from "../config/db.ts";
+import { wordHoursDocument } from "./helpers/wordHoursDocument.ts";
 
 const fixture = new URL("./fixtures/avs-programma-ivt-trpo-2024.docx", import.meta.url);
 const syntheticPg = process.env.DB_HOST === "127.0.0.1" && process.env.DB_PORT === "5433"
@@ -48,7 +49,8 @@ test("DOCX собственного генератора даёт цели и л
   assert.ok(Array.isArray(preview.values.additional_textbook) && preview.values.additional_textbook.length > 0);
   for (const field of ["competencies", "assessment_tools_template", "study_load", "disciplins_name"])
     assert.equal(field in preview.values, false, field);
-  assert.ok(preview.warnings.some((warning) => warning.includes("часов")), "неоднозначные часы не переносятся молча");
+  assert.deepEqual(preview.values.content, { "1": { theme: "Тема источника", total: 24, lectures: 9,
+    seminars: 7, contact: 16, independent_work: 8, control: null } }, "часы собственного DOCX распознаются по шапке, нагрузка 1С остаётся защищённой");
 });
 
 test("повреждённый, неподходящий, опасный и чрезмерно распакованный DOCX отвергаются", async () => {
@@ -84,3 +86,20 @@ test("ошибка отдельного поля не очищает цель, a
   assert.throws(() => validateWordApply(["goals"], { goals: "Текст", assessment_tools_template: "ФОС" }), { status: 422 });
   assert.throws(() => validateWordApply(["goals"], { goals: "" }), { status: 422 });
 });
+
+for (const numbered of [true, false]) {
+  test(`Word: сокращённая многострочная шапка ${numbered ? "с номерами" : "без номеров"} сохраняет все темы и исходные часы`, async () => {
+    const preview = await parseWord(await wordHoursDocument(numbered), "hours.docx");
+    const content = preview.values.content;
+    assert.ok(content && typeof content === "object" && !Array.isArray(content));
+    assert.equal(Object.keys(content).length, 10, "шапка и итоги не становятся темами, короткие названия и практические темы не теряются");
+    assert.deepEqual(content["1"], { theme: "Тема 1", total: 15, lectures: 2, seminars: 4,
+      contact: 6, independent_work: 3, control: null });
+    assert.equal(content["9"].theme, "Практические аспекты обучения: оценка ошибки");
+    assert.equal(content["10"].total, 17);
+    assert.equal(Object.values(content).reduce((sum, item) => sum + item.total, 0), 144);
+    assert.ok(preview.warnings.some((warning) => /Содержание:.*расхождение.*10/.test(warning) && /15/.test(warning) && /9/.test(warning)),
+      "расхождение часов показано до импорта, без автоматического пересчёта исходника");
+    assert.deepEqual(validateWordApply(["content"], { content }).values.content, content);
+  });
+}

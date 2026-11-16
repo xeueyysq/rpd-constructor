@@ -2,6 +2,7 @@ import { expect, test } from '@playwright/test';
 import { apiUrl, signIn } from '../helpers';
 import { headersFor, openFixtureComplect, profileFor } from '../list3';
 import { openRowMenu } from '../teacherAssignments';
+import { wordHoursDocument } from '../../../rpd-server/tests/helpers/wordHoursDocument';
 
 test('Word: ошибка файла, отмена, выбор полей, применение и конфликт ревизии', async ({ page, request }, testInfo) => {
   test.slow();
@@ -54,6 +55,30 @@ test('Word: ошибка файла, отмена, выбор полей, при
   await dialog.screenshot({ path: testInfo.outputPath('word-preview.png') });
   await dialog.getByRole('button', { name: 'Отмена' }).click();
   expect((await profileFor(request, headers, 390)).goals).toBe(before.goals);
+
+  await openWord();
+  await file.setInputFiles({ name: 'hours.docx', mimeType: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document', buffer: await wordHoursDocument() });
+  await expect(dialog.getByRole('checkbox', { name: 'Темы и часы', exact: true })).toBeChecked();
+  await expect(dialog.getByRole('alert')).toContainText('расхождение часов в темах: 10');
+  const hoursTable = dialog.getByRole('table', { name: 'Темы и часы', exact: true });
+  await expect(hoursTable.getByRole('row')).toHaveCount(11);
+  await expect(hoursTable).toContainText('Практические аспекты обучения: оценка ошибки');
+  await dialog.screenshot({ path: testInfo.outputPath('word-hours-preview.png') });
+  for (const checkbox of await dialog.getByRole('checkbox').all()) {
+    if ((await checkbox.evaluate((element) => element.closest('label')?.textContent?.trim())) !== 'Темы и часы' && await checkbox.isChecked()) await checkbox.uncheck();
+  }
+  await dialog.getByRole('radio', { name: 'Заменить существующее' }).check();
+  await dialog.getByRole('button', { name: 'Продолжить' }).click();
+  const hoursSaved = page.waitForResponse((response) => response.url() === `${apiUrl}/api/templates/390/import-word/apply`);
+  await dialog.getByRole('button', { name: 'Импортировать выбранные поля' }).click();
+  expect((await hoursSaved).status()).toBe(200);
+  await expect(dialog).toBeHidden();
+  const afterHours = await profileFor(request, headers, 390);
+  expect(Object.keys(afterHours.content).filter((key) => /^\d+$/.test(key))).toHaveLength(10);
+  expect(afterHours.content['1']).toEqual({ theme: 'Тема 1', total: 15, lectures: 2, seminars: 4, contact: 6, independent_work: 3, control: null });
+  expect(afterHours.study_load).toEqual(before.study_load);
+  expect(afterHours.content.__attestation__ ?? null).toEqual(before.content?.__attestation__ ?? null);
+  expect(afterHours.goals).toBe(before.goals);
 
   await openWord();
   await file.setInputFiles({ name: 'synthetic.docx', mimeType: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document', buffer: docx });

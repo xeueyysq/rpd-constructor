@@ -54,11 +54,12 @@ test("PostgreSQL: назначение источника, отзыв, ownOnly, 
   const revision = (await imports.wordSnapshot(teacher, ids.target)).targetRevision;
   const applied = await imports.wordApply(teacher, ids.target, { expectedRevision: revision, mode: "replace",
     selectedFields: ["goals", "content", "textbook"], values: { goals: "Текст <script>alert(1)</script>", textbook: ["Учебник"],
-      content: { "1": { theme: "Тема <img>", total: 8, lectures: 2, seminars: 2, contact: 4, independent_work: 4, control: null } } } });
+      content: { "1": { theme: "Тема <img>", total: 15, lectures: 2, seminars: 2, contact: 4, independent_work: 4, control: null } } } });
   assert.deepEqual(applied.updatedFields, ["goals", "content", "textbook"]);
   const after = (await pool.query("SELECT goals,competencies,study_load,assessment_tools_template,disciplins_name,content,textbook FROM rpd_profile_templates WHERE id=$1", [ids.target])).rows[0];
   assert.match(after.goals, /&lt;script&gt;/);
   assert.equal(after.content["1"].theme, "Тема &lt;img&gt;");
+  assert.equal(after.content["1"].total, 15, "исходное расхождение часов не исправляется автоматически");
   assert.deepEqual(after.textbook, ["Учебник"]);
   assert.deepEqual(after.content.__attestation__, before.content.__attestation__);
   for (const field of ["competencies", "study_load", "assessment_tools_template", "disciplins_name"])
