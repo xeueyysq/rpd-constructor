@@ -24,11 +24,8 @@ export function detectContentTableKind(rowTexts: string[]): ContentTableKind {
     (joined.includes("лекц") ||
       joined.includes("практическ") ||
       joined.includes("лаборатор") ||
-      joined.includes("самостоятельн"));
-
-  if (hasHoursMarkers) {
-    return "hours_table";
-  }
+      joined.includes("самостоятельн") ||
+      /\bлек\.|\bпр\.|\bлаб\.|сам\.\s*раб\./.test(joined));
 
   const hasSectionDescriptionMarkers =
     joined.includes("содержание раздела") &&
@@ -39,6 +36,10 @@ export function detectContentTableKind(rowTexts: string[]): ContentTableKind {
 
   if (hasSectionDescriptionMarkers) {
     return "section_description_table";
+  }
+
+  if (hasHoursMarkers) {
+    return "hours_table";
   }
 
   return "unknown";
@@ -179,39 +180,77 @@ const EMPTY_MAP: ColumnMap = {
   independent: -1,
 };
 
-function detectColumnMap(row: string[]): ColumnMap | null {
-  const cells = row.map((c) => normalizeForSearch(c || ""));
+function detectColumnMap(headerRows: string[][]): ColumnMap | null {
   const m: ColumnMap = { ...EMPTY_MAP };
+  const totalColumns: number[] = [];
   let markers = 0;
-  for (let i = 0; i < cells.length; i++) {
-    const c = cells[i]!;
-    if (!c.trim()) {
-      continue;
-    }
-    if (c.includes("лаборатор") || (c.includes("лаб") && c.includes("занят"))) {
-      m.labs = i;
-      markers++;
-    } else if (c.includes("практ")) {
-      m.practice = i;
-      markers++;
-    } else if (c.includes("лекц")) {
-      m.lectures = i;
-      markers++;
-    } else if (c.includes("контакт")) {
-      m.contact = i;
-      markers++;
-    } else if (c.includes("самост") || c.includes("срс")) {
-      m.independent = i;
-      markers++;
-    } else if (c.includes("всего")) {
-      m.total = i;
-      markers++;
+  for (const row of headerRows) {
+    for (let i = 0; i < row.length; i++) {
+      const c = normalizeForSearch(row[i] || "");
+      if (!c) {
+        continue;
+      }
+      if (c.includes("всего") && !totalColumns.includes(i)) {
+        totalColumns.push(i);
+      }
+      if ((c.includes("лаборатор") || /^лаб\.?$/.test(c)) && m.labs < 0) {
+        m.labs = i;
+        markers++;
+      } else if ((c.includes("практ") || /^пр\.?$/.test(c)) && m.practice < 0) {
+        m.practice = i;
+        markers++;
+      } else if ((c.includes("лекц") || /^лек\.?$/.test(c)) && m.lectures < 0) {
+        m.lectures = i;
+        markers++;
+      } else if ((c.includes("самост") || c.includes("срс") || /сам\.?\s*раб/.test(c)) && m.independent < 0) {
+        m.independent = i;
+        markers++;
+      }
     }
   }
-  if (markers < 2) {
+  m.total = totalColumns[0] ?? -1;
+  m.contact = totalColumns.find((column) => column !== m.total) ?? -1;
+  if (m.total >= 0) {
+    markers++;
+  }
+  return markers >= 2 ? m : null;
+}
+
+function detectHoursTableHeader(rows: string[][]): {
+  columnMap: ColumnMap;
+  titleColumn: number;
+  dataStart: number;
+} | null {
+  const headerIndex = rows.findIndex((row) =>
+    row.some((cell) => {
+      const text = normalizeForSearch(cell);
+      return text.includes("наименование") &&
+        (text.includes("раздел") || text.includes("тем"));
+    }) && row.some((cell) => normalizeForSearch(cell).includes("всего"))
+  );
+  if (headerIndex < 0 || headerIndex > 2) {
     return null;
   }
-  return m;
+  const titleColumn = rows[headerIndex]!.findIndex((cell) => {
+    const text = normalizeForSearch(cell);
+    return text.includes("наименование") &&
+      (text.includes("раздел") || text.includes("тем"));
+  });
+  const headerRows: string[][] = [];
+  let dataStart = headerIndex;
+  while (dataStart < rows.length && dataStart < headerIndex + 4) {
+    const row = rows[dataStart]!;
+    if (dataStart > headerIndex &&
+        row.some((cell) => parseNullableNumberFromCell(cell) !== null)) {
+      break;
+    }
+    headerRows.push(row);
+    dataStart++;
+  }
+  const columnMap = detectColumnMap(headerRows);
+  return columnMap && titleColumn >= 0
+    ? { columnMap, titleColumn, dataStart }
+    : null;
 }
 
 const CONTENT_HEADER_MARKERS = [
@@ -258,7 +297,10 @@ function rowLooksLikeContentHeaderRow(row: string[], titleNorm: string): boolean
 
 function isContentHeaderRow(title: string): boolean {
   const t = normalizeForSearch(title);
-  return CONTENT_HEADER_MARKERS.some((marker) => t.includes(marker));
+  return t === "№" || t === "№ п/п" ||
+    t.startsWith("наименование разделов") ||
+    t.startsWith("наименование тем") ||
+    t === "всего" || t === "итого";
 }
 
 /** План 10/11: служебная строка таблицы содержания по всей строке. */
@@ -538,17 +580,21 @@ function mapRowFallback(row: string[], titleNorm: string): ContentItem | null {
 function parseHoursTableRows(rows: string[][]): { content: Record<string, ContentItem> } {
   const content: Record<string, ContentItem> = {};
   let n = 1;
-  let colMap: ColumnMap | null = null;
-  for (const row of rows) {
-    if (row.length < 2) {
+  const header = detectHoursTableHeader(rows);
+  let colMap: ColumnMap | null = header?.columnMap ?? null;
+  for (let i = 0; i < rows.length; i++) {
+    const row = rows[i]!;
+    if (row.length < 2 || (header && i < header.dataStart)) {
       continue;
     }
-    const headerMap = detectColumnMap(row);
-    if (headerMap && rowLooksLikeTableHeader(row)) {
-      colMap = headerMap;
-      continue;
+    if (!header) {
+      const headerMap = detectColumnMap([row]);
+      if (headerMap && rowLooksLikeTableHeader(row)) {
+        colMap = headerMap;
+        continue;
+      }
     }
-    const title = row[0] || row[1] || "";
+    const title = row[header?.titleColumn ?? 0] || (!header ? row[1] : "") || "";
     const titleNorm = normalizeLine(title) || "—";
     const item = colMap
       ? mapRowWithColumnMap(row, titleNorm, colMap)

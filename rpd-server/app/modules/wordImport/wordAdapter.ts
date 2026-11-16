@@ -29,6 +29,7 @@ function contentRows(content: DisciplineJson["content"], warnings: string[]): Re
   const entries = Object.entries(content);
   if (!entries.length || entries.length > MAX_ROWS) return undefined;
   const output: Record<string, WordContentRow> = {};
+  const mismatches: { title: string; total: number; sum: number }[] = [];
   for (const [key, row] of entries) {
     const title = textValue(row.title);
     if (!title || title.length > 500 || !/^\d{1,4}$/.test(key)) { warnings.push("Содержание: не удалось проверить названия или номера разделов; поле пропущено"); return undefined; }
@@ -38,10 +39,14 @@ function contentRows(content: DisciplineJson["content"], warnings: string[]): Re
       warnings.push("Содержание: неполные или неоднозначные часы; поле пропущено"); return undefined;
     }
     const [total, lectures, seminars, independent_work] = values as number[];
-    if (Math.abs(total - lectures - seminars - independent_work) > 0.01) {
-      warnings.push("Содержание: сумма часов не совпадает с разделом; поле пропущено"); return undefined;
-    }
+    const sum = lectures + seminars + independent_work;
+    if (Math.abs(total - sum) > 0.01) mismatches.push({ title, total, sum });
     output[key] = { theme: title, total, lectures, seminars, contact: lectures + seminars, independent_work, control: null };
+  }
+  if (mismatches.length) {
+    const first = mismatches[0];
+    const title = first.title.length > 45 ? `${first.title.slice(0, 44)}…` : first.title;
+    warnings.push(`Содержание: расхождение часов в темах: ${mismatches.length}. «${title}»: всего ${first.total}, сумма занятий и СРС ${first.sum}. Значения из Word сохранены; проверьте часы перед импортом`);
   }
   warnings.push("Содержание: контактные часы вычислены из лекций и практики; контроль и часы 1С сохраните по учебному плану");
   return output;
@@ -116,7 +121,6 @@ export function validateWordApply(selectedFields: unknown, rawValues: unknown): 
         if (Object.keys(row).some((name) => !["theme", "total", "lectures", "seminars", "contact", "independent_work", "control"].includes(name))
           || !textValue(row.theme) || row.control !== null
           || ["total", "lectures", "seminars", "contact", "independent_work"].some((name) => typeof row[name] !== "number" || !Number.isFinite(row[name]) || (row[name] as number) < 0)
-          || Math.abs((row.total as number) - (row.lectures as number) - (row.seminars as number) - (row.independent_work as number)) > 0.01
           || Math.abs((row.contact as number) - (row.lectures as number) - (row.seminars as number)) > 0.01)
           throw new Unprocessable("Некорректные часы содержания");
         rows[key] = { theme: safeHtml(String(row.theme).trim()), total: row.total as number, lectures: row.lectures as number,
