@@ -4,6 +4,7 @@ import { initializeRpdFromExchange } from "./initializeRpdFromExchange.ts";
 import { pool } from "../../config/db.ts";
 import { fetchUpLink } from "./1cExchange.ts";
 import { normalizeDisciplineFrom1c } from "./normalizeDisciplineFrom1c.ts";
+import { resolveEffectiveCertification } from "./disciplineScope.ts";
 import { stableSerialize } from "./specProfilesMapping.ts";
 import { fieldEditsSet } from "./fieldEdits.ts";
 import TemplateAccess from "../services/TemplateAccess.ts";
@@ -55,7 +56,7 @@ type LocalRow = {
   [key: string]: unknown;
 };
 type IncomingRow = ReturnType<typeof normalizeDisciplineFrom1c> & Record<string, unknown>;
-type ProfileFields = Pick<RpdProfileTemplateRow, "department" | "semester" | "zet" | "place" | "study_load" | "control_load" | "certification"> & { discipline: string | null };
+type ProfileFields = Pick<RpdProfileTemplateRow, "department" | "semester" | "zet" | "place" | "study_load" | "control_load" | "certification" | "field_edits"> & { discipline: string | null };
 type LocalDatabaseRow = Rpd1cExchangeRow & { id_profile_template: number | null }
   & { [K in keyof ProfileFields as `profile_${K}`]: ProfileFields[K] };
 type FieldChange = { field: string; old: unknown; new: unknown };
@@ -103,17 +104,7 @@ const matchDisciplineKey = (row: { discipline: string; semester: number | null; 
 
 const valuesEqual = (a: unknown, b: unknown) => stableSerialize(a) === stableSerialize(b);
 
-const deriveCertification = (controlLoad: unknown) => {
-  if (
-    !controlLoad ||
-    typeof controlLoad !== "object" ||
-    Array.isArray(controlLoad)
-  ) {
-    return null;
-  }
-  const keys = Object.keys(controlLoad);
-  return keys.length > 0 ? keys[0] : null;
-};
+const hasPlace = (value: unknown) => typeof value === "string" && Boolean(value.trim());
 
 const buildComplectApiData = (complectMeta: RpdComplectRow) => ({
   faculty: complectMeta.faculty,
@@ -148,7 +139,8 @@ const loadLocalDisciplines = async (complectId: number) => {
         p.place AS profile_place,
         p.study_load AS profile_study_load,
         p.control_load AS profile_control_load,
-        p.certification AS profile_certification
+        p.certification AS profile_certification,
+        p.field_edits AS profile_field_edits
       FROM rpd_1c_exchange r
       LEFT JOIN template_status ts ON ts.id_1c_template = r.id
       LEFT JOIN rpd_profile_templates p ON p.id = ts.id_profile_template
@@ -169,6 +161,7 @@ const loadLocalDisciplines = async (complectId: number) => {
       study_load: parseJsonField(row.profile_study_load),
       control_load: parseJsonField(row.profile_control_load),
       certification: row.profile_certification,
+      field_edits: row.profile_field_edits ?? {},
     });
   }
   return { localRows: rows.map(normalizeLocalRow), profiles };
@@ -187,9 +180,10 @@ const diffFields = (localRow: Record<string, unknown>, incomingRow: Record<strin
   const changes: FieldChange[] = [];
   for (const field of SYNC_FIELDS) {
     const newValue = incomingRow[field];
+    if (field === "place" && !hasPlace(newValue)) continue;
     const profileValue = profile && TEMPLATE_SYNC_FIELDS.has(field) ? profile[field as keyof ProfileFields] : localRow[field];
     const profileChanged = profile && TEMPLATE_SYNC_FIELDS.has(field) && !valuesEqual(profileValue, newValue);
-    if (!valuesEqual(localRow[field], newValue) || WORKLOAD_FIELDS.has(field) && profileChanged) {
+    if (!valuesEqual(localRow[field], newValue) || (WORKLOAD_FIELDS.has(field) || field === "place" && !hasPlace(profileValue)) && profileChanged) {
       changes.push({ field, old: profileChanged ? profileValue : localRow[field], new: newValue });
     }
   }
@@ -375,8 +369,10 @@ const syncTemplateFields = async (
     });
   }
 
-  if (editedFields.includes("control_load")) {
-    const certification = deriveCertification(incomingRow.control_load);
+  if (editedFields.includes("control_load") || editedFields.includes("study_load")) {
+    const studyLoad = editedFields.includes("study_load") ? incomingRow.study_load : profile?.study_load ?? localRow.study_load;
+    const controlLoad = editedFields.includes("control_load") ? incomingRow.control_load : profile?.control_load ?? localRow.control_load;
+    const certification = resolveEffectiveCertification(profile?.certification, profile?.field_edits, studyLoad, controlLoad);
     if (certification && !valuesEqual(profile?.certification, certification)) {
       updates.push(`certification = $${paramIndex}`);
       editedFields.push("certification");
@@ -549,12 +545,13 @@ const applySync = async ({ complectId, selections, actor, teacherImportManifest 
         const local = localById.get(id1c!);
         if (!id1c || !incoming || !local) continue;
         const profile = profiles.get(id1c);
+        const applicableFields = fields.filter((field) => field !== "place" || hasPlace(incoming.place));
 
         const exchangeUpdates = [];
         const exchangeValues = [];
         let idx = 1;
 
-        for (const field of fields) {
+        for (const field of applicableFields) {
           if (!SYNC_FIELDS.includes(field)) continue;
           if (field === "discipline") {
             exchangeUpdates.push(`discipline = $${idx}`);
@@ -597,7 +594,7 @@ const applySync = async ({ complectId, selections, actor, teacherImportManifest 
           );
         }
 
-        const templateFields = fields.filter((f) => TEMPLATE_SYNC_FIELDS.has(f));
+        const templateFields = applicableFields.filter((f) => TEMPLATE_SYNC_FIELDS.has(f));
         await syncTemplateFields(client, {
           syncLogId,
           id1c,
@@ -608,7 +605,7 @@ const applySync = async ({ complectId, selections, actor, teacherImportManifest 
           fieldsToApply: templateFields,
         });
 
-        for (const field of fields.filter((f) => SYNC_FIELDS.includes(f) && f !== "teachers")) {
+        for (const field of applicableFields.filter((f) => SYNC_FIELDS.includes(f) && f !== "teachers")) {
           if (valuesEqual(local[field], incoming[field])) continue;
           // Изменения РПД уже записаны выше; отличия только в обмене не создают уведомления редактора.
           if (profile && TEMPLATE_SYNC_FIELDS.has(field) && !valuesEqual(profile[field as keyof ProfileFields], incoming[field])) continue;
@@ -622,7 +619,7 @@ const applySync = async ({ complectId, selections, actor, teacherImportManifest 
           });
         }
 
-        if (fields.includes("teachers")) {
+        if (applicableFields.includes("teachers")) {
           await recordFieldChange(client, {
             syncLogId,
             id1c,
@@ -689,5 +686,4 @@ export {
   applySync,
   hasSyncSelections,
   getLatestFieldChanges,
-  deriveCertification,
 };

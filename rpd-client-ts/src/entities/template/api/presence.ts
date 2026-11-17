@@ -68,10 +68,7 @@ export function useTemplatePresence(templateId: number | undefined) {
           (refreshed.has("certification") || refreshed.has("control_load")) &&
           !dirty.certification
         ) {
-          updateJsonData(
-            "certification",
-            profile.certification || profile.derived_certification
-          );
+          updateJsonData("certification", profile.certification);
         }
         updateJsonData("field_edits", mergedEdits);
       })

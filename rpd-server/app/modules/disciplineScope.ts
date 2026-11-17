@@ -62,14 +62,33 @@ function normalizeStudyLoad(studyLoad: unknown) {
 }
 
 function deriveCertification(studyLoad: unknown, controlLoad: unknown): string | null {
-  for (const entry of entriesOf(studyLoad)) {
-    const name = entry.name.toLowerCase();
-    if (name.includes("экзам")) return "Экзамен";
-    if (name.includes("зач") && name.includes("оцен")) return "Зачет с оценкой";
-    if (name.includes("зач")) return "Зачет";
+  const controlKeys = isRecord(controlLoad) ? Object.keys(controlLoad) : [];
+  const labels = controlKeys.length ? controlKeys : entriesOf(studyLoad).map((entry) => entry.name);
+  const recognized = new Set<string>();
+  const unknown: string[] = [];
+  for (const label of labels) {
+    const value = label.trim();
+    const normalized = value.toLowerCase().replaceAll("ё", "е").replace(/\s+/g, " ");
+    if (normalized.includes("экзам")) recognized.add("Экзамен");
+    else if (normalized.includes("зач") && normalized.includes("оцен")) recognized.add("Зачет с оценкой");
+    else if (normalized.includes("зач")) recognized.add("Зачет");
+    else if (normalized.includes("курсов") && normalized.includes("работ") || normalized === "кр") recognized.add("курсовая работа");
+    else if (normalized.includes("курсов") && normalized.includes("проект") || normalized === "кп") recognized.add("курсовой проект");
+    else if (controlKeys.length && value) unknown.push(value);
   }
-  if (isRecord(controlLoad)) return Object.keys(controlLoad)[0] ?? null;
-  return null;
+  const forms = ["Экзамен", "Зачет с оценкой", "Зачет", "курсовая работа", "курсовой проект"]
+    .filter((form) => recognized.has(form));
+  forms.push(...unknown.sort((a, b) => a < b ? -1 : a > b ? 1 : 0));
+  if (!forms.length) return null;
+  if (forms[0].startsWith("курсов")) forms[0] = forms[0][0].toUpperCase() + forms[0].slice(1);
+  return forms.join(" + ");
+}
+
+function resolveEffectiveCertification(saved: unknown, fieldEdits: unknown, studyLoad: unknown, controlLoad: unknown): string | null {
+  const stored = typeof saved === "string" && saved.trim() ? saved : null;
+  const edit = isRecord(fieldEdits) ? fieldEdits.certification : null;
+  if (stored && (!isRecord(edit) || edit.userId !== null)) return stored;
+  return deriveCertification(studyLoad, controlLoad) ?? stored;
 }
 
 function getStudyPlanHours(studyLoad: unknown, controlLoad: unknown) {
@@ -179,5 +198,5 @@ function resolveZetFromStudyLoad(studyLoad: unknown, fallbackZets: unknown, cont
   return Number.isFinite(fallback) ? fallback : null;
 }
 
-export { ZET_HOURS_DIVISOR, parseHours, normalizeStudyLoad, deriveCertification, getStudyPlanHours, patchStudyLoad,
+export { ZET_HOURS_DIVISOR, parseHours, normalizeStudyLoad, deriveCertification, resolveEffectiveCertification, getStudyPlanHours, patchStudyLoad,
   getContentRowHours, sumContentHours, extractTotalAcademicHours, computeZetFromHours, resolveZetFromStudyLoad };

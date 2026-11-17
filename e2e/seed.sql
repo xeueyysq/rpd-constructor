@@ -18,6 +18,11 @@ INSERT INTO users (id, name, password, role, fullname)
 SELECT 30, 'field-reopen-rop', password, 3,
   '{"surname":"Каталогов","name":"Тест","patronymic":"Тестович"}'::jsonb
 FROM users WHERE name = 'rop';
+-- Отдельный владелец для аттестации: его комплект не меняют параллельные сценарии.
+INSERT INTO users (id, name, password, role, fullname)
+SELECT 37, 'certification-rop', password, 3,
+  '{"surname":"Аттестов","name":"Тест","patronymic":"Тестович"}'::jsonb
+FROM users WHERE name = 'rop';
 -- Владельцы изолированных сценариев sync; не пересекаются с каталогом packet1.
 INSERT INTO users (id, name, password, role, fullname)
 SELECT fixture.id, fixture.name, rop.password, 3,
@@ -58,6 +63,10 @@ SELECT id, 361 FROM users WHERE name = 'admin' OR id IN (10, 13, 36);
 INSERT INTO rpd_complects (id, uuid, faculty, year, education_form, education_level, profile, direction) VALUES
   (90, '90909090-9090-4090-8090-909090909090', 'Тестовый институт', 2026, 'Очная', 'Бакалавриат', 'Регрессия титула и компетенций', 'Тестовое направление');
 INSERT INTO user_complect (id, user_id, complect_id) VALUES (90, (SELECT id FROM users WHERE name = 'rop'), 90);
+
+INSERT INTO rpd_complects (id, uuid, faculty, year, education_form, education_level, profile, direction) VALUES
+  (91, '91919191-9191-4191-8191-919191919191', 'Тестовый институт', 2026, 'Очная', 'Бакалавриат', 'Регрессия аттестации', 'Тестовое направление');
+INSERT INTO user_complect (user_id, complect_id) VALUES (37, 91);
 
 INSERT INTO rpd_1c_exchange (id, id_rpd_complect, department, discipline, teachers, zet, place, record_type, study_load, control_load, semester) VALUES
   (100, 100, 'Тестовая кафедра', 'Алгоритмы для теста', ARRAY['Альфина Тест Тестовна'], 3, 'Базовая часть', 'discipline', '{}'::jsonb, '{}'::jsonb, 1),

@@ -8,6 +8,20 @@ interface SelectorProps {
   readOnly?: boolean;
 }
 
+const CERTIFICATIONS = [
+  "Зачет",
+  "Зачет с оценкой",
+  "Экзамен",
+  "Курсовая работа",
+  "Курсовой проект",
+  "Зачет + курсовая работа",
+  "Зачет + курсовой проект",
+  "Зачет с оценкой + курсовая работа",
+  "Зачет с оценкой + курсовой проект",
+  "Экзамен + курсовая работа",
+  "Экзамен + курсовой проект",
+];
+
 const CertificationSelector: FC<SelectorProps> = ({
   certification,
   readOnly = false,
@@ -49,12 +63,14 @@ const CertificationSelector: FC<SelectorProps> = ({
         }),
       }}
     >
-      <MenuItem value="Зачет">зачет</MenuItem>
-      <MenuItem value="Зачет с оценкой">зачет с оценкой</MenuItem>
-      <MenuItem value="Экзамен">экзамен</MenuItem>
-      <MenuItem value="Экзамен + курсовая работа">
-        экзамен + курсовая работа
-      </MenuItem>
+      {valueCertification && !CERTIFICATIONS.includes(valueCertification) && (
+        <MenuItem value={valueCertification}>{valueCertification}</MenuItem>
+      )}
+      {CERTIFICATIONS.map((value) => (
+        <MenuItem key={value} value={value}>
+          {value.toLowerCase()}
+        </MenuItem>
+      ))}
     </Select>
   );
 };
