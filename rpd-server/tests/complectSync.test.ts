@@ -17,7 +17,7 @@ const rawDiscipline = {
 };
 const incoming = normalizeDisciplineFrom1c(rawDiscipline);
 const exchange: Rpd1cExchangeRow = { ...incoming, zet: 4, id: 11, id_rpd_complect: 2, removed_at: null };
-type Profile = Pick<RpdProfileTemplateRow, "id" | "disciplins_name" | "department" | "semester" | "zet" | "place" | "study_load" | "control_load" | "certification">;
+type Profile = Pick<RpdProfileTemplateRow, "id" | "disciplins_name" | "department" | "semester" | "zet" | "place" | "study_load" | "control_load" | "certification"> & { field_edits?: RpdProfileTemplateRow["field_edits"] };
 const profile: Profile = {
   id: 50, disciplins_name: exchange.discipline, department: exchange.department, semester: exchange.semester,
   zet: 4, place: exchange.place, study_load: exchange.study_load, control_load: exchange.control_load, certification: "Экзамен",
@@ -49,7 +49,7 @@ function mockSync(t: TestContext, fixtures: Fixture[], rawIncoming: unknown[] = 
         profile_discipline: linked?.disciplins_name ?? null, profile_department: linked?.department ?? null,
         profile_semester: linked?.semester ?? null, profile_zet: linked?.zet ?? null, profile_place: linked?.place ?? null,
         profile_study_load: linked?.study_load ?? null, profile_control_load: linked?.control_load ?? null,
-        profile_certification: linked?.certification ?? null,
+        profile_certification: linked?.certification ?? null, profile_field_edits: linked?.field_edits ?? {},
       })) };
     }
     throw new Error(`Неожиданный запрос к пулу: ${sql}`);
@@ -112,8 +112,23 @@ test("выбор полей preview исправляет только выбра
   for (const { sql } of mutationCalls(calls)) assert.doesNotMatch(sql, /\b(content|current_status|teacher_templates|template_status)\b/i);
 });
 
+test("выбор только учебной нагрузки не подменяет аттестацию неприменённым контролем", async (t) => {
+  const oldStudyLoad = { "Всего": 36 };
+  const oldControlLoad = { "Зачет": 0 };
+  const calls = mockSync(t, [{ exchange, profile: {
+    ...profile, study_load: oldStudyLoad, control_load: oldControlLoad, certification: null,
+  } }]);
+  await sync.applySync({ complectId: 2, actor, selections: [{ action: "update", id_1c: 11,
+    incoming: { ...incoming, control_load: { "Экзамен": 36 } }, fields: ["study_load"] }] });
+  const write = calls.find(({ sql }) => sql.includes("UPDATE rpd_profile_templates"));
+  assert.ok(write);
+  assert.equal(write.values?.includes("Зачет"), true);
+  assert.equal(write.values?.includes("Экзамен"), false);
+  assert.equal(calls.some(({ sql, values }) => sql.includes("INSERT INTO template_field_changes") && values?.[3] === "control_load"), false);
+});
+
 test("применение ЗЕТ и контроля сохраняет достоверную историю и форму аттестации", async (t) => {
-  const calls = mockSync(t, [{ exchange, profile: { ...profile, control_load: { "Зачет": "да" }, zet: 3, certification: "Зачет" } }]);
+  const calls = mockSync(t, [{ exchange, profile: { ...profile, control_load: { "Зачет": "да" }, zet: 3, certification: "Зачет", field_edits: { certification: { userId: null, at: "2026-01-01T00:00:00Z" } } } }]);
   await sync.applySync({ complectId: 2, actor, selections: [{ action: "update", id_1c: 11, incoming, fields: ["zet", "control_load"] }] });
   const write = calls.find(({ sql }) => sql.includes("UPDATE rpd_profile_templates"));
   assert.ok(write);
@@ -123,6 +138,48 @@ test("применение ЗЕТ и контроля сохраняет дос�
     [30, 11, 50, "control_load", JSON.stringify({ "Зачет": "да" }), JSON.stringify(incoming.control_load)],
     [30, 11, 50, "certification", JSON.stringify("Зачет"), JSON.stringify("Экзамен")],
   ]);
+});
+
+for (const [name, fieldEdits, expected] of [
+  ["ручная", { certification: { userId: 7, at: "2026-01-01T00:00:00Z" } }, "Зачет"],
+  ["без истории", {}, "Зачет"],
+  ["системная", { certification: { userId: null, at: "2026-01-01T00:00:00Z" } }, "Экзамен + курсовая работа"],
+] as const) {
+  test(`актуализация контроля сохраняет ${name} форму аттестации`, async (t) => {
+    const calls = mockSync(t, [{ exchange, profile: { ...profile, control_load: {}, certification: "Зачет", field_edits: fieldEdits } }]);
+    const combined = { "Курсовая работа": 0, "Экзамен": 36 };
+    await sync.applySync({ complectId: 2, actor, selections: [{ action: "update", id_1c: 11, incoming: { ...incoming, control_load: combined }, fields: ["control_load"] }] });
+    const write = calls.find(({ sql }) => sql.includes("UPDATE rpd_profile_templates"));
+    assert.ok(write);
+    assert.equal(write.values?.includes(JSON.stringify(combined)), true);
+    const certificationChanges = calls.filter(({ sql, values }) => sql.includes("INSERT INTO template_field_changes") && values?.[3] === "certification");
+    assert.equal(certificationChanges.length, expected === "Зачет" ? 0 : 1);
+    if (expected !== "Зачет") assert.equal(certificationChanges[0].values?.[5], JSON.stringify(expected));
+  });
+}
+
+test("preview предлагает восстановить пустую часть РПД из подтверждённого поля 1С", async (t) => {
+  const raw = { ...rawDiscipline, record_type: "К.М.08.02", place: "Б1.О" };
+  const normalized = normalizeDisciplineFrom1c(raw);
+  const local = { ...exchange, record_type: raw.record_type, place: "обязательной части" };
+  const calls = mockSync(t, [{ exchange: local, profile: { ...profile, place: "" } }], [raw]);
+  const { diff } = await sync.preview1cSync(2);
+  assert.equal(normalized.record_type, raw.record_type);
+  assert.deepEqual(diff.updated[0]?.fields, [{ field: "place", old: "", new: "обязательной части" }]);
+  await sync.applySync({ complectId: 2, actor, selections: [{ action: "update", id_1c: 11, incoming: diff.updated[0].incoming, fields: ["place"] }] });
+  const write = calls.find(({ sql }) => sql.includes("UPDATE rpd_profile_templates"));
+  assert.ok(write);
+  assert.equal(write.values?.[0], "обязательной части");
+});
+
+test("пустая часть во входе не стирает известные значения обмена и РПД", async (t) => {
+  const raw = { ...rawDiscipline, record_type: "К.М.08.02", place: "" };
+  const local = { ...exchange, record_type: raw.record_type, place: "обязательной части" };
+  const calls = mockSync(t, [{ exchange: local, profile: { ...profile, place: "обязательной части" } }], [raw]);
+  const { diff } = await sync.preview1cSync(2);
+  assert.equal(diff.updated.length, 0);
+  await sync.applySync({ complectId: 2, actor, selections: [{ action: "update", id_1c: 11, incoming: normalizeDisciplineFrom1c(raw), fields: ["place"] }] });
+  assert.equal(calls.some(({ sql }) => sql.includes("UPDATE rpd_1c_exchange") || sql.includes("UPDATE rpd_profile_templates")), false);
 });
 
 for (const linked of [profile, null]) {

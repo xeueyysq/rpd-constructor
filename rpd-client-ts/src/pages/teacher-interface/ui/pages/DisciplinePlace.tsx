@@ -17,9 +17,8 @@ const DisciplinePlace: FC<DisciplinePlaceProps> = ({ readOnly = false }) => {
   const data = useStore((state) => state.jsonData);
   const { fieldChanges } = useFieldChanges();
 
-  const certificationFromControlLoad =
-    (data.control_load && Object.keys(data.control_load || {})[0]) || "";
-  const certification = data.certification || certificationFromControlLoad;
+  const certification =
+    typeof data.certification === "string" ? data.certification : "";
 
   const placeWrapper = () => {
     const placeValue =
