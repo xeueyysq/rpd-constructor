@@ -82,11 +82,7 @@ export function TeacherInterface() {
           id: templateId,
         });
         if (!active || generation !== getSessionGeneration()) return;
-        setJsonData({
-          ...response.data,
-          certification:
-            response.data.certification || response.data.derived_certification,
-        });
+        setJsonData(response.data);
         setComplectId(response.data.id_rpd_complect);
         setLoadedTemplateId(templateId ?? null);
       } catch (error) {

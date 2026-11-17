@@ -1,6 +1,6 @@
 import type { RpdComplectRow, RpdProfileTemplateRow } from "../types/db.ts";
 import type { Pool } from "pg";
-import { patchStudyLoad } from "../modules/disciplineScope.ts";
+import { patchStudyLoad, resolveEffectiveCertification } from "../modules/disciplineScope.ts";
 import { isEditableTemplateField } from "../validators/RpdProfileTemplates.ts";
 import { fullnameText } from "../modules/teacherNames.ts";
 import { selectedFundsQuestions } from "../modules/assessmentFunds.ts";
@@ -94,7 +94,7 @@ class RpdProfileTemplates {
       FROM teacher_templates tt JOIN users u ON u.id=tt.user_id
       WHERE tt.template_id=$1 ORDER BY tt.id
     `, [numericId]);
-    return { ...profile, disciplins_name: formatDisciplineName(profile.disciplins_name), field_edits: await withEditorNames(this.pool, profile.field_edits), teachers: teachers.map((teacher) => ({ userId: teacher.userId, fullname: fullnameText(teacher.fullname) || teacher.name, isActive: teacher.isActive })) };
+    return { ...profile, certification: resolveEffectiveCertification(profile.certification, profile.field_edits, profile.study_load, profile.control_load), disciplins_name: formatDisciplineName(profile.disciplins_name), field_edits: await withEditorNames(this.pool, profile.field_edits), teachers: teachers.map((teacher) => ({ userId: teacher.userId, fullname: fullnameText(teacher.fullname) || teacher.name, isActive: teacher.isActive })) };
   }
 
   async updateById(id: unknown, fieldToUpdate: string, value: unknown, baseAt: string | null, userId: number) {

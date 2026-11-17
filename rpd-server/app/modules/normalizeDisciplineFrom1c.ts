@@ -1,7 +1,7 @@
 import { resolveZetFromStudyLoad } from "./disciplineScope.ts";
-import { placeFromRecordType } from "./disciplineRecordType.ts";
+import { normalizePlace, placeFromRecordType } from "./disciplineRecordType.ts";
 
-type RawDiscipline = { discipline?: unknown; semester?: unknown; division?: unknown; teachers?: unknown; zets?: unknown; record_type?: unknown; study_load?: unknown; control_load?: unknown };
+type RawDiscipline = { discipline?: unknown; semester?: unknown; division?: unknown; teachers?: unknown; zets?: unknown; place?: unknown; record_type?: unknown; study_load?: unknown; control_load?: unknown };
 const normalizeDisciplineFrom1c = (raw: unknown) => {
   const disc: RawDiscipline = raw && typeof raw === "object" ? raw as RawDiscipline : {};
   const {
@@ -10,6 +10,7 @@ const normalizeDisciplineFrom1c = (raw: unknown) => {
     division = "",
     teachers = [],
     zets = null,
+    place = "",
     record_type = "",
     study_load = {},
     control_load = {},
@@ -47,7 +48,7 @@ const normalizeDisciplineFrom1c = (raw: unknown) => {
     discipline: normalizedDiscipline,
     teachers: normalizedTeachers,
     zet: resolvedZet,
-    place: placeFromRecordType(normalizedRecordType),
+    place: normalizePlace(place) || placeFromRecordType(normalizedRecordType),
     record_type: normalizedRecordType,
     study_load: normalizedStudyLoad,
     control_load: normalizedControlLoad,
