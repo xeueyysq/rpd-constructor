@@ -96,6 +96,8 @@ export const PdfReader: FC<PdfReaderProps> = ({
         display: "flex",
         flexDirection: "column",
         alignItems: "center",
+        width: "100%",
+        minWidth: 0,
       }}
     >
       <Stack
@@ -103,28 +105,44 @@ export const PdfReader: FC<PdfReaderProps> = ({
           width: "100%",
           alignItems: "center",
           justifyContent: "space-between",
+          flexWrap: "wrap",
+          gap: 1,
         }}
-        direction="row"
+        direction={{ xs: "column", md: "row" }}
       >
-        <Box sx={{ minWidth: "175px" }} />
+        <Box sx={{ minWidth: "175px", display: { xs: "none", lg: "block" } }} />
         <Box
           sx={{
             display: "flex",
-            direction: "row",
+            flexDirection: "row",
             alignItems: "center",
           }}
         >
-          <IconButton onClick={() => handleZoom(-0.1)}>
+          <IconButton
+            aria-label="Уменьшить масштаб"
+            onClick={() => handleZoom(-0.1)}
+          >
             <ZoomOut />
           </IconButton>
-          <Typography sx={{ minWidth: 100 }}>
+          <Typography sx={{ minWidth: 100, whiteSpace: "nowrap" }}>
             Увеличить: {Math.round(scale * 100)}%
           </Typography>
-          <IconButton onClick={() => handleZoom(0.1)}>
+          <IconButton
+            aria-label="Увеличить масштаб"
+            onClick={() => handleZoom(0.1)}
+          >
             <ZoomIn />
           </IconButton>
         </Box>
-        <Stack sx={{ justifyContent: "flex-end" }} direction="row" spacing={1}>
+        <Stack
+          sx={{
+            justifyContent: { xs: "center", md: "flex-end" },
+            flexWrap: "wrap",
+            gap: 1,
+            maxWidth: "100%",
+          }}
+          direction="row"
+        >
           <Button
             variant="contained"
             startIcon={<FileDownloadOutlinedIcon />}
@@ -158,20 +176,29 @@ export const PdfReader: FC<PdfReaderProps> = ({
         </Stack>
       </Stack>
 
-      <Box sx={{ pr: 10, border: "1px dashed black", my: 2 }}>
-        <Document
-          file={fileUrl}
-          onLoadSuccess={onDocumentLoadSuccess}
-          onLoadError={onDocumentLoadError}
-          loading={<Typography>Загрузка PDF...</Typography>}
-        >
-          <Page
-            pageNumber={pageNumber}
-            scale={scale}
-            loading={<Typography>Загрузка страницы...</Typography>}
-            error={<Alert severity="error">Ошибка при загрузке страницы</Alert>}
-          />
-        </Document>
+      <Box
+        role="region"
+        aria-label="Просмотр PDF"
+        tabIndex={0}
+        sx={{ maxWidth: "100%", minWidth: 0, overflowX: "auto", my: 2 }}
+      >
+        <Box sx={{ width: "max-content", pr: 10, border: "1px dashed black" }}>
+          <Document
+            file={fileUrl}
+            onLoadSuccess={onDocumentLoadSuccess}
+            onLoadError={onDocumentLoadError}
+            loading={<Typography>Загрузка PDF...</Typography>}
+          >
+            <Page
+              pageNumber={pageNumber}
+              scale={scale}
+              loading={<Typography>Загрузка страницы...</Typography>}
+              error={
+                <Alert severity="error">Ошибка при загрузке страницы</Alert>
+              }
+            />
+          </Document>
+        </Box>
       </Box>
 
       {numPages > 0 && (

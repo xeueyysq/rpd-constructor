@@ -347,14 +347,14 @@ class RpdProfileTemplatesController {
   }
 
   async copyTemplateData(req: Request<ParamsDictionary, unknown, Record<string, unknown>>, res: Response) {
-    const { sourceTemplateId, targetTemplateId, fieldToCopy, baseAt, ownOnly } = req.body ?? {};
+    const { sourceTemplateId, targetTemplateId, fieldToCopy, baseAt, ownOnly, mode } = req.body ?? {};
     if (fieldToCopy === undefined) throw new Unprocessable("Укажите поле импорта");
-    res.json(await this.imports.copy(TemplateAccess.actor(req.user), sourceTemplateId, targetTemplateId, { field: fieldToCopy, baseAt, ownOnly }));
+    res.json(await this.imports.copy(TemplateAccess.actor(req.user), sourceTemplateId, targetTemplateId, { field: fieldToCopy, baseAt, ownOnly, mode }));
   }
 
   async copyTemplateContent(req: Request<ParamsDictionary, unknown, Record<string, unknown>>, res: Response) {
-    const { sourceTemplateId, targetTemplateId, targetRevision, ownOnly, sourceStatus } = req.body ?? {};
-    res.json(await this.imports.copy(TemplateAccess.actor(req.user), sourceTemplateId, targetTemplateId, { targetRevision, ownOnly, sourceStatus }));
+    const { sourceTemplateId, targetTemplateId, targetRevision, ownOnly, sourceStatus, mode } = req.body ?? {};
+    res.json(await this.imports.copy(TemplateAccess.actor(req.user), sourceTemplateId, targetTemplateId, { targetRevision, ownOnly, sourceStatus, mode }));
   }
 
   async getChangeableValues(req: Request<ParamsDictionary, unknown, Record<string, unknown>>, res: Response) {

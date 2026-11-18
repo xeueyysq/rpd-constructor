@@ -46,6 +46,7 @@ export {
 } from "./api/templateImport";
 export { importComplectLabel, importSkipLabels } from "./model/templateImport";
 export type {
+  TemplateImportMode,
   ImportField,
   ImportContext,
   ImportCatalogQuery,
