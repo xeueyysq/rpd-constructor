@@ -6,11 +6,12 @@ import TemplateImportModel, { type ImportTemplate } from "../models/template_imp
 import TemplateImportCatalogModel, { type CatalogFilters } from "../models/template_import_catalog.ts";
 import TemplateAccess from "./TemplateAccess.ts";
 import { resolveComplect, resolveTemplate } from "../middleware/templateAuthorization.ts";
-import { importMatchKey, isTemplateImportField, type TemplateImportField } from "../modules/templateImport.ts";
+import { matchTemplateImports, isTemplateImportField, type TemplateImportField, type TemplateImportMode } from "../modules/templateImport.ts";
+import { appendTemplateValues, mergeContentRows } from "../modules/templateImportMerge.ts";
 import { withEditorNames } from "../modules/fieldEdits.ts";
 import { formatDisciplineName } from "../modules/disciplineNames.ts";
 import { Conflict, Forbidden, NotFound, Unprocessable } from "../utils/Errors.ts";
-import { validateWordApply, type WordValues } from "../modules/wordImport/wordAdapter.ts";
+import { validateWordApply } from "../modules/wordImport/wordAdapter.ts";
 import type { CopyTemplateResponse, ImportCatalogResponse, ImportComplectEntry, ImportComplectResponse, ImportScope, ImportSkipReason, ImportSourcesResponse } from "../types/templateImport.ts";
 
 type Database = Pool | PoolClient;
@@ -195,7 +196,20 @@ export default class TemplateImport {
     return TemplateImportModel.preview(this.database, [...new Set(numericIds)], field);
   }
 
-  async copy(actor: UserClaims, sourceIdentifier: unknown, targetIdentifier: unknown, options: { field?: unknown; baseAt?: unknown; targetRevision?: unknown; ownOnly?: unknown; sourceStatus?: unknown } = {}): Promise<CopyTemplateResponse> {
+  private importMode(mode: unknown): TemplateImportMode {
+    if (mode === undefined) return "replace";
+    if (mode !== "append" && mode !== "replace") throw new Unprocessable("Укажите режим append или replace");
+    return mode;
+  }
+
+  private async saveCopy(client: PoolClient, source: ImportTemplate, target: ImportTemplate, fields: TemplateImportField[], actorId: number, mode: TemplateImportMode) {
+    return mode === "replace"
+      ? TemplateImportModel.replace(client, source.id, target.id, fields, actorId)
+      : TemplateImportModel.setValues(client, target.id, fields, appendTemplateValues(target, source, fields), actorId);
+  }
+
+  async copy(actor: UserClaims, sourceIdentifier: unknown, targetIdentifier: unknown, options: { field?: unknown; baseAt?: unknown; targetRevision?: unknown; ownOnly?: unknown; sourceStatus?: unknown; mode?: unknown } = {}): Promise<CopyTemplateResponse> {
+    const mode = this.importMode(options.mode);
     let field: TemplateImportField | undefined;
     if (options.field !== undefined) {
       if (!isTemplateImportField(options.field)) throw new Unprocessable("Недопустимое поле импорта");
@@ -224,7 +238,7 @@ export default class TemplateImport {
       const available = await TemplateImportModel.fields(client);
       const fields = field ? available.filter((item) => item === field) : available;
       if (!fields.length) throw new Unprocessable("Нет доступных полей импорта");
-      const updated = await TemplateImportModel.replace(client, sourceId, targetId, fields, actor.id);
+      const updated = await this.saveCopy(client, source, target, fields, actor.id, mode);
       if (!updated) throw new NotFound("Шаблон не найден");
       const edits = await withEditorNames(client, updated.field_edits);
       return { success: true, message: field ? `Поле ${field} успешно скопировано` : "Контентные поля успешно импортированы",
@@ -241,7 +255,8 @@ export default class TemplateImport {
 
   async wordApply(actor: UserClaims, identifier: unknown, body: Record<string, unknown>) {
     const { fields, values } = validateWordApply(body.selectedFields, body.values);
-    if (body.mode !== "append" && body.mode !== "replace") throw new Unprocessable("Укажите режим append или replace");
+    const mode = body.mode;
+    if (mode !== "append" && mode !== "replace") throw new Unprocessable("Укажите режим append или replace");
     return this.transaction(async (client) => {
       const id = await resolveTemplate(client, identifier);
       const initial = await this.target(client, actor, id);
@@ -255,16 +270,7 @@ export default class TemplateImport {
         const incoming = values[field];
         const previous = (target as unknown as Record<string, unknown>)[field];
         if (field === "content") {
-          const existing = previous && typeof previous === "object" && !Array.isArray(previous) ? previous as Record<string, unknown> : {};
-          const rows = incoming as Record<string, unknown>;
-          const result: Record<string, unknown> = body.mode === "append" ? { ...existing } : {};
-          let next = Math.max(0, ...Object.keys(result).filter((key) => /^\d+$/.test(key)).map(Number)) + 1;
-          for (const value of Object.values(rows)) {
-            while (String(next) in result) next++;
-            result[String(next++)] = value;
-          }
-          if ("__attestation__" in existing) result.__attestation__ = existing.__attestation__;
-          merged[field] = result;
+          merged[field] = mergeContentRows(previous, incoming, mode);
         } else if (Array.isArray(incoming)) {
           merged[field] = body.mode === "append" && Array.isArray(previous) ? [...previous, ...incoming] : incoming;
         } else if (typeof incoming === "string") {
@@ -272,14 +278,15 @@ export default class TemplateImport {
             ? `${previous}<br/><br/>${incoming}` : incoming;
         }
       }
-      const updated = await TemplateImportModel.setValues(client, id, fields, merged as WordValues, actor.id);
+      const updated = await TemplateImportModel.setValues(client, id, fields, merged, actor.id);
       if (!updated) throw new NotFound("Шаблон не найден");
       return { success: true as const, updatedFields: fields, targetTemplate: { ...updated, field_edits: await withEditorNames(client, updated.field_edits) },
         targetRevision: await this.revision(client, target.id_rpd_complect, id) };
     });
   }
 
-  async complect(actor: UserClaims, sourceIdentifier: unknown, targetIdentifier: unknown, targetRevision: unknown, sourceStatus?: unknown): Promise<ImportComplectResponse> {
+  async complect(actor: UserClaims, sourceIdentifier: unknown, targetIdentifier: unknown, targetRevision: unknown, sourceStatus?: unknown, importMode?: unknown): Promise<ImportComplectResponse> {
+    const mode = this.importMode(importMode);
     if (sourceStatus !== undefined && sourceStatus !== null &&
       (typeof sourceStatus !== "string" || !["unloaded", "created", "on_teacher", "in_progress", "ready", "on_refinement", "closed"].includes(sourceStatus)))
       throw new Unprocessable("Некорректный статус источника");
@@ -299,21 +306,21 @@ export default class TemplateImport {
       if (!fields.length) throw new Unprocessable("Нет доступных полей импорта");
       const imported: ImportComplectResponse["imported"] = [];
       const skipped: ImportComplectResponse["skipped"] = [];
-      for (const target of targets) {
+      const matches = matchTemplateImports(sources, targets);
+      for (const [index, target] of targets.entries()) {
         const entry: ImportComplectEntry = { targetExchangeId: target.exchange_id, targetTemplateId: target.template_id, discipline: target.discipline, semester: target.semester, record_type: target.record_type };
-        const key = importMatchKey(target);
-        const matches = sources.filter((row) => importMatchKey(row) === key);
-        let reason: ImportSkipReason | undefined;
-        if (!target.discipline?.trim() || !matches.length) reason = "missing_source";
-        else if (matches.length !== 1 || targets.filter((row) => importMatchKey(row) === key).length !== 1) reason = "ambiguous";
-        else if (target.template_id == null) reason = "target_missing_template";
-        else if (matches[0].template_id == null) reason = "source_missing_template";
-        else if (target.current_status === "ready" || target.current_status === "closed") reason = "read_only";
+        const match = matches[index];
+        const source = match.source;
+        let reason: ImportSkipReason | undefined = match.reason;
+        if (!reason && target.template_id == null) reason = "target_missing_template";
+        else if (!reason && source?.template_id == null) reason = "source_missing_template";
+        else if (!reason && (target.current_status === "ready" || target.current_status === "closed")) reason = "read_only";
         if (reason) { skipped.push({ ...entry, reason }); continue; }
-        await this.target(client, actor, target.template_id!);
-        const updated = await TemplateImportModel.replace(client, matches[0].template_id!, target.template_id!, fields, actor.id);
+        const targetTemplate = await this.target(client, actor, target.template_id!);
+        const sourceTemplate = await this.source(client, source!.template_id!, targetId);
+        const updated = await this.saveCopy(client, sourceTemplate, targetTemplate, fields, actor.id, mode);
         if (!updated) throw new NotFound("Цель импорта не найдена");
-        imported.push({ ...entry, sourceExchangeId: matches[0].exchange_id, sourceTemplateId: matches[0].template_id! });
+        imported.push({ ...entry, sourceExchangeId: source!.exchange_id, sourceTemplateId: source!.template_id! });
       }
       return { imported, skipped, counts: { imported: imported.length, skipped: skipped.length, total: targets.length }, targetRevision: await this.revision(client, targetId) };
     });

@@ -18,7 +18,7 @@ const enabled = process.env.DB_HOST === "127.0.0.1" && process.env.DB_PORT === "
   && process.env.DB_NAME === "rpd_e2e" && process.env.DB_USER === "rpd_e2e"
   && process.env.DB_PASSWORD === "rpd_e2e" && process.env.ACCESS_TOKEN_SECRET === "e2e-access-token-secret-only";
 
-test("HTTP + PostgreSQL: каталог, назначения, Word preview/apply и защита цели", { skip: !enabled, timeout: 60_000 }, async (t) => {
+test("HTTP + PostgreSQL: каталог, режимы импорта, перенос семестра, назначения и Word", { skip: !enabled, timeout: 60_000 }, async (t) => {
   const base = randomInt(500_000_000, 900_000_000);
   const nonce = randomBytes(6).toString("hex");
   const ids = { teacher: base, rop: base + 1, targetComplect: base + 10,
@@ -174,9 +174,9 @@ test("HTTP + PostgreSQL: каталог, назначения, Word preview/appl
   assert.ok(Number.isFinite(Date.parse(fullResult.targetTemplate.field_edits.goals.at)));
   assert.equal((await post("/copy-template-content", fullBody)).status, 409, "stale revision не пишет в БД");
   assert.equal((await post("/copy-template-data", { sourceTemplateId: ids.own, targetTemplateId: ids.target,
-    fieldToCopy: "goals", baseAt: null })).status, 409, "stale baseAt не пишет в БД");
+    fieldToCopy: "goals", baseAt: null, mode: "append" })).status, 409, "stale baseAt не пишет в БД");
   assert.deepEqual(await targetRow(), fullAfter);
-  const changedReady = await changeWhileCopyWaits("/copy-template-content", { ...fullBody, targetRevision: fullResult.targetRevision },
+  const changedReady = await changeWhileCopyWaits("/copy-template-content", { ...fullBody, targetRevision: fullResult.targetRevision, mode: "append" },
     (client) => client.query("UPDATE template_status SET current_status='created' WHERE id_profile_template=$1", [ids.foreign]));
   assert.equal(changedReady.status, 409, "готовность источника повторно проверяется после lock");
   assert.equal((await post("/copy-template-content", { ...fullBody, sourceStatus: "created" })).status, 422);
@@ -186,6 +186,62 @@ test("HTTP + PostgreSQL: каталог, назначения, Word preview/appl
     ownOnly: false, targetRevision: fullResult.targetRevision })).status, 200,
   "без ready-only доступны все статусы; уровень — критерий каталога, а не запрет прямого копирования");
   await pool.query("UPDATE rpd_complects SET education_level='Бакалавриат' WHERE id=$1", [ids.foreignComplect]);
+
+  await t.test("mode проходит через каждый controller; append и replace сохраняются в настоящем PG", async () => {
+    const before = await targetRow();
+    for (const mode of [null, "", "merge", false, 0, [], {}]) {
+      assert.equal((await post("/copy-template-data", { sourceTemplateId: ids.own, targetTemplateId: ids.target,
+        fieldToCopy: "goals", baseAt: before.field_edits.goals.at, mode })).status, 422);
+      assert.equal((await post("/copy-template-content", { sourceTemplateId: ids.foreign, targetTemplateId: ids.target, mode })).status, 422);
+      assert.equal((await post("/template-import/complect", { sourceComplectId: ids.ownComplect,
+        targetComplectId: ids.targetComplect, targetRevision: "unused", mode }, rop)).status, 422);
+    }
+    assert.deepEqual(await targetRow(), before);
+    const fieldBody = { sourceTemplateId: ids.own, targetTemplateId: ids.target, fieldToCopy: "goals" };
+    const fieldAppend = await post("/copy-template-data", { ...fieldBody, baseAt: before.field_edits.goals.at, mode: "append" });
+    assert.equal(fieldAppend.status, 200);
+    const appendedField = await targetRow();
+    assert.equal(appendedField.goals, "Чужие цели<br/><br/>Свои цели");
+    assert.equal(appendedField.field_edits.goals.userId, ids.teacher);
+    assert.notEqual(appendedField.field_edits.goals.at, before.field_edits.goals.at);
+    assert.ok(Date.parse(appendedField.field_edits.goals.at) >= Date.parse(before.field_edits.goals.at));
+    assert.equal((await post("/copy-template-data", { ...fieldBody, baseAt: appendedField.field_edits.goals.at, mode: "replace" })).status, 200);
+    assert.equal((await targetRow()).goals, "Свои цели");
+
+    const targetContent = { "7": { theme: "Тема цели" }, future: { extension: true },
+      __attestation__: { theme: "Экзамен цели", control: 36 } };
+    await pool.query("UPDATE rpd_profile_templates SET content=$1::jsonb WHERE id=$2", [JSON.stringify(targetContent), ids.target]);
+    const revision = (await (await get(`/template-import/catalog?${targetQuery}`)).json() as ImportCatalogResponse).targetRevision;
+    const appendBody = { sourceTemplateId: ids.foreign, targetTemplateId: ids.target, targetRevision: revision, mode: "append" };
+    const appendedResponse = await post("/copy-template-content", appendBody);
+    assert.equal(appendedResponse.status, 200);
+    const appended = await targetRow();
+    assert.equal(appended.goals, "Свои цели<br/><br/>Чужие цели");
+    assert.deepEqual(appended.textbook, ["Книга источника", "Книга источника"], "повторяемые элементы не удаляются");
+    assert.deepEqual(appended.content, { ...targetContent, "8": { theme: "Тема источника", lectures: 2 } });
+    assert.equal((await post("/copy-template-content", appendBody)).status, 409);
+    assert.deepEqual(await targetRow(), appended);
+    const appendedResult = await appendedResponse.json() as CopyTemplateResponse;
+    await pool.query("UPDATE rpd_profile_templates SET goals=NULL,content=NULL,textbook=ARRAY[]::text[],software='' WHERE id=$1", [ids.foreign]);
+    assert.equal((await post("/copy-template-content", { ...appendBody, targetRevision: appendedResult.targetRevision })).status, 200);
+    const emptyAppend = await targetRow();
+    for (const field of ["goals", "content", "textbook", "software"]) assert.deepEqual(emptyAppend[field], appended[field], field);
+    const replaceRevision = (await (await get(`/template-import/catalog?${targetQuery}`)).json() as ImportCatalogResponse).targetRevision;
+    const replaceResponse = await post("/copy-template-content", { ...appendBody, targetRevision: replaceRevision, mode: "replace" });
+    assert.equal(replaceResponse.status, 200);
+    const replaced = await targetRow();
+    assert.equal(replaced.goals, null);
+    assert.equal(replaced.content, null);
+    assert.deepEqual(replaced.textbook, []);
+    assert.equal(replaced.software, "");
+    for (const key of ["id", "public_id", "id_rpd_complect", "disciplins_name", "competencies", "study_load", "assessment_tools_template"])
+      assert.deepEqual(replaced[key], before[key], key);
+    const replaceResult = await replaceResponse.json() as CopyTemplateResponse;
+    assert.equal((await post("/copy-template-content", { ...appendBody, targetRevision: replaceResult.targetRevision })).status, 200);
+    assert.equal((await pool.query("SELECT content IS NULL AS sql_null FROM rpd_profile_templates WHERE id=$1", [ids.target])).rows[0].sql_null, true,
+      "пустой append сохраняет SQL NULL, а не записывает JSON null");
+  });
+
   for (const status of ["ready", "closed"]) {
     await pool.query("UPDATE template_status SET current_status=$1 WHERE id_profile_template=$2", [status, ids.target]);
     const lockedTarget = await targetRow();
@@ -232,6 +288,8 @@ test("HTTP + PostgreSQL: каталог, назначения, Word preview/appl
     VALUES($1,$2,$3,'ready'),($4,$5,$6,'in_progress'),($7,$8,$9,'in_progress')`,
     [base + 52, base + 61, ids.own, base + 53, base + 62, base + 25,
       base + 54, base + 63, base + 24]);
+  await pool.query("UPDATE rpd_1c_exchange SET semester=2 WHERE id=$1", [base + 60]);
+  await pool.query("UPDATE rpd_profile_templates SET semester=2 WHERE id=$1", [ids.target]);
   const bulkCatalog = await get(`/template-import/catalog?targetComplectId=${ids.targetComplect}&status=ready${fixtureFacultyFilter}`, rop);
   const bulkData = await bulkCatalog.json() as { targetRevision: string; total: number;
     complects: Array<{ id: number }>; facets: { faculties: string[]; educationLevels: string[] } };
@@ -247,11 +305,33 @@ test("HTTP + PostgreSQL: каталог, назначения, Word preview/appl
   assert.equal((await post("/template-import/complect", { ...bulkBody, sourceStatus: "invalid" }, rop)).status, 422);
   const bulkResponse = await post("/template-import/complect", bulkBody, rop);
   assert.equal(bulkResponse.status, 200);
-  const bulkResult = await bulkResponse.json() as { counts: { imported: number; skipped: number }; skipped: Array<{ reason: string }> };
+  const bulkResult = await bulkResponse.json() as { targetRevision: string; counts: { imported: number; skipped: number }; skipped: Array<{ reason: string }> };
   assert.equal(bulkResult.counts.imported, 2);
   assert.deepEqual(bulkResult.skipped, []);
   assert.equal((await pool.query("SELECT goals FROM rpd_profile_templates WHERE id=$1", [ids.target])).rows[0].goals, "Свои цели");
   assert.equal((await pool.query("SELECT goals FROM rpd_profile_templates WHERE id=$1", [base + 24])).rows[0].goals, "Другие новые цели");
+  assert.equal((await targetRow()).semester, 2, "перенос копирует содержание, сохраняя семестр цели");
+  await t.test("bulk передаёт append и replace, в том числе для перенесённой пары", async () => {
+    const content = { "7": { theme: "Тема bulk цели" }, __attestation__: { theme: "Экзамен bulk цели", control: 36 } };
+    await pool.query("UPDATE rpd_profile_templates SET content=$1::jsonb WHERE id=$2", [JSON.stringify(content), ids.target]);
+    await pool.query("UPDATE rpd_profile_templates SET content=$1::jsonb,textbook=ARRAY['Книга bulk'] WHERE id=$2",
+      [JSON.stringify({ legacy: { theme: "Тема bulk источника", lectures: 1 }, __attestation__: { control: 99 } }), ids.own]);
+    const bulkAppend = { ...bulkBody, targetRevision: bulkResult.targetRevision, mode: "append" };
+    const response = await post("/template-import/complect", bulkAppend, rop);
+    assert.equal(response.status, 200);
+    const result = await response.json() as { targetRevision: string };
+    const appended = await targetRow();
+    assert.equal(appended.goals, "Свои цели<br/><br/>Свои цели");
+    assert.deepEqual(appended.textbook, ["Книга bulk"]);
+    assert.deepEqual(appended.content, { ...content, "8": { theme: "Тема bulk источника", lectures: 1 } });
+    assert.equal(appended.field_edits.content.userId, ids.rop);
+    assert.ok(Number.isFinite(Date.parse(appended.field_edits.content.at)));
+    assert.equal((await post("/template-import/complect", bulkAppend, rop)).status, 409);
+    assert.deepEqual(await targetRow(), appended);
+    assert.equal((await post("/template-import/complect", { ...bulkAppend, targetRevision: result.targetRevision, mode: "replace" }, rop)).status, 200);
+    assert.equal((await targetRow()).goals, "Свои цели");
+    assert.equal((await targetRow()).semester, 2);
+  });
   await pool.query("UPDATE template_status SET current_status='in_progress' WHERE id_profile_template=$1", [ids.own]);
   await pool.query("UPDATE rpd_profile_templates SET goals='Не копировать' WHERE id=$1", [ids.own]);
   const changedCatalog = await get(`/template-import/catalog?targetComplectId=${ids.targetComplect}&status=ready${fixtureFacultyFilter}`, rop);
@@ -294,7 +374,7 @@ test("HTTP + PostgreSQL: каталог, назначения, Word preview/appl
     "HTTP-каталог исключает ту же дисциплину другой программы/того же года");
   const beforeRevoke = await targetRow();
   const revokedCopy = await changeWhileCopyWaits("/copy-template-data", { sourceTemplateId: ids.own, targetTemplateId: ids.target,
-    fieldToCopy: "goals", baseAt: beforeRevoke.field_edits.goals.at, ownOnly: false },
+    fieldToCopy: "goals", baseAt: beforeRevoke.field_edits.goals.at, ownOnly: false, mode: "append" },
   (client) => client.query("DELETE FROM teacher_templates WHERE id=$1", [ids.ownAssignment]));
   assert.equal(revokedCopy.status, 403, "назначение повторно проверяется после lock");
   assert.deepEqual(await targetRow(), beforeRevoke);
