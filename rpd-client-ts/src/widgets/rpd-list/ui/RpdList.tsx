@@ -14,7 +14,7 @@ import {
   ListItemText,
   Typography,
 } from "@mui/material";
-import { Can, UserRole } from "@shared/ability";
+import { UserRole } from "@shared/ability";
 import { useAuth } from "@entities/auth";
 import { TemplateCollabBar, useTemplatePresence } from "@entities/template";
 import { RedirectPath, TemplatePagesPath } from "@shared/enums";
@@ -136,29 +136,34 @@ export const RpdList: FC<{ RpdListItems: RpdListItem[] }> = ({
         <Divider />
         {activeTemplateId && <TemplateCollabBar presence={presence} />}
         <List dense>
-          <Can I="get" a="rop_interface">
-            <ListItem disableGutters disablePadding>
-              <ListItemButton
-                onClick={() =>
-                  navigate(
-                    `${RedirectPath.TEMPLATES}/${templateId}/${TemplatePagesPath.TEST_PDF}`
-                  )
-                }
-                sx={{ py: 1 }}
-              >
-                <ListItemIcon sx={{ minWidth: (theme) => theme.spacing(4.5) }}>
-                  <DescriptionIcon sx={{ fontSize: "20px" }} />
-                </ListItemIcon>
-                <ListItemText
-                  primary={
-                    <Typography sx={{ fontSize: "14px" }}>
-                      Сформировать документ
-                    </Typography>
+          {activeTemplateId &&
+            (userRole === UserRole.TEACHER ||
+              userRole === UserRole.ROP ||
+              userRole === UserRole.ADMIN) && (
+              <ListItem disableGutters disablePadding>
+                <ListItemButton
+                  onClick={() =>
+                    navigate(
+                      `${RedirectPath.TEMPLATES}/${templateId}/${TemplatePagesPath.TEST_PDF}`
+                    )
                   }
-                />
-              </ListItemButton>
-            </ListItem>
-          </Can>
+                  sx={{ py: 1 }}
+                >
+                  <ListItemIcon
+                    sx={{ minWidth: (theme) => theme.spacing(4.5) }}
+                  >
+                    <DescriptionIcon sx={{ fontSize: "20px" }} />
+                  </ListItemIcon>
+                  <ListItemText
+                    primary={
+                      <Typography sx={{ fontSize: "14px" }}>
+                        Сформировать документ
+                      </Typography>
+                    }
+                  />
+                </ListItemButton>
+              </ListItem>
+            )}
           <ListItem disableGutters disablePadding>
             <ListItemButton
               onClick={() =>
