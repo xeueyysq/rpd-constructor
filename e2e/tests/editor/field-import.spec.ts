@@ -135,6 +135,7 @@ for (const role of ['rop', 'teacher'] as const) {
     expect(await sameYear.response.json()).toEqual([expect.objectContaining({ id: 300, goals: '<p>Цели источника 300</p>' })]);
     await applyField(page, sameYear.dialog, target.id, 'goals', '<p>Цели источника 300</p>');
     await page.getByRole('button', { name: 'Ресурсное обеспечение', exact: true }).click();
+    await expect(page.getByText('Основная литература', { exact: true })).toBeVisible();
     for (const [index, field, value] of [
       [0, 'textbook', ['Основная книга 302', 'Вторая основная книга 302']],
       [1, 'additional_textbook', ['Дополнительная книга 302']],
