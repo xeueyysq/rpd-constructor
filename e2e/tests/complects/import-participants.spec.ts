@@ -86,14 +86,18 @@ test('полный импорт чужого черновика того же г
   const confirmation = page.getByRole('dialog', { name: 'Подтвердите импорт', exact: true });
   await expect(confirmation).not.toContainText('Цель:');
   await expect(confirmation).toContainText(/Источник:.*Импорт\s+поля list3.*семестр 1.*2026/i);
-  await expect(confirmation).toContainText('Содержательные поля РПД будут заменены. Компетенции и ФОС сохраняются.');
+  await expect(confirmation.getByRole('radio', { name: 'Дополнить', exact: true })).toBeChecked();
+  await confirmation.getByRole('radio', { name: 'Заменить', exact: true }).check();
+  await expect(confirmation.getByRole('radio', { name: 'Заменить', exact: true })).toBeChecked();
+  await expect(confirmation).toContainText('Содержательные поля РПД будут заменены, даже если поля источника пустые.');
+  await expect(confirmation).toContainText('Компетенции и ФОС сохраняются.');
   await confirmation.screenshot({ path: testInfo.outputPath('full-import-target-context.png') });
   const copied = page.waitForResponse((response) => response.url() === `${apiUrl}/api/copy-template-content`
     && response.request().method() === 'POST');
   await confirmation.getByRole('button', { name: 'Импортировать', exact: true }).click();
   const response = await copied;
   expect(response.status()).toBe(200);
-  expect(response.request().postDataJSON()).toMatchObject({ sourceTemplateId: 300, targetTemplateId: 312 });
+  expect(response.request().postDataJSON()).toMatchObject({ sourceTemplateId: 300, targetTemplateId: 312, mode: 'replace' });
   expect(response.request().postDataJSON()).not.toHaveProperty('sourceStatus');
   expect(preservedImportData((await response.json()).targetTemplate)).toEqual(preservedImportData(before));
   await expect(dialog).toBeHidden();
@@ -112,7 +116,7 @@ test('полный импорт чужого черновика того же г
   await expect(page.getByRole('table', { name: 'Содержание дисциплины' })).toContainText('Тема источника');
 });
 
-test('массовый импорт: точный семестр и тип, итог импортировано/пропущено, API/БД и reload', async ({ page, request }, testInfo) => {
+test('массовый импорт: точный семестр, единственный остаток и тип, API/БД и reload', async ({ page, request }, testInfo) => {
   const headers = await headersFor(request);
   const before = await Promise.all([313, 314, 315].map((id) => profileFor(request, headers, id)));
   await signIn(page, 'rop');
@@ -143,38 +147,79 @@ test('массовый импорт: точный семестр и тип, ит
   await dialog.getByRole('button', { name: 'Продолжить', exact: true }).click();
   const confirmation = page.getByRole('dialog', { name: 'Подтвердите импорт', exact: true });
   await expect(confirmation).toContainText(/Источник:.*Институт источников List3.*Другое направление List3.*List3 Источники.*2026.*Бакалавриат/);
+  await expect(confirmation).toContainText('Сначала проверяются совпадения по названию, типу записи и семестру.');
+  await expect(confirmation).toContainText('единственные источник и цель');
+  await expect(confirmation).toContainText('Неоднозначные совпадения пропускаются. Семестр учебного плана цели сохраняется.');
+  await expect(confirmation.getByRole('radio', { name: 'Дополнить', exact: true })).toBeChecked();
+  for (const [mode, label] of [['append', 'Дополнить'], ['replace', 'Заменить']] as const) {
+    await confirmation.getByRole('radio', { name: label, exact: true }).check();
+    for (const [width, height] of [[1365, 900], [390, 844], [320, 640]] as const) {
+      await page.setViewportSize({ width, height });
+      for (const control of await confirmation.getByRole('radio').all()) {
+        await control.scrollIntoViewIfNeeded();
+        await expect(control).toBeInViewport({ ratio: 1 });
+        await expect(control).toBeEnabled();
+      }
+      await expect(confirmation.getByRole('button', { name: 'Назад', exact: true })).toBeInViewport({ ratio: 1 });
+      await expect(confirmation.getByRole('button', { name: 'Импортировать', exact: true })).toBeInViewport({ ratio: 1 });
+      expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
+      await confirmation.screenshot({ path: testInfo.outputPath(`bulk-confirm-${mode}-${width}x${height}.png`), animations: 'disabled' });
+    }
+    await page.setViewportSize({ width: 1365, height: 900 });
+  }
+  await expect(confirmation.getByRole('radio', { name: 'Заменить', exact: true })).toBeChecked();
   const saved = page.waitForResponse((response) => response.url() === `${apiUrl}/api/template-import/complect`
     && response.request().method() === 'POST');
   await confirmation.getByRole('button', { name: 'Импортировать', exact: true }).click();
   const response = await saved;
   expect(response.status()).toBe(200);
+  expect(response.request().postDataJSON()).toMatchObject({ sourceComplectId: 300,
+    targetComplectId: list3.bulk.complectId, mode: 'replace' });
   expect(response.request().postDataJSON()).not.toHaveProperty('sourceStatus');
   const result = await response.json();
-  expect(result.counts).toEqual({ imported: 1, skipped: 2, total: 3 });
-  expect(result.imported).toEqual([expect.objectContaining({ targetTemplateId: 313, sourceTemplateId: 300,
-    semester: 1, record_type: 'discipline' })]);
-  expect(result.skipped).toEqual(expect.arrayContaining([
-    expect.objectContaining({ targetTemplateId: 314, semester: 3, record_type: 'discipline', reason: 'missing_source' }),
-    expect.objectContaining({ targetTemplateId: 315, semester: 2, record_type: 'practice', reason: 'missing_source' }),
+  expect(result.counts).toEqual({ imported: 2, skipped: 1, total: 3 });
+  expect(result.imported).toHaveLength(2);
+  expect(result.imported).toEqual(expect.arrayContaining([
+    expect.objectContaining({ targetTemplateId: 313, sourceTemplateId: 300, semester: 1, record_type: 'discipline' }),
+    expect.objectContaining({ targetTemplateId: 314, sourceTemplateId: 301, semester: 3, record_type: 'discipline' }),
   ]));
-  await expect(dialog).toContainText('Импортировано: 1. Пропущено: 2. Всего: 3.');
-  await expect(dialog).toContainText('Нет совпадающей дисциплины в источнике: 2');
+  expect(result.skipped).toEqual([
+    expect.objectContaining({ targetTemplateId: 315, semester: 2, record_type: 'practice', reason: 'missing_source' }),
+  ]);
+  await expect(dialog).toContainText('Импортировано: 2. Пропущено: 1. Всего: 3.');
+  await expect(dialog).toContainText('Нет совпадающей дисциплины в источнике: 1');
   await dialog.screenshot({ path: testInfo.outputPath('bulk-import-summary.png') });
   const after = await Promise.all([313, 314, 315].map((id) => profileFor(request, headers, id)));
   expect(after[0].goals).toBe('<p>Цели источника 300</p>');
   expect(after[0].content).toEqual({ 0: { theme: 'Тема источника', lectures: 9, seminars: 7, independent_work: 8, control: 0 } });
+  expect(after[1].goals).toBe('<p>Цели источника 301</p>');
+  expect(after[1].content).toEqual({ 0: { theme: 'Тема источника', lectures: 9, seminars: 7, independent_work: 8, control: 0 } });
+  expect(after[1].semester).toBe(3);
   after.forEach((profile, index) => expect(preservedImportData(profile)).toEqual(preservedImportData(before[index])));
-  for (const index of [1, 2]) {
-    expect(after[index].content).toEqual(before[index].content);
-    expect(after[index].goals).toEqual(before[index].goals);
+  expect(after[2].content).toEqual(before[2].content);
+  expect(after[2].goals).toEqual(before[2].goals);
+  for (const index of [0, 1]) {
+    for (const field of ['goals', 'content']) {
+      expect(after[index].field_edits[field]).toMatchObject({ userId: 1, fullname: 'Руководов Т.Т.' });
+      expect(Number.isNaN(Date.parse(after[index].field_edits[field].at))).toBe(false);
+    }
+    expect(templateFromDb(313 + index)).toMatchObject({ goals: after[index].goals, content: after[index].content,
+      ...preservedImportData(before[index]), field_edits: {
+        goals: { userId: 1, at: after[index].field_edits.goals.at },
+        content: { userId: 1, at: after[index].field_edits.content.at },
+      } });
   }
-  expect(templateFromDb(313)).toMatchObject({ goals: after[0].goals, content: after[0].content,
-    ...preservedImportData(before[0]) });
   await dialog.getByRole('button', { name: 'Закрыть', exact: true }).click();
   await page.goto(`/templates/${list3.bulk.publicId}/aimsPage`);
   await expect(page.getByText('Цели источника 300', { exact: true })).toBeVisible();
   await page.reload();
   await expect(page.getByText('Цели источника 300', { exact: true })).toBeVisible();
+  await page.goto('/templates/a314a314a314/aimsPage');
+  await expect(page.getByText('Цели источника 301', { exact: true })).toBeVisible();
+  await page.reload();
+  await expect(page.getByText('Цели источника 301', { exact: true })).toBeVisible();
+  await page.getByRole('button', { name: 'Содержание дисциплины', exact: true }).click();
+  await expect(page.getByRole('table', { name: 'Содержание дисциплины', exact: true })).toContainText('Тема источника');
 });
 
 test('single преподавателя: плоская пагинация, только ready checkbox, сброс выбора и ready guard; 1365/768/390', async ({ page }) => {
@@ -257,10 +302,13 @@ test('single преподавателя: плоская пагинация, то
   await expect(dialog.getByRole('radio', { checked: true })).toHaveCount(0);
   await dialog.getByRole('radio').first().check();
   await dialog.getByRole('button', { name: 'Продолжить' }).click();
+  const confirmation = page.getByRole('dialog', { name: 'Подтвердите импорт' });
+  await confirmation.getByRole('radio', { name: 'Заменить', exact: true }).check();
+  await expect(confirmation.getByRole('radio', { name: 'Заменить', exact: true })).toBeChecked();
   await page.route('**/api/copy-template-content', (route) => route.fulfill({ status: 503, contentType: 'application/json', body: '{}' }));
   const copied = page.waitForRequest((request) => request.url().endsWith('/api/copy-template-content'));
   await page.getByRole('dialog', { name: 'Подтвердите импорт' }).getByRole('button', { name: 'Импортировать', exact: true }).click();
-  expect((await copied).postDataJSON()).toMatchObject({ targetTemplateId: 4000, sourceStatus: 'ready' });
+  expect((await copied).postDataJSON()).toMatchObject({ targetTemplateId: 4000, sourceStatus: 'ready', mode: 'replace' });
   await expect(dialog).toContainText('Не удалось выполнить действие');
   await dialog.getByRole('button', { name: 'Импортировать из Word', exact: true }).click();
   const word = page.getByRole('dialog', { name: 'Импортировать из Word', exact: true });

@@ -17,6 +17,7 @@ import type {
   ImportContext,
   ImportField,
   ImportFieldPreview,
+  TemplateImportMode,
   WordImportApplyResponse,
   WordImportField,
   WordImportPreview,
@@ -215,6 +216,7 @@ export function useCopyTemplateField() {
       fieldToCopy: ImportField;
       baseAt: string | null;
       ownOnly?: boolean;
+      mode?: TemplateImportMode;
     }) =>
       changeField(
         params.targetTemplateId,
@@ -265,6 +267,7 @@ export function useCopyTemplateContent() {
       targetTemplateId: number;
       targetRevision: string;
       sourceStatus?: "ready";
+      mode?: TemplateImportMode;
     }) => {
       const generation = getSessionGeneration();
       const startedInTargetEditor =
@@ -431,6 +434,7 @@ export function useImportComplect() {
       sourceComplectId: number;
       targetComplectId: number | string;
       targetRevision: string;
+      mode?: TemplateImportMode;
     }) => {
       requireSession(generation);
       const active = useStore.getState().jsonData;
