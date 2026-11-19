@@ -426,36 +426,41 @@ describe("HTTP-контракты клиентского импорта", () => 
     });
   });
 
-  it("дожидается сохранения цели и отправляет зафиксированный baseAt, сохраняя тип text[]", async () => {
-    let finish!: () => void;
-    const saving = useTemplateSync.getState().track(
-      new Promise<void>((resolve) => {
-        finish = resolve;
-      })
-    );
-    reply = () => ({ success: true, value: ["Новая книга"], edit });
-    const mutation = renderHook(useCopyTemplateField);
-    const imported = mutation.mutateAsync({
-      sourceTemplateId: 21,
-      targetTemplateId: 12,
-      fieldToCopy: "textbook",
-      baseAt: before,
-    });
-    await Promise.resolve();
-    expect(requests).toHaveLength(0);
-    finish();
-    await saving;
-    await imported;
-    expect(body(requests[0])).toEqual({
-      sourceTemplateId: 21,
-      targetTemplateId: 12,
-      fieldToCopy: "textbook",
-      baseAt: before,
-    });
-    expect(useStore.getState().jsonData.textbook).toEqual(["Новая книга"]);
-    expect(useStore.getState().jsonData.field_edits.textbook).toEqual(edit);
-    expect(useTemplateSync.getState().dirty).toEqual({});
-  });
+  it.each([undefined, "append", "replace"] as const)(
+    "%s: дожидается сохранения цели и отправляет режим с baseAt, сохраняя тип text[]",
+    async (mode) => {
+      let finish!: () => void;
+      const saving = useTemplateSync.getState().track(
+        new Promise<void>((resolve) => {
+          finish = resolve;
+        })
+      );
+      reply = () => ({ success: true, value: ["Новая книга"], edit });
+      const mutation = renderHook(useCopyTemplateField);
+      const imported = mutation.mutateAsync({
+        sourceTemplateId: 21,
+        targetTemplateId: 12,
+        fieldToCopy: "textbook",
+        baseAt: before,
+        mode,
+      });
+      await Promise.resolve();
+      expect(requests).toHaveLength(0);
+      finish();
+      await saving;
+      await imported;
+      expect(body(requests[0])).toEqual({
+        sourceTemplateId: 21,
+        targetTemplateId: 12,
+        fieldToCopy: "textbook",
+        baseAt: before,
+        ...(mode ? { mode } : {}),
+      });
+      expect(useStore.getState().jsonData.textbook).toEqual(["Новая книга"]);
+      expect(useStore.getState().jsonData.field_edits.textbook).toEqual(edit);
+      expect(useTemplateSync.getState().dirty).toEqual({});
+    }
+  );
 
   it("не очищает локальный черновик и не отправляет clear, пока есть несохранённое содержание", async () => {
     useTemplateSync.getState().markDirty("content");
@@ -511,72 +516,82 @@ describe("HTTP-контракты клиентского импорта", () => 
     expect(useTemplateSync.getState().dirty).toEqual({});
   });
 
-  it("полный импорт передаёт ready guard и исходную ревизию, объединяет ответ с join-метаданными цели", async () => {
-    reply = () => ({
-      success: true,
-      targetRevision: "next",
-      targetTemplate: {
-        id: 12,
-        goals: "Новые цели",
-        content,
-        assessment_tools_questions: { controlQuestions: "ФОС цели" },
-        field_edits: { goals: edit },
-      },
-    });
-    await renderHook(useCopyTemplateContent).mutateAsync({
-      sourceTemplateId: 21,
-      targetTemplateId: 12,
-      targetRevision: "catalog-baseline",
-      sourceStatus: "ready",
-    });
-    expect(body(requests[0])).toEqual({
-      sourceTemplateId: 21,
-      targetTemplateId: 12,
-      targetRevision: "catalog-baseline",
-      sourceStatus: "ready",
-    });
-    expect(useStore.getState().jsonData).toMatchObject({
-      goals: "Новые цели",
-      direction: "Информатика",
-      profile: "Системы",
-      comments: { goals: "Комментарий" },
-      assessment_tools_questions: { controlQuestions: "ФОС цели" },
-    });
-  });
-
-  it("bulk передаёт комплект и revision без собственного ослабления совпадений, сохраняет причины пропусков", async () => {
-    reply = () => ({
-      targetRevision: "next",
-      imported: [],
-      skipped: [
-        {
-          targetExchangeId: 80,
-          targetTemplateId: 120,
-          discipline: "Математика",
-          semester: 4,
-          record_type: "discipline",
-          reason: "missing_source",
+  it.each([undefined, "append", "replace"] as const)(
+    "%s: полный импорт передаёт режим, ready guard и ревизию, объединяет ответ с метаданными цели",
+    async (mode) => {
+      reply = () => ({
+        success: true,
+        targetRevision: "next",
+        targetTemplate: {
+          id: 12,
+          goals: "Новые цели",
+          content,
+          assessment_tools_questions: { controlQuestions: "ФОС цели" },
+          field_edits: { goals: edit },
         },
-      ],
-      counts: { imported: 0, skipped: 1, total: 1 },
-    });
-    const result = await renderHook(useImportComplect).mutateAsync({
-      sourceComplectId: 2,
-      targetComplectId: 5,
-      targetRevision: "bulk-baseline",
-    });
-    expect(requests[0].url).toBe("template-import/complect");
-    expect(body(requests[0])).toEqual({
-      sourceComplectId: 2,
-      targetComplectId: 5,
-      targetRevision: "bulk-baseline",
-    });
-    expect(result.counts).toEqual({ imported: 0, skipped: 1, total: 1 });
-    expect(result.skipped[0]).toMatchObject({
-      semester: 4,
-      reason: "missing_source",
-    });
-  });
+      });
+      await renderHook(useCopyTemplateContent).mutateAsync({
+        sourceTemplateId: 21,
+        targetTemplateId: 12,
+        targetRevision: "catalog-baseline",
+        sourceStatus: "ready",
+        mode,
+      });
+      expect(body(requests[0])).toEqual({
+        sourceTemplateId: 21,
+        targetTemplateId: 12,
+        targetRevision: "catalog-baseline",
+        sourceStatus: "ready",
+        ...(mode ? { mode } : {}),
+      });
+      expect(useStore.getState().jsonData).toMatchObject({
+        goals: "Новые цели",
+        direction: "Информатика",
+        profile: "Системы",
+        comments: { goals: "Комментарий" },
+        assessment_tools_questions: { controlQuestions: "ФОС цели" },
+      });
+    }
+  );
+
+  it.each([undefined, "append", "replace"] as const)(
+    "%s: bulk передаёт режим, комплект и revision, сохраняет причины пропусков",
+    async (mode) => {
+      reply = () => ({
+        targetRevision: "next",
+        imported: [],
+        skipped: [
+          {
+            targetExchangeId: 80,
+            targetTemplateId: 120,
+            discipline: "Математика",
+            semester: 4,
+            record_type: "discipline",
+            reason: "missing_source",
+          },
+        ],
+        counts: { imported: 0, skipped: 1, total: 1 },
+      });
+      const result = await renderHook(useImportComplect).mutateAsync({
+        sourceComplectId: 2,
+        targetComplectId: 5,
+        targetRevision: "bulk-baseline",
+        mode,
+      });
+      expect(requests[0].url).toBe("template-import/complect");
+      expect(body(requests[0])).toEqual({
+        sourceComplectId: 2,
+        targetComplectId: 5,
+        targetRevision: "bulk-baseline",
+        ...(mode ? { mode } : {}),
+      });
+      expect(result.counts).toEqual({ imported: 0, skipped: 1, total: 1 });
+      expect(result.skipped[0]).toMatchObject({
+        semester: 4,
+        reason: "missing_source",
+      });
+    }
+  );
 
   it("Apply заменяет полный набор одним PUT и обновляет workflow cache, включая неактивного участника baseline", async () => {
     const snapshot: TemplateWorkflow = {

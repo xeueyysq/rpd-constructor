@@ -14,6 +14,8 @@ import {
   DialogTitle,
   FormControlLabel,
   IconButton,
+  Radio,
+  RadioGroup,
   Stack,
   Tab,
   Tabs,
@@ -33,6 +35,7 @@ import {
   type ImportCatalogQuery,
   type ImportComplectResponse,
   type ImportField,
+  type TemplateImportMode,
 } from "@entities/template";
 import { UserRole } from "@shared/ability";
 import { useStore } from "@shared/hooks";
@@ -125,6 +128,7 @@ function SourcePickerSession(props: Props) {
   const ownOnly = Boolean(field) && role === UserRole.TEACHER;
   const [method, setMethod] = useState(initialMethod);
   const [mode, setMode] = useState(initialMode);
+  const [importMode, setImportMode] = useState<TemplateImportMode>("append");
   const [readyOnly, setReadyOnly] = useState(true);
   const [searchInput, setSearchInput] = useState("");
   const [search, setSearch] = useState("");
@@ -253,6 +257,7 @@ function SourcePickerSession(props: Props) {
           sourceComplectId: selectedComplect.id,
           targetComplectId: props.targetComplectId!,
           targetRevision: selectedRevision,
+          mode: importMode,
         });
         setResult(imported);
         setConfirm(false);
@@ -268,6 +273,7 @@ function SourcePickerSession(props: Props) {
           fieldToCopy: field,
           baseAt: fieldRevision,
           ownOnly,
+          mode: importMode,
         });
         onFieldImported?.(response.value);
         showSuccessMessage("Поле импортировано");
@@ -278,6 +284,7 @@ function SourcePickerSession(props: Props) {
           sourceTemplateId: selectedTemplate.id,
           targetTemplateId: props.targetTemplateId!,
           targetRevision: selectedRevision,
+          mode: importMode,
           ...(readyOnly ? { sourceStatus: "ready" as const } : {}),
         });
         showSuccessMessage("Данные РПД импортированы");
@@ -668,12 +675,45 @@ function SourcePickerSession(props: Props) {
         <DialogTitle id={id + "-confirm-title"}>Подтвердите импорт</DialogTitle>
         <DialogContent sx={{ overflowWrap: "anywhere" }}>
           <Typography sx={{ mb: 1 }}>Источник: {selectedLabel}</Typography>
-          <Typography variant="body2">
-            {bulk
-              ? "Совпадения проверяются по названию, семестру и типу записи."
+          {bulk && (
+            <Typography variant="body2" sx={{ mb: 1 }}>
+              Сначала проверяются совпадения по названию, типу записи и
+              семестру. Затем возможен перенос между известными семестрами, если
+              остались единственные источник и цель с теми же названием и типом.
+              Неоднозначные совпадения пропускаются. Семестр учебного плана цели
+              сохраняется.
+            </Typography>
+          )}
+          <RadioGroup
+            row
+            aria-label="Режим импорта"
+            aria-describedby={id + "-import-mode-description"}
+            value={importMode}
+            onChange={(event) =>
+              setImportMode(event.target.value as TemplateImportMode)
+            }
+          >
+            <FormControlLabel
+              value="append"
+              disabled={busy}
+              control={<Radio size="small" />}
+              label="Дополнить"
+            />
+            <FormControlLabel
+              value="replace"
+              disabled={busy}
+              control={<Radio size="small" />}
+              label="Заменить"
+            />
+          </RadioGroup>
+          <Alert severity="warning" id={id + "-import-mode-description"}>
+            {importMode === "append"
+              ? "Текущие данные сохранятся. Текст, литература и строки содержания добавятся из источника; пустые поля источника ничего не изменят. Повторный импорт добавит данные ещё раз."
               : field
-                ? "Выбранное поле будет заменено."
-                : "Содержательные поля РПД будут заменены."}{" "}
+                ? "Выбранное поле будет заменено, даже если поле источника пустое."
+                : "Содержательные поля РПД будут заменены, даже если поля источника пустые."}
+          </Alert>
+          <Typography variant="body2" sx={{ mt: 1 }}>
             Компетенции и ФОС сохраняются.
           </Typography>
         </DialogContent>

@@ -1,4 +1,4 @@
-import { expect, test, type Locator, type Page } from '@playwright/test';
+import { expect, test, type Locator, type Page, type TestInfo } from '@playwright/test';
 import { apiUrl, password, signIn, signInWithCredentials } from '../helpers';
 import { headersFor, list3, profileFor, templateFromDb } from '../list3';
 
@@ -24,16 +24,42 @@ async function chooseFieldSource(page: Page, button: Locator, mode: 'other-year'
   return { dialog, response };
 }
 
-async function applyField(page: Page, dialog: Locator, targetId: number, field: string, value: unknown) {
+async function captureConfirmation(page: Page, confirmation: Locator, testInfo: TestInfo, mode: 'append' | 'replace') {
+  const originalViewport = page.viewportSize()!;
+  for (const [width, height] of [[1365, 900], [390, 844], [320, 640]] as const) {
+    await page.setViewportSize({ width, height });
+    for (const label of ['Дополнить', 'Заменить']) {
+      const control = confirmation.getByRole('radio', { name: label, exact: true });
+      await control.scrollIntoViewIfNeeded();
+      await expect(control).toBeInViewport({ ratio: 1 });
+      await expect(control).toBeEnabled();
+    }
+    await expect(confirmation.getByRole('button', { name: 'Назад', exact: true })).toBeInViewport({ ratio: 1 });
+    await expect(confirmation.getByRole('button', { name: 'Импортировать', exact: true })).toBeInViewport({ ratio: 1 });
+    expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
+    await confirmation.screenshot({ path: testInfo.outputPath(`field-confirm-${mode}-${width}x${height}.png`), animations: 'disabled' });
+  }
+  await page.setViewportSize(originalViewport);
+}
+
+async function applyField(page: Page, dialog: Locator, targetId: number, field: string, value: unknown,
+  mode: 'append' | 'replace' = 'replace', testInfo?: TestInfo) {
   await dialog.getByRole('button', { name: 'Продолжить' }).click();
   const confirmation = page.getByRole('dialog', { name: 'Подтвердите импорт' });
-  await expect(confirmation).toContainText('Выбранное поле будет заменено');
+  await expect(confirmation.getByRole('radiogroup', { name: 'Режим импорта' })).toBeVisible();
+  await expect(confirmation.getByRole('radio', { name: 'Дополнить', exact: true })).toBeChecked();
+  if (mode === 'replace') await confirmation.getByRole('radio', { name: 'Заменить', exact: true }).check();
+  await expect(confirmation.getByRole('radio', { name: mode === 'append' ? 'Дополнить' : 'Заменить', exact: true })).toBeChecked();
+  await expect(confirmation).toContainText(mode === 'append'
+    ? 'Повторный импорт добавит данные ещё раз.' : 'Выбранное поле будет заменено, даже если поле источника пустое.');
+  await expect(confirmation).toContainText('Компетенции и ФОС сохраняются.');
+  if (testInfo) await captureConfirmation(page, confirmation, testInfo, mode);
   const saved = page.waitForResponse((response) => response.url() === `${apiUrl}/api/copy-template-data`
     && response.request().method() === 'POST');
   await confirmation.getByRole('button', { name: 'Импортировать' }).click();
   const response = await saved;
   expect(response.status()).toBe(200);
-  expect(response.request().postDataJSON()).toMatchObject({ targetTemplateId: targetId, fieldToCopy: field });
+  expect(response.request().postDataJSON()).toMatchObject({ targetTemplateId: targetId, fieldToCopy: field, mode });
   expect((await response.json()).value).toEqual(value);
   await expect(dialog).toBeHidden();
   return response;
@@ -94,7 +120,7 @@ test('повторное открытие импорта поля видит и�
 });
 
 for (const role of ['rop', 'teacher'] as const) {
-  test(`${role}: импорт поля из другого года и комплекта, включая литературу`, async ({ page, request }) => {
+  test(`${role}: импорт поля из другого года и комплекта, включая литературу`, async ({ page, request }, testInfo) => {
     test.slow();
     const target = role === 'rop' ? list3.fieldRop : list3.fieldTeacher;
     const headers = await headersFor(request, role);
@@ -104,11 +130,12 @@ for (const role of ['rop', 'teacher'] as const) {
     const year = await chooseFieldSource(page, button, 'other-year', 'goals');
     const yearSourceId = role === 'rop' ? 303 : 304;
     expect(await year.response.json()).toEqual([expect.objectContaining({ id: yearSourceId, goals: '<p>Цели источника 302</p>' })]);
-    await applyField(page, year.dialog, target.id, 'goals', '<p>Цели источника 302</p>');
+    await applyField(page, year.dialog, target.id, 'goals', '<p>Цели источника 302</p>', 'replace', role === 'teacher' ? testInfo : undefined);
     const sameYear = await chooseFieldSource(page, button, 'other-complect', 'goals');
     expect(await sameYear.response.json()).toEqual([expect.objectContaining({ id: 300, goals: '<p>Цели источника 300</p>' })]);
     await applyField(page, sameYear.dialog, target.id, 'goals', '<p>Цели источника 300</p>');
     await page.getByRole('button', { name: 'Ресурсное обеспечение', exact: true }).click();
+    await expect(page.getByText('Основная литература', { exact: true })).toBeVisible();
     for (const [index, field, value] of [
       [0, 'textbook', ['Основная книга 302', 'Вторая основная книга 302']],
       [1, 'additional_textbook', ['Дополнительная книга 302']],
@@ -143,6 +170,31 @@ for (const role of ['rop', 'teacher'] as const) {
     await expect(page.getByText('Цели источника 300', { exact: true })).toBeVisible();
     await page.reload();
     await expect(page.getByText('Цели источника 300', { exact: true })).toBeVisible();
+    if (role === 'teacher') {
+      // После replace проверок префикс выделенной цели известен; источник неизменяемый.
+      const chosen = await chooseFieldSource(page, button, 'other-year', 'goals');
+      const merged = '<p>Цели источника 300</p><br/><br/><p>Цели источника 302</p>';
+      const response = await applyField(page, chosen.dialog, target.id, 'goals', merged, 'append', testInfo);
+      expect(response.request().postDataJSON()).toMatchObject({ sourceTemplateId: 304,
+        baseAt: saved.field_edits.goals.at, ownOnly: true, mode: 'append' });
+      expect((await response.json()).edit).toMatchObject({ userId: 2, fullname: 'Альфина Т.Т.' });
+      const appended = await profileFor(request, headers, target.id);
+      expect(appended.goals).toBe(merged);
+      expect(appended.field_edits.goals).toMatchObject({ userId: 2, fullname: 'Альфина Т.Т.' });
+      expect(appended.field_edits.goals.at).not.toBe(saved.field_edits.goals.at);
+      expect(Number.isNaN(Date.parse(appended.field_edits.goals.at))).toBe(false);
+      expect(appended.content).toEqual(saved.content);
+      expect(appended.textbook).toEqual(saved.textbook);
+      expect(appended.additional_textbook).toEqual(saved.additional_textbook);
+      expect(templateFromDb(target.id)).toMatchObject({ goals: merged, content: saved.content,
+        field_edits: { goals: { userId: 2, at: appended.field_edits.goals.at } } });
+      await expect(page.getByText('Цели источника 300', { exact: true })).toBeVisible();
+      await expect(page.getByText('Цели источника 302', { exact: true })).toBeVisible();
+      await page.reload();
+      await expect(page.getByText('Цели источника 300', { exact: true })).toBeVisible();
+      await expect(page.getByText('Цели источника 302', { exact: true })).toBeVisible();
+      expect((await profileFor(request, headers, target.id)).field_edits.goals).toEqual(appended.field_edits.goals);
+    }
   });
 }
 

@@ -1,6 +1,8 @@
 import type { FieldEdit, FieldEdits } from "./fieldEdits";
 import type { TemplateParticipant, TemplateStatusCode } from "./workflow";
 
+export type TemplateImportMode = "append" | "replace";
+
 export type ImportField =
   | "protocol"
   | "goals"
