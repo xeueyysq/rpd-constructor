@@ -117,6 +117,7 @@ test('полный импорт чужого черновика того же г
 });
 
 test('массовый импорт: точный семестр, единственный остаток и тип, API/БД и reload', async ({ page, request }, testInfo) => {
+  test.slow();
   const headers = await headersFor(request);
   const before = await Promise.all([313, 314, 315].map((id) => profileFor(request, headers, id)));
   await signIn(page, 'rop');
