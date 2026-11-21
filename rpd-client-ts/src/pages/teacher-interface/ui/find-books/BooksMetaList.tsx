@@ -8,13 +8,15 @@ import { Box, Button } from "@mui/material";
 import { MRT_Localization_RU } from "material-react-table/locales/ru";
 import AddIcon from "@mui/icons-material/Add";
 import { BookThumbZoom } from "./BookThumbZoom";
-import type { Book } from "../../api/findBooks";
+import { bookSourceLabels, type Book } from "../../api/findBooks";
 
 interface IBooksMetaList {
   books: Book[];
   addBooksToList: (biblios: string[]) => void;
   closeDialog: () => void;
 }
+
+const bookRowId = (book: Book) => `${book.source}:${book.id}`;
 
 export function BooksMetaList({
   books,
@@ -28,7 +30,7 @@ export function BooksMetaList({
 
   const handleAddBooks = () => {
     const selectedBooks = books
-      .filter((book) => rowSelection[book.id])
+      .filter((book) => rowSelection[bookRowId(book)])
       .map((book) => book.biblio);
     addBooksToList(selectedBooks);
     closeDialog();
@@ -68,6 +70,12 @@ export function BooksMetaList({
         size: 0,
       },
       {
+        id: "source",
+        accessorFn: (book) => bookSourceLabels[book.source],
+        header: "Каталог",
+        size: 80,
+      },
+      {
         accessorKey: "biblio",
         header: "Аннотация",
       },
@@ -98,7 +106,7 @@ export function BooksMetaList({
   const table = useMaterialReactTable<Book>({
     columns,
     data: books,
-    getRowId: (book) => book.id,
+    getRowId: bookRowId,
     localization: MRT_Localization_RU,
     layoutMode: "grid",
     enableRowSelection: true,

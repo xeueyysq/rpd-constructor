@@ -1,5 +1,5 @@
 import { expect, test, type Locator, type Page } from '@playwright/test';
-import { apiUrl, disciplines, openComplect, openTeacherRowMenu, showAllRows, signIn } from '../helpers';
+import { apiUrl, disciplines, openComplect, openTeacherRowMenu, showAllRows, signIn, signInWithCredentials, password } from '../helpers';
 import { headersFor, list3, openFixtureComplect, preservedImportData, profileFor, templateFromDb } from '../list3';
 import { closeTeachersDialog, openRowMenu } from '../teacherAssignments';
 
@@ -12,13 +12,28 @@ async function expectImportGeometry(page: Page, dialog: Locator) {
   expect(panel!.y + panel!.height).toBeLessThanOrEqual(viewport.height - 64);
   expect(panel!.width).toBeLessThanOrEqual(1040);
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
-  const filters = await Promise.all((await dialog.getByRole('combobox').all()).map((filter) => filter.boundingBox()));
-  expect(filters).toHaveLength(3);
+  const controls = await dialog.getByRole('combobox').all();
+  for (const control of controls) {
+    await expect(control).toBeVisible();
+    await expect(control).toBeInViewport();
+  }
+  const filters = await Promise.all(controls.map((filter) => filter.boundingBox()));
+  expect(filters).toHaveLength(4);
   for (const filter of filters) {
     expect(filter).not.toBeNull();
     expect(Math.abs(filter!.width - filters[0]!.width)).toBeLessThanOrEqual(1);
-    expect(Math.abs(filter!.y - filters[0]!.y)).toBeLessThanOrEqual(1);
     expect(Math.abs(filter!.height - filters[0]!.height)).toBeLessThanOrEqual(1);
+    expect(filter!.x).toBeGreaterThanOrEqual(panel!.x);
+    expect(filter!.x + filter!.width).toBeLessThanOrEqual(panel!.x + panel!.width);
+  }
+  if (viewport.width >= 600) {
+    for (const filter of filters) expect(Math.abs(filter!.y - filters[0]!.y)).toBeLessThanOrEqual(1);
+  } else {
+    expect(Math.abs(filters[0]!.y - filters[1]!.y)).toBeLessThanOrEqual(1);
+    expect(Math.abs(filters[2]!.y - filters[3]!.y)).toBeLessThanOrEqual(1);
+    expect(filters[2]!.y).toBeGreaterThanOrEqual(filters[0]!.y + filters[0]!.height);
+    expect(Math.abs(filters[0]!.x - filters[2]!.x)).toBeLessThanOrEqual(1);
+    expect(Math.abs(filters[1]!.x - filters[3]!.x)).toBeLessThanOrEqual(1);
   }
   const trigger = page.getByRole('button', { name: 'Сообщить о проблеме', exact: true });
   await expect(trigger).toHaveCount(1);
@@ -116,7 +131,7 @@ test('полный импорт чужого черновика того же г
   await expect(page.getByRole('table', { name: 'Содержание дисциплины' })).toContainText('Тема источника');
 });
 
-test('массовый импорт: точный семестр, единственный остаток и тип, API/БД и reload', async ({ page, request }, testInfo) => {
+test('массовый импорт: точный семестр без кода, без повторного использования строки, API/БД и reload', async ({ page, request }, testInfo) => {
   test.slow();
   const headers = await headersFor(request);
   const before = await Promise.all([313, 314, 315].map((id) => profileFor(request, headers, id)));
@@ -143,12 +158,17 @@ test('массовый импорт: точный семестр, единств
   await sourceRow.getByRole('cell').nth(1).click();
   await expect(source).toBeChecked();
   await expect(sourceRow).toHaveAttribute('aria-selected', 'true');
+  await dialog.getByRole('combobox', { name: 'Год набора' }).selectOption('2024');
+  await expect(dialog.getByRole('radio', { checked: true })).toHaveCount(0);
+  await expect(dialog.getByRole('button', { name: 'Продолжить' })).toBeDisabled();
+  await dialog.getByRole('combobox', { name: 'Год набора' }).selectOption('2026');
+  await source.check();
   await dialog.screenshot({ path: testInfo.outputPath('bulk-import-selected.png') });
   await expect(dialog).toContainText('Другов Тест Тестович');
   await dialog.getByRole('button', { name: 'Продолжить', exact: true }).click();
   const confirmation = page.getByRole('dialog', { name: 'Подтвердите импорт', exact: true });
   await expect(confirmation).toContainText(/Источник:.*Институт источников List3.*Другое направление List3.*List3 Источники.*2026.*Бакалавриат/);
-  await expect(confirmation).toContainText('Сначала проверяются совпадения по названию, типу записи и семестру.');
+  await expect(confirmation).toContainText('Сначала проверяются совпадения по названию и семестру.');
   await expect(confirmation).toContainText('единственные источник и цель');
   await expect(confirmation).toContainText('Неоднозначные совпадения пропускаются. Семестр учебного плана цели сохраняется.');
   await expect(confirmation.getByRole('radio', { name: 'Дополнить', exact: true })).toBeChecked();
@@ -182,10 +202,10 @@ test('массовый импорт: точный семестр, единств
   expect(result.imported).toHaveLength(2);
   expect(result.imported).toEqual(expect.arrayContaining([
     expect.objectContaining({ targetTemplateId: 313, sourceTemplateId: 300, semester: 1, record_type: 'discipline' }),
-    expect.objectContaining({ targetTemplateId: 314, sourceTemplateId: 301, semester: 3, record_type: 'discipline' }),
+    expect.objectContaining({ targetTemplateId: 315, sourceTemplateId: 301, semester: 2, record_type: 'practice' }),
   ]));
   expect(result.skipped).toEqual([
-    expect.objectContaining({ targetTemplateId: 315, semester: 2, record_type: 'practice', reason: 'missing_source' }),
+    expect.objectContaining({ targetTemplateId: 314, semester: 3, record_type: 'discipline', reason: 'missing_source' }),
   ]);
   await expect(dialog).toContainText('Импортировано: 2. Пропущено: 1. Всего: 3.');
   await expect(dialog).toContainText('Нет совпадающей дисциплины в источнике: 1');
@@ -193,13 +213,13 @@ test('массовый импорт: точный семестр, единств
   const after = await Promise.all([313, 314, 315].map((id) => profileFor(request, headers, id)));
   expect(after[0].goals).toBe('<p>Цели источника 300</p>');
   expect(after[0].content).toEqual({ 0: { theme: 'Тема источника', lectures: 9, seminars: 7, independent_work: 8, control: 0 } });
-  expect(after[1].goals).toBe('<p>Цели источника 301</p>');
-  expect(after[1].content).toEqual({ 0: { theme: 'Тема источника', lectures: 9, seminars: 7, independent_work: 8, control: 0 } });
+  expect(after[2].goals).toBe('<p>Цели источника 301</p>');
+  expect(after[2].content).toEqual({ 0: { theme: 'Тема источника', lectures: 9, seminars: 7, independent_work: 8, control: 0 } });
   expect(after[1].semester).toBe(3);
   after.forEach((profile, index) => expect(preservedImportData(profile)).toEqual(preservedImportData(before[index])));
-  expect(after[2].content).toEqual(before[2].content);
-  expect(after[2].goals).toEqual(before[2].goals);
-  for (const index of [0, 1]) {
+  expect(after[1].content).toEqual(before[1].content);
+  expect(after[1].goals).toEqual(before[1].goals);
+  for (const index of [0, 2]) {
     for (const field of ['goals', 'content']) {
       expect(after[index].field_edits[field]).toMatchObject({ userId: 1, fullname: 'Руководов Т.Т.' });
       expect(Number.isNaN(Date.parse(after[index].field_edits[field].at))).toBe(false);
@@ -215,7 +235,7 @@ test('массовый импорт: точный семестр, единств
   await expect(page.getByText('Цели источника 300', { exact: true })).toBeVisible();
   await page.reload();
   await expect(page.getByText('Цели источника 300', { exact: true })).toBeVisible();
-  await page.goto('/templates/a314a314a314/aimsPage');
+  await page.goto('/templates/a315a315a315/aimsPage');
   await expect(page.getByText('Цели источника 301', { exact: true })).toBeVisible();
   await page.reload();
   await expect(page.getByText('Цели источника 301', { exact: true })).toBeVisible();
@@ -223,13 +243,12 @@ test('массовый импорт: точный семестр, единств
   await expect(page.getByRole('table', { name: 'Содержание дисциплины', exact: true })).toContainText('Тема источника');
 });
 
-test('single преподавателя: плоская пагинация, только ready checkbox, сброс выбора и ready guard; 1365/768/390', async ({ page }) => {
+test('single РОП: плоская пагинация, год, только ready checkbox, сброс выбора; 1365/768/390', async ({ page }) => {
   test.slow();
   await page.setViewportSize({ width: 1365, height: 900 });
-  await signIn(page, 'teacher');
-  await page.goto('/templates');
-  await showAllRows(page);
-  await openTeacherRowMenu(page, page.getByRole('row').filter({ hasText: 'Длинное название дисциплины для проверки импорта UI' }).filter({ hasText: 'UI цель' }).filter({ hasText: '2026' }));
+  await signIn(page, 'rop');
+  await openFixtureComplect(page, 400);
+  await openRowMenu(page, page.getByRole('row').filter({ hasText: 'Длинное название дисциплины для проверки импорта UI' }));
   await page.getByRole('menuitem', { name: 'Импортировать', exact: true }).click();
   const dialog = page.getByRole('dialog', { name: 'Импортировать данные РПД', exact: true });
   const search = dialog.getByRole('searchbox', { name: 'Поиск источников' });
@@ -278,6 +297,14 @@ test('single преподавателя: плоская пагинация, то
   expect(new URL(nextCatalog.url()).searchParams.get('pageSize')).toBe('10');
   await expect(dialog.getByRole('radio', { checked: true })).toHaveCount(0);
   await expect(dialog.getByRole('button', { name: 'Продолжить' })).toBeDisabled();
+  const yearPage = page.waitForResponse((response) => response.url().includes('/api/template-import/catalog')
+    && new URL(response.url()).searchParams.get('year') === '2024');
+  await dialog.getByRole('combobox', { name: 'Год набора' }).selectOption('2024');
+  const yearCatalog = await yearPage;
+  expect(new URL(yearCatalog.url()).searchParams.get('page')).toBe('1');
+  expect((await yearCatalog.json()).total).toBe(6);
+  await expect(dialog.getByRole('radio')).toHaveCount(6);
+  await dialog.getByRole('combobox', { name: 'Год набора' }).selectOption('');
   await dialog.getByRole('combobox', { name: 'Факультет / институт' }).selectOption('Институт UI источников');
   await expect(dialog.getByRole('radio')).toHaveCount(10);
   await dialog.getByRole('radio').first().locator('xpath=ancestor::tr').getByRole('cell').nth(1).click();
@@ -291,7 +318,7 @@ test('single преподавателя: плоская пагинация, то
     && !new URL(response.url()).searchParams.has('status'));
   await ready.uncheck();
   const catalog = await allResponse;
-  expect(new URL(catalog.url()).searchParams.has('ownOnly')).toBe(false);
+  expect(new URL(catalog.url()).searchParams.get('ownOnly')).toBe('false');
   const rows = (await catalog.json()).templates as Array<{ id: number }>;
   expect(rows.map((row) => row.id)).toContain(4011); // Источник не назначен преподавателю.
   await expect(dialog.getByRole('radio', { name: /Назначены преподаватели|Создан/ }).first()).toBeVisible();
@@ -317,4 +344,90 @@ test('single преподавателя: плоская пагинация, то
   await word.getByRole('button', { name: 'Выбрать РПД из комплекта', exact: true }).click();
   await expect(dialog.getByRole('radio', { checked: true })).toHaveCount(0);
   await expect(dialog.getByRole('button', { name: 'Продолжить' })).toBeDisabled();
+});
+
+test('single teacher: только назначенные источники всех названий, год и ownOnly при применении', async ({ page }) => {
+  await signIn(page, 'teacher');
+  await showAllRows(page);
+  await openTeacherRowMenu(page, page.getByRole('row').filter({ hasText: 'Длинное название дисциплины для проверки импорта UI' }).filter({ hasText: 'UI цель' }).filter({ hasText: '2026' }));
+  await page.getByRole('menuitem', { name: 'Импортировать', exact: true }).click();
+  const dialog = page.getByRole('dialog', { name: 'Импортировать данные РПД', exact: true });
+  await expect(dialog.getByRole('combobox')).toHaveCount(4);
+  await expect(dialog.getByRole('tab')).toHaveCount(0);
+  await expect(dialog.getByRole('checkbox', { name: 'Только готовые' })).toBeChecked();
+  const loaded = page.waitForResponse((response) => response.url().includes('/api/template-import/catalog')
+    && new URL(response.url()).searchParams.get('search') === 'UI');
+  await dialog.getByRole('searchbox', { name: 'Поиск источников' }).fill('UI');
+  const response = await loaded;
+  expect(new URL(response.url()).searchParams.get('ownOnly')).toBe('true');
+  expect((await response.json()).templates.map((row: { id: number }) => row.id)).toEqual([4010, 4020, 4030]);
+  await expect(dialog.getByRole('radio')).toHaveCount(3);
+  await dialog.getByRole('combobox', { name: 'Год набора' }).selectOption('2026');
+  await expect(dialog.getByRole('radio')).toHaveCount(2);
+  await dialog.getByRole('radio', { name: /Другая дисциплина UI/ }).check();
+  await dialog.getByRole('button', { name: 'Продолжить' }).click();
+  const confirmation = page.getByRole('dialog', { name: 'Подтвердите импорт' });
+  await page.route('**/api/copy-template-content', (route) => route.fulfill({ status: 503, contentType: 'application/json', body: '{}' }));
+  const applying = page.waitForRequest((request) => request.url().endsWith('/api/copy-template-content'));
+  await confirmation.getByRole('button', { name: 'Импортировать', exact: true }).click();
+  expect((await applying).postDataJSON()).toMatchObject({ sourceTemplateId: 4030, targetTemplateId: 4000, ownOnly: true });
+  await expect(dialog).toContainText('Не удалось выполнить действие');
+});
+
+test('учительское представление РОП передаёт ownOnly в field и single и скрывает вкладки', async ({ page }) => {
+  await signInWithCredentials(page, 'owner-third-rop', password);
+  await expect(page).toHaveURL(/\/complects$/);
+  await page.getByRole('button', { name: 'Открыть меню аккаунта' }).click();
+  await page.getByRole('menuitem', { name: 'Преподаватель', exact: true }).click();
+  await expect(page).toHaveURL(/\/templates$/);
+  await openTeacherRowMenu(page, page.getByRole('row').filter({ hasText: 'Множественные РОП для теста' }));
+  const singleResponse = page.waitForResponse((response) => response.url().includes('/api/template-import/catalog')
+    && new URL(response.url()).searchParams.get('scope') === 'single');
+  await page.getByRole('menuitem', { name: 'Импортировать', exact: true }).click();
+  const single = page.getByRole('dialog', { name: 'Импортировать данные РПД', exact: true });
+  expect(new URL((await singleResponse).url()).searchParams.get('ownOnly')).toBe('true');
+  await expect(single.getByRole('combobox')).toHaveCount(4);
+  await expect(single.getByRole('tab')).toHaveCount(0);
+  await single.getByRole('button', { name: 'Отмена' }).click();
+  await page.goto('/templates/a350a350a350/aimsPage');
+  const fieldResponse = page.waitForResponse((response) => response.url().includes('/api/template-import/catalog')
+    && new URL(response.url()).searchParams.get('scope') === 'field');
+  await page.getByRole('button', { name: 'Импортировать поле', exact: true }).click();
+  const field = page.getByRole('dialog', { name: 'Импортировать: Цели и задачи', exact: true });
+  const catalog = await fieldResponse;
+  expect(new URL(catalog.url()).searchParams.get('ownOnly')).toBe('true');
+  expect(new URL(catalog.url()).searchParams.has('sourceMode')).toBe(false);
+  await expect(field.getByRole('combobox')).toHaveCount(4);
+  await expect(field.getByRole('tab')).toHaveCount(0);
+  await expect(field.getByRole('tabpanel')).toHaveCount(0);
+  await expect(field.getByRole('checkbox')).toHaveCount(0);
+  await expect(field.getByRole('radio')).toHaveCount(0);
+});
+
+test('admin: год — четвёртый селектор single/field/bulk, прежние вкладки field сохранены', async ({ page }) => {
+  await signIn(page, 'admin');
+  await openFixtureComplect(page, 400);
+  await openRowMenu(page, page.getByRole('row').filter({ hasText: 'Длинное название дисциплины для проверки импорта UI' }));
+  await page.getByRole('menuitem', { name: 'Импортировать', exact: true }).click();
+  const single = page.getByRole('dialog', { name: 'Импортировать данные РПД', exact: true });
+  await expect(single.getByRole('combobox')).toHaveCount(4);
+  await expect(single.getByRole('combobox', { name: 'Год набора' })).toHaveValue('');
+  await expect(single.getByRole('checkbox', { name: 'Только готовые' })).toBeChecked();
+  await single.getByRole('button', { name: 'Отмена' }).click();
+  await page.getByRole('button', { name: 'Импорт', exact: true }).click();
+  const bulk = page.getByRole('dialog', { name: 'Импортировать все дисциплины', exact: true });
+  await expect(bulk.getByRole('combobox')).toHaveCount(4);
+  await expect(bulk.getByRole('combobox', { name: 'Год набора' })).toHaveValue('');
+  await expect(bulk.getByRole('checkbox')).toHaveCount(0);
+  await bulk.getByRole('button', { name: 'Отмена' }).click();
+  await page.goto('/templates/d400d400d400/aimsPage');
+  await page.getByRole('button', { name: 'Импортировать поле', exact: true }).click();
+  const field = page.getByRole('dialog', { name: 'Импортировать: Цели и задачи', exact: true });
+  await expect(field.getByRole('combobox')).toHaveCount(4);
+  await expect(field.getByRole('combobox', { name: 'Год набора' })).toHaveValue('');
+  await expect(field.getByRole('checkbox')).toHaveCount(0);
+  await expect(field.getByRole('tab', { name: 'Другой комплект' })).toHaveAttribute('aria-selected', 'true');
+  await field.getByRole('tab', { name: 'Другой год' }).click();
+  const panel = field.getByRole('tabpanel');
+  await expect(panel).toHaveAttribute('aria-labelledby', (await field.getByRole('tab', { name: 'Другой год' }).getAttribute('id'))!);
 });

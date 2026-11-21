@@ -26,7 +26,7 @@ export default class TemplateAccess {
     `, [complectId, actor.id]);
     if (!rows[0]?.exists) throw new NotFound("Комплект не найден");
     const manager = actor.role === USER_ROLES.ADMIN || actor.role === USER_ROLES.ROP && rows[0].owner;
-    const reader = mode === "read" && actor.role === USER_ROLES.TEACHER && rows[0].reader;
+    const reader = mode === "read" && (actor.role === USER_ROLES.TEACHER || actor.role === USER_ROLES.ROP) && rows[0].reader;
     if (!rows[0].active || !manager && !reader) throw new Forbidden("Нет доступа к комплекту");
   }
 

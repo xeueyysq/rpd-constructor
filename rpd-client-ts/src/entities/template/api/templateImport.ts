@@ -267,6 +267,7 @@ export function useCopyTemplateContent() {
       targetTemplateId: number;
       targetRevision: string;
       sourceStatus?: "ready";
+      ownOnly?: boolean;
       mode?: TemplateImportMode;
     }) => {
       const generation = getSessionGeneration();

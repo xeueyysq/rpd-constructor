@@ -61,7 +61,7 @@ test("PostgreSQL: плоские страницы, владельцы, уров�
   const teacher = { id: teacherId, role: USER_ROLES.TEACHER, userName: `cat-t-${nonce}` };
   const rop = { id: ropId, role: USER_ROLES.ROP, userName: `cat-r-${nonce}` };
   const context = { targetTemplateId: String(target), faculty: `Факультет ${nonce}`, page: "1", pageSize: "1" };
-  const page = await service.catalog(teacher, context);
+  const page = await service.catalog(rop, context);
   assert.equal(page.pageSize, 1);
   assert.equal(page.scope, "single", "отсутствующий scope совместим с типом цели");
   assert.equal(page.total, 3, "считаются дисциплины, а не два комплекта или назначения РОП");
@@ -75,28 +75,28 @@ test("PostgreSQL: плоские страницы, владельцы, уров�
   assert.ok(!page.facets.faculties.includes(`Чужой ${nonce}`), "другой уровень исключён ещё до фасетов");
   assert.deepEqual(page.facets.educationLevels, ["Бакалавриат"]);
   assert.equal(page.targetEducationLevel, "Бакалавриат");
-  const narrowed = await service.catalog(teacher, { ...context, faculty: `Факультет ${nonce}`,
+  const narrowed = await service.catalog(rop, { ...context, faculty: `Факультет ${nonce}`,
     educationLevel: "Бакалавриат", direction: "09.03.02" });
   assert.ok(narrowed.facets.faculties.includes(`Факультет ${nonce}`));
   assert.deepEqual(narrowed.facets.directions, ["09.03.02", "09.03.03"]);
   assert.deepEqual(narrowed.facets.profiles, ["Профиль А"]);
   assert.deepEqual(narrowed.facets.educationForms, ["Очная"]);
   assert.deepEqual(narrowed.facets.years, [2026]);
-  const second = await service.catalog(teacher, { ...context, page: "2" });
+  const second = await service.catalog(rop, { ...context, page: "2" });
   assert.equal(second.templates[0].id, sibling, "вторая страница остаётся в том же комплекте");
-  assert.equal((await service.catalog(teacher, { ...context, page: "3" })).templates[0].id, foreignTemplate);
+  assert.equal((await service.catalog(rop, { ...context, page: "3" })).templates[0].id, foreignTemplate);
   assert.deepEqual((await service.catalog(teacher, { ...context, status: "ready" })).templates.map((row) => row.id), [matching]);
   assert.equal((await service.catalog(teacher, { ...context, search: "Алгоритмы" })).total, 0);
-  assert.equal((await service.catalog(teacher, { ...context, search: "Чужая дисциплина", ownOnly: "true" })).templates[0].id, foreignTemplate);
+  assert.equal((await service.catalog(teacher, { ...context, search: "Чужая дисциплина", ownOnly: "true" })).total, 0);
   assert.equal((await service.catalog(teacher, { ...context, search: "%_" })).total, 0, "шаблонные символы поиска буквальны");
   const fieldContext = { ...context, scope: "field", ownOnly: "false", sameNameOnly: "false" };
-  assert.equal((await service.catalog(teacher, fieldContext)).total, 1, "false не снимает назначение или совпадение имени");
+  assert.equal((await service.catalog(teacher, fieldContext)).total, 1, "false не снимает назначение");
   assert.equal((await service.catalog(rop, { ...fieldContext, ownOnly: "true" })).total, 0);
   assert.equal((await service.catalog(rop, fieldContext)).total, 2);
   assert.equal((await service.catalog(rop, { ...fieldContext, sourceMode: "other-year" })).total, 0,
     "другой год также исключает дисциплины с другим именем при sameNameOnly=false");
-  assert.equal((await service.catalog(teacher, { ...fieldContext, sourceMode: "other-year" })).total, 0);
-  assert.equal((await service.catalog(teacher, { ...context, sourceMode: "other-year" })).total, 3, "single игнорирует старый режим поля");
+  assert.equal((await service.catalog(teacher, { ...fieldContext, sourceMode: "other-year" })).total, 1);
+  assert.equal((await service.catalog(teacher, { ...context, sourceMode: "other-year" })).total, 1, "single требует назначение");
   const unknownSourceComplect = base + 14;
   const unknownTargetComplect = base + 15;
   const unknownSource = base + 24;
@@ -111,20 +111,25 @@ test("PostgreSQL: плоские страницы, владельцы, уров�
       unknownTarget, randomBytes(6).toString("hex"), unknownTargetComplect]);
   await pool.query("INSERT INTO teacher_templates(id,user_id,template_id,state) VALUES($1,$2,$3,'assigned'),($4,$2,$5,'assigned')",
     [base + 33, teacherId, unknownSource, base + 34, unknownTarget]);
-  assert.equal((await service.catalog(teacher, { ...fieldContext, sourceMode: "other-year" })).total, 0,
-    "источник без года не считается другим годом");
-  assert.equal((await service.catalog(teacher, { ...fieldContext, targetTemplateId: String(unknownTarget), sourceMode: "other-year" })).total, 0,
-    "цель без года не включает все известные источники");
+  assert.equal((await service.catalog(teacher, { ...fieldContext, sourceMode: "other-year" })).total, 3,
+    "teacher видит все назначения, включая источники без года");
+  const changedTarget = await service.catalog(teacher, {
+    ...fieldContext, targetTemplateId: String(unknownTarget), sourceMode: "other-year", pageSize: "25",
+  });
+  assert.equal(changedTarget.total, 3);
+  assert.deepEqual(changedTarget.templates.map((row) => row.id).sort((a, b) => a - b),
+    [target, matching, unknownSource].sort((a, b) => a - b),
+    "сама цель исключена; прежняя цель и остальные назначения fixture доступны");
   assert.equal((await service.catalog(teacher, { ...fieldContext, profile: "Без года источник" })).total, 1,
     "источник без года доступен в обычном выборе другого комплекта");
   await pool.query("UPDATE rpd_complects SET year=2023 WHERE id=$1", [unknownSourceComplect]);
-  assert.equal((await service.catalog(teacher, { ...fieldContext, sourceMode: "other-year" })).total, 0,
-    "разные годы и имя не разрешают источник другой программы");
+  assert.equal((await service.catalog(teacher, { ...fieldContext, sourceMode: "other-year" })).total, 3,
+    "скрытый режим не ограничивает назначения");
   assert.deepEqual((await service.sources(teacher, target, undefined, undefined,
     { ...context, sourceComplectId: String(sameYear), status: "ready" })).complects[0].templates.map((item) => item.id), [matching]);
   assert.deepEqual((await service.sources(teacher, target, undefined, undefined,
     { ...context, sourceComplectId: String(older), status: "ready" })).complects, []);
-  assert.equal((await service.catalog(rop, { ...context, ownOnly: "true" })).total, 5, "single игнорирует ownOnly даже для РОП");
+  assert.equal((await service.catalog(rop, { ...context, ownOnly: "true" })).total, 0, "single поддерживает учительское представление РОП");
   for (const scope of ["single", "field", "bulk"]) {
     const targetQuery = scope === "bulk" ? { targetComplectId: String(targetComplect) } : { targetTemplateId: String(target) };
     for (const status of ["unsupported", "created", ["ready"]])
@@ -136,7 +141,7 @@ test("PostgreSQL: плоские страницы, владельцы, уров�
   await assert.rejects(service.catalog(teacher, { ...context, pageSize: "26" }), { status: 422 });
   await pool.query("DELETE FROM teacher_templates WHERE template_id=$1 AND user_id=$2", [matching, teacherId]);
   assert.equal((await service.catalog(teacher, { ...fieldContext, profile: "Профиль А" })).total, 0);
-  assert.equal((await service.catalog(teacher, { ...context, profile: "Профиль А" })).total, 2);
+  assert.equal((await service.catalog(teacher, { ...context, profile: "Профиль А" })).total, 0);
   assert.deepEqual((await service.sources(teacher, target, undefined, undefined,
     { ...fieldContext, sourceComplectId: String(sameYear) })).complects, []);
   await pool.query("UPDATE rpd_complects SET education_level=NULL WHERE id=ANY($1::int[])", [[unknownTargetComplect, unknownSourceComplect]]);
@@ -148,7 +153,7 @@ test("PostgreSQL: плоские страницы, владельцы, уров�
   assert.deepEqual(unknownLevel.facets.directions, ["09.03.04"]);
 });
 
-test("PostgreSQL: другой год — точная программа, NULL, имя и назначение до списка, фасетов и details", { skip: !enabled }, async (t) => {
+test("PostgreSQL: другой год РОП — точная программа, NULL и имя до списка, фасетов и details", { skip: !enabled }, async (t) => {
   const pool = new Pool({ connectionString, max: 2 });
   const base = randomInt(500_000_000, 900_000_000);
   const nonce = randomBytes(6).toString("hex");
@@ -161,8 +166,8 @@ test("PostgreSQL: другой год — точная программа, NULL,
       await pool.query("DELETE FROM users WHERE id=$1", [teacherId]);
     } finally { await pool.end(); }
   });
-  await pool.query("INSERT INTO users(id,name,password,role,fullname) VALUES($1,$2,'no-login',2,'{}'::jsonb)", [teacherId, `ly-${nonce}`]);
-  const actor = { id: teacherId, role: USER_ROLES.TEACHER, userName: `ly-${nonce}` };
+  await pool.query("INSERT INTO users(id,name,password,role,fullname) VALUES($1,$2,'no-login',3,'{}'::jsonb)", [teacherId, `ly-${nonce}`]);
+  const actor = { id: teacherId, role: USER_ROLES.ROP, userName: `ly-${nonce}` };
   const program = { faculty: `Институт ${nonce}`, direction: "09.03.01", profile: "Точная программа", education_form: "Очная", education_level: "Бакалавриат" };
   type Program = { [K in keyof typeof program]: string | null };
   const name = `Архитектура ${nonce} систем`;
@@ -195,7 +200,7 @@ test("PostgreSQL: другой год — точная программа, NULL,
   const differentName = await add(2024, program, `Другое имя ${nonce}`);
   const emptyName = await add(2023, program, " \t ");
   const nullName = await add(2022, program, null);
-  const unassigned = await add(2021, program, name, false);
+  const unassigned = await add(2021, program, `Другое неназначенное имя ${nonce}`, false);
   negatives.push(noYear, differentName, emptyName, nullName, unassigned);
   const service = new TemplateImport(pool);
   const query = { targetTemplateId: String(target.templateId), scope: "field", sourceMode: "other-year", ownOnly: "false", sameNameOnly: "false" };
@@ -215,9 +220,9 @@ test("PostgreSQL: другой год — точная программа, NULL,
     "Обычный другой комплект сохраняет доступ к чужой программе");
   await pool.query("DELETE FROM teacher_templates WHERE template_id=$1 AND user_id=$2", [positive.templateId, teacherId]);
   const revoked = await service.catalog(actor, query);
-  assert.equal(revoked.total, 0);
-  assert.deepEqual(revoked.facets.years, []);
-  assert.deepEqual((await service.sources(actor, target.templateId, undefined, "false", query)).complects, []);
+  assert.equal(revoked.total, 1, "обычный РОП не ограничен назначением источника");
+  assert.deepEqual(revoked.facets.years, [2025]);
+  assert.deepEqual((await service.sources(actor, target.templateId, undefined, "false", query)).complects[0].templates.map((row) => row.id), [positive.templateId]);
 
   // NULL сравнивается точно: nullable business key допускает и отдельный комплект того же года.
   const nullable: Program = { faculty: null, direction: null, profile: null, education_form: null, education_level: null };

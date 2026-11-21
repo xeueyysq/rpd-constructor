@@ -16,7 +16,7 @@ export function isTemplateImportField(value: unknown): value is TemplateImportFi
 type MatchRow = { discipline: string | null; semester: number | null; record_type: string | null };
 
 export function importMatchKey(row: MatchRow): string {
-  return JSON.stringify([row.discipline?.trim().replace(/\s+/g, " ").toLowerCase() ?? "", row.semester, row.record_type]);
+  return JSON.stringify([row.discipline?.trim().replace(/\s+/g, " ").toLowerCase() ?? "", row.semester]);
 }
 
 // Сначала резервируем все точные связи, включая неоднозначные и недоступные
@@ -46,7 +46,7 @@ export function matchTemplateImports<T extends MatchRow>(sources: T[], targets: 
     if (exact) return exact.length === 1 && exactTargets.get(key)!.length === 1
       ? { source: exact[0] } : { reason: "ambiguous" };
     const candidates = fallbackSources.get(disciplineKey(target)) ?? [];
-    if (target.semester === null || !candidates.some((row) => row.semester !== null && row.semester !== target.semester))
+    if (target.semester === null || target.semester <= 0 || !candidates.some((row) => row.semester !== null && row.semester > 0 && row.semester !== target.semester))
       return { reason: "missing_source" };
     if (candidates.length !== 1 || fallbackTargets.get(disciplineKey(target))!.length !== 1)
       return { reason: "ambiguous" };

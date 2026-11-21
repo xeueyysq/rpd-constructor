@@ -15,6 +15,7 @@ export async function verifyPlannedResults(t: TestContext) {
   const nonce = randomBytes(6).toString("hex");
   const ids = { owner: base, foreign: base + 1, teacher: base + 2, foreignTeacher: base + 3,
     inactiveOwner: base + 4, admin: base + 5, inactiveAdmin: base + 6, inactiveTeacher: base + 7,
+    assignedRop: base + 8, inactiveAssignedRop: base + 9,
     a: base + 10, b: base + 11, template: base + 20 };
   const uuidA = randomUUID();
   const uuidB = randomUUID();
@@ -22,7 +23,7 @@ export async function verifyPlannedResults(t: TestContext) {
     try {
       await pool.query("DELETE FROM rpd_complects WHERE id=ANY($1::int[])", [[ids.a, ids.b]]);
       await pool.query("DELETE FROM users WHERE id=ANY($1::int[])", [[ids.owner, ids.foreign, ids.teacher, ids.foreignTeacher,
-        ids.inactiveOwner, ids.admin, ids.inactiveAdmin, ids.inactiveTeacher]]);
+        ids.inactiveOwner, ids.admin, ids.inactiveAdmin, ids.inactiveTeacher, ids.assignedRop, ids.inactiveAssignedRop]]);
     } finally { await pool.end(); }
   });
   const actors = [
@@ -30,6 +31,7 @@ export async function verifyPlannedResults(t: TestContext) {
     [ids.teacher, USER_ROLES.TEACHER, true], [ids.foreignTeacher, USER_ROLES.TEACHER, true],
     [ids.inactiveOwner, USER_ROLES.ROP, false], [ids.admin, USER_ROLES.ADMIN, true],
     [ids.inactiveAdmin, USER_ROLES.ADMIN, false], [ids.inactiveTeacher, USER_ROLES.TEACHER, false],
+    [ids.assignedRop, USER_ROLES.ROP, true], [ids.inactiveAssignedRop, USER_ROLES.ROP, false],
   ] as const;
   const tokens = new Map<number, string>();
   for (const [id, role, active] of actors) {
@@ -43,8 +45,8 @@ export async function verifyPlannedResults(t: TestContext) {
   await pool.query("INSERT INTO user_complect(user_id,complect_id) VALUES($1,$2),($1,$3),($4,$2)", [ids.owner, ids.a, ids.b, ids.inactiveOwner]);
   await pool.query("INSERT INTO rpd_profile_templates(id,public_id,id_rpd_complect,disciplins_name) VALUES($1,$2,$3,'Алгоритмы')",
     [ids.template, randomBytes(6).toString("hex"), ids.a]);
-  await pool.query("INSERT INTO teacher_templates(user_id,template_id,state) VALUES($1,$3,'assigned'),($2,$3,'assigned')",
-    [ids.teacher, ids.inactiveTeacher, ids.template]);
+  await pool.query("INSERT INTO teacher_templates(user_id,template_id,state) VALUES($1,$5,'assigned'),($2,$5,'assigned'),($3,$5,'assigned'),($4,$5,'assigned')",
+    [ids.teacher, ids.inactiveTeacher, ids.assignedRop, ids.inactiveAssignedRop, ids.template]);
 
   const app = express();
   app.use(express.json());
@@ -54,8 +56,8 @@ export async function verifyPlannedResults(t: TestContext) {
   await new Promise<void>((resolve, reject) => { server.once("listening", resolve); server.once("error", reject); });
   t.after(() => new Promise<void>((resolve, reject) => server.close((error) => error ? reject(error) : resolve())));
   const url = `http://127.0.0.1:${(server.address() as AddressInfo).port}/api`;
-  const request = async (path: string, actor: number | undefined, body?: unknown) => {
-    const response = await fetch(`${url}/${path}`, { method: body === undefined ? "GET" : "POST",
+  const request = async (path: string, actor: number | undefined, body?: unknown, method = body === undefined ? "GET" : "POST") => {
+    const response = await fetch(`${url}/${path}`, { method,
       headers: { "Content-Type": "application/json", ...(actor === undefined ? {} : { Authorization: `Bearer ${tokens.get(actor)}` }) },
       ...(body === undefined ? {} : { body: JSON.stringify(body) }), signal: AbortSignal.timeout(15_000) });
     return { status: response.status, body: await response.json() as unknown };
@@ -100,7 +102,25 @@ export async function verifyPlannedResults(t: TestContext) {
     [[state.competencies[0].id, "УК-1.1"], [state.competencies[0].id, "УК-1.2"], [state.competencies[1].id, "—"]]);
   assert.deepEqual(state.disciplines.map((d) => [d.indicator_id, d.discipline]),
     [[state.indicators[0].id, "Алгоритмы"], [state.indicators[0].id, "Базы данных"], [state.indicators[0].id, "Сети"], [state.indicators[2].id, "Практика"]]);
-  for (const actor of [ids.owner, ids.admin, ids.teacher]) assert.deepEqual(await get(uuidA, actor), { status: 200, body: expected });
+  for (const actor of [ids.owner, ids.admin, ids.teacher, ids.assignedRop]) assert.deepEqual(await get(uuidA, actor), { status: 200, body: expected });
+  await pool.query("UPDATE rpd_profile_templates SET competencies='null'::jsonb WHERE id=$1", [ids.template]);
+  for (const actor of [ids.teacher, ids.assignedRop, ids.owner]) {
+    const profile = await request("rpd-profile-templates", actor, { id: ids.template });
+    assert.equal(profile.status, 200);
+    assert.equal((profile.body as { competencies: unknown }).competencies, null, "Настоящий JSONB null доходит до редактора");
+    assert.equal((profile.body as { disciplins_name: string }).disciplins_name, "Алгоритмы");
+  }
+  const saved = { 0: { competence: "ПК-9 Авторская", indicator: "ПК-9.1", results: { know: "Сохранённый результат", beAble: "", own: "" } } };
+  assert.equal((await request(`update-json-value/${ids.template}`, ids.owner,
+    { fieldToUpdate: "competencies", value: saved, baseAt: null }, "PUT")).status, 200);
+  assert.deepEqual((await pool.query("SELECT competencies FROM rpd_profile_templates WHERE id=$1", [ids.template])).rows[0].competencies, saved);
+  for (const actor of [ids.teacher, ids.assignedRop, ids.owner]) {
+    const profile = await request("rpd-profile-templates", actor, { id: ids.template });
+    assert.equal(profile.status, 200);
+    assert.deepEqual((profile.body as { competencies: unknown }).competencies, saved);
+    assert.deepEqual(await request("rpd-profile-templates", actor, { id: ids.template }), profile, "Повторное открытие сохраняет авторские результаты");
+  }
+  assert.equal((await request("find-rpd", ids.assignedRop, { complectId: ids.a })).status, 403, "Участник не становится владельцем комплекта");
   assert.deepEqual(await snapshot(ids.b), beforeB, "Загрузка A не меняет B того же владельца");
 
   const valid = { competence: "Новая компетенция", indicator: "Новый индикатор", disciplines: ["Новая дисциплина"] };
@@ -114,12 +134,14 @@ export async function verifyPlannedResults(t: TestContext) {
   assert.equal((await request("set-results-data", ids.owner, { complectId: ids.a })).status, 422);
   assert.equal((await request("set-results-data", undefined, { complectId: ids.a, data: [valid] })).status, 401);
   assert.equal((await request(`get-results-data?complectId=${ids.a}`, undefined)).status, 401);
-  for (const actor of [ids.foreign, ids.foreignTeacher, ids.inactiveOwner, ids.inactiveAdmin, ids.inactiveTeacher]) {
+  for (const actor of [ids.foreign, ids.foreignTeacher, ids.inactiveOwner, ids.inactiveAdmin, ids.inactiveTeacher, ids.inactiveAssignedRop]) {
     assert.equal((await get(ids.a, actor)).status, 403);
     assert.equal((await upload(ids.a, [valid], actor)).status, 403);
     assert.deepEqual(await snapshot(ids.a), state, "Отказ в доступе сохраняет матрицу");
   }
   assert.equal((await upload(ids.a, [valid], ids.teacher)).status, 403, "Назначенному преподавателю доступно только чтение");
+  assert.equal((await upload(ids.a, [valid], ids.assignedRop)).status, 403, "Участие РОП не даёт управление чужой матрицей");
+  assert.equal((await get(ids.b, ids.assignedRop)).status, 403, "Участие РОП в A не даёт чтение B");
   assert.equal((await get(ids.b, ids.teacher)).status, 403, "Назначение A не даёт чтение B");
   // PostgreSQL TEXT не принимает NUL: ошибка второй строки происходит после DELETE и вставки первой.
   const failed = await upload(ids.a, [valid, { competence: "Поздняя ошибка", indicator: "Ошибка SQL", disciplines: ["\u0000"] }]);

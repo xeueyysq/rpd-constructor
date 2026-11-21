@@ -8,9 +8,9 @@ import {
 } from "@entities/template";
 import { TemplateWorkflowMenu } from "@features/template-workflow";
 import { SourcePickerDialog } from "@features/template-import";
-import { Box, CssBaseline, useTheme } from "@mui/material";
-import { RedirectPath } from "@shared/enums";
-import { useActionsColumn } from "@shared/hooks";
+import { Box, CssBaseline, Link, useTheme } from "@mui/material";
+import { RedirectPath, TemplatePagesPath } from "@shared/enums";
+import { useRowContextMenu } from "@shared/hooks";
 import { Loader, PageTitle, StatusWithDate } from "@shared/ui";
 import {
   MaterialReactTable,
@@ -19,7 +19,7 @@ import {
 } from "material-react-table";
 import { MRT_Localization_RU } from "material-react-table/locales/ru";
 import { useMemo, useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { Link as RouterLink, useNavigate } from "react-router-dom";
 
 export function TeacherInterfaceTemplates() {
   const { data, isLoading } = useMyTemplates();
@@ -32,13 +32,23 @@ export function TeacherInterfaceTemplates() {
   const [importTemplateId, setImportTemplateId] = useState<number | null>(null);
   const importTemplate = data?.find((row) => row.id === importTemplateId);
   const statusColumnWidth = Number.parseFloat(theme.spacing(26));
-  const actionsColumn = useActionsColumn<MyTemplate>();
+  const contextMenu = useRowContextMenu();
+  const menuRow = data?.find((row) => row.id === contextMenu.target?.id);
   const columns = useMemo<MRT_ColumnDef<MyTemplate>[]>(
     () => [
       {
         accessorKey: "disciplins_name",
         header: "Название дисциплины",
         filterFn: "contains",
+        Cell: ({ row }) => (
+          <Link
+            component={RouterLink}
+            to={`${RedirectPath.TEMPLATES}/${row.original.public_id ?? row.original.id}/${TemplatePagesPath.COVER_PAGE}`}
+            sx={(theme) => ({ ...theme.typography.button })}
+          >
+            {row.original.disciplins_name}
+          </Link>
+        ),
       },
       {
         id: "participants",
@@ -69,33 +79,8 @@ export function TeacherInterfaceTemplates() {
           />
         ),
       },
-      {
-        id: "actions",
-        header: "Действия",
-        ...actionsColumn,
-        Cell: ({ row }) => (
-          <TemplateWorkflowMenu
-            templateId={row.original.id}
-            allowedActions={row.original.allowedActions}
-            onOpen={() =>
-              navigate(
-                `${RedirectPath.TEMPLATES}/${row.original.public_id ?? row.original.id}`
-              )
-            }
-            onOpenHistory={() => setHistoryTemplateId(row.original.id)}
-            onImport={
-              row.original.status !== "ready" &&
-              row.original.allowedActions.some((action) =>
-                ["start", "finish", "reopen"].includes(action)
-              )
-                ? () => setImportTemplateId(row.original.id)
-                : undefined
-            }
-          />
-        ),
-      },
     ],
-    [navigate, statusColumnWidth, actionsColumn]
+    [statusColumnWidth]
   );
   const table = useMaterialReactTable<MyTemplate>({
     columns,
@@ -106,6 +91,7 @@ export function TeacherInterfaceTemplates() {
     enableColumnResizing: true,
     layoutMode: "grid",
     muiTableProps: { size: "small", className: "table" },
+    muiTableBodyRowProps: ({ row }) => contextMenu.rowProps(row.original.id),
   });
   if (isLoading) return <Loader />;
   return (
@@ -115,6 +101,29 @@ export function TeacherInterfaceTemplates() {
       <Box sx={{ py: 2 }}>
         <MaterialReactTable table={table} />
       </Box>
+      {menuRow ? (
+        <TemplateWorkflowMenu
+          key={menuRow.id}
+          position={contextMenu.target?.position ?? null}
+          onClose={contextMenu.close}
+          templateId={menuRow.id}
+          allowedActions={menuRow.allowedActions}
+          onOpen={() =>
+            navigate(
+              `${RedirectPath.TEMPLATES}/${menuRow.public_id ?? menuRow.id}`
+            )
+          }
+          onOpenHistory={() => setHistoryTemplateId(menuRow.id)}
+          onImport={
+            menuRow.status !== "ready" &&
+            menuRow.allowedActions.some((action) =>
+              ["start", "finish", "reopen"].includes(action)
+            )
+              ? () => setImportTemplateId(menuRow.id)
+              : undefined
+          }
+        />
+      ) : null}
       <TemplateHistoryDialog
         history={history.data ?? []}
         open={historyTemplateId != null}
