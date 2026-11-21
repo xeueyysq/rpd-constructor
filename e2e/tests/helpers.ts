@@ -52,17 +52,17 @@ export async function openComplect(page: Page, key: keyof typeof complects = 'ma
   await expect(page.getByRole('row').filter({ hasText: key === 'main' ? disciplines.inProgress : disciplines.otherRop })).toBeVisible();
 }
 
-// Меню «…» в строке списка преподавателя; «Открыть» — первый пункт.
+// Контекстное меню строки списка преподавателя; «Открыть» — первый пункт.
 export async function openTeacherRowMenu(page: Page, row: Locator) {
-  await row.getByRole('button', { name: 'Меню шаблона', exact: true }).click();
+  await row.click({ button: 'right' });
   const menu = page.getByRole('menu');
   await expect(menu).toBeVisible();
   return menu;
 }
 
 export async function openTemplateFromTeacherList(page: Page, row: Locator) {
-  const menu = await openTeacherRowMenu(page, row);
-  await menu.getByRole('menuitem', { name: 'Открыть', exact: true }).click();
+  await row.getByRole('link').click();
+  await expect(page).toHaveURL(/\/templates\/[^/]+\/coverPage$/);
 }
 
 export function teacherStatusCell(row: Locator) {

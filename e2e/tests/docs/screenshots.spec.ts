@@ -250,13 +250,12 @@ test('снимки инструкции на синтетических данн
     const teacherPage = await teacherContext.newPage();
     await signIn(teacherPage, 'teacher');
     const templateRow = teacherPage.getByRole('row').filter({ hasText: 'Совместное редактирование для теста' });
-    // Таблица шире окна: прокручиваем к колонке «Действия», чтобы в кадре были статус с отметкой и меню «…».
-    const menuButton = templateRow.getByRole('button', { name: 'Меню шаблона', exact: true });
-    await menuButton.scrollIntoViewIfNeeded();
+    const disciplineLink = templateRow.getByRole('link');
+    await disciplineLink.scrollIntoViewIfNeeded();
     await teacherPage.mouse.move(0, 0);
     await save(teacherPage, 'teacher-templates', [
       { target: teacherStatusCell(templateRow).getByRole('button'), label: 'Статус и моя отметка' },
-      { target: menuButton, label: 'Меню шаблона' },
+      { target: disciplineLink, label: 'Открыть РПД' },
     ]);
     await openTemplateFromTeacherList(teacherPage, templateRow);
     const aims = teacherPage.getByRole('button', { name: 'Цели и задачи освоения дисциплины' });
@@ -304,14 +303,21 @@ test('снимки инструкции на синтетических данн
           title: 'База данных «Языки мира»', author: 'Виноградов, В. А.', year: 2003,
           url: null, thumb: null,
           biblio: 'Виноградов, В. А. База данных «Языки мира» / В. А. Виноградов. — 2003.',
+          source: 'megapro',
+        }, {
+          id: 'lan:docs-book',
+          title: 'Введение в языкознание', author: 'Виноградов, А. В.', year: 2021,
+          url: null, thumb: null,
+          biblio: 'Виноградов, А. В. Введение в языкознание. — 2021.',
+          source: 'lan',
         }], truncated: false }),
       });
     });
     await teacherPage.getByRole('button', { name: 'Список РПД' }).click();
     await openTemplateFromTeacherList(teacherPage, teacherPage.getByRole('row').filter({ hasText: 'Литература для теста' }));
     await teacherPage.getByRole('button', { name: 'Ресурсное обеспечение' }).click();
-    await teacherPage.getByRole('button', { name: 'Найти книги в библиотечной системе' }).first().click();
-    const booksDialog = teacherPage.getByRole('dialog', { name: 'Поиск книг в библиотечной системе' });
+    await teacherPage.getByRole('button', { name: 'Найти книги в каталогах' }).first().click();
+    const booksDialog = teacherPage.getByRole('dialog', { name: 'Поиск книг в каталогах' });
     const query = booksDialog.getByRole('textbox', { name: 'Ключевые слова' });
     await query.fill('Виноградов');
     await query.press('Enter');

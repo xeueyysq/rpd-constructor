@@ -52,22 +52,21 @@ export default class TemplateImport {
     return target;
   }
 
-  private async source(db: Database, id: number, targetComplectId: number): Promise<ImportTemplate> {
+  private async source(db: Database, id: number, target: ImportTemplate, assignedTo?: number): Promise<ImportTemplate> {
     const source = await TemplateImportModel.template(db, id);
     if (!source || source.removed_at) throw new NotFound("Источник импорта не найден");
-    if (source.id_rpd_complect === targetComplectId) throw new Unprocessable("Выберите источник из другого комплекта");
+    if (source.id === target.id) throw new Unprocessable("Выберите другую РПД");
+    if (assignedTo !== undefined && !(await TemplateImportModel.isAssigned(db, id, assignedTo)))
+      throw new Forbidden("Источник не назначен вам");
+    if (assignedTo === undefined && source.id_rpd_complect === target.id_rpd_complect)
+      throw new Unprocessable("Выберите источник из другого комплекта");
     return source;
   }
 
   private assignedOnly(actor: UserClaims, ownOnly: unknown, scope: ImportScope = "field"): boolean {
     if (ownOnly !== undefined && ownOnly !== true && ownOnly !== false && ownOnly !== "true" && ownOnly !== "false")
       throw new Unprocessable("Некорректный ownOnly");
-    return scope === "field" && (actor.role === USER_ROLES.TEACHER || ownOnly === true || ownOnly === "true");
-  }
-
-  private async assertSourceAssignment(db: Database, actor: UserClaims, sourceId: number, ownOnly: unknown): Promise<void> {
-    if (this.assignedOnly(actor, ownOnly) && !(await TemplateImportModel.isAssigned(db, sourceId, actor.id)))
-      throw new Forbidden("Источник не назначен вам");
+    return scope !== "bulk" && (actor.role === USER_ROLES.TEACHER || ownOnly === true || ownOnly === "true");
   }
 
   private async revision(db: Database, complectId: number, templateId?: number) {
@@ -90,7 +89,7 @@ export default class TemplateImport {
   }
 
   private catalogFilters(query: Record<string, unknown>, targetName: string | null,
-    scope: ImportScope, educationLevel: string | null): CatalogFilters {
+    scope: ImportScope, educationLevel: string | null, assignedOnly: boolean): CatalogFilters {
     const string = (key: string, max = 160): string | null => {
       const value = query[key];
       if (value === undefined || value === "") return null;
@@ -114,7 +113,7 @@ export default class TemplateImport {
       throw new Unprocessable("Некорректный статус");
     const sourceMode = string("sourceMode", 32) ?? "other-complect";
     if (sourceMode !== "other-complect" && sourceMode !== "other-year") throw new Unprocessable("Некорректный режим источников");
-    const sameNameOnly = scope === "field" || query.sameNameOnly === "true";
+    const sameNameOnly = !assignedOnly && (scope === "field" || query.sameNameOnly === "true");
     if (query.sameNameOnly !== undefined && query.sameNameOnly !== "true" && query.sameNameOnly !== "false")
       throw new Unprocessable("Некорректный sameNameOnly");
     if (sameNameOnly && !targetName && scope !== "field") throw new Unprocessable("Фильтр названия доступен только для одной РПД");
@@ -124,7 +123,7 @@ export default class TemplateImport {
       search: string("search", 120), faculty: string("faculty"), educationLevel,
       direction: string("direction"), profile: string("profile"), educationForm: string("educationForm"),
       year: yearRaw === undefined ? null : Number(yearRaw), status: scope === "single" ? status : null,
-      sourceMode: scope === "field" ? sourceMode : "other-complect", sameNameOnly,
+      sourceMode: scope === "field" && !assignedOnly ? sourceMode : "other-complect", sameNameOnly,
       page: positive("page", 1, 10_000), pageSize: positive("pageSize", 10, 25),
     };
   }
@@ -152,9 +151,10 @@ export default class TemplateImport {
     const { complectId, templateId, targetRevision, targetName } = await this.sourceContext(actor, query.targetTemplateId, query.targetComplectId);
     const scope = this.catalogScope(query.scope, templateId);
     const meta = await TemplateImportCatalogModel.targetMeta(this.database, complectId);
-    const filters = this.catalogFilters(query, targetName, scope, meta.education_level);
+    const assignedOnly = this.assignedOnly(actor, query.ownOnly, scope);
+    const filters = this.catalogFilters(query, targetName, scope, meta.education_level, assignedOnly);
     const params = TemplateImportCatalogModel.params(complectId,
-      this.assignedOnly(actor, query.ownOnly, scope) ? actor.id : undefined, meta.year, targetName, scope === "bulk", filters);
+      assignedOnly ? actor.id : undefined, meta.year, targetName, scope === "bulk", filters, templateId);
     const result = await TemplateImportCatalogModel.catalog(this.database, params);
     return { scope, targetRevision, targetEducationLevel: meta.education_level, ...result,
       templates: result.templates.map((template) => ({ ...template, disciplins_name: formatDisciplineName(template.disciplins_name) })),
@@ -166,10 +166,11 @@ export default class TemplateImport {
     const { complectId, templateId, targetRevision, targetName } = await this.sourceContext(actor, targetTemplateId, targetComplectId);
     const scope = this.catalogScope(query?.scope, templateId);
     const meta = await TemplateImportCatalogModel.targetMeta(this.database, complectId);
-    const filters = this.catalogFilters(query ?? {}, targetName, scope, meta.education_level);
+    const assignedOnly = this.assignedOnly(actor, ownOnly, scope);
+    const filters = this.catalogFilters(query ?? {}, targetName, scope, meta.education_level, assignedOnly);
     const sourceId = query?.sourceComplectId === undefined ? undefined : await resolveComplect(this.database, query.sourceComplectId);
     const params = TemplateImportCatalogModel.params(complectId,
-      this.assignedOnly(actor, ownOnly, scope) ? actor.id : undefined, meta.year, targetName, scope === "bulk", filters);
+      assignedOnly ? actor.id : undefined, meta.year, targetName, scope === "bulk", filters, templateId);
     const sources = await TemplateImportCatalogModel.details(this.database, params, sourceId);
     const complects = sources.map((complect) => ({
       ...complect,
@@ -185,12 +186,12 @@ export default class TemplateImport {
     if (!isTemplateImportField(field)) throw new Unprocessable("Недопустимое поле импорта");
     const targetId = await resolveTemplate(this.database, targetTemplateId);
     const target = await this.target(this.database, actor, targetId);
+    const assignedTo = this.assignedOnly(actor, ownOnly) ? actor.id : undefined;
     if (!(await TemplateImportModel.fields(this.database)).includes(field)) throw new Unprocessable("Поле отсутствует в схеме");
     const numericIds: number[] = [];
     for (const identifier of Array.isArray(ids) ? ids : [ids]) {
       const id = await resolveTemplate(this.database, identifier);
-      await this.source(this.database, id, target.id_rpd_complect);
-      await this.assertSourceAssignment(this.database, actor, id, ownOnly);
+      await this.source(this.database, id, target, assignedTo);
       numericIds.push(id);
     }
     return TemplateImportModel.preview(this.database, [...new Set(numericIds)], field);
@@ -217,17 +218,16 @@ export default class TemplateImport {
       if (!(options.baseAt === null || typeof options.baseAt === "string")) throw new Unprocessable("Укажите baseAt");
     }
     if (options.sourceStatus !== undefined && options.sourceStatus !== "ready") throw new Unprocessable("Некорректный статус источника");
+    const assignedTo = this.assignedOnly(actor, options.ownOnly, field ? "field" : "single") ? actor.id : undefined;
     return this.transaction(async (client) => {
       const targetId = await resolveTemplate(client, targetIdentifier);
       const sourceId = await resolveTemplate(client, sourceIdentifier);
       const initialTarget = await this.target(client, actor, targetId);
-      const initialSource = await this.source(client, sourceId, initialTarget.id_rpd_complect);
-      this.assignedOnly(actor, options.ownOnly, field ? "field" : "single");
+      const initialSource = await this.source(client, sourceId, initialTarget, assignedTo);
       await TemplateImportModel.lock(client, [initialTarget.id_rpd_complect, initialSource.id_rpd_complect], actor.id);
       const target = await this.target(client, actor, targetId);
-      const source = await this.source(client, sourceId, target.id_rpd_complect);
+      const source = await this.source(client, sourceId, target, assignedTo);
       if (field) {
-        await this.assertSourceAssignment(client, actor, sourceId, options.ownOnly);
         const currentEdit = target.field_edits[field] ?? null;
         if ((currentEdit?.at ?? null) !== options.baseAt) throw new Conflict({ message: "Поле уже изменено", field, value: target[field as keyof ImportTemplate], edit: (await withEditorNames(client, currentEdit ? { [field]: currentEdit } : {}))[field] ?? null });
       } else {
@@ -317,7 +317,7 @@ export default class TemplateImport {
         else if (!reason && (target.current_status === "ready" || target.current_status === "closed")) reason = "read_only";
         if (reason) { skipped.push({ ...entry, reason }); continue; }
         const targetTemplate = await this.target(client, actor, target.template_id!);
-        const sourceTemplate = await this.source(client, source!.template_id!, targetId);
+        const sourceTemplate = await this.source(client, source!.template_id!, targetTemplate);
         const updated = await this.saveCopy(client, sourceTemplate, targetTemplate, fields, actor.id, mode);
         if (!updated) throw new NotFound("Цель импорта не найдена");
         imported.push({ ...entry, sourceExchangeId: source!.exchange_id, sourceTemplateId: source!.template_id! });

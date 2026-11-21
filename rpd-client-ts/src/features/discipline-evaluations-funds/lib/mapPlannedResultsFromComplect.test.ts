@@ -1,7 +1,34 @@
 import { describe, expect, it } from "vitest";
-import { mapComplectResultsToPlannedResults } from "./mapPlannedResultsFromComplect";
+import {
+  hasPlannedResultsData,
+  mapComplectResultsToPlannedResults,
+} from "./mapPlannedResultsFromComplect";
+import type { PlannedResultsData } from "../model/types";
 
 describe("mapComplectResultsToPlannedResults", () => {
+  it("подставляет матрицу для null и пустых строк, сохраняя любое заполненное поле", () => {
+    const empty = {
+      competence: "",
+      indicator: "",
+      results: { know: "", beAble: "", own: "" },
+    };
+    const blank: Array<PlannedResultsData | null | undefined> = [
+      undefined,
+      null,
+      {},
+      { 0: empty },
+    ];
+    for (const value of blank) expect(hasPlannedResultsData(value)).toBe(false);
+    for (const row of [
+      { ...empty, competence: "УК-1" },
+      { ...empty, indicator: "УК-1.1" },
+      ...["know", "beAble", "own"].map((key) => ({
+        ...empty,
+        results: { ...empty.results, [key]: "Сохранённый результат" },
+      })),
+    ])
+      expect(hasPlannedResultsData({ 0: row })).toBe(true);
+  });
   it.each([
     ["ВВЕДЕНИЕ В ПРОГРАММИРОВАНИЕ", "Введение в программирование"],
     ["Введение в программирование", "ВВЕДЕНИЕ В ПРОГРАММИРОВАНИЕ"],

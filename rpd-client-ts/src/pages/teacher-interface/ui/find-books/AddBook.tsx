@@ -1,5 +1,6 @@
 import { ChangeEvent, FC, useState } from "react";
 import {
+  Alert,
   Box,
   Button,
   Dialog,
@@ -16,7 +17,11 @@ import {
 } from "@mui/material";
 import { useStore } from "@shared/hooks";
 import { useUpdateTemplateField } from "@entities/template";
-import { bookSearchError, useFindBooks } from "../../api/findBooks";
+import {
+  bookSearchError,
+  bookSourceLabels,
+  useFindBooks,
+} from "../../api/findBooks";
 import { addBooks } from "../../lib/bookList";
 import { BooksMetaList } from "./BooksMetaList.tsx";
 import { motion } from "framer-motion";
@@ -35,6 +40,9 @@ const AddBook: FC<AddBook> = ({ elementName }) => {
   const [manualInput, setManualInput] = useState<string>("");
   const findBooks = useFindBooks();
   const booksData = findBooks.data?.books;
+  const unavailableCatalogs = findBooks.data?.unavailableSources
+    ?.map((source) => bookSourceLabels[source])
+    .join(", ");
 
   const elementValue = useStore((state) => state.jsonData[elementName]) as
     string[] | undefined;
@@ -71,7 +79,7 @@ const AddBook: FC<AddBook> = ({ elementName }) => {
       return;
     }
     setErrorMessage(null);
-    findBooks.mutate(query);
+    findBooks.mutate({ bookName: query });
   };
 
   const handleAddBooksToList = (biblios: string[]) => {
@@ -107,7 +115,7 @@ const AddBook: FC<AddBook> = ({ elementName }) => {
           onClick={handleOpenDialog}
           endIcon={<SearchIcon />}
         >
-          Найти книги в библиотечной системе
+          Найти книги в каталогах
         </Button>
         <ExportFromTemplates elementName={elementName} />
       </Box>
@@ -166,7 +174,7 @@ const AddBook: FC<AddBook> = ({ elementName }) => {
         maxWidth={findBooks.isSuccess && booksData?.length ? "xl" : "sm"}
         onClose={handleCloseDialog}
       >
-        <DialogTitle>Поиск книг в библиотечной системе</DialogTitle>
+        <DialogTitle>Поиск книг в каталогах</DialogTitle>
         <DialogContent>
           <Box>
             <TextField
@@ -201,7 +209,9 @@ const AddBook: FC<AddBook> = ({ elementName }) => {
                     ? bookSearchError(findBooks.error)
                     : null) ??
                   (findBooks.isSuccess && booksData?.length === 0
-                    ? "По вашему запросу ничего не найдено"
+                    ? unavailableCatalogs
+                      ? "В доступных каталогах ничего не найдено"
+                      : "По вашему запросу ничего не найдено"
                     : null))
                 )
               }
@@ -226,6 +236,11 @@ const AddBook: FC<AddBook> = ({ elementName }) => {
               <Divider sx={{ mt: 1.5 }} />
             ) : null}
           </Box>
+          {unavailableCatalogs && (
+            <Alert severity="warning" sx={{ mt: 2 }}>
+              Поиск недоступен в следующих каталогах: {unavailableCatalogs}.
+            </Alert>
+          )}
           {findBooks.isSuccess && findBooks.data.truncated && (
             <Box sx={{ pt: 2 }}>
               Показаны не все найденные записи. Уточните запрос: добавьте автора

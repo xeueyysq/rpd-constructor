@@ -53,11 +53,15 @@ async function tick(): Promise<void> {
       }
     }
   } finally {
-    if (client) {
-      try { if (locked) await client.query("SELECT pg_advisory_unlock($1)", [LOCK_KEY]); }
-      finally { client.release(); }
-    }
-    running = false;
+    try {
+      if (client) {
+        let destroy = locked;
+        try {
+          if (locked) await client.query("SELECT pg_advisory_unlock($1)", [LOCK_KEY]);
+          destroy = false; // Возвращаем в пул только после успешного снятия session lock.
+        } finally { client.release(destroy); }
+      }
+    } finally { running = false; }
   }
 }
 

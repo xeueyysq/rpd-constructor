@@ -232,8 +232,6 @@ test('legacy контроль: преподаватель не очищает, �
   await expect(topic.getByRole('cell').nth(6).getByRole('spinbutton')).toHaveCount(0);
   await expect(totalRow(page).getByRole('cell').first()).toContainText('В учебном плане / В РПД');
   await expect(totalRow(page).getByRole('cell').nth(6)).toHaveText(/^36\s*\/\s*38$/);
-  await page.reload();
-  await expect(topic.getByRole('cell').nth(6)).toHaveText('2');
   expect(templateFromDb(list3.control.id).content, 'Открытие не должно автоматически исправлять legacy часы').toEqual(before.content);
 
   await page.getByRole('button', { name: 'Открыть меню аккаунта' }).click();

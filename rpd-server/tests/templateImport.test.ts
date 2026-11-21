@@ -46,10 +46,17 @@ test("полевой импорт преподавателя требует на
 test("ownOnly сужает источники РОП, но false не раскрывает чужие преподавателю", async () => {
   const db = templateDatabase();
   const imports = new TemplateImport(db.db);
-  assert.deepEqual((await imports.sources(rop, 20, undefined, true, { scope: "field" })).complects, []);
-  assert.equal((await imports.sources(rop, 20, undefined, false, { scope: "field" })).complects[0].templates[0].id, 10);
+  for (const scope of ["field", "single"] as const) {
+    const options = scope === "field" ? { field: "goals", baseAt: null } : {};
+    assert.deepEqual((await imports.sources(rop, 20, undefined, true, { scope })).complects, []);
+    assert.equal((await imports.sources(rop, 20, undefined, false, { scope })).complects[0].templates[0].id, 10);
+    await assert.rejects(imports.copy(rop, 10, 20, { ...options, ownOnly: true }), { status: 403 });
+    for (const ownOnly of [undefined, false, true]) {
+      assert.deepEqual((await imports.sources(teacher, 20, undefined, ownOnly, { scope })).complects, []);
+      await assert.rejects(imports.copy(teacher, 10, 20, { ...options, ownOnly }), { status: 403 });
+    }
+  }
   await assert.rejects(imports.preview(rop, [10], "goals", 20, true), { status: 403 });
-  await assert.rejects(imports.copy(rop, 10, 20, { field: "goals", baseAt: null, ownOnly: true }), { status: 403 });
   await assert.rejects(imports.preview(teacher, [10], "goals", 20, false), { status: 403 });
   await assert.rejects(imports.sources(rop, 20, undefined, "yes"), { status: 422 });
 });
@@ -108,7 +115,7 @@ test("whitelist не позволяет импортировать компет�
   await assert.rejects(imports.copy(teacher, 10, 20, { field: "goals" }), { status: 422 });
   await assert.rejects(imports.copy(teacher, 20, 20, { field: "goals", baseAt: null }), { status: 422 });
   db.state.profiles.push(profile(21, 2));
-  await assert.rejects(imports.copy(teacher, 21, 20), { status: 422 });
+  await assert.rejects(imports.copy(rop, 21, 20), { status: 422 });
   assert.deepEqual(db.state.profiles.slice(0, 2), before.profiles);
 });
 
@@ -149,11 +156,12 @@ test("bulk требует manager цели и baseline; одинаковый к�
   assert.deepEqual(db.state, before);
 });
 
-test("bulk: имя нормализуется, известный семестр допускает уникальный перенос, тип и NULL не расширяются", async (t) => {
+test("bulk: имя и семестр определяют пару без кода, перенос требует известных семестров", async (t) => {
   for (const [sourceSemester, targetSemester, sourceType, targetType, expected] of [
     [1, 1, "1.О", "1.О", 1], [2, 1, "1.О", "1.О", 1], [1, 2, "1.О", "1.О", 1],
-    [null, 1, "1.О", "1.О", 0], [1, null, "1.О", "1.О", 0], [1, 2, "1.В", "1.О", 0],
-    [null, null, "1.О", "1.О", 1], [1, 1, "1.В", "1.О", 0], [1, 1, null, "1.О", 0], [1, 1, null, null, 1],
+    [null, 1, "1.О", "1.О", 0], [1, null, "1.О", "1.О", 0], [1, 2, "1.В", "1.О", 1],
+    [null, null, "1.О", "1.О", 1], [1, 1, "1.В", "1.О", 1], [1, 1, null, "1.О", 1], [1, 1, null, null, 1],
+    [0, 1, "1.О", "1.О", 0], [1, 0, "1.О", "1.О", 0], [0, 0, "1.О", "1.О", 1],
   ] as const) await t.test(JSON.stringify([sourceSemester, targetSemester, sourceType, targetType]), async () => {
     const db = templateDatabase();
     db.state.exchange[0].semester = sourceSemester;
@@ -199,8 +207,9 @@ test("bulk копирует допустимые пары одной транз�
     // Одна пара точная, другая перенесена и отличается record_type.
     addPair(db, "Программирование");
     db.state.exchange.find((e) => e.id === 101)!.record_type = "1.В";
+    db.state.exchange.find((e) => e.id === 101)!.semester = 2;
     db.state.exchange.find((e) => e.id === 201)!.record_type = "1.В";
-    db.state.exchange.find((e) => e.id === 201)!.semester = 2;
+    db.state.exchange.find((e) => e.id === 201)!.semester = 3;
     const imports = new TemplateImport(db.db);
     const baseline = (await imports.sources(rop, undefined, 2)).targetRevision;
     const before = structuredClone(db.state);
@@ -248,6 +257,7 @@ test("bulk резервирует все точные связи до перен
     { name: "два источника на перенесённую цель", sources: [1, 2], targets: [3], pairs: [], reasons: ["ambiguous"] },
     { name: "дубликаты источника другого семестра", sources: [1, 1], targets: [2], pairs: [], reasons: ["ambiguous"] },
     { name: "неизвестный семестр не делает известный источник уникальным", sources: [1, null], targets: [2], pairs: [], reasons: ["ambiguous"] },
+    { name: "нулевой семестр не делает известный источник уникальным", sources: [1, 0], targets: [2], pairs: [], reasons: ["ambiguous"] },
     { name: "перенос в несозданную цель", sources: [1], targets: [2], unavailable: "missing", pairs: [], reasons: ["target_missing_template"] },
     { name: "перенос из несозданного источника", sources: [1], targets: [2], sourceMissing: true, pairs: [], reasons: ["source_missing_template"] },
     { name: "перенос в закрытую цель", sources: [1], targets: [2], unavailable: "closed", pairs: [], reasons: ["read_only"] },
@@ -263,7 +273,7 @@ test("bulk резервирует все точные связи до перен
         const exchangeId = (side + 1) * 100 + index;
         db.state.profiles.push({ ...profile(id, side + 1), semester });
         db.state.exchange.push({ id: exchangeId, id_rpd_complect: side + 1,
-          discipline: side ? "Программирование" : "  ПРОГРАММИРОВАНИЕ  ", semester, record_type: "1.О", removed_at: null });
+          discipline: side ? "Программирование" : "  ПРОГРАММИРОВАНИЕ  ", semester, record_type: side ? "Б1.О.01" : `Б1.В.${index}`, removed_at: null });
         if (!(index === 0 && (side ? row.unavailable === "missing" : row.sourceMissing)))
           db.state.statuses.push({ id, id_profile_template: id, id_1c_template: exchangeId,
             current_status: side && index === 0 && row.unavailable ? row.unavailable : "created", history: [] });

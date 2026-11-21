@@ -8,9 +8,15 @@ async function chooseFieldSource(page: Page, button: Locator, mode: 'other-year'
     additional_textbook: 'Дополнительная литература', content: 'Содержание дисциплины' };
   const dialog = page.getByRole('dialog', { name: `Импортировать: ${names[field]}`, exact: true });
   await expect(dialog).toBeVisible();
-  await expect(dialog.getByRole('combobox')).toHaveCount(3);
+  await expect(dialog.getByRole('combobox')).toHaveCount(4);
   await expect(dialog.getByRole('checkbox')).toHaveCount(0);
-  if (mode === 'other-year') await dialog.getByRole('tab', { name: 'Другой год' }).click();
+  if (await dialog.getByRole('tab').count()) {
+    if (mode === 'other-year') await dialog.getByRole('tab', { name: 'Другой год' }).click();
+  } else {
+    await dialog.getByRole('combobox', { name: 'Год набора' }).selectOption(mode === 'other-year' ? '2024' : '2026');
+    if (mode === 'other-year') await dialog.getByRole('combobox', { name: 'Профиль', exact: true }).selectOption('List3 Поле преподавателя');
+    else await dialog.getByRole('combobox', { name: 'Факультет / институт' }).selectOption('Институт источников List3');
+  }
   const source = dialog.getByRole('radio', { name: /семестр 1.*Дисциплина/i }).first();
   await source.locator('xpath=ancestor::tr').getByRole('cell').nth(1).click();
   await expect(source).toBeChecked();
@@ -198,37 +204,46 @@ for (const role of ['rop', 'teacher'] as const) {
   });
 }
 
-test('field: полные текст, литература и темы/часы; просмотр не выбирает источник, оба режима ограничены назначением и названием', async ({ page }) => {
-  test.slow();
-  await signIn(page, 'teacher');
-  await page.goto('/templates/d400d400d400/aimsPage');
-  for (const [section, index, title, kind] of [
-    ['Цели и задачи освоения дисциплины', 0, 'Цели и задачи', 'text'],
-    ['Ресурсное обеспечение', 0, 'Основная литература', 'books'],
-    ['Содержание дисциплины', 0, 'Содержание дисциплины', 'content'],
-    ['Ресурсное обеспечение', 3, 'Программное обеспечение', 'empty'],
-  ] as const) {
-    await page.getByRole('button', { name: section, exact: true }).click();
-    await page.getByRole('button', { name: 'Импортировать поле', exact: true }).nth(index).click();
+for (const [section, index, title, kind] of [
+  ['aimsPage', 0, 'Цели и задачи', 'text'],
+  ['resourceSupport', 0, 'Основная литература', 'books'],
+  ['disciplineContent', 0, 'Содержание дисциплины', 'content'],
+  ['resourceSupport', 3, 'Программное обеспечение', 'empty'],
+] as const) {
+  test(`field: ${title}, полный preview и сброс выбора при смене года`, async ({ page }) => {
+    await page.setViewportSize({ width: 1365, height: 900 });
+    await signIn(page, 'teacher');
+    await page.goto(`/templates/d400d400d400/${section}`);
+    await page.getByRole('main').getByRole('button', { name: 'Импортировать поле', exact: true }).nth(index).click();
     const dialog = page.getByRole('dialog', { name: `Импортировать: ${title}`, exact: true });
-    await expect(dialog.getByRole('radio')).toHaveCount(2); // 4010 и 4020; чужие назначения, имя и уровень исключены.
+    await expect(dialog).toBeVisible();
+    await dialog.getByRole('searchbox', { name: 'Поиск источников' }).fill('UI');
+    await expect(dialog.getByRole('radio')).toHaveCount(3); // 4010, 4020, другое имя 4030; чужие назначения и уровень исключены.
     await expect(dialog.getByRole('checkbox')).toHaveCount(0);
-    await expect(dialog.getByRole('combobox')).toHaveCount(3);
+    await expect(dialog.getByRole('combobox')).toHaveCount(4);
+    await expect(dialog.getByRole('tab')).toHaveCount(0);
+    await expect(dialog.getByRole('tabpanel')).toHaveCount(0);
     await expect(dialog.getByRole('button', { name: 'Импортировать из Word' })).toHaveCount(0);
     await expect(dialog).not.toContainText('Цель:');
     if (kind === 'text') {
-      const year = dialog.getByRole('tab', { name: 'Другой год' });
-      const complect = dialog.getByRole('tab', { name: 'Другой комплект' });
-      await complect.focus();
-      await page.keyboard.press('ArrowRight');
-      await expect(year).toBeFocused();
-      await page.keyboard.press('Space');
-      await expect(year).toHaveAttribute('aria-selected', 'true');
+      await expect(dialog.getByRole('radio', { name: /Другая дисциплина UI/ })).toHaveCount(1);
+      const year = dialog.getByRole('combobox', { name: 'Год набора' });
+      await expect(year).toHaveValue('');
+      const faculty = dialog.getByRole('combobox', { name: 'Факультет / институт' });
+      const direction = dialog.getByRole('combobox', { name: 'Направление', exact: true });
+      const profile = dialog.getByRole('combobox', { name: 'Профиль', exact: true });
+      await faculty.selectOption('Институт UI цели');
+      await direction.selectOption('Направление UI');
+      await profile.selectOption('UI цель');
+      await year.selectOption('2024');
+      await expect(faculty).toHaveValue('Институт UI цели');
+      await expect(direction).toHaveValue('Направление UI');
+      await expect(profile).toHaveValue('UI цель');
       await expect(dialog.getByRole('radio')).toHaveCount(1);
-      await page.keyboard.press('Home');
-      await expect(complect).toBeFocused();
-      await page.keyboard.press('Space');
-      await expect(dialog.getByRole('radio')).toHaveCount(2);
+      await year.selectOption('');
+      await expect(profile).toHaveValue('UI цель');
+      await faculty.selectOption('');
+      await expect(dialog.getByRole('radio')).toHaveCount(3);
     }
     const eye = dialog.getByRole('button', { name: /^Просмотр:/ }).first();
     const loaded = page.waitForResponse((response) => response.url().includes('/api/get-changeable-values') && response.status() === 200);
@@ -297,22 +312,28 @@ test('field: полные текст, литература и темы/часы;
       await expect(dialog.getByRole('radio').nth(1)).not.toBeChecked();
     }
     await expect(dialog.getByRole('button', { name: 'Продолжить' })).toBeEnabled();
-    await dialog.getByRole('tab', { name: 'Другой год' }).click();
+    const changedYear = page.waitForResponse((response) => response.url().includes('/api/template-import/catalog')
+      && new URL(response.url()).searchParams.get('year') === '2024');
+    await dialog.getByRole('combobox', { name: 'Год набора' }).selectOption('2024');
+    const yearResponse = await changedYear;
+    expect(new URL(yearResponse.url()).searchParams.get('page')).toBe('1');
+    expect((await yearResponse.json()).facets.faculties).toEqual(['Институт UI цели']);
     await expect(dialog.getByRole('radio')).toHaveCount(1);
+    await expect(dialog.getByRole('region', { name: `Предпросмотр: ${title}`, exact: true })).toHaveCount(0);
     await expect(dialog.getByRole('radio')).not.toBeChecked();
     await expect(dialog.getByRole('radio')).toHaveAccessibleName(/UI цель.*2024/);
     await expect(dialog.getByRole('button', { name: 'Продолжить' })).toBeDisabled();
     await dialog.getByRole('button', { name: 'Отмена' }).click();
-    await page.setViewportSize({ width: 1365, height: 900 });
-  }
-});
+  });
+}
 
 test('field: задержанный preview предыдущей строки не подменяет просмотр нового источника', async ({ page }) => {
   await signIn(page, 'teacher');
   await page.goto('/templates/d400d400d400/aimsPage');
   await page.getByRole('button', { name: 'Импортировать поле', exact: true }).click();
   const dialog = page.getByRole('dialog', { name: 'Импортировать: Цели и задачи', exact: true });
-  await expect(dialog.getByRole('radio')).toHaveCount(2);
+  await dialog.getByRole('searchbox', { name: 'Поиск источников' }).fill('UI');
+  await expect(dialog.getByRole('radio')).toHaveCount(3);
   let release!: () => void;
   const gate = new Promise<void>((resolve) => { release = resolve; });
   let finishDelayed!: () => void;
