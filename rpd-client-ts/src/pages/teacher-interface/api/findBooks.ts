@@ -13,11 +13,12 @@ export type Book = {
 };
 
 export type BookSearchResult = { books: Book[]; truncated: boolean };
+export type BookSource = "megapro" | "lan" | "urait";
 
 export function useFindBooks() {
   return useMutation({
-    mutationFn: async (bookName: string) =>
-      (await axiosBase.post<BookSearchResult>("find-books", { bookName })).data,
+    mutationFn: async (request: { bookName: string; source?: BookSource }) =>
+      (await axiosBase.post<BookSearchResult>("find-books", request)).data,
   });
 }
 

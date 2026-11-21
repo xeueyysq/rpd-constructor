@@ -2,6 +2,7 @@ import type { ParamsDictionary } from "express-serve-static-core";
 import type { Request, Response } from "express";
 import axios from "axios";
 import { BadGateway, Unprocessable } from "../utils/Errors.ts";
+import { searchEbsBooks } from "./ebsBooks.ts";
 
 export type Book = {
   id: string;
@@ -14,7 +15,16 @@ export type Book = {
 };
 
 export type BookSearchResult = { books: Book[]; truncated: boolean };
-type BookRequest = (url: string, config: { timeout: number }) => Promise<{ data: unknown }>;
+export type BookSource = "megapro" | "lan" | "urait";
+export type BookRequest = (url: string, config: {
+  timeout: number;
+  params?: Record<string, string | number>;
+  headers?: Record<string, string>;
+  maxRedirects?: number;
+  maxContentLength?: number;
+  signal?: AbortSignal;
+  responseType?: "json";
+}) => Promise<{ data: unknown }>;
 
 // ponytail: MegaPro соблюдает limit только до 100, больше — игнорирует и отдаёт до 1000 записей за ~15 с; ранжируем окно из 100, при truncated клиент просит уточнить запрос. Апгрейд — API с сортировкой или поиском по полям.
 const LIMIT = 100;
@@ -88,7 +98,12 @@ export function rankBooks(books: Book[], query: string): Book[] {
 const isTimeout = (error: unknown): boolean => typeof error === "object" && error !== null
   && "code" in error && (error.code === "ECONNABORTED" || error.code === "ETIMEDOUT");
 
-export async function searchBooks(query: string, get: BookRequest = axios.get): Promise<BookSearchResult> {
+export async function searchBooks(query: string, get: BookRequest = axios.get, source: BookSource = "megapro"): Promise<BookSearchResult> {
+  if (source !== "megapro") {
+    const result = await searchEbsBooks(query, source, get);
+    const books = rankBooks(dedupeBooks(result.books), query);
+    return { books: books.slice(0, LIMIT), truncated: result.truncated || books.length > LIMIT };
+  }
   const url = new URL("https://lib.uni-dubna.ru/MegaPro/API");
   url.searchParams.set("Method", "LIC_Search");
   url.searchParams.set("query", query);
@@ -123,7 +138,11 @@ export function parseBookName(value: unknown): string {
 
 const findBooks = async (req: Request<ParamsDictionary, unknown, Record<string, unknown>>, res: Response) => {
   const query = parseBookName(req.body?.bookName);
-  res.json(await searchBooks(query));
+  const source = req.body?.source;
+  if (source !== undefined && source !== "megapro" && source !== "lan" && source !== "urait") {
+    throw new Unprocessable("Неизвестный каталог книг");
+  }
+  res.json(await searchBooks(query, axios.get, source));
 };
 
 export default findBooks;

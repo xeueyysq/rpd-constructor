@@ -29,7 +29,7 @@ test.describe('поиск книг для литературы', () => {
   test('поиск, добавление, повтор, сброс выбора и ошибки каталога', async ({ page }) => {
     await page.route('**/api/find-books', async (route) => {
       if (route.request().method() !== 'POST') return route.fallback();
-      const { bookName } = route.request().postDataJSON() as { bookName: string };
+      const { bookName, source } = route.request().postDataJSON() as { bookName: string; source?: string };
       const error = bookName === 'Сбой';
       await route.fulfill({
         status: error ? 502 : 200,
@@ -40,7 +40,7 @@ test.describe('поиск книг для литературы', () => {
         },
         body: JSON.stringify(error
           ? { status: 502, error: 'Каталог библиотеки не ответил вовремя. Уточните запрос или попробуйте позже.' }
-          : { books: [book], truncated: bookName === 'Широкий запрос' }),
+          : { books: [source ? { ...book, id: `${source}:fixture`, biblio: `${source}. ${biblio}` } : book], truncated: bookName === 'Широкий запрос' }),
       });
     });
     await openResource(page);
@@ -54,7 +54,9 @@ test.describe('поиск книг для литературы', () => {
       await input.press('Enter');
     };
 
+    const defaultRequest = page.waitForRequest((request) => request.url().includes('/api/find-books') && request.method() === 'POST');
     await search('Виноградов');
+    expect((await defaultRequest).postDataJSON()).toEqual({ bookName: 'Виноградов' });
     const resultRow = dialog.getByRole('row').filter({ hasText: biblio });
     await expect(resultRow).toBeVisible();
     await resultRow.getByRole('checkbox').check();
@@ -92,12 +94,30 @@ test.describe('поиск книг для литературы', () => {
 
     await search('Широкий запрос');
     await expect(dialog.getByText('Показаны не все найденные записи. Уточните запрос: добавьте автора или год издания.')).toBeVisible();
-    await dialog.getByRole('button', { name: 'Отмена' }).click();
+    await dialog.getByRole('row').filter({ hasText: biblio }).getByRole('checkbox').check();
+    for (const source of ['lan', 'urait']) {
+      await dialog.getByRole('combobox', { name: 'Каталог', exact: true }).selectOption(source);
+      await expect(input).toHaveValue('');
+      await expect(dialog.getByRole('table')).toHaveCount(0);
+      const request = page.waitForRequest((request) => request.url().includes('/api/find-books') && request.method() === 'POST');
+      await search('Виноградов');
+      expect((await request).postDataJSON()).toEqual({ bookName: 'Виноградов', source });
+      const row = dialog.getByRole('row').filter({ hasText: `${source}. ${biblio}` });
+      await expect(row.getByRole('checkbox')).not.toBeChecked();
+      await expect(dialog.getByRole('button', { name: 'Добавить в список' })).toBeDisabled();
+      await row.getByRole('checkbox').check();
+    }
+    const ebsSaved = page.waitForResponse((response) =>
+      response.request().method() === 'PUT' &&
+      response.url().includes('/api/update-json-value/112') && response.ok());
+    await dialog.getByRole('button', { name: 'Добавить в список' }).click();
+    expect((await ebsSaved).request().postDataJSON()).toMatchObject({ fieldToUpdate: 'textbook', value: [biblio, `urait. ${biblio}`] });
 
     await page.getByRole('button', { name: 'Список РПД' }).click();
     await openTemplateFromTeacherList(page, page.getByRole('row').filter({ hasText: 'Литература для теста' }));
     await page.getByRole('button', { name: 'Ресурсное обеспечение' }).click();
     await expect(page.getByText(biblio, { exact: true })).toHaveCount(1);
+    await expect(page.getByText(`urait. ${biblio}`, { exact: true })).toHaveCount(1);
   });
 
   test('удаление первой одинаковой записи оставляет вторую', async ({ page }) => {

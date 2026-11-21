@@ -16,7 +16,11 @@ import {
 } from "@mui/material";
 import { useStore } from "@shared/hooks";
 import { useUpdateTemplateField } from "@entities/template";
-import { bookSearchError, useFindBooks } from "../../api/findBooks";
+import {
+  bookSearchError,
+  useFindBooks,
+  type BookSource,
+} from "../../api/findBooks";
 import { addBooks } from "../../lib/bookList";
 import { BooksMetaList } from "./BooksMetaList.tsx";
 import { motion } from "framer-motion";
@@ -31,6 +35,7 @@ interface AddBook {
 const AddBook: FC<AddBook> = ({ elementName }) => {
   const [open, setOpen] = useState<boolean>(false);
   const [bookName, setBookName] = useState("");
+  const [source, setSource] = useState<BookSource | "">("");
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [manualInput, setManualInput] = useState<string>("");
   const findBooks = useFindBooks();
@@ -71,7 +76,7 @@ const AddBook: FC<AddBook> = ({ elementName }) => {
       return;
     }
     setErrorMessage(null);
-    findBooks.mutate(query);
+    findBooks.mutate({ bookName: query, ...(source ? { source } : {}) });
   };
 
   const handleAddBooksToList = (biblios: string[]) => {
@@ -170,6 +175,25 @@ const AddBook: FC<AddBook> = ({ elementName }) => {
         <DialogContent>
           <Box>
             <TextField
+              select
+              fullWidth
+              size="small"
+              margin="dense"
+              label="Каталог"
+              value={source}
+              slotProps={{ select: { native: true } }}
+              onChange={(event) => {
+                setSource(event.target.value as BookSource);
+                setBookName("");
+                setErrorMessage(null);
+                findBooks.reset();
+              }}
+            >
+              <option value="">Библиотека университета</option>
+              <option value="lan">Лань</option>
+              <option value="urait">Юрайт</option>
+            </TextField>
+            <TextField
               autoFocus
               margin="dense"
               label="Ключевые слова"
@@ -228,8 +252,9 @@ const AddBook: FC<AddBook> = ({ elementName }) => {
           </Box>
           {findBooks.isSuccess && findBooks.data.truncated && (
             <Box sx={{ pt: 2 }}>
-              Показаны не все найденные записи. Уточните запрос: добавьте автора
-              или год издания.
+              {source === "lan"
+                ? "Показаны не все найденные записи. Уточните название или добавьте автора."
+                : "Показаны не все найденные записи. Уточните запрос: добавьте автора или год издания."}
             </Box>
           )}
           {findBooks.isSuccess && booksData && booksData.length > 0 && (
