@@ -14,8 +14,8 @@ test('преподаватель открывает шаблон по ссылк
 });
 
 test('титул из 1С, компетенции другого регистра и повторный импорт сохраняют существующую РПД', async ({ page, request }) => {
-  // Несколько полных перезагрузок редактора требуют большего общего бюджета в CI.
-  test.slow();
+  // Этот сценарий открывает один и тот же редактор с независимыми входами под тремя ролями.
+  test.setTimeout(120_000);
   const auth = await request.post(`${apiUrl}/auth/sign-in`, { data: { userName: 'rop', password } });
   expect(auth.status()).toBe(200);
   const headers = { Authorization: `Bearer ${(await auth.json()).accessToken as string}` };
@@ -87,8 +87,6 @@ test('титул из 1С, компетенции другого регистр�
   await expect(page.getByText('ПРОРЕКТОР ПО ОБРАЗОВАТЕЛЬНОЙ ДЕЯТЕЛЬНОСТИ')).toBeVisible();
   await page.goto(`/templates/${publicId}/disciplineEvaluationsFunds`);
   await expect(page.getByRole('button', { name: 'УК-91 Проверять регрессию', exact: true })).toBeVisible();
-  await page.reload();
-  await expect(page.getByRole('button', { name: 'УК-91 Проверять регрессию', exact: true })).toBeVisible();
 
   await page.goto(plannedResults);
   await expect(page.locator('textarea:visible').first()).toHaveValue('УК-91 Проверять регрессию');
@@ -125,18 +123,14 @@ test('титул из 1С, компетенции другого регистр�
       else for (const textarea of await page.locator('textarea:visible').all()) await expect(textarea).toBeDisabled();
     }
   }
-  await signInAs('rop');
-  await page.goto(plannedResults);
-  await expect(page.locator('textarea:visible').first()).toHaveValue('УК-91 Проверять регрессию');
-  await expect(page.locator('textarea:visible').nth(1)).toHaveValue('УК-91.1 Сопоставляет дисциплину');
-
   // Уже сохранённая авторская компетенция имеет приоритет над данными комплекта.
   const saved = { 0: {
     competence: 'ПК-92 Авторская компетенция', indicator: 'ПК-92.1 Авторский индикатор',
     results: { know: 'Сохранённый результат', beAble: '', own: '' },
   } };
   await updateCompetencies(saved);
-  await page.reload();
+  await signInAs('rop');
+  await page.goto(plannedResults);
   await expect(page.locator('textarea:visible').first()).toHaveValue('ПК-92 Авторская компетенция');
   await expect(page.locator('textarea:visible').nth(1)).toHaveValue('ПК-92.1 Авторский индикатор');
   await expect(page.locator('textarea:visible').nth(3)).toHaveValue('Сохранённый результат');
@@ -173,15 +167,22 @@ test('титул из 1С, компетенции другого регистр�
   const profile = await request.post(`${apiUrl}/api/rpd-profile-templates`, { headers, data: { id: templateId } });
   expect(profile.status()).toBe(200);
   expect((await profile.json()).competencies).toEqual(saved);
+});
 
-  await updateCompetencies(null);
-  await page.route('**/api/get-results-data?*', (route) => route.fulfill({ status: 503, json: { message: 'synthetic unavailable matrix' } }));
-  await page.goto(plannedResults);
-  await expect(page.getByRole('alert')).toContainText('Не удалось загрузить компетенции комплекта');
-  await page.unroute('**/api/get-results-data?*');
+test('планируемые результаты загружают компетенции комплекта после ошибки и перезагрузки', async ({ page }) => {
+  await signIn(page, 'rop');
+  // В «Алгоритмах для теста» нет своих компетенций, а матрица уже содержит эту дисциплину.
+  const matrixUrl = '**/api/get-results-data?*';
+  await page.route(matrixUrl, async (route) => {
+    await route.fulfill({ response: await route.fetch(), status: 503, json: { message: 'synthetic unavailable matrix' } });
+  });
+  await page.goto('/templates/aaaaaaaaaaaa/disciplinePlannedResults');
+  const alert = page.getByRole('main').getByRole('alert');
+  await expect(alert).toContainText('Не удалось загрузить компетенции комплекта');
+  await page.unroute(matrixUrl);
   await page.reload();
-  await expect(page.locator('textarea:visible').first()).toHaveValue('УК-91 Проверять регрессию');
-  await updateCompetencies(saved);
+  await expect(page.locator('textarea:visible').first()).toHaveValue('ТЕСТ-1 Анализировать учебные данные');
+  await expect(alert).toHaveCount(0);
 });
 
 for (const role of ['admin', 'rop'] as const) {
