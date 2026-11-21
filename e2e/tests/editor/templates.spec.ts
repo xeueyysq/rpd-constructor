@@ -1,7 +1,7 @@
 import { expect, test } from '@playwright/test';
 import { apiUrl, disciplines, openComplect, openTemplateFromTeacherList, password, signIn } from '../helpers';
 
-test('преподаватель открывает шаблон и возвращается к списку через меню', async ({ page }) => {
+test('преподаватель открывает шаблон по ссылке и возвращается к списку', async ({ page }) => {
   await signIn(page, 'teacher');
   const row = page.getByRole('row').filter({ hasText: disciplines.inProgress });
   await openTemplateFromTeacherList(page, row);
@@ -61,6 +61,22 @@ test('титул из 1С, компетенции другого регистр�
     }] },
   });
   expect(results.status()).toBe(200);
+  const available = await request.get(`${apiUrl}/api/assignable-teachers`, { headers });
+  expect(available.status()).toBe(200);
+  const people = await available.json() as Array<{ id: number; fullname: string }>;
+  const assigned = await request.put(`${apiUrl}/api/templates/${templateId}/participants`, {
+    headers, data: { baseTeacherIds: [], teacherIds: ['Альфина Тест Тестовна', 'Другов Тест Тестович'].map((name) => people.find((person) => person.fullname === name)!.id) },
+  });
+  expect(assigned.status()).toBe(200);
+  const updateCompetencies = async (value: unknown) => {
+    const profile = await request.post(`${apiUrl}/api/rpd-profile-templates`, { headers, data: { id: templateId } });
+    expect(profile.status()).toBe(200);
+    const current = await profile.json();
+    const updated = await request.put(`${apiUrl}/api/update-json-value/${templateId}`, {
+      headers, data: { fieldToUpdate: 'competencies', value, baseAt: current.field_edits?.competencies?.at ?? null },
+    });
+    expect(updated.status()).toBe(200);
+  };
 
   await signIn(page, 'rop');
   const publicId = (await templates()).find((row) => row.id === exchangeId)!.profile_template_public_id!;
@@ -76,6 +92,39 @@ test('титул из 1С, компетенции другого регистр�
   await page.goto(`/templates/${publicId}/disciplinePlannedResults`);
   await expect(page.locator('textarea:visible').first()).toHaveValue('УК-91 Проверять регрессию');
   await expect(page.locator('textarea:visible').nth(1)).toHaveValue('УК-91.1 Сопоставляет дисциплину');
+
+  // Настоящий профиль из PostgreSQL, включая null; ответ API не подменяется.
+  const signInAs = async (actor: 'rop' | 'teacher' | 'rop2') => {
+    await page.getByRole('button', { name: 'Открыть меню аккаунта', exact: true }).click();
+    await page.getByRole('menuitem', { name: 'Выйти', exact: true }).click();
+    await expect(page).toHaveURL(/\/sign-in$/);
+    await signIn(page, actor);
+  };
+  const emptyCases = [
+    { value: null, actors: ['rop', 'teacher', 'rop2'] as const },
+    { value: { 0: { competence: '', indicator: '', results: { know: '', beAble: '', own: '' } } }, actors: ['rop'] as const },
+    { value: {}, actors: ['teacher'] as const },
+  ];
+  for (const { value, actors } of emptyCases) {
+    await updateCompetencies(value);
+    for (const actor of actors) {
+      await signInAs(actor);
+      if (actor === 'rop2') {
+        await page.getByRole('button', { name: 'Открыть меню аккаунта', exact: true }).click();
+        await page.getByRole('menuitem', { name: 'Преподаватель', exact: true }).click();
+      }
+      await page.goto(`/templates/${publicId}/disciplinePlannedResults`);
+      await expect(page.locator('textarea:visible').first()).toHaveValue('УК-91 Проверять регрессию');
+      await expect(page.locator('textarea:visible').nth(1)).toHaveValue('УК-91.1 Сопоставляет дисциплину');
+      if (actor === 'rop') await expect(page.locator('textarea:visible').first()).toBeEnabled();
+      else for (const textarea of await page.locator('textarea:visible').all()) await expect(textarea).toBeDisabled();
+      await page.reload();
+      await expect(page.locator('textarea:visible').first()).toHaveValue('УК-91 Проверять регрессию');
+      await expect(page.locator('textarea:visible').nth(1)).toHaveValue('УК-91.1 Сопоставляет дисциплину');
+    }
+  }
+  await signInAs('rop');
+  await page.goto(`/templates/${publicId}/disciplinePlannedResults`);
   await page.reload();
   await expect(page.locator('textarea:visible').first()).toHaveValue('УК-91 Проверять регрессию');
   await expect(page.locator('textarea:visible').nth(1)).toHaveValue('УК-91.1 Сопоставляет дисциплину');
@@ -85,14 +134,31 @@ test('титул из 1С, компетенции другого регистр�
     competence: 'ПК-92 Авторская компетенция', indicator: 'ПК-92.1 Авторский индикатор',
     results: { know: 'Сохранённый результат', beAble: '', own: '' },
   } };
-  const updated = await request.put(`${apiUrl}/api/update-json-value/${templateId}`, {
-    headers, data: { fieldToUpdate: 'competencies', value: saved, baseAt: null },
-  });
-  expect(updated.status()).toBe(200);
+  await updateCompetencies(saved);
   await page.reload();
   await expect(page.locator('textarea:visible').first()).toHaveValue('ПК-92 Авторская компетенция');
   await expect(page.locator('textarea:visible').nth(1)).toHaveValue('ПК-92.1 Авторский индикатор');
   await expect(page.locator('textarea:visible').nth(3)).toHaveValue('Сохранённый результат');
+  saved[0].results.know = 'Сохранённый результат РОП';
+  await page.locator('textarea:visible').nth(3).fill(saved[0].results.know);
+  const savedByEditor = page.waitForResponse((response) => response.url().endsWith(`/api/update-json-value/${templateId}`) && response.request().method() === 'PUT');
+  await page.locator('textarea:visible').nth(3).press('Tab');
+  expect((await savedByEditor).status()).toBe(200);
+  for (const actor of ['teacher', 'rop2'] as const) {
+    await signInAs(actor);
+    if (actor === 'rop2') {
+      await page.getByRole('button', { name: 'Открыть меню аккаунта', exact: true }).click();
+      await page.getByRole('menuitem', { name: 'Преподаватель', exact: true }).click();
+    }
+    await page.goto(`/templates/${publicId}/disciplinePlannedResults`);
+    for (let refresh = 0; refresh < 2; refresh++) {
+      if (refresh) await page.reload();
+      await expect(page.locator('textarea:visible').first()).toHaveValue(saved[0].competence);
+      await expect(page.locator('textarea:visible').nth(3)).toHaveValue(saved[0].results.know);
+      for (const textarea of await page.locator('textarea:visible').all()) await expect(textarea).toBeDisabled();
+    }
+  }
+  await signInAs('rop');
   await page.goto(`/templates/${publicId}/disciplineEvaluationsFunds`);
   await expect(page.getByRole('button', { name: 'ПК-92 Авторская компетенция', exact: true })).toBeVisible();
   await expect(page.getByRole('button', { name: 'УК-91 Проверять регрессию', exact: true })).toHaveCount(0);
@@ -113,6 +179,15 @@ test('титул из 1С, компетенции другого регистр�
   const profile = await request.post(`${apiUrl}/api/rpd-profile-templates`, { headers, data: { id: templateId } });
   expect(profile.status()).toBe(200);
   expect((await profile.json()).competencies).toEqual(saved);
+
+  await updateCompetencies(null);
+  await page.route('**/api/get-results-data?*', (route) => route.fulfill({ status: 503, json: { message: 'synthetic unavailable matrix' } }));
+  await page.goto(`/templates/${publicId}/disciplinePlannedResults`);
+  await expect(page.getByRole('alert')).toContainText('Не удалось загрузить компетенции комплекта');
+  await page.unroute('**/api/get-results-data?*');
+  await page.reload();
+  await expect(page.locator('textarea:visible').first()).toHaveValue('УК-91 Проверять регрессию');
+  await updateCompetencies(saved);
 });
 
 for (const role of ['admin', 'rop'] as const) {

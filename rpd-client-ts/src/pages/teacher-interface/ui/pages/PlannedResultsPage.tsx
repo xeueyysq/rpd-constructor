@@ -1,4 +1,5 @@
 import {
+  Alert,
   Box,
   Paper,
   Table,
@@ -11,6 +12,7 @@ import {
   useTheme,
 } from "@mui/material";
 import { useAuth } from "@entities/auth";
+import { useComplectCompetencies } from "@entities/rpd-complect";
 import {
   sameValue,
   useTemplateSync,
@@ -19,14 +21,12 @@ import {
 import { PlannedResultsData } from "@pages/teacher-interface/model/DisciplineContentPageTypes.ts";
 import { TemplatePagesPath } from "@shared/enums";
 import { UserRole } from "@shared/ability";
-import { axiosBase } from "@shared/api";
 import { useStore } from "@shared/hooks";
 import { Loader } from "@shared/ui";
 import { PageTitleComment } from "../PageTitleComment";
 import {
   hasPlannedResultsData,
   mapComplectResultsToPlannedResults,
-  type ComplectResultsRow,
 } from "@features/discipline-evaluations-funds";
 import {
   FC,
@@ -187,17 +187,29 @@ const PlannedResultsPage: FC = () => {
     (state) => state.jsonData.disciplins_name
   ) as string;
   const initialData = useStore((state) => state.jsonData.competencies) as
-    PlannedResultsData | undefined;
+    PlannedResultsData | null | undefined;
   const saveField = useUpdateTemplateField();
   const dirty = useTemplateSync((state) => Boolean(state.dirty.competencies));
-  const [data, setData] = useState<PlannedResultsData | undefined>(initialData);
-
-  useEffect(() => {
-    if (!dirty) setData(initialData);
-  }, [initialData, dirty]);
+  const complectId = useStore((state) => state.complectId);
+  const needsFallback = !hasPlannedResultsData(initialData);
+  const competencies = useComplectCompetencies(
+    complectId ?? "",
+    needsFallback && Boolean(complectId && disciplineName)
+  );
+  const mappedData = useMemo(
+    () =>
+      mapComplectResultsToPlannedResults(
+        competencies.data ?? [],
+        disciplineName ?? ""
+      ),
+    [competencies.data, disciplineName]
+  );
+  const [draft, setData] = useState<PlannedResultsData>();
+  const data =
+    dirty && draft ? draft : needsFallback ? mappedData : initialData!;
 
   const saveData = () => {
-    if (!data) return;
+    if (readOnly || !dirty) return;
     if (sameValue(data, useStore.getState().jsonData.competencies ?? {})) {
       useTemplateSync.getState().clearDirty("competencies");
       return;
@@ -236,39 +248,8 @@ const PlannedResultsPage: FC = () => {
     });
   };
 
-  const complectId = useStore((state) => state.complectId);
-
-  useEffect(() => {
-    if (hasPlannedResultsData(initialData)) return;
-    if (!complectId || !disciplineName) return;
-
-    let cancelled = false;
-
-    (async () => {
-      try {
-        const response = await axiosBase.get<ComplectResultsRow[]>(
-          "get-results-data",
-          { params: { complectId } }
-        );
-        if (cancelled) return;
-        setData(
-          mapComplectResultsToPlannedResults(
-            Array.isArray(response.data) ? response.data : [],
-            disciplineName
-          )
-        );
-      } catch (error) {
-        console.error(error);
-        if (!cancelled) setData({});
-      }
-    })();
-
-    return () => {
-      cancelled = true;
-    };
-  }, [complectId, disciplineName, initialData]);
-
-  if (data === undefined) return <Loader />;
+  if (needsFallback && complectId && disciplineName && competencies.isPending)
+    return <Loader />;
 
   return (
     <Box>
@@ -278,6 +259,12 @@ const PlannedResultsPage: FC = () => {
         templateField={TemplatePagesPath.DISCIPLINE_PLANNED_RESULTS}
         fields={["competencies"]}
       />
+      {needsFallback && competencies.isError ? (
+        <Alert severity="error">
+          Не удалось загрузить компетенции комплекта. Обновите страницу, чтобы
+          повторить запрос.
+        </Alert>
+      ) : null}
       <TableContainer component={Paper} sx={{ my: 2, borderRadius: 0 }}>
         <Table
           sx={{

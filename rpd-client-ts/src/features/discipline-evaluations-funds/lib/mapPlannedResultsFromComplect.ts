@@ -7,9 +7,16 @@ export type ComplectResultsRow = {
 };
 
 export function hasPlannedResultsData(
-  data: PlannedResultsData | undefined
+  data: PlannedResultsData | null | undefined
 ): boolean {
-  return !!data && Object.keys(data).length > 0;
+  return (
+    !!data &&
+    Object.values(data).some((row) =>
+      [row.competence, row.indicator, ...Object.values(row.results)].some(
+        (value) => value.trim().length > 0
+      )
+    )
+  );
 }
 
 export function mapComplectResultsToPlannedResults(
