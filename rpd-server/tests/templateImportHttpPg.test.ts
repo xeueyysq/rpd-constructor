@@ -21,13 +21,13 @@ const enabled = process.env.DB_HOST === "127.0.0.1" && process.env.DB_PORT === "
 test("HTTP + PostgreSQL: каталог, режимы импорта, перенос семестра, назначения и Word", { skip: !enabled, timeout: 60_000 }, async (t) => {
   const base = randomInt(500_000_000, 900_000_000);
   const nonce = randomBytes(6).toString("hex");
-  const ids = { teacher: base, rop: base + 1, targetComplect: base + 10,
+  const ids = { teacher: base, rop: base + 1, admin: base + 2, targetComplect: base + 10,
     ownComplect: base + 11, foreignComplect: base + 12, olderComplect: base + 13,
     target: base + 20, own: base + 21, foreign: base + 22, older: base + 23,
     targetAssignment: base + 30, ownAssignment: base + 31 };
   // Только собственные случайные строки; БД эфемерна и удаляется E2E-обвязкой.
-  await pool.query("INSERT INTO users(id,name,password,role,fullname) VALUES($1,$2,'no-login',2,'{}'::jsonb),($3,$4,'no-login',3,'{}'::jsonb)",
-    [ids.teacher, `ht-${nonce}`, ids.rop, `hr-${nonce}`]);
+  await pool.query("INSERT INTO users(id,name,password,role,fullname) VALUES($1,$2,'no-login',2,'{}'::jsonb),($3,$4,'no-login',3,'{}'::jsonb),($5,$6,'no-login',1,'{}'::jsonb)",
+    [ids.teacher, `ht-${nonce}`, ids.rop, `hr-${nonce}`, ids.admin, `ha-${nonce}`]);
   await pool.query(`INSERT INTO rpd_complects(id,uuid,faculty,year,education_form,education_level,profile,direction)
     VALUES($1,$2,$9,2026,'Очная','Бакалавриат','Цель','09.03.01'),
       ($3,$4,$9,2026,'Очная','Бакалавриат','Свой источник','09.03.02'),
@@ -38,7 +38,7 @@ test("HTTP + PostgreSQL: каталог, режимы импорта, перен
   await pool.query(`INSERT INTO rpd_profile_templates
     (id,public_id,id_rpd_complect,disciplins_name,goals,content,competencies,study_load,assessment_tools_template,field_edits)
     VALUES($1,$2,$3,'Архитектура систем','Старые цели','{}'::jsonb,'{"protected":1}'::jsonb,'{"plan":1}'::jsonb,'ФОС цели','{}'::jsonb),
-      ($4,$5,$6,'Архитектура систем','Свои цели','{}'::jsonb,'{}'::jsonb,'{}'::jsonb,'ФОС источника','{}'::jsonb),
+      ($4,$5,$6,'Другое назначенное название','Свои цели','{}'::jsonb,'{}'::jsonb,'{}'::jsonb,'ФОС источника','{}'::jsonb),
       ($7,$8,$9,'Чужая дисциплина','Чужие цели','{}'::jsonb,'{}'::jsonb,'{}'::jsonb,'ФОС источника','{}'::jsonb),
       ($10,$11,$12,'Алгоритмы','Старые цели','{}'::jsonb,'{}'::jsonb,'{}'::jsonb,'ФОС источника','{}'::jsonb)`,
     [ids.target, randomBytes(6).toString("hex"), ids.targetComplect,
@@ -74,6 +74,7 @@ test("HTTP + PostgreSQL: каталог, режимы импорта, перен
   const actor = (id: number, role: number) => ({ Authorization: `Bearer ${jwt.sign({ id, role, userName: `http-pg-${nonce}` }, process.env.ACCESS_TOKEN_SECRET!)}` });
   const teacher = actor(ids.teacher, USER_ROLES.TEACHER);
   const rop = actor(ids.rop, USER_ROLES.ROP);
+  const admin = actor(ids.admin, USER_ROLES.ADMIN);
   const get = (path: string, headers = teacher) => fetch(`${url}${path}`, { headers });
   const post = (path: string, data: unknown, headers = teacher) => fetch(`${url}${path}`, {
     method: "POST", headers: { ...headers, "Content-Type": "application/json" }, body: JSON.stringify(data),
@@ -112,7 +113,7 @@ test("HTTP + PostgreSQL: каталог, режимы импорта, перен
   assert.equal(catalogResponse.status, 200);
   const catalog = await catalogResponse.json() as ImportCatalogResponse;
   assert.equal(catalog.scope, "single");
-  assert.equal(catalog.total, 3, "single включает неназначенные источники того же уровня");
+  assert.equal(catalog.total, 1, "single преподавателя включает только назначенные источники независимо от имени");
   assert.deepEqual(catalog.templates.map((row) => row.id), [ids.own]);
   assert.deepEqual(catalog.complects, []);
   assert.ok(catalog.facets.faculties.includes(`HTTP PG ${nonce}`));
@@ -128,15 +129,22 @@ test("HTTP + PostgreSQL: каталог, режимы импорта, перен
   assert.deepEqual(await targetRow(), beforePreview, "preview поля не изменяет цель");
   assert.deepEqual((await pool.query("SELECT to_jsonb(p) AS row FROM rpd_profile_templates p WHERE id=$1", [ids.own])).rows[0].row, sourceBeforePreview);
   const foreignDetails = await get(`/template-import/sources?${targetQuery}&sourceComplectId=${ids.foreignComplect}`);
-  assert.deepEqual(((await foreignDetails.json()) as { complects: Array<{ templates: Array<{ id: number }> }> }).complects[0].templates.map((row) => row.id), [ids.foreign]);
+  assert.deepEqual(((await foreignDetails.json()) as { complects: unknown[] }).complects, []);
   const fieldCatalog = await get(`/template-import/catalog?${targetQuery}&scope=field&ownOnly=false&sameNameOnly=false&status=ready${fixtureFacultyFilter}`);
   const fieldPage = await fieldCatalog.json() as ImportCatalogResponse;
-  assert.equal(fieldPage.total, 1, "field игнорирует ready, но принудительно сохраняет назначение и имя");
+  assert.equal(fieldPage.total, 1, "field игнорирует ready и имя, но принудительно сохраняет назначение");
   assert.deepEqual(fieldPage.templates.map((row) => row.id), [ids.own]);
   assert.equal((await get(`/get-changeable-values?ids%5B%5D=${ids.foreign}&rowName=goals&${targetQuery}&ownOnly=false&scope=single`)).status, 403);
   assert.equal((await post("/copy-template-data", { sourceTemplateId: ids.foreign, targetTemplateId: ids.target,
     fieldToCopy: "goals", baseAt: null, ownOnly: false, scope: "single" })).status, 403);
   assert.deepEqual(await targetRow(), beforePreview);
+  for (const ownOnly of [undefined, false]) {
+    assert.equal((await post("/copy-template-content", { sourceTemplateId: ids.foreign, targetTemplateId: ids.target, ownOnly })).status, 403);
+  }
+  for (const path of [`/template-import/catalog?targetComplectId=${ids.targetComplect}`,
+    `/template-import/sources?targetComplectId=${ids.targetComplect}`]) assert.equal((await get(path)).status, 403);
+  assert.equal((await post("/template-import/complect", { sourceComplectId: ids.ownComplect, targetComplectId: ids.targetComplect,
+    targetRevision: catalog.targetRevision })).status, 403);
   assert.equal((await get(`/get-changeable-values?ids%5B%5D=${ids.foreign}&rowName=goals&${targetQuery}`, rop)).status, 200,
     "прямой preview РОП сохраняет прежнюю политику, имя — критерий каталога");
   assert.equal((await post("/rpd-profile-templates", { id: ids.foreign })).status, 403, "общий read не расширен");
@@ -145,13 +153,56 @@ test("HTTP + PostgreSQL: каталог, режимы импорта, перен
   const managerPage = await managerCatalog.json() as ImportCatalogResponse;
   assert.equal(managerPage.total, 1);
   assert.deepEqual(managerPage.templates.map((row) => row.id), [ids.foreign]);
+  const adminPage = await (await get(`/template-import/catalog?${targetQuery}&scope=single&search=Чужая${fixtureFacultyFilter}&year=2025`, admin)).json() as ImportCatalogResponse;
+  assert.deepEqual(adminPage.templates.map((row) => row.id), [ids.foreign], "admin single не требует назначения");
+  assert.equal((await post("/copy-template-content", { sourceTemplateId: ids.foreign, targetTemplateId: ids.target,
+    targetRevision: adminPage.targetRevision }, admin)).status, 200);
   const emptyPage = await get(`/template-import/catalog?${targetQuery}&faculty=${encodeURIComponent(`HTTP PG ${nonce}`)}&educationLevel=Магистратура&year=2026`, rop);
   assert.equal(emptyPage.status, 422, "клиентский уровень не может расширить каталог");
   const managerOwn = await get(`/template-import/catalog?${targetQuery}&scope=field&ownOnly=true`, rop);
   assert.equal(((await managerOwn.json()) as { total: number }).total, 0);
+  assert.equal(((await (await get(`/template-import/catalog?${targetQuery}&scope=single&ownOnly=true`, rop)).json()) as ImportCatalogResponse).total, 0);
+  assert.equal((await post("/copy-template-content", { sourceTemplateId: ids.foreign, targetTemplateId: ids.target, ownOnly: true }, rop)).status, 403);
+
+  await t.test("назначенная другая РПД того же комплекта: каталог/details/preview/apply, год и уровень", async () => {
+    const sibling = base + 26;
+    await pool.query(`INSERT INTO rpd_profile_templates(id,public_id,id_rpd_complect,disciplins_name,goals)
+      VALUES($1,$2,$3,'Другое имя того же комплекта','Цели соседа')`, [sibling, randomBytes(6).toString("hex"), ids.targetComplect]);
+    await pool.query("INSERT INTO teacher_templates(user_id,template_id,state) VALUES($1,$3,'assigned'),($2,$3,'done')", [ids.teacher, ids.rop, sibling]);
+    for (const scope of ["field", "single"]) {
+      const query = `${targetQuery}&scope=${scope}&sourceMode=other-year&sameNameOnly=true${fixtureFacultyFilter}`;
+      const page = await (await get(`/template-import/catalog?${query}`)).json() as ImportCatalogResponse;
+      assert.deepEqual(page.templates.map((row) => row.id).sort(), [ids.own, sibling].sort());
+      const sameYear = await (await get(`/template-import/catalog?${query}&year=2026`)).json() as ImportCatalogResponse;
+      assert.equal(sameYear.total, 2);
+      assert.equal((await (await get(`/template-import/catalog?${query}&year=2025`)).json() as ImportCatalogResponse).total, 0);
+      const details = await (await get(`/template-import/sources?${query}&sourceComplectId=${ids.targetComplect}`)).json() as { complects: Array<{ templates: Array<{ id: number }> }> };
+      assert.deepEqual(details.complects[0].templates.map((row) => row.id), [sibling]);
+      assert.equal((await post(scope === "field" ? "/copy-template-data" : "/copy-template-content", {
+        sourceTemplateId: ids.target, targetTemplateId: ids.target, ...(scope === "field" ? { fieldToCopy: "goals", baseAt: null } : {}),
+      })).status, 422);
+      assert.equal((await post(scope === "field" ? "/copy-template-data" : "/copy-template-content", {
+        sourceTemplateId: sibling, targetTemplateId: ids.target, ownOnly: false,
+        ...(scope === "field" ? { fieldToCopy: "goals", baseAt: (await targetRow()).field_edits.goals?.at ?? null } : {}),
+      })).status, 200);
+      assert.equal((await targetRow()).goals, "Цели соседа");
+      const switched = await (await get(`/template-import/catalog?${query}&ownOnly=true`, rop)).json() as ImportCatalogResponse;
+      assert.deepEqual(switched.templates.map((row) => row.id), [sibling]);
+    }
+    assert.equal((await get(`/get-changeable-values?ids=${sibling}&rowName=goals&${targetQuery}`)).status, 200);
+    assert.equal((await post("/copy-template-content", { sourceTemplateId: sibling, targetTemplateId: ids.target, ownOnly: true }, rop)).status, 200);
+    assert.equal((await post("/copy-template-content", { sourceTemplateId: sibling, targetTemplateId: ids.target }, rop)).status, 422);
+    await pool.query("UPDATE rpd_complects SET education_level='Магистратура' WHERE id=$1", [ids.ownComplect]);
+    assert.deepEqual((await (await get(`/template-import/catalog?${targetQuery}${fixtureFacultyFilter}`)).json() as ImportCatalogResponse).templates.map((row) => row.id), [sibling]);
+    await pool.query("UPDATE rpd_complects SET education_level='Бакалавриат' WHERE id=$1", [ids.ownComplect]);
+    await pool.query("DELETE FROM rpd_profile_templates WHERE id=$1", [sibling]);
+    await pool.query("UPDATE rpd_profile_templates SET field_edits='{}'::jsonb WHERE id=$1", [ids.target]);
+  });
   const standaloneSingle = await get(`/template-import/sources?${targetQuery}&sourceComplectId=${ids.foreignComplect}&status=ready`, rop);
   assert.deepEqual(((await standaloneSingle.json()) as { complects: Array<{ templates: Array<{ id: number }> }> }).complects[0].templates.map((row) => row.id), [ids.foreign],
     "самостоятельная РПД остаётся доступна для импорта одной дисциплины");
+  assert.equal((await (await get(`/template-import/catalog?scope=single&${targetQuery}&status=ready${fixtureFacultyFilter}`)).json() as ImportCatalogResponse).total, 0);
+  await pool.query("INSERT INTO teacher_templates(id,user_id,template_id,state) VALUES($1,$2,$3,'done')", [base + 32, ids.teacher, ids.foreign]);
   const readyResponse = await get(`/template-import/catalog?scope=single&${targetQuery}&status=ready&pageSize=1&ownOnly=true${fixtureFacultyFilter}`);
   const readyPage = await readyResponse.json() as ImportCatalogResponse;
   assert.equal(readyPage.total, 1);
@@ -162,7 +213,7 @@ test("HTTP + PostgreSQL: каталог, режимы импорта, перен
   const fullBody = { sourceTemplateId: ids.foreign, targetTemplateId: ids.target, targetRevision: readyPage.targetRevision,
     sourceStatus: "ready", ownOnly: true, scope: "field" };
   const fullResponse = await post("/copy-template-content", fullBody);
-  assert.equal(fullResponse.status, 200, "endpoint определяет full copy, scope не включает ограничения поля");
+  assert.equal(fullResponse.status, 200, "назначенный источник другого имени доступен single");
   const fullResult = await fullResponse.json() as CopyTemplateResponse;
   const fullAfter = await targetRow();
   assert.equal(fullAfter.goals, "Чужие цели");
@@ -281,8 +332,8 @@ test("HTTP + PostgreSQL: каталог, режимы импорта, перен
   await pool.query(`INSERT INTO rpd_1c_exchange
     (id,id_rpd_complect,department,discipline,teachers,zet,record_type,study_load,control_load,semester)
     VALUES($1,$2,'Синтетическая кафедра','Архитектура систем',ARRAY[]::text[],3,'discipline','{}'::jsonb,'{}'::jsonb,1),
-      ($3,$2,'Синтетическая кафедра','Алгоритмы',ARRAY[]::text[],3,'discipline','{}'::jsonb,'{}'::jsonb,1),
-      ($4,$5,'Синтетическая кафедра','Алгоритмы',ARRAY[]::text[],3,'discipline','{}'::jsonb,'{}'::jsonb,1)`,
+      ($3,$2,'Синтетическая кафедра','Алгоритмы',ARRAY[]::text[],3,'Б1.В.01','{}'::jsonb,'{}'::jsonb,1),
+      ($4,$5,'Синтетическая кафедра','Алгоритмы',ARRAY[]::text[],3,'Б1.О.02','{}'::jsonb,'{}'::jsonb,1)`,
     [base + 61, ids.ownComplect, base + 62, base + 63, ids.targetComplect]);
   await pool.query(`INSERT INTO template_status(id,id_1c_template,id_profile_template,current_status)
     VALUES($1,$2,$3,'ready'),($4,$5,$6,'in_progress'),($7,$8,$9,'in_progress')`,
@@ -341,20 +392,55 @@ test("HTTP + PostgreSQL: каталог, режимы импорта, перен
   assert.equal((await pool.query("SELECT goals FROM rpd_profile_templates WHERE id=$1", [ids.target])).rows[0].goals, "Не копировать",
     "смена статуса не исключает дисциплину из bulk");
 
+  await t.test("HTTP bulk: разные коды, резервирование точных пар, дубли, 0 и пустые имена", async () => {
+    const exchangeIds = [base + 61, base + 62, base + 60, base + 63];
+    const original = (await pool.query("SELECT id,discipline,semester,record_type FROM rpd_1c_exchange WHERE id=ANY($1::int[])", [exchangeIds])).rows;
+    const cases = [
+      { name: "точная пара и единственный остаток без повторного использования", semesters: [1, 2, 2, 3], discipline: " Одно   имя ",
+        pairs: [[ids.target, base + 25], [base + 24, ids.own]], reasons: [] },
+      { name: "дубли с разными кодами остаются неоднозначными", semesters: [1, 1, 1, 2], discipline: "Одно имя",
+        pairs: [], reasons: ["ambiguous", "missing_source"] },
+      { name: "нулевой семестр не известен для переноса", semesters: [0, 0, 1, 2], discipline: "Одно имя",
+        pairs: [], reasons: ["missing_source", "missing_source"] },
+      { name: "пустое имя не сопоставляется даже точно", semesters: [1, 2, 1, 2], discipline: " \t ",
+        pairs: [], reasons: ["missing_source", "missing_source"] },
+    ];
+    try {
+      for (const row of cases) {
+        for (const [index, id] of exchangeIds.entries()) await pool.query(
+          "UPDATE rpd_1c_exchange SET discipline=$1,semester=$2,record_type=$3 WHERE id=$4",
+          [row.discipline, row.semesters[index], `Б1.${index < 2 ? "В" : "О"}.${index}`, id]);
+        const plan = (await pool.query("SELECT to_jsonb(e) AS row FROM rpd_1c_exchange e WHERE id=ANY($1::int[]) ORDER BY id", [exchangeIds])).rows;
+        const before = (await pool.query("SELECT to_jsonb(p) AS row FROM rpd_profile_templates p WHERE id_rpd_complect=$1 ORDER BY id", [ids.targetComplect])).rows;
+        const revision = (await (await get(`/template-import/catalog?targetComplectId=${ids.targetComplect}`, rop)).json() as ImportCatalogResponse).targetRevision;
+        const response = await post("/template-import/complect", { ...bulkBody, targetRevision: revision }, rop);
+        assert.equal(response.status, 200, row.name);
+        const result = await response.json() as { imported: Array<{ targetTemplateId: number; sourceTemplateId: number }>; skipped: Array<{ reason: string }> };
+        assert.deepEqual(result.imported.map((entry) => [entry.targetTemplateId, entry.sourceTemplateId]), row.pairs, row.name);
+        assert.deepEqual(result.skipped.map((entry) => entry.reason), row.reasons, row.name);
+        if (!row.pairs.length) assert.deepEqual((await pool.query("SELECT to_jsonb(p) AS row FROM rpd_profile_templates p WHERE id_rpd_complect=$1 ORDER BY id", [ids.targetComplect])).rows, before);
+        assert.deepEqual((await pool.query("SELECT to_jsonb(e) AS row FROM rpd_1c_exchange e WHERE id=ANY($1::int[]) ORDER BY id", [exchangeIds])).rows, plan);
+      }
+    } finally {
+      for (const row of original) await pool.query("UPDATE rpd_1c_exchange SET discipline=$1,semester=$2,record_type=$3 WHERE id=$4",
+        [row.discipline, row.semester, row.record_type, row.id]);
+    }
+  });
+
   // sourceMode передаётся только каталогу/details; preview и запись поля сохраняют прежний контракт.
   await pool.query("UPDATE rpd_complects SET year=2025,profile='Цель',direction='09.03.01' WHERE id=$1", [ids.ownComplect]);
   const yearQuery = `${targetQuery}&scope=field&sourceMode=other-year&ownOnly=false&sameNameOnly=false`;
   const yearResponse = await get(`/template-import/catalog?${yearQuery}`);
   assert.equal(yearResponse.status, 200);
   const yearPage = await yearResponse.json() as ImportCatalogResponse;
-  assert.equal(yearPage.total, 1);
-  assert.deepEqual(yearPage.templates.map((row) => row.id), [ids.own]);
+  assert.equal(yearPage.total, 2);
+  assert.deepEqual(yearPage.templates.map((row) => row.id).sort(), [ids.own, ids.foreign].sort());
   assert.deepEqual(yearPage.facets.years, [2025]);
   const yearDetails = await get(`/template-import/sources?${yearQuery}&sourceComplectId=${ids.ownComplect}`);
   assert.equal(yearDetails.status, 200);
   assert.deepEqual((await yearDetails.json() as { complects: Array<{ templates: Array<{ id: number }> }> }).complects[0].templates.map((row) => row.id), [ids.own]);
   const otherMode = await get(`/template-import/catalog?${targetQuery}&scope=field&sourceMode=other-complect${fixtureFacultyFilter}`);
-  assert.deepEqual((await otherMode.json() as ImportCatalogResponse).templates.map((row) => row.id), [ids.own]);
+  assert.deepEqual((await otherMode.json() as ImportCatalogResponse).templates.map((row) => row.id).sort(), [ids.own, ids.foreign].sort());
   await pool.query("UPDATE rpd_profile_templates SET goals='Полевые цели другого года' WHERE id=$1", [ids.own]);
   const beforeField = await targetRow();
   const fieldPreview = await get(`/get-changeable-values?ids%5B%5D=${ids.own}&rowName=goals&${targetQuery}`);
@@ -370,8 +456,14 @@ test("HTTP + PostgreSQL: каталог, режимы импорта, перен
     assert.deepEqual(afterField[key], beforeField[key], key);
   assert.equal(afterField.field_edits.goals.userId, ids.teacher);
   await pool.query("UPDATE rpd_complects SET year=2026,profile='Свой источник',direction='09.03.02' WHERE id=$1", [ids.ownComplect]);
-  assert.equal((await (await get(`/template-import/catalog?${yearQuery}`)).json() as ImportCatalogResponse).total, 0,
-    "HTTP-каталог исключает ту же дисциплину другой программы/того же года");
+  assert.equal((await (await get(`/template-import/catalog?${yearQuery}`)).json() as ImportCatalogResponse).total, 2,
+    "teacher игнорирует скрытый other-year и имя");
+  const beforeSingleRevoke = await targetRow();
+  const singleRevoked = await changeWhileCopyWaits("/copy-template-content", { sourceTemplateId: ids.foreign,
+    targetTemplateId: ids.target, ownOnly: false, mode: "append" },
+  (client) => client.query("DELETE FROM teacher_templates WHERE id=$1", [base + 32]));
+  assert.equal(singleRevoked.status, 403, "single повторно проверяет назначение под lock");
+  assert.deepEqual(await targetRow(), beforeSingleRevoke);
   const beforeRevoke = await targetRow();
   const revokedCopy = await changeWhileCopyWaits("/copy-template-data", { sourceTemplateId: ids.own, targetTemplateId: ids.target,
     fieldToCopy: "goals", baseAt: beforeRevoke.field_edits.goals.at, ownOnly: false, mode: "append" },
@@ -381,7 +473,10 @@ test("HTTP + PostgreSQL: каталог, режимы импорта, перен
   const afterRevoke = await get(`/template-import/catalog?${targetQuery}&scope=field${fixtureFacultyFilter}`);
   assert.equal(((await afterRevoke.json()) as { total: number }).total, 0);
   const singleAfterRevoke = await get(`/template-import/catalog?${targetQuery}&scope=single${fixtureFacultyFilter}`);
-  assert.equal(((await singleAfterRevoke.json()) as { total: number }).total, 3);
+  assert.equal(((await singleAfterRevoke.json()) as { total: number }).total, 0);
+  assert.deepEqual((await (await get(`/template-import/sources?${targetQuery}&sourceComplectId=${ids.ownComplect}`)).json() as { complects: unknown[] }).complects, []);
+  assert.equal((await get(`/get-changeable-values?ids=${ids.own}&rowName=goals&${targetQuery}`)).status, 403);
+  assert.equal((await post("/copy-template-content", { sourceTemplateId: ids.own, targetTemplateId: ids.target })).status, 403);
 
   const protectedColumns = `goals,content,competencies,study_load,assessment_tools_template,
     assessment_tools_questions,disciplins_name,semester,department,zet,certification,id_rpd_complect,field_edits`;

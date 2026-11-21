@@ -125,7 +125,8 @@ function SourcePickerSession(props: Props) {
   const bulk = props.targetComplectId != null;
   const scope = bulk ? "bulk" : field ? "field" : "single";
   const role = useAuth((state) => state.userRole);
-  const ownOnly = Boolean(field) && role === UserRole.TEACHER;
+  const ownOnly = !bulk && role === UserRole.TEACHER;
+  const showSourceTabs = Boolean(field) && !ownOnly;
   const [method, setMethod] = useState(initialMethod);
   const [mode, setMode] = useState(initialMode);
   const [importMode, setImportMode] = useState<TemplateImportMode>("append");
@@ -136,6 +137,7 @@ function SourcePickerSession(props: Props) {
     faculty: "",
     direction: "",
     profile: "",
+    year: "",
   });
   const [page, setPage] = useState(1);
   const [selectedId, setSelectedId] = useState<number | null>(null);
@@ -161,12 +163,14 @@ function SourcePickerSession(props: Props) {
   const query: ImportCatalogQuery = {
     ...context,
     scope,
-    ...(field ? { sourceMode: mode, ownOnly } : {}),
+    ...(showSourceTabs ? { sourceMode: mode } : {}),
+    ...(!bulk ? { ownOnly } : {}),
     ...(scope === "single" && readyOnly ? { status: "ready" as const } : {}),
     ...(search ? { search } : {}),
     ...(hierarchy.faculty ? { faculty: hierarchy.faculty } : {}),
     ...(hierarchy.direction ? { direction: hierarchy.direction } : {}),
     ...(hierarchy.profile ? { profile: hierarchy.profile } : {}),
+    ...(hierarchy.year ? { year: Number(hierarchy.year) } : {}),
     page,
     pageSize: SOURCE_PAGE_SIZE,
   };
@@ -221,11 +225,13 @@ function SourcePickerSession(props: Props) {
   };
   const changeHierarchy = (key: keyof typeof hierarchy, value: string) => {
     setHierarchy((previous) =>
-      key === "faculty"
-        ? { faculty: value, direction: "", profile: "" }
-        : key === "direction"
-          ? { ...previous, direction: value, profile: "" }
-          : { ...previous, profile: value }
+      key === "year"
+        ? { ...previous, year: value }
+        : key === "faculty"
+          ? { ...previous, faculty: value, direction: "", profile: "" }
+          : key === "direction"
+            ? { ...previous, direction: value, profile: "" }
+            : { ...previous, profile: value }
     );
     setPage(1);
     clearChoice();
@@ -234,7 +240,7 @@ function SourcePickerSession(props: Props) {
     setSearchInput("");
     setSearch("");
     setReadyOnly(true);
-    setHierarchy({ faculty: "", direction: "", profile: "" });
+    setHierarchy({ faculty: "", direction: "", profile: "", year: "" });
     setPage(1);
     clearChoice();
   };
@@ -284,6 +290,7 @@ function SourcePickerSession(props: Props) {
           sourceTemplateId: selectedTemplate.id,
           targetTemplateId: props.targetTemplateId!,
           targetRevision: selectedRevision,
+          ownOnly,
           mode: importMode,
           ...(readyOnly ? { sourceStatus: "ready" as const } : {}),
         });
@@ -322,6 +329,7 @@ function SourcePickerSession(props: Props) {
     ["faculty", "Факультет / институт", catalog.data?.facets.faculties],
     ["direction", "Направление", catalog.data?.facets.directions],
     ["profile", "Профиль", catalog.data?.facets.profiles],
+    ["year", "Год набора", catalog.data?.facets.years.map(String)],
   ] as const;
   const selectedSource = selectedComplect ?? selectedTemplate;
   const selectedLabel = selectedSource ? sourceLabel(selectedSource) : "";
@@ -340,7 +348,10 @@ function SourcePickerSession(props: Props) {
       <Box
         sx={{
           display: "grid",
-          gridTemplateColumns: "repeat(3, minmax(0, 1fr))",
+          gridTemplateColumns: {
+            xs: "repeat(2, minmax(0, 1fr))",
+            sm: "repeat(4, minmax(0, 1fr))",
+          },
           gap: 1.5,
         }}
       >
@@ -422,7 +433,7 @@ function SourcePickerSession(props: Props) {
           label={<Typography variant="body2">Только готовые</Typography>}
         />
       )}
-      {field && (
+      {showSourceTabs && (
         <Tabs
           value={mode}
           aria-label="Источник раздела"
@@ -522,9 +533,9 @@ function SourcePickerSession(props: Props) {
         </DialogTitle>
         <DialogContent
           id={id + "-results"}
-          role={field ? "tabpanel" : undefined}
+          role={showSourceTabs ? "tabpanel" : undefined}
           aria-labelledby={
-            field
+            showSourceTabs
               ? id + (mode === "other-year" ? "-year-tab" : "-complect-tab")
               : undefined
           }
@@ -677,11 +688,10 @@ function SourcePickerSession(props: Props) {
           <Typography sx={{ mb: 1 }}>Источник: {selectedLabel}</Typography>
           {bulk && (
             <Typography variant="body2" sx={{ mb: 1 }}>
-              Сначала проверяются совпадения по названию, типу записи и
-              семестру. Затем возможен перенос между известными семестрами, если
-              остались единственные источник и цель с теми же названием и типом.
-              Неоднозначные совпадения пропускаются. Семестр учебного плана цели
-              сохраняется.
+              Сначала проверяются совпадения по названию и семестру. Затем
+              возможен перенос между известными семестрами, если остались
+              единственные источник и цель с тем же названием. Неоднозначные
+              совпадения пропускаются. Семестр учебного плана цели сохраняется.
             </Typography>
           )}
           <RadioGroup

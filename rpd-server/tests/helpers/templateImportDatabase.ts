@@ -70,13 +70,13 @@ export function templateDatabase() {
     if (text.startsWith("SELECT year,education_level FROM rpd_complects")) return result(db.complects.filter((c) => c.id === values[0]));
     if (text.startsWith("WITH eligible AS") && text.includes("AS templates")) {
       const normalize = (name: unknown) => String(name ?? "").trim().toLowerCase().replace(/\s+/g, " ");
-      return result(db.complects.filter((c) => c.id !== values[0] && c.education_level === values[9]
-        && (values[15] == null || c.id === values[15]) && (values[3] !== "other-year" || c.year !== values[2]))
+      return result(db.complects.filter((c) => (c.id !== values[0] || values[1] != null) && c.education_level === values[9]
+        && (values[16] == null || c.id === values[16]) && (values[3] !== "other-year" || c.year !== values[2]))
         .map((c) => ({ ...c, owners: db.owners.filter((o) => o.complect_id === c.id).map((o) => ({ userId: o.user_id, fullname: user(o.user_id)!.fullname.surname })),
           templates: db.profiles.filter((p) => {
             const status = db.statuses.find((s) => s.id_profile_template === p.id);
             const exchange = db.exchange.find((e) => e.id === status?.id_1c_template);
-            return p.id_rpd_complect === c.id && !exchange?.removed_at && (!values[14] || exchange?.id_rpd_complect === c.id)
+            return p.id_rpd_complect === c.id && p.id !== values[15] && !exchange?.removed_at && (!values[14] || exchange?.id_rpd_complect === c.id)
               && (values[1] == null || db.assignments.some((a) => a.template_id === p.id && a.user_id === values[1]))
               && (values[4] == null || (status?.current_status ?? "created") === values[4])
               && (!values[6] || normalize(p.disciplins_name) === normalize(values[7]));

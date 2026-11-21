@@ -38,7 +38,8 @@ const candidates = `
     JOIN rpd_profile_templates p ON p.id_rpd_complect=c.id
     LEFT JOIN template_status ts ON ts.id_profile_template=p.id
     LEFT JOIN rpd_1c_exchange e ON e.id=ts.id_1c_template
-    WHERE c.id<>$1 AND (e.id IS NULL OR e.removed_at IS NULL)
+    WHERE (c.id<>$1 OR $2::int IS NOT NULL) AND ($16::int IS NULL OR p.id<>$16)
+      AND (e.id IS NULL OR e.removed_at IS NULL)
       AND c.education_level IS NOT DISTINCT FROM $10::text
       AND (NOT $15::boolean OR (e.id IS NOT NULL AND e.id_rpd_complect=c.id))
       AND ($2::int IS NULL OR EXISTS (
@@ -116,13 +117,13 @@ export default class TemplateImportCatalogModel {
   }
 
   static params(targetComplectId: number, assignedTo: number | undefined, targetYear: number | null,
-    targetName: string | null, bulk: boolean, filters: CatalogFilters): unknown[] {
+    targetName: string | null, bulk: boolean, filters: CatalogFilters, targetTemplateId?: number): unknown[] {
     const search = filters.search == null ? null
       : `%${filters.search.replace(/[\\%_]/g, "\\$&")}%`;
     return [targetComplectId, assignedTo ?? null, targetYear, filters.sourceMode, filters.status,
       search, filters.sameNameOnly, targetName, filters.faculty, filters.educationLevel,
       filters.direction, filters.profile, filters.educationForm, filters.year,
-      bulk, filters.pageSize, (filters.page - 1) * filters.pageSize];
+      bulk, targetTemplateId ?? null, filters.pageSize, (filters.page - 1) * filters.pageSize];
   }
 
   static async catalog(db: Database, params: unknown[]): Promise<Pick<ImportCatalogResponse, "total" | "complects" | "templates" | "facets">> {
@@ -132,23 +133,23 @@ export default class TemplateImportCatalogModel {
           ORDER BY CASE WHEN page.preferred THEN 0 ELSE 1 END,page.year DESC NULLS LAST,page.id)
           FROM (SELECT * FROM summaries WHERE ${hierarchy}
             ORDER BY CASE WHEN preferred THEN 0 ELSE 1 END,year DESC NULLS LAST,id
-            LIMIT $16 OFFSET $17) page),'[]'::jsonb)` : "'[]'::jsonb";
+            LIMIT $17 OFFSET $18) page),'[]'::jsonb)` : "'[]'::jsonb";
     const templates = bulk ? "'[]'::jsonb" : `COALESCE((SELECT jsonb_agg(${template("page")}
         || jsonb_build_object('complect',jsonb_build_object('id',page.id,'uuid',page.uuid,
           'faculty',page.faculty,'direction',page.direction,'profile',page.profile,'year',page.year,
           'education_form',page.education_form,'education_level',page.education_level,'owners',${owners("page")}))
         ORDER BY ${pageFlatOrder})
       FROM (SELECT * FROM (SELECT *,${preferredName} AS preferred FROM matched) flat WHERE ${hierarchy}
-        ORDER BY ${flatOrder} LIMIT $16 OFFSET $17) page),'[]'::jsonb)`;
+        ORDER BY ${flatOrder} LIMIT $17 OFFSET $18) page),'[]'::jsonb)`;
     const { rows } = await db.query<Pick<ImportCatalogResponse, "total" | "complects" | "templates" | "facets">>(`${candidates}
       SELECT (SELECT COUNT(*)::int FROM ${bulk ? "summaries" : "matched"} WHERE ${hierarchy}) AS total,
         ${complects} AS complects,${templates} AS templates,
         jsonb_build_object(
-          'faculties',${facet("faculty", "TRUE")},
-          'educationLevels',${facet("education_level", "($9::text IS NULL OR faculty=$9)")},
-          'directions',${facet("direction", "($9::text IS NULL OR faculty=$9)")},
-          'profiles',${facet("profile", "($9::text IS NULL OR faculty=$9) AND ($11::text IS NULL OR direction=$11)")},
-          'educationForms',${facet("education_form", "($9::text IS NULL OR faculty=$9) AND ($11::text IS NULL OR direction=$11) AND ($12::text IS NULL OR profile=$12)")},
+          'faculties',${facet("faculty", "($14::int IS NULL OR year=$14)")},
+          'educationLevels',${facet("education_level", "($9::text IS NULL OR faculty=$9) AND ($14::int IS NULL OR year=$14)")},
+          'directions',${facet("direction", "($9::text IS NULL OR faculty=$9) AND ($14::int IS NULL OR year=$14)")},
+          'profiles',${facet("profile", "($9::text IS NULL OR faculty=$9) AND ($11::text IS NULL OR direction=$11) AND ($14::int IS NULL OR year=$14)")},
+          'educationForms',${facet("education_form", "($9::text IS NULL OR faculty=$9) AND ($11::text IS NULL OR direction=$11) AND ($12::text IS NULL OR profile=$12) AND ($14::int IS NULL OR year=$14)")},
           'years',${facet("year", "($9::text IS NULL OR faculty=$9) AND ($11::text IS NULL OR direction=$11) AND ($12::text IS NULL OR profile=$12) AND ($13::text IS NULL OR education_form=$13)", "value DESC")}
         ) AS facets
     `, params);
@@ -156,7 +157,7 @@ export default class TemplateImportCatalogModel {
   }
 
   static async details(db: Database, params: unknown[], sourceComplectId?: number): Promise<ImportSourceComplect[]> {
-    const scopedCandidates = candidates.replace("WHERE c.id<>$1", "WHERE c.id<>$1 AND ($16::int IS NULL OR c.id=$16)");
+    const scopedCandidates = candidates.replace("WHERE (c.id<>$1", "WHERE ($17::int IS NULL OR c.id=$17) AND (c.id<>$1");
     const { rows } = await db.query<ImportSourceComplect>(`${scopedCandidates}
       SELECT s.id,s.uuid,s.faculty,s.direction,s.profile,s.year,s.education_form,s.education_level,
         ${owners("s")} AS owners,jsonb_agg(${template("m")} ORDER BY m.template_id) AS templates
@@ -164,7 +165,7 @@ export default class TemplateImportCatalogModel {
       WHERE ${scopedHierarchy}
       GROUP BY s.id,s.uuid,s.faculty,s.direction,s.profile,s.year,s.education_form,s.education_level
       ORDER BY s.year DESC NULLS LAST,s.id
-    `, [...params.slice(0, 15), sourceComplectId ?? null]);
+    `, [...params.slice(0, 16), sourceComplectId ?? null]);
     return rows;
   }
 }
