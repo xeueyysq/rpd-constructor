@@ -1,5 +1,5 @@
 import { expect, test, type APIRequestContext } from '@playwright/test';
-import { apiUrl, complects, password, signInWithCredentials } from '../helpers';
+import { apiUrl, complects, password, signIn, signInWithCredentials } from '../helpers';
 import { openFixtureComplect, profileFor, syncFixtures, syncStateFromDb } from '../list3';
 
 type SyncRow = {
@@ -65,6 +65,30 @@ test('снимок преподавателя содержит дату стат
   const profile = await request.post(`${apiUrl}/api/rpd-profile-templates`, { headers, data: { id: 107 } });
   expect(profile.status()).toBe(200);
   expect((await profile.json()).fieldChanges).toEqual([{ id: 102, field_key: 'zet', old_value: 3, new_value: 4 }]);
+});
+
+test('уведомления полей 1С скрыты в режиме преподавателя и сохранены у РОП и admin', async ({ page }) => {
+  for (const actor of ['teacher3', 'rop', 'admin'] as const) {
+    await signIn(page, actor);
+    for (const section of ['disciplineScope', 'disciplinePlace']) {
+      await page.goto(`/templates/107/${section}`);
+      await expect(page.getByRole('main').getByText(section === 'disciplineScope' ? 'Объем дисциплины' : 'Место дисциплины в структуре ОПОП', { exact: true })).toBeVisible();
+      const notices = page.getByRole('alert').filter({ hasText: 'Изменено с учебного плана:' });
+      if (actor === 'teacher3' || section === 'disciplinePlace') await expect(notices).toHaveCount(0);
+      else await expect(notices).toContainText('ЗЕТ');
+    }
+    await page.getByRole('button', { name: 'Открыть меню аккаунта', exact: true }).click();
+    await page.getByRole('menuitem', { name: 'Выйти', exact: true }).click();
+    await expect(page).toHaveURL(/\/sign-in$/);
+  }
+  await signIn(page, 'rop');
+  await page.getByRole('button', { name: 'Открыть меню аккаунта', exact: true }).click();
+  await page.getByRole('menuitem', { name: 'Преподаватель', exact: true }).click();
+  for (const section of ['disciplineScope', 'disciplinePlace']) {
+    await page.goto(`/templates/107/${section}`);
+    await expect(page.getByRole('main').getByText(section === 'disciplineScope' ? 'Объем дисциплины' : 'Место дисциплины в структуре ОПОП', { exact: true })).toBeVisible();
+    await expect(page.getByRole('alert').filter({ hasText: 'Изменено с учебного плана:' })).toHaveCount(0);
+  }
 });
 
 test('маршрут подтверждения изменений удалён', async ({ request }) => {
