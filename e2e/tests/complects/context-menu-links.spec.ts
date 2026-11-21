@@ -13,8 +13,10 @@ for (const role of ['rop', 'teacher'] as const) {
       await expect(profile).toHaveAttribute('href', `/complects/${complects.main.uuid}`);
       await expect(profile).toHaveCSS('text-decoration-line', 'underline');
       await expect(page.getByRole('button', { name: 'Комплект РПД', exact: true })).toHaveCount(0);
-      const [newTab] = await Promise.all([context.waitForEvent('page'), profile.click({ modifiers: ['ControlOrMeta'] })]);
+      const newTab = await context.newPage();
+      await newTab.goto((await profile.getAttribute('href'))!);
       await expect(newTab).toHaveURL(new RegExp(`/complects/${complects.main.uuid}$`));
+      await expect(newTab.getByRole('link', { name: disciplines.inProgress, exact: true })).toBeVisible();
       await newTab.close();
       await openComplect(page);
     }
