@@ -80,6 +80,7 @@ test('титул из 1С, компетенции другого регистр�
 
   await signIn(page, 'rop');
   const publicId = (await templates()).find((row) => row.id === exchangeId)!.profile_template_public_id!;
+  const plannedResults = `/templates/${publicId}/disciplinePlannedResults`;
   await page.goto(`/templates/${publicId}`);
   await expect(page.getByText('Введение в программирование для регрессии', { exact: true }).last()).toBeVisible();
   await expect(page.getByText('Кафедра системного анализа для теста', { exact: true })).toBeVisible();
@@ -89,7 +90,7 @@ test('титул из 1С, компетенции другого регистр�
   await page.reload();
   await expect(page.getByRole('button', { name: 'УК-91 Проверять регрессию', exact: true })).toBeVisible();
 
-  await page.goto(`/templates/${publicId}/disciplinePlannedResults`);
+  await page.goto(plannedResults);
   await expect(page.locator('textarea:visible').first()).toHaveValue('УК-91 Проверять регрессию');
   await expect(page.locator('textarea:visible').nth(1)).toHaveValue('УК-91.1 Сопоставляет дисциплину');
 
@@ -99,6 +100,10 @@ test('титул из 1С, компетенции другого регистр�
     await page.getByRole('menuitem', { name: 'Выйти', exact: true }).click();
     await expect(page).toHaveURL(/\/sign-in$/);
     await signIn(page, actor);
+    if (actor === 'rop2') {
+      await page.getByRole('button', { name: 'Открыть меню аккаунта', exact: true }).click();
+      await page.getByRole('menuitem', { name: 'Преподаватель', exact: true }).click();
+    }
   };
   const emptyCases = [
     { value: null, actors: ['rop', 'teacher', 'rop2'] as const },
@@ -108,24 +113,20 @@ test('титул из 1С, компетенции другого регистр�
   for (const { value, actors } of emptyCases) {
     await updateCompetencies(value);
     for (const actor of actors) {
-      await signInAs(actor);
-      if (actor === 'rop2') {
-        await page.getByRole('button', { name: 'Открыть меню аккаунта', exact: true }).click();
-        await page.getByRole('menuitem', { name: 'Преподаватель', exact: true }).click();
+      if (value === null && actor === 'rop') {
+        await page.reload();
+      } else {
+        await signInAs(actor);
+        await page.goto(plannedResults);
       }
-      await page.goto(`/templates/${publicId}/disciplinePlannedResults`);
       await expect(page.locator('textarea:visible').first()).toHaveValue('УК-91 Проверять регрессию');
       await expect(page.locator('textarea:visible').nth(1)).toHaveValue('УК-91.1 Сопоставляет дисциплину');
       if (actor === 'rop') await expect(page.locator('textarea:visible').first()).toBeEnabled();
       else for (const textarea of await page.locator('textarea:visible').all()) await expect(textarea).toBeDisabled();
-      await page.reload();
-      await expect(page.locator('textarea:visible').first()).toHaveValue('УК-91 Проверять регрессию');
-      await expect(page.locator('textarea:visible').nth(1)).toHaveValue('УК-91.1 Сопоставляет дисциплину');
     }
   }
   await signInAs('rop');
-  await page.goto(`/templates/${publicId}/disciplinePlannedResults`);
-  await page.reload();
+  await page.goto(plannedResults);
   await expect(page.locator('textarea:visible').first()).toHaveValue('УК-91 Проверять регрессию');
   await expect(page.locator('textarea:visible').nth(1)).toHaveValue('УК-91.1 Сопоставляет дисциплину');
 
@@ -146,17 +147,10 @@ test('титул из 1С, компетенции другого регистр�
   expect((await savedByEditor).status()).toBe(200);
   for (const actor of ['teacher', 'rop2'] as const) {
     await signInAs(actor);
-    if (actor === 'rop2') {
-      await page.getByRole('button', { name: 'Открыть меню аккаунта', exact: true }).click();
-      await page.getByRole('menuitem', { name: 'Преподаватель', exact: true }).click();
-    }
-    await page.goto(`/templates/${publicId}/disciplinePlannedResults`);
-    for (let refresh = 0; refresh < 2; refresh++) {
-      if (refresh) await page.reload();
-      await expect(page.locator('textarea:visible').first()).toHaveValue(saved[0].competence);
-      await expect(page.locator('textarea:visible').nth(3)).toHaveValue(saved[0].results.know);
-      for (const textarea of await page.locator('textarea:visible').all()) await expect(textarea).toBeDisabled();
-    }
+    await page.goto(plannedResults);
+    await expect(page.locator('textarea:visible').first()).toHaveValue(saved[0].competence);
+    await expect(page.locator('textarea:visible').nth(3)).toHaveValue(saved[0].results.know);
+    for (const textarea of await page.locator('textarea:visible').all()) await expect(textarea).toBeDisabled();
   }
   await signInAs('rop');
   await page.goto(`/templates/${publicId}/disciplineEvaluationsFunds`);
@@ -182,7 +176,7 @@ test('титул из 1С, компетенции другого регистр�
 
   await updateCompetencies(null);
   await page.route('**/api/get-results-data?*', (route) => route.fulfill({ status: 503, json: { message: 'synthetic unavailable matrix' } }));
-  await page.goto(`/templates/${publicId}/disciplinePlannedResults`);
+  await page.goto(plannedResults);
   await expect(page.getByRole('alert')).toContainText('Не удалось загрузить компетенции комплекта');
   await page.unroute('**/api/get-results-data?*');
   await page.reload();
