@@ -67,29 +67,28 @@ test('снимок преподавателя содержит дату стат
   expect((await profile.json()).fieldChanges).toEqual([{ id: 102, field_key: 'zet', old_value: 3, new_value: 4 }]);
 });
 
-test('уведомления полей 1С скрыты в режиме преподавателя и сохранены у РОП и admin', async ({ page }) => {
-  for (const actor of ['teacher3', 'rop', 'admin'] as const) {
+for (const [actor, role, switchToTeacher] of [
+  ['teacher3', 'преподаватель'],
+  ['rop', 'РОП'],
+  ['admin', 'администратор'],
+  ['rop', 'РОП в режиме преподавателя', true],
+] as const) {
+  test(`уведомления полей 1С: ${role}`, async ({ page }) => {
     await signIn(page, actor);
+    if (switchToTeacher) {
+      await page.getByRole('button', { name: 'Открыть меню аккаунта', exact: true }).click();
+      await page.getByRole('menuitem', { name: 'Преподаватель', exact: true }).click();
+      await expect(page).toHaveURL(/\/templates$/);
+    }
     for (const section of ['disciplineScope', 'disciplinePlace']) {
       await page.goto(`/templates/107/${section}`);
       await expect(page.getByRole('main').getByText(section === 'disciplineScope' ? 'Объем дисциплины' : 'Место дисциплины в структуре ОПОП', { exact: true })).toBeVisible();
       const notices = page.getByRole('alert').filter({ hasText: 'Изменено с учебного плана:' });
-      if (actor === 'teacher3' || section === 'disciplinePlace') await expect(notices).toHaveCount(0);
+      if (actor === 'teacher3' || switchToTeacher || section === 'disciplinePlace') await expect(notices).toHaveCount(0);
       else await expect(notices).toContainText('ЗЕТ');
     }
-    await page.getByRole('button', { name: 'Открыть меню аккаунта', exact: true }).click();
-    await page.getByRole('menuitem', { name: 'Выйти', exact: true }).click();
-    await expect(page).toHaveURL(/\/sign-in$/);
-  }
-  await signIn(page, 'rop');
-  await page.getByRole('button', { name: 'Открыть меню аккаунта', exact: true }).click();
-  await page.getByRole('menuitem', { name: 'Преподаватель', exact: true }).click();
-  for (const section of ['disciplineScope', 'disciplinePlace']) {
-    await page.goto(`/templates/107/${section}`);
-    await expect(page.getByRole('main').getByText(section === 'disciplineScope' ? 'Объем дисциплины' : 'Место дисциплины в структуре ОПОП', { exact: true })).toBeVisible();
-    await expect(page.getByRole('alert').filter({ hasText: 'Изменено с учебного плана:' })).toHaveCount(0);
-  }
-});
+  });
+}
 
 test('маршрут подтверждения изменений удалён', async ({ request }) => {
   const headers = await headersFor(request);

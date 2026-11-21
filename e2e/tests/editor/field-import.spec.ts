@@ -204,19 +204,19 @@ for (const role of ['rop', 'teacher'] as const) {
   });
 }
 
-test('field: полный preview, все назначенные названия, год сбрасывает выбор и preview', async ({ page }) => {
-  test.slow();
-  await signIn(page, 'teacher');
-  await page.goto('/templates/d400d400d400/aimsPage');
-  for (const [section, index, title, kind] of [
-    ['Цели и задачи освоения дисциплины', 0, 'Цели и задачи', 'text'],
-    ['Ресурсное обеспечение', 0, 'Основная литература', 'books'],
-    ['Содержание дисциплины', 0, 'Содержание дисциплины', 'content'],
-    ['Ресурсное обеспечение', 3, 'Программное обеспечение', 'empty'],
-  ] as const) {
-    await page.getByRole('button', { name: section, exact: true }).click();
-    await page.getByRole('button', { name: 'Импортировать поле', exact: true }).nth(index).click();
+for (const [section, index, title, kind] of [
+  ['aimsPage', 0, 'Цели и задачи', 'text'],
+  ['resourceSupport', 0, 'Основная литература', 'books'],
+  ['disciplineContent', 0, 'Содержание дисциплины', 'content'],
+  ['resourceSupport', 3, 'Программное обеспечение', 'empty'],
+] as const) {
+  test(`field: ${title}, полный preview и сброс выбора при смене года`, async ({ page }) => {
+    await page.setViewportSize({ width: 1365, height: 900 });
+    await signIn(page, 'teacher');
+    await page.goto(`/templates/d400d400d400/${section}`);
+    await page.getByRole('main').getByRole('button', { name: 'Импортировать поле', exact: true }).nth(index).click();
     const dialog = page.getByRole('dialog', { name: `Импортировать: ${title}`, exact: true });
+    await expect(dialog).toBeVisible();
     await dialog.getByRole('searchbox', { name: 'Поиск источников' }).fill('UI');
     await expect(dialog.getByRole('radio')).toHaveCount(3); // 4010, 4020, другое имя 4030; чужие назначения и уровень исключены.
     await expect(dialog.getByRole('checkbox')).toHaveCount(0);
@@ -324,9 +324,8 @@ test('field: полный preview, все назначенные названи�
     await expect(dialog.getByRole('radio')).toHaveAccessibleName(/UI цель.*2024/);
     await expect(dialog.getByRole('button', { name: 'Продолжить' })).toBeDisabled();
     await dialog.getByRole('button', { name: 'Отмена' }).click();
-    await page.setViewportSize({ width: 1365, height: 900 });
-  }
-});
+  });
+}
 
 test('field: задержанный preview предыдущей строки не подменяет просмотр нового источника', async ({ page }) => {
   await signIn(page, 'teacher');
