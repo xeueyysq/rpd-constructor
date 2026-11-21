@@ -25,6 +25,7 @@ test('фильтр роли оставляет преподавателей, в�
 
 test('сортировка ФИО меняет порядок', async ({ page }) => {
   await openUsers(page);
+  await filterColumn(page, 'ФИО', 'Тест Тестов');
   const header = page.getByRole('columnheader', { name: /ФИО/ });
   await header.getByRole('button', { name: 'Действие колонки' }).click();
   await page.getByRole('menuitem', { name: 'Сортировать ФИО по возрастанию' }).click();
