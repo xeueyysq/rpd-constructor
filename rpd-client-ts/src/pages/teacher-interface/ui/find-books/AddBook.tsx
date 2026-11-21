@@ -1,5 +1,6 @@
 import { ChangeEvent, FC, useState } from "react";
 import {
+  Alert,
   Box,
   Button,
   Dialog,
@@ -18,8 +19,8 @@ import { useStore } from "@shared/hooks";
 import { useUpdateTemplateField } from "@entities/template";
 import {
   bookSearchError,
+  bookSourceLabels,
   useFindBooks,
-  type BookSource,
 } from "../../api/findBooks";
 import { addBooks } from "../../lib/bookList";
 import { BooksMetaList } from "./BooksMetaList.tsx";
@@ -35,11 +36,13 @@ interface AddBook {
 const AddBook: FC<AddBook> = ({ elementName }) => {
   const [open, setOpen] = useState<boolean>(false);
   const [bookName, setBookName] = useState("");
-  const [source, setSource] = useState<BookSource | "">("");
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [manualInput, setManualInput] = useState<string>("");
   const findBooks = useFindBooks();
   const booksData = findBooks.data?.books;
+  const unavailableCatalogs = findBooks.data?.unavailableSources
+    ?.map((source) => bookSourceLabels[source])
+    .join(", ");
 
   const elementValue = useStore((state) => state.jsonData[elementName]) as
     string[] | undefined;
@@ -76,7 +79,7 @@ const AddBook: FC<AddBook> = ({ elementName }) => {
       return;
     }
     setErrorMessage(null);
-    findBooks.mutate({ bookName: query, ...(source ? { source } : {}) });
+    findBooks.mutate({ bookName: query });
   };
 
   const handleAddBooksToList = (biblios: string[]) => {
@@ -112,7 +115,7 @@ const AddBook: FC<AddBook> = ({ elementName }) => {
           onClick={handleOpenDialog}
           endIcon={<SearchIcon />}
         >
-          Найти книги в библиотечной системе
+          Найти книги в каталогах
         </Button>
         <ExportFromTemplates elementName={elementName} />
       </Box>
@@ -171,28 +174,9 @@ const AddBook: FC<AddBook> = ({ elementName }) => {
         maxWidth={findBooks.isSuccess && booksData?.length ? "xl" : "sm"}
         onClose={handleCloseDialog}
       >
-        <DialogTitle>Поиск книг в библиотечной системе</DialogTitle>
+        <DialogTitle>Поиск книг в каталогах</DialogTitle>
         <DialogContent>
           <Box>
-            <TextField
-              select
-              fullWidth
-              size="small"
-              margin="dense"
-              label="Каталог"
-              value={source}
-              slotProps={{ select: { native: true } }}
-              onChange={(event) => {
-                setSource(event.target.value as BookSource);
-                setBookName("");
-                setErrorMessage(null);
-                findBooks.reset();
-              }}
-            >
-              <option value="">Библиотека университета</option>
-              <option value="lan">Лань</option>
-              <option value="urait">Юрайт</option>
-            </TextField>
             <TextField
               autoFocus
               margin="dense"
@@ -225,7 +209,9 @@ const AddBook: FC<AddBook> = ({ elementName }) => {
                     ? bookSearchError(findBooks.error)
                     : null) ??
                   (findBooks.isSuccess && booksData?.length === 0
-                    ? "По вашему запросу ничего не найдено"
+                    ? unavailableCatalogs
+                      ? "В доступных каталогах ничего не найдено"
+                      : "По вашему запросу ничего не найдено"
                     : null))
                 )
               }
@@ -250,11 +236,15 @@ const AddBook: FC<AddBook> = ({ elementName }) => {
               <Divider sx={{ mt: 1.5 }} />
             ) : null}
           </Box>
+          {unavailableCatalogs && (
+            <Alert severity="warning" sx={{ mt: 2 }}>
+              Поиск недоступен в следующих каталогах: {unavailableCatalogs}.
+            </Alert>
+          )}
           {findBooks.isSuccess && findBooks.data.truncated && (
             <Box sx={{ pt: 2 }}>
-              {source === "lan"
-                ? "Показаны не все найденные записи. Уточните название или добавьте автора."
-                : "Показаны не все найденные записи. Уточните запрос: добавьте автора или год издания."}
+              Показаны не все найденные записи. Уточните запрос: добавьте автора
+              или год издания.
             </Box>
           )}
           {findBooks.isSuccess && booksData && booksData.length > 0 && (

@@ -60,7 +60,7 @@ function normalizeEbsBook(raw: unknown, source: EbsSource): Book {
     : `${title}${author ? ` / ${author}` : ""}${publication ? ` — ${publication}.` : "."}${isbn ? ` — ISBN ${isbn}.` : ""}`;
   if (!biblio) throw new Error("Missing bibliography");
   return {
-    id: `${source}:${rawId}`, title, author, year, biblio,
+    id: `${source}:${rawId}`, source, title, author, year, biblio,
     url: safeUrl(item.url, source), thumb: safeUrl(source === "lan" ? item.thumb : item.image, source),
   };
 }
@@ -77,7 +77,8 @@ async function request(get: BookRequest, url: string, params: Record<string, str
 }
 
 async function loadLan(token: string, get: BookRequest): Promise<Book[]> {
-  const signal = AbortSignal.timeout(60_000);
+  // Оставляем запас до 60-секундного таймаута прокси для ответа общего поиска.
+  const signal = AbortSignal.timeout(50_000);
   const books: Book[] = [];
   const ids = new Set<string>();
   let total: number | undefined;

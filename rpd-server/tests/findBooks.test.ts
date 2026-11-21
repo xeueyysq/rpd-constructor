@@ -18,7 +18,7 @@ import {
 } from "../app/modules/findBooks.ts";
 
 const book = (id: string, title: string, year: number | null, author: string | null = null): Book => ({
-  id, title, author, year, url: null, thumb: null, biblio: id,
+  id, source: "megapro", title, author, year, url: null, thumb: null, biblio: id,
 });
 
 test("запрос кодирует спецсимволы и задаёт параметры MegaPro и таймаут", async () => {
@@ -28,8 +28,8 @@ test("запрос кодирует спецсимволы и задаёт па�
     return { data: [] };
   };
 
-  await searchBooks("C++", get);
-  await searchBooks("R&D", get);
+  await searchBooks("C++", get, "megapro");
+  await searchBooks("R&D", get, "megapro");
 
   assert.match(requests[0].url, /[?&]query=C%2B%2B(?:&|$)/);
   assert.match(requests[1].url, /[?&]query=R%26D(?:&|$)/);
@@ -58,12 +58,12 @@ test("нормализация извлекает год, автора, ссыл
     url: "http://lib.uni-dubna.ru/MegaPRO/UserEntry/1", thumb: "http://lib.uni-dubna.ru/MegaPRO/DownLoad/1",
   });
   assert.deepEqual(first, {
-    id: "https://lib.uni-dubna.ru/MegaPRO/UserEntry/1", title: "Название", author: "Автор", year: 2003,
+    id: "https://lib.uni-dubna.ru/MegaPRO/UserEntry/1", source: "megapro", title: "Название", author: "Автор", year: 2003,
     url: "https://lib.uni-dubna.ru/MegaPRO/UserEntry/1", thumb: "https://lib.uni-dubna.ru/MegaPRO/DownLoad/1", biblio: "Описание",
   });
   assert.equal(normalizeBook({ biblio: "Издание", published: "Москва, 1999" })?.year, 1999);
   assert.deepEqual(normalizeBook({ biblio: "Без автора" }), {
-    id: "Без автора", title: "", author: null, year: null, url: null, thumb: null, biblio: "Без автора",
+    id: "Без автора", source: "megapro", title: "", author: null, year: null, url: null, thumb: null, biblio: "Без автора",
   });
   assert.equal(normalizeBook(null), null);
   assert.equal(normalizeBook([]), null);
@@ -76,7 +76,7 @@ test("дубликаты описания схлопываются, разные
     { title: "Алгоритмы", published: "2004", biblio: "елка : алгоритмы — 2004" },
     { title: "Алгоритмы", published: "2010", biblio: "Елка : алгоритмы — 2010" },
   ];
-  const result = await searchBooks("алгоритмы", async () => ({ data }));
+  const result = await searchBooks("алгоритмы", async () => ({ data }), "megapro");
   assert.equal(result.books.length, 2);
   assert.deepEqual(result.books.map(({ year }) => year), [2010, 2004]);
 });
@@ -90,13 +90,14 @@ test("ранжирование учитывает все слова, загла�
 
   assert.deepEqual(rankBooks(source, "математический анализ").map(({ id }) => id), ["recent", "old", "partial", "keywords"]);
   assert.deepEqual(rankBooks([recent, { ...old, author: "Фихтенгольц" }], "Фихтенгольц математический анализ").map(({ id }) => id), ["old", "recent"]);
+  assert.deepEqual(rankBooks([recent, old], "математический анализ 1933").map(({ id }) => id), ["old", "recent"]);
   assert.deepEqual(rankBooks([book("first", "C++", null), book("second", "C++", null)], "C++").map(({ id }) => id), ["first", "second"]);
 });
 
 test("признак усечения считается до удаления дубликатов", async () => {
   const raw = Array.from({ length: 100 }, () => ({ biblio: "Одна книга" }));
-  const full = await searchBooks("книга", async () => ({ data: raw }));
-  const shorter = await searchBooks("книга", async () => ({ data: raw.slice(0, 99) }));
+  const full = await searchBooks("книга", async () => ({ data: raw }), "megapro");
+  const shorter = await searchBooks("книга", async () => ({ data: raw.slice(0, 99) }), "megapro");
   assert.equal(full.truncated, true);
   assert.equal(full.books.length, 1);
   assert.equal(shorter.truncated, false);
@@ -108,12 +109,12 @@ test("ошибки каталога дают 502 без передачи его 
   const unavailable = { status: 502, error: "Каталог библиотеки недоступен. Попробуйте позже." };
   const timedOut = { status: 502, error: "Каталог библиотеки не ответил вовремя. Уточните запрос или попробуйте позже." };
 
-  await assert.rejects(searchBooks("книга", async () => ({ data: { ErrorMessage: "Секретная ошибка" } })), unavailable);
+  await assert.rejects(searchBooks("книга", async () => ({ data: { ErrorMessage: "Секретная ошибка" } }), "megapro"), unavailable);
   assert.deepEqual(logs[0], ["Ошибка каталога MegaPro:", "Секретная ошибка"]);
-  await assert.rejects(searchBooks("книга", async () => ({ data: "не массив" })), unavailable);
-  await assert.rejects(searchBooks("книга", async () => { throw { code: "ECONNABORTED" }; }), timedOut);
-  await assert.rejects(searchBooks("книга", async () => { throw { code: "ETIMEDOUT" }; }), timedOut);
-  await assert.rejects(searchBooks("книга", async () => { throw new Error("Сеть недоступна"); }), unavailable);
+  await assert.rejects(searchBooks("книга", async () => ({ data: "не массив" }), "megapro"), unavailable);
+  await assert.rejects(searchBooks("книга", async () => { throw { code: "ECONNABORTED" }; }, "megapro"), timedOut);
+  await assert.rejects(searchBooks("книга", async () => { throw { code: "ETIMEDOUT" }; }, "megapro"), timedOut);
+  await assert.rejects(searchBooks("книга", async () => { throw new Error("Сеть недоступна"); }, "megapro"), unavailable);
   assert.deepEqual(logs.slice(1), [
     ["Ошибка запроса к MegaPro:", { code: "ECONNABORTED" }],
     ["Ошибка запроса к MegaPro:", { code: "ETIMEDOUT" }],
@@ -175,7 +176,7 @@ test("Лань: общий count, поиск за первой странице�
   assert.deepEqual(result.books.map(({ id }) => id), ["lan:3", "lan:2"]);
   assert.equal(result.truncated, false);
   assert.deepEqual(result.books[0], {
-    id: "lan:3", title: "Ёлка", author: "Иванов И. И.", year: 2026, url: null, thumb: null,
+    id: "lan:3", source: "lan", title: "Ёлка", author: "Иванов И. И.", year: 2026, url: null, thumb: null,
     biblio: "Ёлка & лес. Иванов 2026.",
   });
   assert.equal(result.books[1].url, "https://e.lanbook.com/book/2");
@@ -238,7 +239,7 @@ test("Юрайт: официальный подписанный GET, total, пр
   }, "urait");
   assert.equal(result.truncated, true);
   assert.deepEqual(result.books[0], {
-    id: "urait:37F6EAD7-6F14-4091-86E8-DC837162AE98", title: "Лесное право", author: "Быковский В. К.", year: 2021,
+    id: "urait:37F6EAD7-6F14-4091-86E8-DC837162AE98", source: "urait", title: "Лесное право", author: "Быковский В. К.", year: 2021,
     url: uraitBook.url, thumb: uraitBook.image,
     biblio: "Лесное право / Быковский В. К. — М.:Издательство Юрайт, 2021. — ISBN 978-5-534-15110-7.",
   });
@@ -311,15 +312,20 @@ function searchRequest(app: express.Express, body: unknown, role?: number): Prom
   });
 }
 
-test("поиск HTTP: JWT/роли, allowlist, отсутствие ключей и прежний default MegaPro", async (t) => {
-  clearEbsCredentials();
-  process.env.ACCESS_TOKEN_SECRET = "fixture-search-auth";
-  t.after(() => { clearEbsCredentials(); delete process.env.ACCESS_TOKEN_SECRET; });
-  const upstream = t.mock.method(axios, "get", async () => ({ data: [{ biblio: "Прежняя книга" }] }));
+function searchApp() {
   const app = express();
   app.use(express.json());
   app.use("/api", router);
   app.use(((error, _req, res, next) => { void next; res.status(error.status ?? 500).json(error); }) as ErrorRequestHandler);
+  return app;
+}
+
+test("поиск HTTP: JWT/роли, allowlist, отсутствие ключей и запрос отдельного каталога", async (t) => {
+  clearEbsCredentials();
+  process.env.ACCESS_TOKEN_SECRET = "fixture-search-auth";
+  t.after(() => { clearEbsCredentials(); delete process.env.ACCESS_TOKEN_SECRET; });
+  const upstream = t.mock.method(axios, "get", async () => ({ data: [{ biblio: "Прежняя книга" }] }));
+  const app = searchApp();
   for (const source of [undefined, "lan", "urait"] as const) {
     assert.equal((await searchRequest(app, { bookName: "книга", source })).status, 401);
     assert.equal((await searchRequest(app, { bookName: "книга", source }, 99)).status, 403);
@@ -339,11 +345,9 @@ test("поиск HTTP: JWT/роли, allowlist, отсутствие ключе�
   assert.equal((await searchRequest(app, { bookName: "книга", source: "urait" }, 2)).status, 502);
   assert.equal(upstream.mock.callCount(), 0, "авторизация, allowlist и ключи проверяются до сети");
   for (const role of [1, 2, 3]) {
-    for (const source of [undefined, "megapro"]) {
-      const response = await searchRequest(app, { bookName: "книга", source }, role);
-      assert.equal(response.status, 200);
-      assert.deepEqual(response.body, { books: [{ id: "Прежняя книга", title: "", author: null, year: null, url: null, thumb: null, biblio: "Прежняя книга" }], truncated: false });
-    }
+    const response = await searchRequest(app, { bookName: "книга", source: "megapro" }, role);
+    assert.equal(response.status, 200);
+    assert.deepEqual(response.body, { books: [{ id: "Прежняя книга", source: "megapro", title: "", author: null, year: null, url: null, thumb: null, biblio: "Прежняя книга" }], truncated: false });
   }
   process.env.EBS_LAN_TOKEN = "fixture-http-lan";
   process.env.EBS_URAIT_PARTNER_ID = "fixture-http-partner";
@@ -357,4 +361,59 @@ test("поиск HTTP: JWT/роли, allowlist, отсутствие ключе�
     assert.equal(response.status, 200);
     assert.equal((response.body as { books: Book[] }).books[0].id, source === "lan" ? "lan:1" : `urait:${uraitBook.content_id}`);
   }
+});
+
+test("общий поиск HTTP ранжирует источники вместе до лимита и сохраняет ссылки разных каталогов", async (t) => {
+  process.env.ACCESS_TOKEN_SECRET = "fixture-search-auth";
+  process.env.EBS_LAN_TOKEN = "fixture-unified-lan";
+  process.env.EBS_URAIT_PARTNER_ID = "fixture-unified-partner";
+  process.env.EBS_URAIT_API_KEY = "fixture-unified-api-key";
+  t.after(() => { clearEbsCredentials(); delete process.env.ACCESS_TOKEN_SECRET; });
+  const sameEdition = lanBook(1, "Лесное право", 2019);
+  const megaUrl = "https://lib.uni-dubna.ru/MegaPRO/UserEntry/1";
+  t.mock.method(axios, "get", async (url: string) => {
+    switch (new URL(url).hostname) {
+      case "openapi.e.lanbook.com":
+        return { data: { status: 200, count: 2, data: [sameEdition, lanBook(2, "Лесное право", 2020)] } };
+      case "urait.ru":
+        return { data: { status: "success", total: 1, contents: [uraitBook] } };
+      case "lib.uni-dubna.ru":
+        return { data: [
+          { title: sameEdition.name, published: "2019", biblio: sameEdition.bibliographicRecord, url: megaUrl },
+          ...Array.from({ length: 98 }, (_, index) => ({ title: `Лесное право. Практикум ${index}`, published: "2025", biblio: `Практикум ${index}` })),
+        ] };
+      default: throw new Error("Unexpected fixture URL");
+    }
+  });
+  const response = await searchRequest(searchApp(), { bookName: "Лесное право" }, 2);
+  assert.equal(response.status, 200);
+  const { books, truncated, unavailableSources } = response.body as { books: Book[]; truncated: boolean; unavailableSources?: BookSource[] };
+  assert.deepEqual(books.slice(0, 4).map(({ source, url }) => [source, url]), [
+    ["urait", uraitBook.url], ["lan", "https://e.lanbook.com/book/2"], ["megapro", megaUrl], ["lan", sameEdition.url],
+  ]);
+  assert.equal(books.length, 100);
+  assert.equal(truncated, true);
+  assert.equal(unavailableSources, undefined);
+});
+
+test("общий поиск HTTP возвращает доступные результаты при частичном отказе и 502 при полном", async (t) => {
+  clearEbsCredentials();
+  process.env.ACCESS_TOKEN_SECRET = "fixture-search-auth";
+  process.env.EBS_LAN_TOKEN = "fixture-unified-failing-lan";
+  t.after(() => { clearEbsCredentials(); delete process.env.ACCESS_TOKEN_SECRET; });
+  const app = searchApp();
+  t.mock.method(console, "error", () => {});
+  const upstream = t.mock.method(axios, "get", async (url: string) => {
+    if (new URL(url).hostname === "openapi.e.lanbook.com") throw new Error("Fixture unavailable");
+    return { data: [{ biblio: "Доступная книга" }] };
+  });
+  const request = { bookName: "книга" };
+  const partial = await searchRequest(app, request, 2);
+  assert.equal(partial.status, 200);
+  const response = partial.body as { books: Book[]; unavailableSources: BookSource[] };
+  assert.deepEqual(response.books.map(({ source, biblio }) => [source, biblio]), [["megapro", "Доступная книга"]]);
+  assert.deepEqual(response.unavailableSources, ["lan", "urait"]);
+
+  upstream.mock.mockImplementation(async () => { throw new Error("Fixture unavailable"); });
+  assert.equal((await searchRequest(app, request, 2)).status, 502);
 });
