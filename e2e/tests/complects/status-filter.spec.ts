@@ -2,18 +2,6 @@ import { expect, test, type Page } from '@playwright/test';
 import { apiUrl, disciplines, filterColumn, openComplect, showAllRows, signIn, teacherStatusCell } from '../helpers';
 import { openRowMenu } from '../teacherAssignments';
 
-// Колонка «Действия» по ширине содержимого: заголовок виден целиком, без ⋮, ячейка узкая.
-async function expectActionsColumnFitsContent(page: Page) {
-  const header = page.getByRole('columnheader', { name: /^Действия/ });
-  await expect(header).toBeVisible();
-  expect((await header.boundingBox())!.width).toBeLessThanOrEqual(140);
-  await expect(header.getByRole('button')).toHaveCount(0);
-  const label = await header.getByText('Действия', { exact: true }).evaluate((element) => ({
-    scrollWidth: element.scrollWidth, clientWidth: element.clientWidth,
-  }));
-  expect(label.scrollWidth).toBeLessThanOrEqual(label.clientWidth);
-}
-
 test('фильтр статуса в комплекте', async ({ page }) => {
   await signIn(page, 'admin');
   await openComplect(page);
@@ -128,7 +116,7 @@ test.describe('история шаблона', () => {
 test('фильтр статуса у преподавателя', async ({ page }) => {
   await signIn(page, 'teacher');
   await expect(page.getByRole('row').filter({ hasText: disciplines.ready })).toBeVisible();
-  await expectActionsColumnFitsContent(page);
+  await expect(page.getByRole('columnheader', { name: /^Действия/ })).toHaveCount(0);
   await filterColumn(page, 'Статус', 'В работе');
   const row = page.getByRole('row').filter({ hasText: disciplines.inProgress });
   await expect(row).toBeVisible();

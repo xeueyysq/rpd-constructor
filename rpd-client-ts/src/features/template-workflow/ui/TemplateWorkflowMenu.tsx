@@ -1,10 +1,8 @@
 import HistoryIcon from "@mui/icons-material/History";
-import MoreHorizIcon from "@mui/icons-material/MoreHoriz";
 import OpenInBrowserIcon from "@mui/icons-material/OpenInBrowser";
 import FileDownloadOutlinedIcon from "@mui/icons-material/FileDownloadOutlined";
-import { IconButton, ListItemIcon, Menu, MenuItem } from "@mui/material";
+import { ListItemIcon, Menu, MenuItem } from "@mui/material";
 import type { WorkflowAction } from "@entities/template";
-import { useId, useState } from "react";
 import { useTemplateWorkflowController } from "../model/useTemplateWorkflowController";
 import { WorkflowActionIcon } from "./WorkflowActionIcon";
 
@@ -12,6 +10,8 @@ export function TemplateWorkflowMenu({
   onOpen,
   onOpenHistory,
   onImport,
+  position,
+  onClose,
   ...workflow
 }: {
   templateId: number;
@@ -19,29 +19,18 @@ export function TemplateWorkflowMenu({
   onOpen: () => void;
   onOpenHistory: () => void;
   onImport?: () => void;
+  position: { top: number; left: number } | null;
+  onClose: () => void;
   onChanged?: () => void | Promise<void>;
 }) {
   const controller = useTemplateWorkflowController(workflow);
-  const menuId = useId();
-  const [anchorEl, setAnchorEl] = useState<HTMLButtonElement | null>(null);
-  const close = () => setAnchorEl(null);
+  const close = onClose;
   return (
     <>
-      <IconButton
-        size="small"
-        aria-label="Меню шаблона"
-        aria-haspopup="menu"
-        aria-controls={anchorEl ? menuId : undefined}
-        aria-expanded={Boolean(anchorEl)}
-        disabled={controller.isPending}
-        onClick={(event) => setAnchorEl(event.currentTarget)}
-      >
-        <MoreHorizIcon />
-      </IconButton>
       <Menu
-        id={menuId}
-        anchorEl={anchorEl}
-        open={Boolean(anchorEl)}
+        anchorReference="anchorPosition"
+        anchorPosition={position ?? undefined}
+        open={Boolean(position)}
         onClose={close}
       >
         <MenuItem

@@ -5,7 +5,7 @@ type ContextTarget = {
   position: { top: number; left: number } | null;
 };
 
-export function useComplectContextMenu() {
+export function useRowContextMenu() {
   const [target, setTarget] = useState<ContextTarget | null>(null);
   const timer = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
   const start = useRef<{ x: number; y: number } | null>(null);

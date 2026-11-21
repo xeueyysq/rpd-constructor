@@ -250,13 +250,12 @@ test('снимки инструкции на синтетических данн
     const teacherPage = await teacherContext.newPage();
     await signIn(teacherPage, 'teacher');
     const templateRow = teacherPage.getByRole('row').filter({ hasText: 'Совместное редактирование для теста' });
-    // Таблица шире окна: прокручиваем к колонке «Действия», чтобы в кадре были статус с отметкой и меню «…».
-    const menuButton = templateRow.getByRole('button', { name: 'Меню шаблона', exact: true });
-    await menuButton.scrollIntoViewIfNeeded();
+    const disciplineLink = templateRow.getByRole('link');
+    await disciplineLink.scrollIntoViewIfNeeded();
     await teacherPage.mouse.move(0, 0);
     await save(teacherPage, 'teacher-templates', [
       { target: teacherStatusCell(templateRow).getByRole('button'), label: 'Статус и моя отметка' },
-      { target: menuButton, label: 'Меню шаблона' },
+      { target: disciplineLink, label: 'Открыть РПД' },
     ]);
     await openTemplateFromTeacherList(teacherPage, templateRow);
     const aims = teacherPage.getByRole('button', { name: 'Цели и задачи освоения дисциплины' });

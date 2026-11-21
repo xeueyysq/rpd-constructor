@@ -20,10 +20,9 @@ import { useRpdComplectsQuery } from "@entities/rpd-complect";
 import { UserRole } from "@shared/ability";
 import { getSessionGeneration } from "@shared/api";
 import { setDiagnosticEntity } from "@shared/diagnostics";
-import { useStore } from "@shared/hooks";
+import { useRowContextMenu, useStore } from "@shared/hooks";
 import { ComplectCompetenciesDialog } from "@features/complect-competencies";
 import TemplateMenu from "./TemplateMenu";
-import { useComplectContextMenu } from "../hooks/useComplectContextMenu";
 
 export function RpdComplectPage() {
   const { id: complectId } = useParams();
@@ -37,7 +36,7 @@ export function RpdComplectPage() {
   const [openBuildFunds, setOpenBuildFunds] = useState(false);
   const [openImport, setOpenImport] = useState(false);
   const [openCompetencies, setOpenCompetencies] = useState(false);
-  const contextMenu = useComplectContextMenu();
+  const contextMenu = useRowContextMenu();
   const role = useAuth((state) => state.userRole);
   const { complects: ownedComplects } = useRpdComplectsQuery();
   const [teachersExchangeId, setTeachersExchangeId] = useState<number | null>(
